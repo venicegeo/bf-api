@@ -1,0 +1,60 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          -81.5725334896228,
+          -3.29632263428811
+        ],
+        [
+          -79.934112104967,
+          -3.64597257671337
+        ],
+        [
+          -80.3035877737851,
+          -5.38806769101045
+        ],
+        [
+          -81.9453446162527,
+          -5.03306405829352
+        ],
+        [
+          -81.5725334896228,
+          -3.29632263428811
+        ]
+      ]
+    ]
+  },
+  "properties": {
+    "acquiredDate": "2016-08-07T15:33:42.572449+00:00",
+    "bands": {
+      "blue": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B2.TIF",
+      "cirrus": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B9.TIF",
+      "coastal": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B1.TIF",
+      "green": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B3.TIF",
+      "nir": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B5.TIF",
+      "panchromatic": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B8.TIF",
+      "red": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B4.TIF",
+      "swir1": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B6.TIF",
+      "swir2": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B7.TIF",
+      "tirs1": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B10.TIF",
+      "tirs2": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B11.TIF"
+    },
+    "cloudCover": 1.47,
+    "fileFormat": "geotiff",
+    "path": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/index.html",
+    "resolution": 30,
+    "sensorName": "Landsat8",
+    "thumb_large": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_thumb_large.jpg",
+    "thumb_small": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_thumb_small.jpg"
+  },
+  "id": "landsat:LC80110632016220LGN00",
+  "bbox": [
+    -81.9453446162527,
+    -5.38806769101045,
+    -79.934112104967,
+    -3.29632263428811
+  ]
+}
