@@ -12,11 +12,11 @@
 # specific language governing permissions and limitations under the License.
 
 import time
-from flask import Flask, jsonify
-from bfapi import db
+from flask import Flask, jsonify, request
 
-import bfapi.config
-import bfapi.v0
+from bfapi import config, piazza
+from bfapi.middleware import session_validation_filter
+from bfapi import v0
 
 _time_started = time.time()
 
@@ -28,7 +28,7 @@ print('bf-api'.center(80))
 print('~~~~~~'.center(80))
 print()
 for key in ('PZ_GATEWAY', 'CATALOG', 'TIDEPREDICTION'):
-    print('{0:>38} : {1}'.format(key, bfapi.config.__dict__[key]))
+    print('{0:>38} : {1}'.format(key, config.__dict__[key]))
 print()
 print('-' * 80)
 ################################################################################
@@ -39,13 +39,10 @@ print('-' * 80)
 
 server = Flask(__name__)
 
+
 #
 # Attach Routing
 #
-
-
-## TODO -- auth filtering
-## TODO -- find way to pass credentials to instance
 
 # Metrics/Health Check
 @server.route('/')
@@ -54,4 +51,13 @@ def hello():
     return jsonify(uptime=uptime)
 
 
-server.register_blueprint(bfapi.v0.blueprint, url_prefix='/v0')
+@server.route('/login')
+def login():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return 'Authorization header is missing', 401
+    return jsonify(token=piazza.create_session_token(auth_header))
+
+
+v0.blueprint.before_request(session_validation_filter)
+server.register_blueprint(v0.blueprint, url_prefix='/v0')
