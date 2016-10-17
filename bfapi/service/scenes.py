@@ -28,16 +28,16 @@ from bfapi.config import CATALOG
 class Scene:
     def __init__(
             self,
-            acquired_date: datetime,
             bands: dict,
+            capture_date: datetime,
             cloud_cover: float,
             geometry: dict,
             resolution: int,
             scene_id: str,
             sensor_name: str,
             uri: str):
-        self.acquired_date = acquired_date
         self.bands = bands
+        self.capture_date = capture_date
         self.cloud_cover = cloud_cover
         self.id = scene_id
         self.geometry = geometry
@@ -62,7 +62,7 @@ def fetch(scene_id: str) -> Scene:
         return Scene(
             scene_id=scene_id,
             uri=scene_uri,
-            acquired_date=_extract_acquired_date(scene_id, feature),
+            capture_date=_extract_capture_date(scene_id, feature),
             bands=_extract_bands(scene_id, feature),
             cloud_cover=_extract_cloud_cover(scene_id, feature),
             geometry=_extract_geometry(scene_id, feature),
@@ -78,7 +78,7 @@ def fetch(scene_id: str) -> Scene:
 # Helpers
 #
 
-def _extract_acquired_date(scene_id: str, feature: dict) -> datetime:
+def _extract_capture_date(scene_id: str, feature: dict) -> datetime:
     value = feature['properties'].get('acquiredDate')
     if value is None:
         raise ValidationError(scene_id, 'missing `acquiredDate`')

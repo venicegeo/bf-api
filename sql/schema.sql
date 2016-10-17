@@ -21,7 +21,7 @@ DROP TABLE IF EXISTS scene;
 
 CREATE TABLE scene (
     scene_id          VARCHAR(32)    PRIMARY KEY,
-    acquired_on       TIMESTAMP      NOT NULL,
+    captured_on       TIMESTAMP      NOT NULL,
     cloud_cover       FLOAT          NOT NULL,
     geometry          VARCHAR(4000)  NOT NULL,
     resolution        INTEGER        NOT NULL,

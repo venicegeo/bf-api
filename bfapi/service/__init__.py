@@ -10,18 +10,3 @@
 # under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
-
-from flask import Blueprint, g, jsonify, request
-
-from bfapi.service import jobs
-
-blueprint = Blueprint('v0', __name__)
-
-@blueprint.route('/job')
-def list_jobs():
-    return jsonify(jobs=jobs.list_all(user_id=g.username))
-
-
-@blueprint.route('/productline')
-def list_productlines():
-    return jsonify(productLines=[])
