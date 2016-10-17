@@ -15,7 +15,7 @@ from logging import getLogger
 
 from flask import g, request
 
-from . import piazza
+from bfapi import piazza
 
 
 def session_validation_filter() -> None:

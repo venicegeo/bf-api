@@ -76,19 +76,15 @@ def create_session_token(auth_header: str):
 
 
 def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str:
-    if not data_output:
-        data_output = [
-            {
-                'mimeType': 'application/json',
-                'type': 'text'
-            }
-        ]
     requests.post(PZ_GATEWAY + '/job', {
         'type': 'execute-service',
         'data': {
             'serviceId': service_id,
             'dataInputs': data_inputs,
-            'dataOutput': data_output
+            'dataOutput': data_output or [{
+                'mimeType': 'application/json',
+                'type': 'text'
+            }]
         },
     })
 
