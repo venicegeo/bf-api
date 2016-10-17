@@ -36,6 +36,7 @@ def get_username(session_token: str) -> str:
             json={'uuid': uuid},
             timeout=5,
         )
+        response.raise_for_status()
     except requests.ConnectionError:
         raise AuthError('cannot reach Piazza')
     except requests.HTTPError:
