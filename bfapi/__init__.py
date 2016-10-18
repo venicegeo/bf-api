@@ -11,7 +11,9 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import logging
 import time
+
 from flask import Flask, jsonify, request
 
 from bfapi import config, piazza
@@ -38,15 +40,15 @@ print('-' * 80)
 #
 
 server = Flask(__name__)
+log = logging.getLogger(__name__)
 
 
 #
 # Attach Routing
 #
 
-# Metrics/Health Check
 @server.route('/')
-def hello():
+def health_check():
     uptime = round(time.time() - _time_started, 3)
     return jsonify(uptime=uptime)
 
@@ -56,7 +58,14 @@ def login():
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return 'Authorization header is missing', 401
-    return jsonify(token=piazza.create_session_token(auth_header))
+    try:
+        token = piazza.create_session(auth_header)
+    except piazza.AuthenticationError as err:
+        return err.message, 401
+    except piazza.Error as err:
+        log.error('Cannot log in: %s', err)
+        return 'A Piazza error prevents login', 500
+    return jsonify(token=token)
 
 
 v0.blueprint.before_request(session_validation_filter)

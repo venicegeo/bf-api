@@ -21,13 +21,13 @@ from bfapi.config import PZ_GATEWAY
 
 def get_username(session_token: str) -> str:
     if not re.match(r'^Basic \S+$', session_token):
-        raise AuthError('unsupported auth token')
+        raise AuthenticationError('unsupported auth token')
 
     # Extract the UUID
     try:
         uuid = base64.decodebytes(session_token[6:].encode()).decode()[:-1]  # Drop trailing ':'
     except Exception as err:
-        raise AuthError('could not parse auth token', err)
+        raise AuthenticationError('could not parse auth token', err)
 
     # Verify with Piazza IDAM
     try:
@@ -38,9 +38,9 @@ def get_username(session_token: str) -> str:
         )
         response.raise_for_status()
     except requests.ConnectionError:
-        raise AuthError('cannot reach Piazza')
-    except requests.HTTPError:
-        raise AuthError('upstream server error')
+        raise AuthenticationError('cannot reach Piazza')
+    except requests.HTTPError as err:
+        raise ServerError(err.response.status_code)
 
     # Validate the response
     auth = response.json()
@@ -49,29 +49,32 @@ def get_username(session_token: str) -> str:
 
     username = auth.get('username')
     if not username:
-        raise InvalidResponseError(response.text, 'missing username')
+        raise InvalidResponse('missing `username`', response.text)
 
     return username
 
 
-def create_session_token(auth_header: str):
+def create_session(auth_header: str):
     if not re.match(r'^Basic \S+$', auth_header):
-        raise AuthError('unsupported auth header')
+        raise AuthenticationError('unsupported auth header')
 
     try:
         response = requests.get(
             'https://{}/key'.format(PZ_GATEWAY),
             headers={'Authorization': auth_header},
         )
+        response.raise_for_status()
     except requests.ConnectionError:
-        raise AuthError('cannot reach Piazza')
+        raise AuthenticationError('cannot reach Piazza')
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise AuthenticationError('credentials rejected')
+        raise ServerError(status_code)
 
-    if response.status_code == 500:
-        raise AuthError('upstream server failure')
-
-    uuid = response.json().get('uuid', '')
-    if not uuid or response.status_code == 401:
-        raise AuthError('Credentials rejected')
+    uuid = response.json().get('uuid')
+    if not uuid:
+        raise InvalidResponse('missing `uuid`', response.text)
 
     return 'Basic ' + base64.encodebytes((uuid + ':').encode()).decode().strip()
 
@@ -89,21 +92,34 @@ def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str
         },
     })
 
+#
+# Types
+#
 
-class InvalidResponseError(Exception):
-    def __init__(self, contents: str, message: str):
-        super().__init__('InvalidResponseError: ' + message)
-        self.contents = contents
+class Error(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)
         self.message = message
 
 
-class AuthError(Exception):
+class AuthenticationError(Error):
     def __init__(self, message: str, err: Exception = None):
-        super().__init__('AuthError: ' + message)
-        self.message = message
+        super().__init__('Piazza authentication error: ' + message)
         self.original_error = err
 
 
-class SessionExpired(Exception):
+class InvalidResponse(Error):
+    def __init__(self, message: str, response_text: str):
+        super().__init__('Invalid Piazza response: ' + message)
+        self.response_text = response_text
+
+
+class ServerError(Error):
+    def __init__(self, status_code: int):
+        super().__init__('Piazza server error (HTTP {})'.format(status_code))
+        self.status_code = status_code
+
+
+class SessionExpired(Error):
     def __init__(self):
-        super().__init__('SessionExpired')
+        super().__init__('Piazza session expired')

@@ -28,7 +28,10 @@ def session_validation_filter() -> None:
     try:
         g.username = piazza.get_username(session_token)
     except piazza.SessionExpired:
-        return 'Session expired', 401
+        return 'Piazza session has expired', 401
+    except piazza.Error as err:
+        log.error('Cannot validate session: %s', err)
+        return 'A Piazza error prevents session validation', 500
     except Exception as err:
-        log.exception('Cannot authenticate: %s', err)
-        return 'An error is preventing authentication', 500
+        log.exception('Cannot validate session: %s', err)
+        return 'A server error prevents session validation', 500
