@@ -20,6 +20,47 @@ from bfapi.db import DatabaseError
 log = getLogger(__name__)
 
 
+def delete_job_user(
+        conn: Connection,
+        job_id: str,
+        user_id: str) -> bool:
+    query = """
+        DELETE FROM job_user
+        WHERE job_id = :job_id
+              AND user_id = :user_id
+        """
+    params = {
+        'job_id': job_id,
+        'user_id': user_id,
+    }
+    try:
+        log.debug('<%s>')
+        cursor = conn.execute(query, params)
+        return cursor.rowcount > 0
+    except OperationalError as err:
+        log.error('Failed %s', err)
+        _dump_query(query, params)
+        raise DatabaseError(err)
+
+
+def exists(
+        conn: Connection,
+        job_id: str) -> bool:
+    query = """
+        SELECT 1 FROM job WHERE job_id = :job_id
+        """
+    params = {
+        'job_id': job_id,
+    }
+    try:
+        log.debug('<%s>')
+        cursor = conn.execute(query, params)
+        return len(cursor.fetchall()) > 0
+    except OperationalError as err:
+        log.error('Failed %s', err)
+        _dump_query(query, params)
+        raise DatabaseError(err)
+
 
 def insert_job(
         conn: Connection,

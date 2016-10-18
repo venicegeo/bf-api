@@ -141,6 +141,18 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
     )
 
 
+def forget(user_id: str, job_id: str) -> None:
+    conn = get_connection()
+    if not jobs_db.exists(conn, job_id):
+        raise NotExists(job_id)
+    try:
+        jobs_db.delete_job_user(conn, job_id, user_id)
+        conn.commit()
+    except DatabaseError as err:
+        conn.rollback()
+        raise err
+
+
 def get(user_id: str, job_id: str) -> dict:
     conn = get_connection()
     row = jobs_db.select_job(conn, job_id).fetchone()
@@ -276,3 +288,9 @@ class ExecutionError(Exception):
 
     def __str__(self):
         return 'ExecutionError: {}'.format(self.message)
+
+
+class NotExists(Exception):
+    def __init__(self, job_id: str):
+        super().__init__('Job `{}` does not exist'.format(job_id))
+        self.job_id = job_id

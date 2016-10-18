@@ -17,6 +17,16 @@ from bfapi.service import jobs
 
 blueprint = Blueprint('v0', __name__)
 
+
+@blueprint.route('/job/<job_id>', methods=['DELETE'])
+def forget_job(job_id: str):
+    try:
+        jobs.forget(g.username, job_id)
+    except jobs.NotExists:
+        return 'Job {} does not exist'.format(job_id), 404
+    return 'Forgot {}'.format(job_id), 200
+
+
 @blueprint.route('/job')
 def list_jobs():
     feature_collection = jobs.get_all(g.username)

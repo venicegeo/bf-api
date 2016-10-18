@@ -35,9 +35,7 @@ VALUES ('JOB_FIXTURE_01', 'NDWI', '13', 'baziledd', 'D0001', 'FIXTURE_ONE', 'lan
        ('JOB_FIXTURE_06', 'NDWI', '13', 'baziledd', NULL, 'FIXTURE_SIX', 'landsat:LC80070652016272LGN00', 'Error');
 
 INSERT INTO job_user (job_id, user_id)
-VALUES ('JOB_FIXTURE_01', 'baziledd'),
-       ('JOB_FIXTURE_03', 'baziledd'),
-       ('JOB_FIXTURE_04', 'baziledd');
+VALUES ('JOB_FIXTURE_01', 'baziledd');
 
 INSERT INTO job_error (job_id, error_message, execution_step)
 VALUES ('JOB_FIXTURE_04', 'Could not fetch GeoTIFF', 'EXTERNAL:FETCH_GEOTIFF'),
