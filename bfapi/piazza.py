@@ -33,12 +33,14 @@ def get_username(session_token: str) -> str:
     try:
         response = requests.post(
             'https://{}/v2/verification'.format(PZ_GATEWAY.replace('pz-gateway.', 'pz-idam.')),
-            json={'uuid': uuid},
+            json={
+                'uuid': uuid,
+            },
             timeout=5,
         )
         response.raise_for_status()
     except requests.ConnectionError:
-        raise AuthenticationError('cannot reach Piazza')
+        raise AuthenticationError('Piazza is unreachable')
     except requests.HTTPError as err:
         raise ServerError(err.response.status_code)
 
@@ -61,11 +63,13 @@ def create_session(auth_header: str):
     try:
         response = requests.get(
             'https://{}/key'.format(PZ_GATEWAY),
-            headers={'Authorization': auth_header},
+            headers={
+                'Authorization': auth_header,
+            },
         )
         response.raise_for_status()
     except requests.ConnectionError:
-        raise AuthenticationError('cannot reach Piazza')
+        raise AuthenticationError('Piazza is unreachable')
     except requests.HTTPError as err:
         status_code = err.response.status_code
         if status_code == 401:

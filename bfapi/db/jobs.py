@@ -92,7 +92,10 @@ def insert_job(
         raise DatabaseError(err)
 
 
-def insert_job_user(conn: Connection, job_id: str, user_id: str) -> None:
+def insert_job_user(
+        conn: Connection,
+        job_id: str,
+        user_id: str) -> None:
     query = """
         INSERT OR IGNORE INTO job_user (job_id, user_id)
         VALUES (:job_id, :user_id)
@@ -110,7 +113,9 @@ def insert_job_user(conn: Connection, job_id: str, user_id: str) -> None:
         raise DatabaseError(err)
 
 
-def select_job(conn: Connection, job_id: str) -> Cursor:
+def select_job(
+        conn: Connection,
+        job_id: str) -> Cursor:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
@@ -134,7 +139,9 @@ def select_job(conn: Connection, job_id: str) -> Cursor:
         raise DatabaseError(err)
 
 
-def select_jobs_for_user(conn: Connection, user_id: str):
+def select_jobs_for_user(
+        conn: Connection,
+        user_id: str):
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
@@ -158,6 +165,10 @@ def select_jobs_for_user(conn: Connection, user_id: str):
         _dump_query(query, params)
         raise DatabaseError(err)
 
+
+#
+# Helpers
+#
 
 def _dump_query(query: str, params: dict = None):
     print('!' * 80)

@@ -19,7 +19,7 @@ import dateutil.parser
 import requests
 
 from bfapi import piazza
-import bfapi.service.scenes as scenes_service
+from bfapi.service import scenes as scenes_service
 from bfapi.db import jobs as jobs_db, scenes as scenes_db, get_connection, DatabaseError
 
 STATUS_RUNNING = 'Running'
@@ -278,11 +278,15 @@ def _to_feature(
     }
 
 
+#
+# Errors
+#
+
 class ExecutionError(Exception):
     def __init__(self, err: Exception = None, message=None):
         if not message:
             (message,) = err.args
-        super(message)
+        super().__init__(message)
         self.message = message
         self.original_error = err
 
