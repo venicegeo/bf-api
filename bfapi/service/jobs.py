@@ -53,7 +53,6 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
     geotiff_urls = ','.join(geotiff_urls)
     geotiff_filenames = ','.join(geotiff_filenames)
 
-    job_id = None
     try:
         log.info('<scene:%s> dispatch to Piazza', scene_id)
         job_id = piazza.execute(algorithm.service_id, {
@@ -91,14 +90,14 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
             }
         })
     except piazza.InvalidResponseError as err:
-        log.exception('Could not execute via Piazza: %s', err)
+        log.error('Could not execute via Piazza: %s', err)
         raise err
 
     # Record the data
-    db = get_connection()
+    conn = get_connection()
     try:
         scenes_db.insert(
-            db,
+            conn,
             scene_id,
             scene.capture_date,
             scene.uri,
@@ -108,7 +107,7 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
             scene.sensor_name,
         )
         jobs_db.insert_job(
-            db,
+            conn,
             job_id,
             algorithm.name,
             algorithm.version,
@@ -117,13 +116,13 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
             STATUS_RUNNING,
         )
         jobs_db.insert_job_user(
-            db,
+            conn,
             job_id,
             user_id,
         )
-        db.commit()
+        conn.commit()
     except DatabaseError as err:
-        db.rollback()
+        conn.rollback()
         log.exception('Could not save job to database: %s', err)
         raise err
 
@@ -165,11 +164,14 @@ def list_all(user_id: str):
             scene_id=row['scene_id'],
             status=row['status'],
         )
-        print(feature)
         feature_collection['features'].append(feature)
 
     return feature_collection
 
+
+#
+# Helpers
+#
 
 def _fetch_tide_prediction(geometry: dict):
     # centroid = _get_centroid(geometry['coordinates'])
@@ -206,7 +208,7 @@ def _to_feature(
         created_by: str = None,
         created_on: datetime = None,
         detections_id: str = None,
-        geometry: dict = None,
+        geometry: str = None,
         job_id: str = None,
         name: str = None,
         scene_capture_date: datetime = None,

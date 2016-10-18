@@ -16,7 +16,7 @@ from os.path import dirname, join
 import sqlite3
 
 
-def get_connection():
+def get_connection() -> sqlite3.Connection:
     log = getLogger(__name__)
     filepath = join(dirname(dirname(dirname(__file__))), 'temporary.db')
     log.debug('Connecting to database: {}'.format(filepath))
@@ -30,7 +30,7 @@ class DatabaseError(Exception):
     def __init__(self, err: sqlite3.OperationalError, message=None):
         if not message:
             (message,) = err.args
-        super(message)
+        super.__init__(message)
         self.message = message
         self.original_error = err
 

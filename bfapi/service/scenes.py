@@ -70,7 +70,7 @@ def fetch(scene_id: str) -> Scene:
             sensor_name=_extract_sensor_name(scene_id, feature),
         )
     except (requests.ConnectionError, requests.HTTPError) as err:
-        log.exception(err)
+        log.error('Could not fetch scene metadata: %s', err)
         raise FetchError(scene_id)
 
 
