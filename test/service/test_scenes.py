@@ -32,10 +32,10 @@ class SceneFetchTest(unittest.TestCase):
         scene = service.fetch('landsat:LC80110632016220LGN00')
         self.assertIsInstance(scene, service.Scene)
 
-    def test_yields_correct_acquisition_date(self, m: rm.Mocker):
+    def test_yields_correct_capture_date(self, m: rm.Mocker):
         m.get('/image/landsat:LC80110632016220LGN00', json=_generate_scene())
         scene = service.fetch('landsat:LC80110632016220LGN00')
-        self.assertEqual(scene.acquired_date, dateutil.parser.parse('2016-08-07T15:33:42.572449+00:00'))
+        self.assertEqual(scene.capture_date, dateutil.parser.parse('2016-08-07T15:33:42.572449+00:00'))
 
     def test_yields_correct_bands(self, m: rm.Mocker):
         m.get('/image/landsat:LC80110632016220LGN00', json=_generate_scene())
