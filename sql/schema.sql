@@ -47,6 +47,7 @@ CREATE TABLE job_user (
     job_id            VARCHAR(32),  -- on create, automatically fill this
     user_id           VARCHAR(64),
 
+    PRIMARY KEY (job_id, user_id),
     FOREIGN KEY (job_id) REFERENCES job(job_id)
 );
 

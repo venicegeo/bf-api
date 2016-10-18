@@ -19,7 +19,16 @@ blueprint = Blueprint('v0', __name__)
 
 @blueprint.route('/job')
 def list_jobs():
-    return jsonify(jobs=jobs.list_all(user_id=g.username))
+    feature_collection = jobs.get_all(g.username)
+    return jsonify(jobs=feature_collection)
+
+
+@blueprint.route('/job/<job_id>')
+def get_job(job_id: str):
+    feature = jobs.get(g.username, job_id)
+    if not feature:
+        return 'Job not found', 404
+    return jsonify(job=feature)
 
 
 @blueprint.route('/productline')

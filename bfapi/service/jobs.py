@@ -141,7 +141,37 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
     )
 
 
-def list_all(user_id: str):
+def get(user_id: str, job_id: str) -> dict:
+    conn = get_connection()
+    row = jobs_db.select_job(conn, job_id).fetchone()
+    if not row:
+        return
+
+    # Add job to user's tracked jobs list
+    try:
+        jobs_db.insert_job_user(conn, job_id, user_id)
+        conn.commit()
+    except DatabaseError as err:
+        conn.rollback()
+        raise err
+
+    return _to_feature(
+        algorithm_name=row['algorithm_name'],
+        algorithm_version=row['algorithm_version'],
+        created_by=row['created_by'],
+        created_on=dateutil.parser.parse(row['created_on']),
+        detections_id=row['detections_id'],
+        geometry=row['geometry'],
+        job_id=row['job_id'],
+        name=row['name'],
+        scene_capture_date=dateutil.parser.parse(row['scene_capture_date']),
+        scene_sensor_name=row['scene_sensor_name'],
+        scene_id=row['scene_id'],
+        status=row['status'],
+    )
+
+
+def get_all(user_id: str) -> dict:
     conn = get_connection()
     cursor = jobs_db.select_jobs_for_user(conn, user_id)
 
