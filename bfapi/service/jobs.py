@@ -35,7 +35,7 @@ STATUS_TIMED_OUT = 'Timed Out'
 #
 
 def create_job(
-        auth_token: str,
+        session_token: str,
         user_id: str,
         algorithm,
         scene_id: str,
@@ -64,9 +64,9 @@ def create_job(
     # Dispatch to Piazza
     try:
         log.info('<scene:%s> dispatch to Piazza', scene_id)
-        job_id = piazza.execute(auth_token, algorithm.service_id, {
+        job_id = piazza.execute(session_token, algorithm.service_id, {
             'authKey': {
-                'content': auth_token,
+                'content': session_token,
                 'type': 'urlparameter'
             },
             'cmd': {
@@ -98,7 +98,7 @@ def create_job(
                 'type': 'urlparameter'
             }
         })
-    except (piazza.ServerError, piazza.InvalidResponse) as err:
+    except piazza.Error as err:
         log.error('Could not execute via Piazza: %s', err)
         raise err
 
@@ -286,8 +286,11 @@ async def _update_status(
     log = get_logger()
     try:
         status = piazza.get_status(auth_token, job_id)
-    except piazza.AuthenticationError:
+    except piazza.Unauthorized:
         log.error('<%03d/%s> credentials rejected during polling!', index, job_id)
+        return
+    except piazza.Error as err:
+        log.error('<%03d/%s> call to Piazza failed:', index, job_id, err.message)
         return
 
     # Check for expiration

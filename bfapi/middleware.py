@@ -38,9 +38,12 @@ async def create_session_validation_filter(app: Application, handler):
             request['username'] = piazza.get_username(session_token)
         except piazza.SessionExpired:
             return Response(status=401, text='Piazza session has expired')
-        except piazza.Error as err:
+        except piazza.ServerError as err:
             log.error('Cannot validate session: %s', err)
             return Response(status=500, text='A Piazza error prevents session validation')
+        except piazza.MalformedSessionToken as err:
+            log.error('Client passed malformed session token: %s', err)
+            return Response(status=500, text='Cannot validate malformed session token')
         except Exception as err:
             log.exception('Cannot validate session: %s', err)
             return Response(status=500, text='A server error prevents session validation')

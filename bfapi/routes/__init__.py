@@ -38,7 +38,9 @@ async def login(request: Request):
 
     try:
         token = piazza.create_session(auth_header)
-    except piazza.AuthenticationError as err:
+    except piazza.MalformedSessionToken as err:
+        return Response(status=400, text=err.message)
+    except piazza.Unauthorized as err:
         return Response(status=401, text=err.message)
     except piazza.Error as err:
         log.error('Cannot log in: %s', err)

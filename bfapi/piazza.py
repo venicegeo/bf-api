@@ -18,6 +18,7 @@ import requests
 
 from bfapi.config import PZ_GATEWAY
 
+PATTERN_VALID_SESSION_TOKEN = re.compile('^Basic \S+$')
 STATUS_CANCELLED = 'Cancelled'
 STATUS_SUCCESS = 'Success'
 STATUS_RUNNING = 'Running'
@@ -44,8 +45,8 @@ class Status:
 #
 
 def create_session(auth_header: str):
-    if not re.match(r'^Basic \S+$', auth_header):
-        raise AuthenticationError('unsupported auth header')
+    if not PATTERN_VALID_SESSION_TOKEN.match(auth_header):
+        raise MalformedSessionToken()
 
     try:
         response = requests.get(
@@ -60,7 +61,7 @@ def create_session(auth_header: str):
     except requests.HTTPError as err:
         status_code = err.response.status_code
         if status_code == 401:
-            raise AuthenticationError('credentials rejected')
+            raise Unauthorized()
         raise ServerError(status_code)
 
     uuid = response.json().get('uuid')
@@ -70,12 +71,15 @@ def create_session(auth_header: str):
     return 'Basic ' + base64.encodebytes((uuid + ':').encode()).decode().strip()
 
 
-def execute(auth_token: str, service_id: str, data_inputs: dict, data_output: list = None) -> str:
+def execute(session_token: str, service_id: str, data_inputs: dict, data_output: list = None) -> str:
+    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
+        raise MalformedSessionToken()
+
     try:
         response = requests.post(
             'https://{}/job'.format(PZ_GATEWAY),
             headers={
-                'Authorization': auth_token,
+                'Authorization': session_token,
                 'Content-Type': 'application/json',
             },
             json={
@@ -95,7 +99,7 @@ def execute(auth_token: str, service_id: str, data_inputs: dict, data_output: li
     except requests.HTTPError as err:
         status_code = err.response.status_code
         if status_code == 401:
-            raise AuthenticationError('credentials rejected')
+            raise Unauthorized()
         raise ServerError(status_code)
 
     data = response.json().get('data')
@@ -109,12 +113,15 @@ def execute(auth_token: str, service_id: str, data_inputs: dict, data_output: li
     return job_id
 
 
-def get_status(auth_token: str, job_id: str) -> Status:
+def get_status(session_token: str, job_id: str) -> Status:
+    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
+        raise MalformedSessionToken()
+
     try:
         response = requests.get(
             'https://{}/job/{}'.format(PZ_GATEWAY, job_id),
             headers={
-                'Authorization': auth_token,
+                'Authorization': session_token,
             }
         )
         response.raise_for_status()
@@ -123,7 +130,7 @@ def get_status(auth_token: str, job_id: str) -> Status:
     except requests.HTTPError as err:
         status_code = err.response.status_code
         if status_code == 401:
-            raise AuthenticationError('credentials rejected')
+            raise Unauthorized()
         raise ServerError(status_code)
 
     data = response.json().get('data')
@@ -163,14 +170,14 @@ def get_status(auth_token: str, job_id: str) -> Status:
 
 
 def get_username(session_token: str) -> str:
-    if not re.match(r'^Basic \S+$', session_token):
-        raise AuthenticationError('unsupported auth token')
+    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
+        raise MalformedSessionToken()
 
     # Extract the UUID
     try:
         uuid = base64.decodebytes(session_token[6:].encode()).decode()[:-1]  # Drop trailing ':'
     except Exception as err:
-        raise AuthenticationError('could not parse auth token', err)
+        raise MalformedSessionToken(err)
 
     # Verify with Piazza IDAM
     try:
@@ -209,12 +216,6 @@ class Error(Exception):
         self.message = message
 
 
-class AuthenticationError(Error):
-    def __init__(self, message: str, err: Exception = None):
-        super().__init__('Piazza authentication error: ' + message)
-        self.original_error = err
-
-
 class ExecutionError(Error):
     def __init__(self, message: str, err: Exception = None):
         super().__init__('Piazza execution error: ' + message)
@@ -223,8 +224,17 @@ class ExecutionError(Error):
 
 class InvalidResponse(Error):
     def __init__(self, message: str, response_text: str):
-        super().__init__('Invalid Piazza response: ' + message)
+        super().__init__('invalid Piazza response: ' + message)
         self.response_text = response_text
+
+
+class MalformedSessionToken(Error):
+    def __init__(self, err: Exception = None):
+        message = 'malformed Piazza session token'
+        if err:
+            message += ' ({})'.format(err)
+        super().__init__(message)
+        self.original_error = err
 
 
 class ServerError(Error):
@@ -236,6 +246,11 @@ class ServerError(Error):
 class SessionExpired(Error):
     def __init__(self):
         super().__init__('Piazza session expired')
+
+
+class Unauthorized(Error):
+    def __init__(self, message: str = 'Credentials rejected'):
+        super().__init__('unauthorized to access Piazza: ' + message)
 
 
 class Unreachable(Error):

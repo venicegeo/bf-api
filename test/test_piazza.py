@@ -46,7 +46,7 @@ class PiazzaCreateSessionTest(unittest.TestCase):
 
     def test_throws_when_credentials_are_rejected(self, m: Mocker):
         m.get('/key', text=RESPONSE_AUTH_REJECTED, status_code=401)
-        with self.assertRaises(piazza.AuthenticationError):
+        with self.assertRaises(piazza.Unauthorized):
             piazza.create_session('Basic Og==')
 
     def test_throws_when_uuid_is_missing(self, m: Mocker):
@@ -55,6 +55,10 @@ class PiazzaCreateSessionTest(unittest.TestCase):
         m.get('/key', json=truncated_response, status_code=500)
         with self.assertRaises(piazza.ServerError):
             piazza.create_session('Basic Og==')
+
+    def test_throws_when_passed_malformed_auth_header(self, m: Mocker):
+        with self.assertRaises(piazza.MalformedSessionToken):
+            piazza.create_session('lolwut')
 
 
 @Mocker()
@@ -102,7 +106,7 @@ class PiazzaGetStatusTest(unittest.TestCase):
 
     def test_throws_when_credentials_are_rejected(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_ERROR_UNAUTHORIZED, status_code=401)
-        with self.assertRaises(piazza.AuthenticationError):
+        with self.assertRaises(piazza.Unauthorized):
             piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
 
     def test_throws_when_job_doesnt_exist(self, m: Mocker):
@@ -130,6 +134,10 @@ class PiazzaGetStatusTest(unittest.TestCase):
         m.get('/job/test-job-id', json=mutated_status)
         with self.assertRaises(piazza.InvalidResponse):
             piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+
+    def test_throws_when_passed_malformed_session_token(self, m: Mocker):
+        with self.assertRaises(piazza.MalformedSessionToken):
+            piazza.get_status('lolwut', 'test-job-id')
 
 
 @Mocker()
@@ -171,12 +179,12 @@ class PiazzaGetUsernameTest(unittest.TestCase):
 
     def test_throws_when_passed_malformed_session_token(self, m: Mocker):
         m.post('/v2/verification', text='{}')
-        with self.assertRaises(piazza.AuthenticationError):
+        with self.assertRaises(piazza.MalformedSessionToken):
             piazza.get_username('lolwut')
 
     def test_throws_when_passed_undecodable_session_token(self, m: Mocker):
         m.post('/v2/verification', text='{}')
-        with self.assertRaises(piazza.AuthenticationError):
+        with self.assertRaises(piazza.MalformedSessionToken):
             piazza.get_username('Basic lolwut')
 
 
@@ -223,7 +231,7 @@ class PiazzaExecuteTest(unittest.TestCase):
 
     def test_throws_when_credentials_are_rejected(self, m: Mocker):
         m.post('/job', text=RESPONSE_ERROR_GENERIC, status_code=401)
-        with self.assertRaises(piazza.AuthenticationError):
+        with self.assertRaises(piazza.Unauthorized):
             piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
 
     def test_throws_when_job_id_is_missing(self, m: Mocker):
@@ -232,6 +240,10 @@ class PiazzaExecuteTest(unittest.TestCase):
         m.post('/job', json=truncated_response, status_code=201)
         with self.assertRaises(piazza.InvalidResponse):
             piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
+
+    def test_throws_when_passed_malformed_session_token(self, m: Mocker):
+        with self.assertRaises(piazza.MalformedSessionToken):
+            piazza.execute('lolwut', 'test-service-id', {})
 
 
 #
