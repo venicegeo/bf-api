@@ -19,42 +19,13 @@ import requests
 from bfapi.config import PZ_GATEWAY
 
 
-def get_username(session_token: str) -> str:
-    if not re.match(r'^Basic \S+$', session_token):
-        raise AuthenticationError('unsupported auth token')
 
-    # Extract the UUID
-    try:
-        uuid = base64.decodebytes(session_token[6:].encode()).decode()[:-1]  # Drop trailing ':'
-    except Exception as err:
-        raise AuthenticationError('could not parse auth token', err)
 
-    # Verify with Piazza IDAM
-    try:
-        response = requests.post(
-            'https://{}/v2/verification'.format(PZ_GATEWAY.replace('pz-gateway.', 'pz-idam.')),
-            json={
-                'uuid': uuid,
-            },
-            timeout=5,
-        )
-        response.raise_for_status()
-    except requests.ConnectionError:
-        raise Unreachable()
-    except requests.HTTPError as err:
-        raise ServerError(err.response.status_code)
 
-    # Validate the response
-    auth = response.json()
-    if not auth.get('authenticated'):
-        raise SessionExpired()
 
-    username = auth.get('username')
-    if not username:
-        raise InvalidResponse('missing `username`', response.text)
-
-    return username
-
+#
+# Actions
+#
 
 def create_session(auth_header: str):
     if not re.match(r'^Basic \S+$', auth_header):
@@ -120,6 +91,43 @@ def execute(auth_token: str, service_id: str, data_inputs: dict, data_output: li
         raise InvalidResponse('missing `data.jobId`', response.text)
 
     return job_id
+
+
+def get_username(session_token: str) -> str:
+    if not re.match(r'^Basic \S+$', session_token):
+        raise AuthenticationError('unsupported auth token')
+
+    # Extract the UUID
+    try:
+        uuid = base64.decodebytes(session_token[6:].encode()).decode()[:-1]  # Drop trailing ':'
+    except Exception as err:
+        raise AuthenticationError('could not parse auth token', err)
+
+    # Verify with Piazza IDAM
+    try:
+        response = requests.post(
+            'https://{}/v2/verification'.format(PZ_GATEWAY.replace('pz-gateway.', 'pz-idam.')),
+            json={
+                'uuid': uuid,
+            },
+            timeout=5,
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        raise ServerError(err.response.status_code)
+
+    # Validate the response
+    auth = response.json()
+    if not auth.get('authenticated'):
+        raise SessionExpired()
+
+    username = auth.get('username')
+    if not username:
+        raise InvalidResponse('missing `username`', response.text)
+
+    return username
 
 
 #

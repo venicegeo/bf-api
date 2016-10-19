@@ -20,6 +20,44 @@ from bfapi import piazza
 
 
 @Mocker()
+class PiazzaCreateSessionTest(unittest.TestCase):
+    def test_calls_correct_url(self, m: Mocker):
+        m.get('/key', text=RESPONSE_AUTH_SUCCESS)
+        piazza.create_session('Basic Og==')
+        self.assertEqual(m.request_history[0].url, 'https://pz-gateway.localhost/key')
+
+    def test_sends_correct_payload(self, m: Mocker):
+        m.get('/key', text=RESPONSE_AUTH_SUCCESS)
+        piazza.create_session('Basic Og==')
+        self.assertEqual(m.request_history[0].headers.get('Authorization'), 'Basic Og==')
+
+    def test_returns_correct_session_token(self, m: Mocker):
+        m.get('/key', text=RESPONSE_AUTH_SUCCESS)
+        token = piazza.create_session('Basic Og==')
+        self.assertEqual(token, 'Basic dGVzdC11dWlkOg==')
+
+    def test_handles_http_errors_gracefully(self, m: Mocker):
+        m.get('/key', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.create_session('Basic Og==')
+
+    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+        self.skipTest('Unsure how to test this one')
+
+    def test_throws_when_credentials_are_rejected(self, m: Mocker):
+        m.get('/key', text=RESPONSE_AUTH_REJECTED, status_code=401)
+        with self.assertRaises(piazza.AuthenticationError):
+            piazza.create_session('Basic Og==')
+
+    def test_throws_when_uuid_is_missing(self, m: Mocker):
+        truncated_response = json.loads(RESPONSE_AUTH_SUCCESS)
+        truncated_response.pop('uuid')
+        m.get('/key', json=truncated_response, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.create_session('Basic Og==')
+
+
+@Mocker()
 class PiazzaGetUsernameTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
@@ -65,44 +103,6 @@ class PiazzaGetUsernameTest(unittest.TestCase):
         m.post('/v2/verification', text='{}')
         with self.assertRaises(piazza.AuthenticationError):
             piazza.get_username('Basic lolwut')
-
-
-@Mocker()
-class PiazzaCreateSessionTest(unittest.TestCase):
-    def test_calls_correct_url(self, m: Mocker):
-        m.get('/key', text=RESPONSE_AUTH_SUCCESS)
-        piazza.create_session('Basic Og==')
-        self.assertEqual(m.request_history[0].url, 'https://pz-gateway.localhost/key')
-
-    def test_sends_correct_payload(self, m: Mocker):
-        m.get('/key', text=RESPONSE_AUTH_SUCCESS)
-        piazza.create_session('Basic Og==')
-        self.assertEqual(m.request_history[0].headers.get('Authorization'), 'Basic Og==')
-
-    def test_returns_correct_session_token(self, m: Mocker):
-        m.get('/key', text=RESPONSE_AUTH_SUCCESS)
-        token = piazza.create_session('Basic Og==')
-        self.assertEqual(token, 'Basic dGVzdC11dWlkOg==')
-
-    def test_handles_http_errors_gracefully(self, m: Mocker):
-        m.get('/key', text=RESPONSE_ERROR_GENERIC, status_code=500)
-        with self.assertRaises(piazza.ServerError):
-            piazza.create_session('Basic Og==')
-
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
-        self.skipTest('Unsure how to test this one')
-
-    def test_throws_when_credentials_are_rejected(self, m: Mocker):
-        m.get('/key', text=RESPONSE_AUTH_REJECTED, status_code=401)
-        with self.assertRaises(piazza.AuthenticationError):
-            piazza.create_session('Basic Og==')
-
-    def test_throws_when_uuid_is_missing(self, m: Mocker):
-        truncated_response = json.loads(RESPONSE_AUTH_SUCCESS)
-        truncated_response.pop('uuid')
-        m.get('/key', json=truncated_response, status_code=500)
-        with self.assertRaises(piazza.ServerError):
-            piazza.create_session('Basic Og==')
 
 
 @Mocker()
