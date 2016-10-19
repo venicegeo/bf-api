@@ -53,7 +53,7 @@ def create_job(
     for key in algorithm.bands:
         geotiff_url = scene.bands.get(key)
         if not geotiff_url:
-            raise ExecutionError(message='Scene `{}` is missing band `{}`'.format(scene['id'], key))
+            raise ExecutionError(message='Scene `{}` is missing band `{}`'.format(scene.id, key))
         geotiff_urls.append(geotiff_url)
         geotiff_filenames.append(key + '.TIF')
 
@@ -145,10 +145,10 @@ def create_job(
 
 def forget(user_id: str, job_id: str) -> None:
     conn = get_connection()
-    if not jobs_db.exists(conn, job_id):
+    if not jobs_db.exists(conn, job_id=job_id):
         raise NotExists(job_id)
     try:
-        jobs_db.delete_job_user(conn, job_id, user_id)
+        jobs_db.delete_job_user(conn, job_id=job_id, user_id=user_id)
         conn.commit()
     except DatabaseError as err:
         conn.rollback()
@@ -158,32 +158,33 @@ def forget(user_id: str, job_id: str) -> None:
 
 def get(user_id: str, job_id: str) -> dict:
     conn = get_connection()
-    row = jobs_db.select_job(conn, job_id).fetchone()
+    row = jobs_db.select_job(conn, job_id=job_id).fetchone()
     if not row:
         return
 
     # Add job to user's tracked jobs list
     try:
-        jobs_db.insert_job_user(conn, job_id, user_id)
+        jobs_db.insert_job_user(conn, job_id=job_id, user_id=user_id)
         conn.commit()
     except DatabaseError as err:
         conn.rollback()
         err.print_diagnostics()
         raise err
 
+    columns = dict(row)
     return _to_feature(
-        algorithm_name=row['algorithm_name'],
-        algorithm_version=row['algorithm_version'],
-        created_by=row['created_by'],
-        created_on=dateutil.parser.parse(row['created_on']),
-        detections_id=row['detections_id'],
-        geometry=row['geometry'],
-        job_id=row['job_id'],
-        name=row['name'],
-        scene_capture_date=dateutil.parser.parse(row['scene_capture_date']),
-        scene_sensor_name=row['scene_sensor_name'],
-        scene_id=row['scene_id'],
-        status=row['status'],
+        algorithm_name=columns['algorithm_name'],
+        algorithm_version=columns['algorithm_version'],
+        created_by=columns['created_by'],
+        created_on=dateutil.parser.parse(columns['created_on']),
+        detections_id=columns['detections_id'],
+        geometry=columns['geometry'],
+        job_id=columns['job_id'],
+        name=columns['name'],
+        scene_capture_date=dateutil.parser.parse(columns['scene_capture_date']),
+        scene_sensor_name=columns['scene_sensor_name'],
+        scene_id=columns['scene_id'],
+        status=columns['status'],
     )
 
 
@@ -191,7 +192,7 @@ def get_all(user_id: str) -> dict:
     conn = get_connection()
 
     try:
-        cursor = jobs_db.select_jobs_for_user(conn, user_id)
+        cursor = jobs_db.select_jobs_for_user(conn, user_id=user_id)
     except DatabaseError as err:
         err.print_diagnostics()
         raise err
@@ -201,19 +202,20 @@ def get_all(user_id: str) -> dict:
         'features': []
     }
     for row in cursor.fetchall():
+        columns = dict(row)
         feature = _to_feature(
-            algorithm_name=row['algorithm_name'],
-            algorithm_version=row['algorithm_version'],
-            created_by=row['created_by'],
-            created_on=dateutil.parser.parse(row['created_on']),
-            detections_id=row['detections_id'],
-            geometry=row['geometry'],
-            job_id=row['job_id'],
-            name=row['name'],
-            scene_capture_date=dateutil.parser.parse(row['scene_capture_date']),
-            scene_sensor_name=row['scene_sensor_name'],
-            scene_id=row['scene_id'],
-            status=row['status'],
+            algorithm_name=columns['algorithm_name'],
+            algorithm_version=columns['algorithm_version'],
+            created_by=columns['created_by'],
+            created_on=dateutil.parser.parse(columns['created_on']),
+            detections_id=columns['detections_id'],
+            geometry=columns['geometry'],
+            job_id=columns['job_id'],
+            name=columns['name'],
+            scene_capture_date=dateutil.parser.parse(columns['scene_capture_date']),
+            scene_sensor_name=columns['scene_sensor_name'],
+            scene_id=columns['scene_id'],
+            status=columns['status'],
         )
         feature_collection['features'].append(feature)
 
@@ -392,8 +394,7 @@ def _to_feature(
         scene_capture_date: datetime = None,
         scene_sensor_name: str = None,
         scene_id: str = None,
-        status: str = None,
-) -> dict:
+        status: str = None) -> dict:
     return {
         'type': 'Feature',
         'id': job_id,

@@ -18,6 +18,7 @@ from bfapi.db import DatabaseError
 
 def delete_job_user(
         conn: Connection,
+        *,
         job_id: str,
         user_id: str) -> bool:
     query = """
@@ -38,6 +39,7 @@ def delete_job_user(
 
 def exists(
         conn: Connection,
+        *,
         job_id: str) -> bool:
     query = """
         SELECT 1 FROM job WHERE job_id = :job_id
@@ -54,6 +56,7 @@ def exists(
 
 def insert_job(
         conn: Connection,
+        *,
         algorithm_name: str,
         algorithm_version: int,
         job_id: str,
@@ -82,6 +85,7 @@ def insert_job(
 
 def insert_job_failure(
         conn: Connection,
+        *,
         error_message: str,
         execution_step: str,
         job_id: str) -> None:
@@ -102,6 +106,7 @@ def insert_job_failure(
 
 def insert_job_user(
         conn: Connection,
+        *,
         job_id: str,
         user_id: str) -> None:
     query = """
@@ -120,6 +125,7 @@ def insert_job_user(
 
 def select_job(
         conn: Connection,
+        *,
         job_id: str) -> Cursor:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
@@ -143,7 +149,8 @@ def select_job(
 
 def select_jobs_for_user(
         conn: Connection,
-        user_id: str):
+        *,
+        user_id: str) -> Cursor:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
@@ -167,6 +174,7 @@ def select_jobs_for_user(
 
 def select_summary_for_status(
         conn: Connection,
+        *,
         status: str) -> Cursor:
     query = """
         SELECT job_id, created_on
@@ -185,6 +193,7 @@ def select_summary_for_status(
 
 def update_status(
         conn: Connection,
+        *,
         data_id: str,
         job_id: str,
         status: str) -> Cursor:
