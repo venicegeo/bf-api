@@ -23,4 +23,4 @@ class ConfigurationTest(unittest.TestCase):
         self.assertIn('pzsvc-image-catalog.', config.CATALOG)
 
     def test_autodetects_tideprediction_url(self):
-        self.assertIn('bf-tideprediction.', config.TIDEPREDICTION)
+        self.assertIn('bf-tideprediction.', config.TIDE_SERVICE)

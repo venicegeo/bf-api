@@ -13,6 +13,7 @@
 
 from logging import getLogger
 from os.path import dirname, join
+from pprint import pprint
 import sqlite3
 
 
@@ -26,13 +27,27 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
-class DatabaseError(Exception):
-    def __init__(self, err: sqlite3.OperationalError, message=None):
-        if not message:
-            (message,) = err.args
-        super.__init__(message)
-        self.message = message
-        self.original_error = err
+#
+# Errors
+#
 
-    def __str__(self):
-        return 'DatabaseError: {}'.format(self.message)
+class DatabaseError(Exception):
+    def __init__(self, err: sqlite3.Error, query: str, params: dict = None):
+        super().__init__('Database error: {}'.format(err))
+        self.original_error = err
+        self.query = query
+        self.params = params
+
+    def print_diagnostics(self):
+        print('!' * 80)
+        print()
+        print('DatabaseError: {}'.format(self.original_error))
+        print()
+        print('QUERY')
+        print(self.query.rstrip())
+        print()
+        print('PARAMS')
+        print()
+        pprint(self.params, indent=4)
+        print()
+        print('!' * 80)

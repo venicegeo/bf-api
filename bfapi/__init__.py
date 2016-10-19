@@ -29,8 +29,10 @@ print()
 print('bf-api'.center(80))
 print('~~~~~~'.center(80))
 print()
-for key in ('PZ_GATEWAY', 'CATALOG', 'TIDEPREDICTION'):
-    print('{0:>38} : {1}'.format(key, config.__dict__[key]))
+for key, value in sorted(config.__dict__.items()):
+    if not key.isupper():
+        continue
+    print('{0:>38} : {1}'.format(key, value))
 print()
 print('-' * 80)
 ################################################################################

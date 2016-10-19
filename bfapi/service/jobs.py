@@ -19,8 +19,9 @@ import dateutil.parser
 import requests
 
 from bfapi import piazza
+from bfapi.config import TIDE_SERVICE
 from bfapi.service import scenes as scenes_service
-from bfapi.db import jobs as jobs_db, scenes as scenes_db, get_connection, DatabaseError
+from bfapi.db import jobs as jobs_db, get_connection, DatabaseError
 
 STATUS_RUNNING = 'Running'
 STATUS_SUCCESS = 'Success'
@@ -30,14 +31,23 @@ FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
 
 
-def create_job(user_id, algorithm, scene_id, job_name) -> dict:
+#
+# Actions
+#
+
+def create_job(
+        auth_token: str,
+        user_id: str,
+        algorithm,
+        scene_id: str,
+        job_name: str) -> dict:
     log = getLogger(__name__ + ':create_job')
 
     # Fetch scene metadata
     scene = scenes_service.fetch(scene_id)
 
     # Fetch tide info
-    tide_current, tide_min, tide_max = _fetch_tide_prediction(scene.geometry)
+    tide_current, tide_min, tide_max = _fetch_tide_prediction(scene)
 
     # Determine GeoTIFF URLs
     geotiff_filenames = []
@@ -53,11 +63,12 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
     geotiff_urls = ','.join(geotiff_urls)
     geotiff_filenames = ','.join(geotiff_filenames)
 
+    # Dispatch to Piazza
     try:
         log.info('<scene:%s> dispatch to Piazza', scene_id)
-        job_id = piazza.execute(algorithm.service_id, {
+        job_id = piazza.execute(auth_token, algorithm.service_id, {
             'authKey': {
-                'content': '{{PZ_AUTH_KEY}}',
+                'content': auth_token,
                 'type': 'urlparameter'
             },
             'cmd': {
@@ -67,9 +78,9 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
                     '--projection geo-scaled',
                     '--threshold 0.5',
                     '--tolerance 0.2',
-                    '--prop 24hrMinTide:{:0.12}'.format(tide_min),
-                    '--prop 24hrMaxTide:{:0.12}'.format(tide_max),
-                    '--prop currentTide:{:0.12}'.format(tide_current),
+                    '--prop tideMin24H:{}'.format(tide_min or 'null'),
+                    '--prop tideMax24H:{}'.format(tide_max or 'null'),
+                    '--prop tideCurrent:{}'.format(tide_current or 'null'),
                     '--prop classification:Unclassified',
                     '--prop dataUsage:Not_to_be_used_for_navigational_or_targeting_purposes.',
                     'shoreline.geojson',
@@ -89,41 +100,34 @@ def create_job(user_id, algorithm, scene_id, job_name) -> dict:
                 'type': 'urlparameter'
             }
         })
-    except piazza.InvalidResponseError as err:
+    except (piazza.ServerError, piazza.InvalidResponse) as err:
         log.error('Could not execute via Piazza: %s', err)
         raise err
 
     # Record the data
+    log.debug('Saving job record <%s>', job_id)
     conn = get_connection()
     try:
-        scenes_db.insert(
-            conn,
-            scene_id,
-            scene.capture_date,
-            scene.uri,
-            scene.cloud_cover,
-            scene.geometry,
-            scene.resolution,
-            scene.sensor_name,
-        )
         jobs_db.insert_job(
             conn,
-            job_id,
-            algorithm.name,
-            algorithm.version,
-            job_name,
-            scene_id,
-            STATUS_RUNNING,
+            algorithm_name=algorithm.name,
+            algorithm_version=algorithm.version,
+            job_id=job_id,
+            name=job_name,
+            scene_id=scene_id,
+            status=STATUS_RUNNING,
+            user_id=user_id,
         )
         jobs_db.insert_job_user(
             conn,
-            job_id,
-            user_id,
+            job_id=job_id,
+            user_id=user_id,
         )
         conn.commit()
     except DatabaseError as err:
         conn.rollback()
-        log.exception('Could not save job to database: %s', err)
+        log.error('Could not save job to database: %s', err)
+        err.print_diagnostics()
         raise err
 
     return _to_feature(
@@ -150,6 +154,7 @@ def forget(user_id: str, job_id: str) -> None:
         conn.commit()
     except DatabaseError as err:
         conn.rollback()
+        err.print_diagnostics()
         raise err
 
 
@@ -165,6 +170,7 @@ def get(user_id: str, job_id: str) -> dict:
         conn.commit()
     except DatabaseError as err:
         conn.rollback()
+        err.print_diagnostics()
         raise err
 
     return _to_feature(
@@ -185,7 +191,12 @@ def get(user_id: str, job_id: str) -> dict:
 
 def get_all(user_id: str) -> dict:
     conn = get_connection()
-    cursor = jobs_db.select_jobs_for_user(conn, user_id)
+
+    try:
+        cursor = jobs_db.select_jobs_for_user(conn, user_id)
+    except DatabaseError as err:
+        err.print_diagnostics()
+        raise err
 
     feature_collection = {
         'type': 'FeatureCollection',
@@ -215,13 +226,41 @@ def get_all(user_id: str) -> dict:
 # Helpers
 #
 
-def _fetch_tide_prediction(geometry: dict):
-    # centroid = _get_centroid(geometry['coordinates'])
-    # TODO -- implement
-    min_tide = 0
-    max_tide = 0
-    current_tide = 0
-    return current_tide, min_tide, max_tide
+def _fetch_tide_prediction(scene: scenes_service.Scene) -> (float, float, float):
+    log = getLogger(__name__ + ':_fetch_tide_prediction')
+    x, y = _get_centroid(scene.geometry['coordinates'])
+    dtg = scene.capture_date.strftime(FORMAT_DTG)
+
+    log.debug('Predict tide for centroid (%s, %s) at %s', x, y, dtg)
+    try:
+        response = requests.post('https://{}/tides'.format(TIDE_SERVICE), json={
+            'locations': [{
+                'lat': y,
+                'lon': x,
+                'dtg': dtg
+            }]
+        })
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise TidePredictionError('Tide prediction service is unreachable')  # TODO -- should this be a hard failure?
+    except requests.HTTPError as err:
+        log.error('Tide prediction call failed: %s', err)
+        raise TidePredictionError('unknown error (HTTP {})'.format(err.response.status_code))
+
+    # Validate and extract the response
+    try:
+        (prediction,) = response.json()['locations']
+        current_tide = round(float(prediction['results']['currentTide']), 12)
+        min_tide = round(float(prediction['results']['maximumTide24Hours']), 12)
+        max_tide = round(float(prediction['results']['minimumTide24Hours']), 12)
+        return current_tide, min_tide, max_tide
+    except (ValueError, TypeError):
+        log.error('Malformed tide prediction response:')
+        print('!' * 80)
+        print('\nRAW RESPONSE\n')
+        print(response.text)
+        print('!' * 80)
+    return None, None, None
 
 
 def _get_bbox(polygon: list):
@@ -250,7 +289,7 @@ def _to_feature(
         created_by: str = None,
         created_on: datetime = None,
         detections_id: str = None,
-        geometry: str = None,
+        geometry=None,  # HACK -- this seems... wrong
         job_id: str = None,
         name: str = None,
         scene_capture_date: datetime = None,
@@ -261,7 +300,7 @@ def _to_feature(
     return {
         'type': 'Feature',
         'id': job_id,
-        'geometry': json.loads(geometry),
+        'geometry': geometry if isinstance(geometry, dict) else json.loads(geometry),
         'properties': {
             'algorithmName': algorithm_name,
             'algorithmVersion': algorithm_version,
@@ -290,11 +329,13 @@ class ExecutionError(Exception):
         self.message = message
         self.original_error = err
 
-    def __str__(self):
-        return 'ExecutionError: {}'.format(self.message)
-
 
 class NotExists(Exception):
     def __init__(self, job_id: str):
         super().__init__('Job `{}` does not exist'.format(job_id))
         self.job_id = job_id
+
+
+class TidePredictionError(ExecutionError):
+    def __init__(self, message: str):
+        super().__init__(message='Tide prediction error: {}'.format(message))

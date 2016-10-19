@@ -13,9 +13,42 @@
 
 from flask import Blueprint, g, jsonify, request
 
+from bfapi.db import DatabaseError
 from bfapi.service import jobs
 
 blueprint = Blueprint('v0', __name__)
+
+
+@blueprint.route('/job', methods=['POST'])
+def create_job():
+    request.get_json()
+
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+    # Collect data
+    class _Algorithm:
+        def __init__(self):
+            self.version = '13'
+            self.url = 'https://pzsvc-ossim.stage.geointservices.io'
+            self.name = 'NDWI'
+            self.service_id = 'e786a7d6-30ee-42b2-bf2f-1bff99c790e1'
+            self.bands = ('coastal', 'swir1')
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+
+    try:
+        record = jobs.create_job(
+            auth_token=request.headers['Authorization'],
+            user_id=g.username,
+
+            # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+            algorithm=_Algorithm(),
+            # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+
+            scene_id='landsat:LC80110632016220LGN00',
+            job_name='test job name'
+        )
+    except DatabaseError:
+        return 'A database error prevents job execution', 500
+    return jsonify(record)
 
 
 @blueprint.route('/job/<job_id>', methods=['DELETE'])

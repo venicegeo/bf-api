@@ -40,7 +40,7 @@ def get_username(session_token: str) -> str:
         )
         response.raise_for_status()
     except requests.ConnectionError:
-        raise AuthenticationError('Piazza is unreachable')
+        raise Unreachable()
     except requests.HTTPError as err:
         raise ServerError(err.response.status_code)
 
@@ -69,7 +69,7 @@ def create_session(auth_header: str):
         )
         response.raise_for_status()
     except requests.ConnectionError:
-        raise AuthenticationError('Piazza is unreachable')
+        raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
         if status_code == 401:
@@ -83,21 +83,47 @@ def create_session(auth_header: str):
     return 'Basic ' + base64.encodebytes((uuid + ':').encode()).decode().strip()
 
 
-def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str:
-    requests.post(PZ_GATEWAY + '/job', {
-        'type': 'execute-service',
-        'data': {
-            'serviceId': service_id,
-            'dataInputs': data_inputs,
-            'dataOutput': data_output or [{
-                'mimeType': 'application/json',
-                'type': 'text'
-            }]
-        },
-    })
+def execute(auth_token: str, service_id: str, data_inputs: dict, data_output: list = None) -> str:
+    try:
+        response = requests.post(
+            'https://{}/job'.format(PZ_GATEWAY),
+            headers={
+                'Authorization': auth_token,
+                'Content-Type': 'application/json',
+            },
+            json={
+                'type': 'execute-service',
+                'data': {
+                    'serviceId': service_id,
+                    'dataInputs': data_inputs,
+                    'dataOutput': data_output or [{
+                        'mimeType': 'application/json',
+                        'type': 'text'
+                    }]
+                },
+            })
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise AuthenticationError('credentials rejected')
+        raise ServerError(status_code)
+
+    data = response.json().get('data')
+    if not data:
+        raise InvalidResponse('missing `data`', response.text)
+
+    job_id = data.get('jobId')
+    if not job_id:
+        raise InvalidResponse('missing `data.jobId`', response.text)
+
+    return job_id
+
 
 #
-# Types
+# Errors
 #
 
 class Error(Exception):
@@ -109,6 +135,12 @@ class Error(Exception):
 class AuthenticationError(Error):
     def __init__(self, message: str, err: Exception = None):
         super().__init__('Piazza authentication error: ' + message)
+        self.original_error = err
+
+
+class ExecutionError(Error):
+    def __init__(self, message: str, err: Exception = None):
+        super().__init__('Piazza execution error: ' + message)
         self.original_error = err
 
 
@@ -127,3 +159,8 @@ class ServerError(Error):
 class SessionExpired(Error):
     def __init__(self):
         super().__init__('Piazza session expired')
+
+
+class Unreachable(Error):
+    def __init__(self):
+        super().__init__('Piazza is unreachable')

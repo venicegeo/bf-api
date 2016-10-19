@@ -17,4 +17,4 @@ _domain = os.getenv('DOMAIN', 'localhost').replace('int.', 'stage.')
 
 PZ_GATEWAY     = os.getenv('PZ_GATEWAY', 'pz-gateway.' + _domain)
 CATALOG        = os.getenv('CATALOG', 'pzsvc-image-catalog.' + _domain)
-TIDEPREDICTION = os.getenv('TIDEPREDICTION', 'bf-tideprediction.' + _domain)
+TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _domain)

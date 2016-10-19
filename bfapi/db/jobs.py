@@ -11,13 +11,9 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from logging import getLogger
-from pprint import pprint
 from sqlite3 import Connection, Cursor, IntegrityError, OperationalError
 
 from bfapi.db import DatabaseError
-
-log = getLogger(__name__)
 
 
 def delete_job_user(
@@ -34,13 +30,10 @@ def delete_job_user(
         'user_id': user_id,
     }
     try:
-        log.debug('<%s>')
         cursor = conn.execute(query, params)
         return cursor.rowcount > 0
     except OperationalError as err:
-        log.error('Failed %s', err)
-        _dump_query(query, params)
-        raise DatabaseError(err)
+        raise DatabaseError(err, query, params)
 
 
 def exists(
@@ -53,24 +46,21 @@ def exists(
         'job_id': job_id,
     }
     try:
-        log.debug('<%s>')
         cursor = conn.execute(query, params)
         return len(cursor.fetchall()) > 0
     except OperationalError as err:
-        log.error('Failed %s', err)
-        _dump_query(query, params)
-        raise DatabaseError(err)
+        raise DatabaseError(err, query, params)
 
 
 def insert_job(
         conn: Connection,
-        job_id: str,
         algorithm_name: str,
         algorithm_version: int,
+        job_id: str,
         name: str,
         scene_id: str,
-        status: str
-):
+        status: str,
+        user_id: str):
     query = """
         INSERT INTO job (job_id, algorithm_name, algorithm_version, created_by, name, scene_id, status)
         VALUES (:job_id, :algorithm_name, :algorithm_version, :created_by, :name, :scene_id, :status)
@@ -79,17 +69,15 @@ def insert_job(
         'job_id': job_id,
         'algorithm_name': algorithm_name,
         'algorithm_version': algorithm_version,
+        'created_by': user_id,
         'name': name,
         'scene_id': scene_id,
         'status': status,
     }
     try:
-        log.debug('insert_job <%s>', job_id)
         conn.execute(query, params)
-    except OperationalError as err:
-        log.error('Failed %s', err)
-        _dump_query(query, params)
-        raise DatabaseError(err)
+    except (IntegrityError, OperationalError) as err:
+        raise DatabaseError(err, query, params)
 
 
 def insert_job_user(
@@ -105,12 +93,9 @@ def insert_job_user(
         'user_id': user_id,
     }
     try:
-        log.debug('<%s>', job_id)
         conn.execute(query, params)
     except (IntegrityError, OperationalError) as err:
-        log.error('Failed %s', err)
-        _dump_query(query, params)
-        raise DatabaseError(err)
+        raise DatabaseError(err, query, params)
 
 
 def select_job(
@@ -130,13 +115,10 @@ def select_job(
         'job_id': job_id,
     }
     try:
-        log.debug('<%s>', job_id)
         cursor = conn.execute(query, params)
         return cursor
     except OperationalError as err:
-        log.error('Failed %s', err)
-        _dump_query(query, params)
-        raise DatabaseError(err)
+        raise DatabaseError(err, query, params)
 
 
 def select_jobs_for_user(
@@ -157,23 +139,7 @@ def select_jobs_for_user(
         'user_id': user_id,
     }
     try:
-        log.debug('<%s>', user_id)
         cursor = conn.execute(query, params)
         return cursor
     except OperationalError as err:
-        log.error('Failed %s', err)
-        _dump_query(query, params)
-        raise DatabaseError(err)
-
-
-#
-# Helpers
-#
-
-def _dump_query(query: str, params: dict = None):
-    print('!' * 80)
-    print('\nQUERY')
-    print(query)
-    print('\nPARAMS\n')
-    pprint('\t', params)
-    print('!' * 80)
+        raise DatabaseError(err, query, params)

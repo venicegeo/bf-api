@@ -19,6 +19,7 @@ import dateutil.parser
 import requests
 
 from bfapi.config import CATALOG
+from bfapi.db import get_connection, scenes, DatabaseError
 
 
 #
@@ -46,8 +47,12 @@ class Scene:
         self.uri = uri
 
 
+#
+# Actions
+#
+
 def fetch(scene_id: str) -> Scene:
-    log = getLogger(__name__ + ':fetch_metadata')
+    log = getLogger(__name__ + ':fetch')
 
     if not re.match(r'^landsat:\w+$', scene_id):
         raise InvalidIDError(scene_id)
@@ -57,21 +62,42 @@ def fetch(scene_id: str) -> Scene:
         log.info('fetch `%s`', scene_uri)
         scene_req = requests.get(scene_uri)
         scene_req.raise_for_status()
-        feature = scene_req.json()
-        # TODO -- persist to database
-        return Scene(
-            scene_id=scene_id,
-            uri=scene_uri,
-            capture_date=_extract_capture_date(scene_id, feature),
-            bands=_extract_bands(scene_id, feature),
-            cloud_cover=_extract_cloud_cover(scene_id, feature),
-            geometry=_extract_geometry(scene_id, feature),
-            resolution=_extract_resolution(scene_id, feature),
-            sensor_name=_extract_sensor_name(scene_id, feature),
-        )
     except (requests.ConnectionError, requests.HTTPError) as err:
         log.error('Could not fetch scene metadata: %s', err)
         raise FetchError(scene_id)
+
+    geojson = scene_req.json()
+    scene = Scene(
+        scene_id=scene_id,
+        uri=scene_uri,
+        capture_date=_extract_capture_date(scene_id, geojson),
+        bands=_extract_bands(scene_id, geojson),
+        cloud_cover=_extract_cloud_cover(scene_id, geojson),
+        geometry=_extract_geometry(scene_id, geojson),
+        resolution=_extract_resolution(scene_id, geojson),
+        sensor_name=_extract_sensor_name(scene_id, geojson),
+    )
+
+    conn = get_connection()
+    try:
+        scenes.insert(
+            conn,
+            scene_id=scene.id,
+            captured_on=scene.capture_date,
+            catalog_uri=scene.uri,
+            cloud_cover=scene.cloud_cover,
+            geometry=scene.geometry,
+            resolution=scene.resolution,
+            sensor_name=scene.sensor_name,
+        )
+        conn.commit()
+    except DatabaseError as err:
+        conn.rollback()
+        log.error('Could not save scene to database: %s', err)
+        err.print_diagnostics()
+        raise err
+
+    return scene
 
 
 #
