@@ -11,14 +11,15 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from logging import getLogger
 from os.path import dirname, join
 from pprint import pprint
 import sqlite3
 
+from bfapi.logger import get_logger
+
 
 def get_connection() -> sqlite3.Connection:
-    log = getLogger(__name__)
+    log = get_logger()
     filepath = join(dirname(dirname(dirname(__file__))), 'temporary.db')
     log.debug('Connecting to database: {}'.format(filepath))
     conn = sqlite3.connect(filepath)

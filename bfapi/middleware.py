@@ -11,21 +11,20 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from logging import getLogger
-
 from flask import g, request
 
 from bfapi import piazza
+from bfapi.logger import get_logger
 
 
 def session_validation_filter() -> None:
-    log = getLogger(__name__ + ':validate_session')
-
+    log = get_logger()
     session_token = request.headers.get('Authorization')
     if session_token is None:
         return 'Missing authorization header', 400
 
     try:
+        log.debug('Attaching username to request context')
         g.username = piazza.get_username(session_token)
     except piazza.SessionExpired:
         return 'Piazza session has expired', 401

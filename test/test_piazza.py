@@ -58,6 +58,81 @@ class PiazzaCreateSessionTest(unittest.TestCase):
 
 
 @Mocker()
+class PiazzaGetStatusTest(unittest.TestCase):
+    def test_calls_correct_url(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING)
+        piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        self.assertEqual(m.request_history[0].url, 'https://pz-gateway.localhost/job/test-job-id')
+
+    def test_returns_correct_status_for_running_job(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING)
+        status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        self.assertEqual(status.status, 'Running')
+        self.assertIsNone(status.data_id)
+        self.assertIsNone(status.error_message)
+
+    def test_returns_correct_status_for_successful_job(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_SUCCESS)
+        status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        self.assertEqual(status.status, 'Success')
+        self.assertEqual(status.data_id, 'test-data-id')
+        self.assertIsNone(status.error_message)
+
+    def test_returns_correct_status_for_failed_job(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_ERROR)
+        status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        self.assertEqual(status.status, 'Error')
+        self.assertIsNone(status.data_id)
+        self.assertEqual(status.error_message, 'test-failure-message')
+
+    def test_returns_correct_status_for_canceled_job(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_CANCELLED)
+        status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        self.assertEqual(status.status, 'Cancelled')
+        self.assertIsNone(status.data_id)
+        self.assertIsNone(status.error_message)
+
+    def test_handles_http_errors_gracefully(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+
+    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+        self.skipTest('Unsure how to test this one')
+
+    def test_throws_when_credentials_are_rejected(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_ERROR_UNAUTHORIZED, status_code=401)
+        with self.assertRaises(piazza.AuthenticationError):
+            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+
+    def test_throws_when_job_doesnt_exist(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_NOT_FOUND, status_code=404)
+        with self.assertRaises(piazza.ServerError):
+            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+
+    def test_throws_when_status_is_ambiguous(self, m: Mocker):
+        mutated_status = json.loads(RESPONSE_JOB_SUCCESS)
+        mutated_status['data']['status'] = 'lolwut'
+        m.get('/job/test-job-id', json=mutated_status)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+
+    def test_throws_when_status_is_missing(self, m: Mocker):
+        mutated_status = json.loads(RESPONSE_JOB_SUCCESS)
+        mutated_status['data'].pop('status')
+        m.get('/job/test-job-id', json=mutated_status)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+
+    def test_throws_when_result_is_missing(self, m: Mocker):
+        mutated_status = json.loads(RESPONSE_JOB_SUCCESS)
+        mutated_status['data'].pop('result')
+        m.get('/job/test-job-id', json=mutated_status)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+
+
+@Mocker()
 class PiazzaGetUsernameTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)

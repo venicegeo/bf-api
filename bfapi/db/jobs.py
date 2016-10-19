@@ -80,6 +80,26 @@ def insert_job(
         raise DatabaseError(err, query, params)
 
 
+def insert_job_failure(
+        conn: Connection,
+        error_message: str,
+        execution_step: str,
+        job_id: str) -> None:
+    query = """
+        INSERT INTO job_error (job_id, error_message, execution_step)
+        VALUES (:job_id, :error_message, :execution_step)
+        """
+    params = {
+        'job_id': job_id,
+        'error_message': error_message or None,
+        'execution_step': execution_step,
+    }
+    try:
+        conn.execute(query, params)
+    except (IntegrityError, OperationalError) as err:
+        raise DatabaseError(err, query, params)
+
+
 def insert_job_user(
         conn: Connection,
         job_id: str,
@@ -142,4 +162,44 @@ def select_jobs_for_user(
         cursor = conn.execute(query, params)
         return cursor
     except OperationalError as err:
+        raise DatabaseError(err, query, params)
+
+
+def select_summary_for_status(
+        conn: Connection,
+        status: str) -> Cursor:
+    query = """
+        SELECT job_id, created_on
+          FROM job
+         WHERE status = :status
+        """
+    params = {
+        'status': status,
+    }
+    try:
+        cursor = conn.execute(query, params)
+        return cursor
+    except OperationalError as err:
+        raise DatabaseError(err, query, params)
+
+
+def update_status(
+        conn: Connection,
+        data_id: str,
+        job_id: str,
+        status: str) -> Cursor:
+    query = """
+        UPDATE job
+           SET detections_id = :detections_id,
+               status = :status
+         WHERE job_id = :job_id
+        """
+    params = {
+        'job_id': job_id,
+        'status': status,
+        'detections_id': data_id,
+    }
+    try:
+        conn.execute(query, params)
+    except (IntegrityError, OperationalError) as err:
         raise DatabaseError(err, query, params)

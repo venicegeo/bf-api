@@ -11,12 +11,11 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import logging
 import time
 
 from flask import Flask, jsonify, request
 
-from bfapi import config, piazza
+from bfapi import config, logger, piazza
 from bfapi.middleware import session_validation_filter
 from bfapi import v0
 
@@ -42,7 +41,7 @@ print('-' * 80)
 #
 
 server = Flask(__name__)
-log = logging.getLogger(__name__)
+logger.init(server)
 
 
 #
@@ -57,6 +56,7 @@ def health_check():
 
 @server.route('/login')
 def login():
+    log = logger.get_logger()
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return 'Authorization header is missing', 401

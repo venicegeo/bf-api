@@ -13,13 +13,13 @@
 
 from datetime import datetime
 import re
-from logging import getLogger
 
 import dateutil.parser
 import requests
 
 from bfapi.config import CATALOG
 from bfapi.db import get_connection, scenes, DatabaseError
+from bfapi.logger import get_logger
 
 
 #
@@ -52,8 +52,7 @@ class Scene:
 #
 
 def fetch(scene_id: str) -> Scene:
-    log = getLogger(__name__ + ':fetch')
-
+    log = get_logger()
     if not re.match(r'^landsat:\w+$', scene_id):
         raise InvalidIDError(scene_id)
 

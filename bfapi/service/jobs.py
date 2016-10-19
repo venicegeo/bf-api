@@ -11,24 +11,25 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import asyncio
 import json
-from datetime import datetime
-from logging import getLogger
+from datetime import datetime, timedelta
 
 import dateutil.parser
 import requests
 
 from bfapi import piazza
 from bfapi.config import TIDE_SERVICE
+from bfapi.logger import get_logger
 from bfapi.service import scenes as scenes_service
 from bfapi.db import jobs as jobs_db, get_connection, DatabaseError
 
-STATUS_RUNNING = 'Running'
-STATUS_SUCCESS = 'Success'
-STATUS_ERROR = 'Error'
+JOB_POLLING_INTERVAL = timedelta(seconds=30)
+JOB_PROCESSING_TTL = timedelta(seconds=900)
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
+STATUS_TIMED_OUT = 'Timed Out'
 
 
 #
@@ -41,8 +42,7 @@ def create_job(
         algorithm,
         scene_id: str,
         job_name: str) -> dict:
-    log = getLogger(__name__ + ':create_job')
-
+    log = get_logger()
     # Fetch scene metadata
     scene = scenes_service.fetch(scene_id)
 
@@ -115,7 +115,7 @@ def create_job(
             job_id=job_id,
             name=job_name,
             scene_id=scene_id,
-            status=STATUS_RUNNING,
+            status=piazza.STATUS_RUNNING,
             user_id=user_id,
         )
         jobs_db.insert_job_user(
@@ -141,7 +141,7 @@ def create_job(
         scene_capture_date=scene.capture_date,
         scene_sensor_name=scene.sensor_name,
         scene_id=scene_id,
-        status=STATUS_RUNNING,
+        status=piazza.STATUS_RUNNING,
     )
 
 
@@ -222,12 +222,83 @@ def get_all(user_id: str) -> dict:
     return feature_collection
 
 
+# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+def update_running_jobs(__debug_auth_token):
+    log = get_logger()
+    conn = get_connection()
+    try:
+        cursor = jobs_db.select_summary_for_status(conn, piazza.STATUS_RUNNING)
+    except DatabaseError as err:
+        log.error('Could not list running jobs: %s', err)
+        err.print_diagnostics()
+        raise err
+
+    tasks = []
+    for row in cursor.fetchall():
+        job_id = row['job_id']
+        created_on = dateutil.parser.parse(row['created_on'])
+        tasks.append(_update_status(__debug_auth_token, job_id, created_on))
+
+    if not tasks:
+        log.info('nothing to do')
+        return
+
+    log.info('starting polling cycle for %d records', len(tasks))
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(asyncio.wait(tasks))
+    loop.close()
+    log.info('cycle complete')
+# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+
+
+async def _update_status(auth_token: str, job_id: str, created_on: datetime):
+    log = get_logger()
+    try:
+        status = piazza.get_status(auth_token, job_id)
+    except piazza.AuthenticationError:
+        log.error('<%s> credentials rejected during polling!', job_id)
+        return
+
+    # Check for expiration
+    age = datetime.utcnow() - created_on
+    if age > JOB_PROCESSING_TTL and status.status == piazza.STATUS_RUNNING:
+        status.status = STATUS_TIMED_OUT
+        status.error_message = 'Processing time exceeded'
+
+    log.info('<%s> polled (%s)', job_id, status.status)
+
+    conn = get_connection()
+    try:
+        jobs_db.update_status(
+            conn,
+            job_id=job_id,
+            status=status.status,
+            data_id=status.data_id,
+        )
+        if status.error_message:
+            jobs_db.insert_job_failure(
+                conn,
+                job_id=job_id,
+                execution_step='lolwut',  # TODO -- use heuristics to determine this?
+                error_message=status.error_message  # TODO -- make this user-friendly, not tech mumbo-jumbo
+            )
+        conn.commit()
+    except DatabaseError as err:
+        conn.rollback()
+        log.error('<%s> update failed', job_id)
+        err.print_diagnostics()
+        raise err
+
+
 #
 # Helpers
 #
 
 def _fetch_tide_prediction(scene: scenes_service.Scene) -> (float, float, float):
-    log = getLogger(__name__ + ':_fetch_tide_prediction')
+    log = get_logger()
     x, y = _get_centroid(scene.geometry['coordinates'])
     dtg = scene.capture_date.strftime(FORMAT_DTG)
 

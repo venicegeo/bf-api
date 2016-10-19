@@ -18,9 +18,25 @@ import requests
 
 from bfapi.config import PZ_GATEWAY
 
+STATUS_CANCELLED = 'Cancelled'
+STATUS_SUCCESS = 'Success'
+STATUS_RUNNING = 'Running'
+STATUS_ERROR = 'Error'
 
 
+#
+# Types
+#
 
+class Status:
+    def __init__(
+            self,
+            status: str,
+            error_message: str = None,
+            data_id: str = None):
+        self.status = status
+        self.data_id = data_id
+        self.error_message = error_message
 
 
 #
@@ -91,6 +107,59 @@ def execute(auth_token: str, service_id: str, data_inputs: dict, data_output: li
         raise InvalidResponse('missing `data.jobId`', response.text)
 
     return job_id
+
+
+def get_status(auth_token: str, job_id: str) -> Status:
+    try:
+        response = requests.get(
+            'https://{}/job/{}'.format(PZ_GATEWAY, job_id),
+            headers={
+                'Authorization': auth_token,
+            }
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise AuthenticationError('credentials rejected')
+        raise ServerError(status_code)
+
+    data = response.json().get('data')
+    if not data:
+        raise InvalidResponse('missing `data`', response.text)
+
+    status = data.get('status')
+    if not status:
+        raise InvalidResponse('missing `data.status`', response.text)
+
+    # Status wrangling
+    if status == STATUS_RUNNING:
+        return Status(status)
+
+    elif status == STATUS_SUCCESS:
+        result = data.get('result')
+        if not result:
+            raise InvalidResponse('missing `data.result`', response.text)
+        data_id = result.get('dataId')
+        if not data_id:
+            raise InvalidResponse('missing `data.result.dataId`')
+        return Status(status, data_id=data_id)
+
+    elif status == STATUS_ERROR:
+        result = data.get('result')
+        error_message = None
+        if result:
+            error_message = result.get('message')
+        return Status(status, error_message=error_message)
+
+    elif status == STATUS_CANCELLED:
+        # TODO -- find out what this new status even means
+        return Status(status)
+
+    else:
+        raise InvalidResponse('ambiguous value for `data.status`', response.text)
 
 
 def get_username(session_token: str) -> str:

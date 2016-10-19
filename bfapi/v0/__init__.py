@@ -74,6 +74,12 @@ def get_job(job_id: str):
     return jsonify(job=feature)
 
 
+# HACK ----------------------------------------------
+@blueprint.route('/lolwut')
+def lolwut():
+    jobs.update_running_jobs(request.headers['Authorization'])
+    return 'ok', 200
+# HACK ----------------------------------------------
 @blueprint.route('/productline')
 def list_productlines():
     return jsonify(productLines=[])
