@@ -13,11 +13,10 @@
 
 import time
 
-from flask import Flask, jsonify, request
+from aiohttp.web import Application
 
-from bfapi import config, logger, piazza
-from bfapi.middleware import session_validation_filter
-from bfapi import v0
+from bfapi import config, logger, routes
+from bfapi.middleware import create_session_validation_filter
 
 _time_started = time.time()
 
@@ -40,35 +39,29 @@ print('-' * 80)
 # Configuration
 #
 
-server = Flask(__name__)
-logger.init(server)
+logger.init(config.DEBUG_MODE)
+server = Application(
+    middlewares=[create_session_validation_filter],
+    debug=config.DEBUG_MODE
+)
+
+
+#
+# Start Background Processes
+#
 
 
 #
 # Attach Routing
 #
 
-@server.route('/')
-def health_check():
-    uptime = round(time.time() - _time_started, 3)
-    return jsonify(uptime=uptime)
+resource = server.router.add_resource
+server.router.add_get('/', routes.health_check)
+server.router.add_get('/login', routes.login)
 
-
-@server.route('/login')
-def login():
-    log = logger.get_logger()
-    auth_header = request.headers.get('Authorization')
-    if not auth_header:
-        return 'Authorization header is missing', 401
-    try:
-        token = piazza.create_session(auth_header)
-    except piazza.AuthenticationError as err:
-        return err.message, 401
-    except piazza.Error as err:
-        log.error('Cannot log in: %s', err)
-        return 'A Piazza error prevents login', 500
-    return jsonify(token=token)
-
-
-v0.blueprint.before_request(session_validation_filter)
-server.register_blueprint(v0.blueprint, url_prefix='/v0')
+# API v0
+server.router.add_post('/v0/job', routes.v0.create_job)
+server.router.add_get('/v0/job', routes.v0.list_jobs)
+server.router.add_get('/v0/job/{job_id}', routes.v0.get_job)
+server.router.add_delete('/v0/job/{job_id}', routes.v0.forget_job)
+server.router.add_get('/v0/productline', routes.v0.list_productlines)

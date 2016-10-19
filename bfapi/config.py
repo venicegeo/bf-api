@@ -12,9 +12,17 @@
 # specific language governing permissions and limitations under the License.
 
 import os
+from datetime import timedelta
 
 _domain = os.getenv('DOMAIN', 'localhost').replace('int.', 'stage.')
+
+DEBUG_MODE = os.getenv('DEBUG_MODE') == '1'
 
 PZ_GATEWAY     = os.getenv('PZ_GATEWAY', 'pz-gateway.' + _domain)
 CATALOG        = os.getenv('CATALOG', 'pzsvc-image-catalog.' + _domain)
 TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _domain)
+
+SYSTEM_AUTH_TOKEN = os.getenv('SYSTEM_AUTH_TOKEN')
+
+JOB_WORKER_INTERVAL = timedelta(seconds=30)
+JOB_TTL = timedelta(seconds=900)

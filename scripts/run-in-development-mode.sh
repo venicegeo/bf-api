@@ -2,4 +2,10 @@
 
 cd $(dirname $(dirname $0))  # Return to root
 
-FLASK_DEBUG=1 FLASK_APP=bfapi/__init__.py flask run
+gunicorn bfapi:server \
+  -b localhost:5000 \
+  --reload \
+  --worker-class aiohttp.worker.GunicornWebWorker \
+  --access-logfile /dev/stdout \
+  --error-logfile /dev/stderr \
+  --access-logformat '%a %l %t "%r" %s %b'

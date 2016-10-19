@@ -11,18 +11,13 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from flask import Blueprint, g, jsonify, request
+from aiohttp.web import Request, Response, json_response
 
 from bfapi.db import DatabaseError
 from bfapi.service import jobs
 
-blueprint = Blueprint('v0', __name__)
 
-
-@blueprint.route('/job', methods=['POST'])
-def create_job():
-    request.get_json()
-
+async def create_job(request: Request):
     # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
     # Collect data
     class _Algorithm:
@@ -37,7 +32,7 @@ def create_job():
     try:
         record = jobs.create_job(
             auth_token=request.headers['Authorization'],
-            user_id=g.username,
+            user_id=request['username'],
 
             # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
             algorithm=_Algorithm(),
@@ -47,39 +42,34 @@ def create_job():
             job_name='test job name'
         )
     except DatabaseError:
-        return 'A database error prevents job execution', 500
-    return jsonify(record)
+        return Response(status=500, text='A database error prevents job execution')
+    return json_response(record)
 
 
-@blueprint.route('/job/<job_id>', methods=['DELETE'])
-def forget_job(job_id: str):
+async def forget_job(request: Request):
+    job_id = request.match_info['job_id']
     try:
-        jobs.forget(g.username, job_id)
+        jobs.forget(request['username'], job_id)
     except jobs.NotExists:
-        return 'Job {} does not exist'.format(job_id), 404
-    return 'Forgot {}'.format(job_id), 200
+        return Response(status=404, text='Job not found')
+    return Response(text='Forgot {}'.format(job_id))
 
 
-@blueprint.route('/job')
-def list_jobs():
-    feature_collection = jobs.get_all(g.username)
-    return jsonify(jobs=feature_collection)
+async def list_jobs(request: Request):
+    feature_collection = jobs.get_all(request['username'])
+    return json_response({
+        'jobs': feature_collection,
+    })
 
 
-@blueprint.route('/job/<job_id>')
-def get_job(job_id: str):
-    feature = jobs.get(g.username, job_id)
-    if not feature:
-        return 'Job not found', 404
-    return jsonify(job=feature)
+async def get_job(request: Request):
+    record = jobs.get(request['username'], request.match_info['job_id'])
+    if not record:
+        return Response(status=404, text='Job not found')
+    return json_response(record)
 
 
-# HACK ----------------------------------------------
-@blueprint.route('/lolwut')
-def lolwut():
-    jobs.update_running_jobs(request.headers['Authorization'])
-    return 'ok', 200
-# HACK ----------------------------------------------
-@blueprint.route('/productline')
-def list_productlines():
-    return jsonify(productLines=[])
+async def list_productlines(request: Request):
+    return json_response({
+        'productLines': [],
+    })

@@ -12,8 +12,10 @@
 # specific language governing permissions and limitations under the License.
 
 import unittest
+from datetime import timedelta
 
 from bfapi import config
+
 
 class ConfigurationTest(unittest.TestCase):
     def test_autodetects_piazza_gateway(self):
@@ -24,3 +26,9 @@ class ConfigurationTest(unittest.TestCase):
 
     def test_autodetects_tideprediction_url(self):
         self.assertIn('bf-tideprediction.', config.TIDE_SERVICE)
+
+    def test_defines_sensible_job_ttl(self):
+        self.assertGreaterEqual(config.JOB_TTL, timedelta(seconds=600))
+
+    def test_defines_sensible_job_polling_frequency(self):
+        self.assertGreaterEqual(config.JOB_WORKER_INTERVAL, timedelta(seconds=15))

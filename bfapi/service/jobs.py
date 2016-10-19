@@ -19,16 +19,14 @@ import dateutil.parser
 import requests
 
 from bfapi import piazza
-from bfapi.config import TIDE_SERVICE
+from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, SYSTEM_AUTH_TOKEN, TIDE_SERVICE
 from bfapi.logger import get_logger
 from bfapi.service import scenes as scenes_service
 from bfapi.db import jobs as jobs_db, get_connection, DatabaseError
 
-JOB_POLLING_INTERVAL = timedelta(seconds=30)
-JOB_PROCESSING_TTL = timedelta(seconds=900)
-
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
+FORMAT_TIME = '%TZ'
 STATUS_TIMED_OUT = 'Timed Out'
 
 

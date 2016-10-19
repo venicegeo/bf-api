@@ -15,33 +15,31 @@ from os.path import dirname, relpath
 import sys
 from logging import Formatter, StreamHandler, Logger, DEBUG, INFO
 
-from flask import Flask
+_MODULE_ROOT = dirname(__file__)
 
-_app = None
-_module_root = dirname(__file__)
+_logger = None
 
 
 #
 # Actions
 #
 
-def init(app: Flask):
-    global _app
-    _app = app
+def init(debug_mode: bool = False):
+    global _logger
 
-    _app.logger.handlers.clear()  # TODO -- is this legit?
+    if debug_mode:
+        print('*' * 80, '\u26A0 ️SERVER IS RUNNING IN DEBUG MODE'.center(80), '*' * 80, sep='\n\n\n')
 
+    _logger = Logger('bfapi', level=DEBUG if debug_mode else INFO)
     handler = StreamHandler(stream=sys.stdout)
-    formatter = CustomFormatter('[%(relativePathname)s:%(funcName)s] %(levelname)5s - %(message)s')
+    formatter = CustomFormatter('%(levelname)-5s - [%(relativePathname)s:%(funcName)s]  %(message)s')
     handler.setFormatter(formatter)
-    # handler.setLevel(DEBUG if _app.debug else INFO)
-    handler.setLevel(INFO)
 
-    _app.logger.addHandler(handler)
+    _logger.addHandler(handler)
 
 
 def get_logger() -> Logger:
-    return _app.logger
+    return _logger
 
 
 #
@@ -50,5 +48,5 @@ def get_logger() -> Logger:
 
 class CustomFormatter(Formatter):
     def formatMessage(self, record):
-        record.relativePathname = relpath(record.pathname, _module_root)
+        record.relativePathname = relpath(record.pathname, _MODULE_ROOT)
         return super().formatMessage(record)
