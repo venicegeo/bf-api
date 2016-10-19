@@ -220,53 +220,81 @@ def get_all(user_id: str) -> dict:
     return feature_collection
 
 
-# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-def update_running_jobs(__debug_auth_token):
+async def start_worker(
+        server,
+        auth_token: str = SYSTEM_AUTH_TOKEN,
+        job_ttl: timedelta = JOB_TTL,
+        interval: timedelta = JOB_WORKER_INTERVAL):
+    log = get_logger()
+
+    log.info('Starting jobs service worker')
+    loop = server.loop
+    server['jobs_worker'] = loop.create_task(_worker(auth_token, job_ttl, interval))
+
+
+#
+# Worker
+#
+
+async def _worker(
+        auth_token: str,
+        job_ttl,
+        interval: timedelta):
     log = get_logger()
     conn = get_connection()
-    try:
-        cursor = jobs_db.select_summary_for_status(conn, piazza.STATUS_RUNNING)
-    except DatabaseError as err:
-        log.error('Could not list running jobs: %s', err)
-        err.print_diagnostics()
-        raise err
 
-    tasks = []
-    for row in cursor.fetchall():
-        job_id = row['job_id']
-        created_on = dateutil.parser.parse(row['created_on'])
-        tasks.append(_update_status(__debug_auth_token, job_id, created_on))
+    while True:
+        try:
+            cursor = jobs_db.select_summary_for_status(
+                conn,
+                status=piazza.STATUS_RUNNING
+            )
+        except DatabaseError as err:
+            log.error('Could not list running jobs: %s', err)
+            err.print_diagnostics()
+            raise err
 
-    if not tasks:
-        log.info('nothing to do')
-        return
+        # Enqueue updates
+        tasks = []
+        for row in cursor.fetchall():
+            columns = dict(row)
+            job_id = columns['job_id']
+            created_on = dateutil.parser.parse(columns['created_on'])
+            tasks.append(_update_status(auth_token, job_id, created_on, job_ttl, len(tasks) + 1))
 
-    log.info('starting polling cycle for %d records', len(tasks))
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(asyncio.wait(tasks))
-    loop.close()
-    log.info('cycle complete')
-# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+        # Dispatch
+        next_run = (datetime.utcnow() + interval).strftime(FORMAT_TIME)
+        if tasks:
+            log.info('begin cycle for %d records', len(tasks))
+            await asyncio.wait(tasks)
+            log.info('cycle complete; next run at %s', next_run)
+        else:
+            log.info('nothing to do; next run at %s', next_run)
+
+        # Pause until next execution
+        await asyncio.sleep(interval.seconds)
 
 
-async def _update_status(auth_token: str, job_id: str, created_on: datetime):
+async def _update_status(
+        auth_token: str,
+        job_id: str,
+        created_on: datetime,
+        job_ttl: timedelta,
+        index: int):
     log = get_logger()
     try:
         status = piazza.get_status(auth_token, job_id)
     except piazza.AuthenticationError:
-        log.error('<%s> credentials rejected during polling!', job_id)
+        log.error('<%03d/%s> credentials rejected during polling!', index, job_id)
         return
 
     # Check for expiration
     age = datetime.utcnow() - created_on
-    if age > JOB_PROCESSING_TTL and status.status == piazza.STATUS_RUNNING:
+    if age > job_ttl and status.status == piazza.STATUS_RUNNING:
         status.status = STATUS_TIMED_OUT
         status.error_message = 'Processing time exceeded'
 
-    log.info('<%s> polled (%s)', job_id, status.status)
+    log.info('<%03d/%s> polled (%s)', index, job_id, status.status)
 
     conn = get_connection()
     try:
@@ -286,7 +314,7 @@ async def _update_status(auth_token: str, job_id: str, created_on: datetime):
         conn.commit()
     except DatabaseError as err:
         conn.rollback()
-        log.error('<%s> update failed', job_id)
+        log.error('<%03d/%s> update failed', index, job_id)
         err.print_diagnostics()
         raise err
 

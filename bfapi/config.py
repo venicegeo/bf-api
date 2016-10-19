@@ -24,5 +24,5 @@ TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _domain)
 
 SYSTEM_AUTH_TOKEN = os.getenv('SYSTEM_AUTH_TOKEN')
 
-JOB_WORKER_INTERVAL = timedelta(seconds=30)
+JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_TTL = timedelta(seconds=900)

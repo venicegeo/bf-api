@@ -17,6 +17,7 @@ from aiohttp.web import Application
 
 from bfapi import config, logger, routes
 from bfapi.middleware import create_session_validation_filter
+from bfapi.service.jobs import start_worker as start_jobs_worker
 
 _time_started = time.time()
 
@@ -50,6 +51,7 @@ server = Application(
 # Start Background Processes
 #
 
+server.on_startup.append(start_jobs_worker)
 
 #
 # Attach Routing
