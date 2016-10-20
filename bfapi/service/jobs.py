@@ -21,7 +21,7 @@ import requests
 from bfapi import piazza
 from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, SYSTEM_AUTH_TOKEN, TIDE_SERVICE
 from bfapi.logger import get_logger
-from bfapi.service import scenes as scenes_service
+from bfapi.service import algorithms as algorithms_service, scenes as scenes_service
 from bfapi.db import jobs as jobs_db, get_connection, DatabaseError
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
@@ -37,15 +37,27 @@ STATUS_TIMED_OUT = 'Timed Out'
 def create_job(
         session_token: str,
         user_id: str,
-        algorithm,
         scene_id: str,
+        service_id: str,
         job_name: str) -> dict:
     log = get_logger()
-    # Fetch scene metadata
-    scene = scenes_service.fetch(scene_id)
+
+    # Fetch prerequisites
+    try:
+        algorithm = algorithms_service.get(session_token, service_id)
+        scene = scenes_service.fetch(scene_id)
+    except (algorithms_service.NotFound,
+            algorithms_service.ValidationError,
+            scenes_service.CatalogError,
+            scenes_service.NotFound,
+            scenes_service.ValidationError) as err:
+        raise ExecutionError(err)
 
     # Fetch tide info
-    tide_current, tide_min, tide_max = _fetch_tide_prediction(scene)
+    try:
+        tide_current, tide_min, tide_max = _fetch_tide_prediction(scene)
+    except TidePredictionError as err:
+        raise ExecutionError(err)  # TODO -- should this be a hard failure?
 
     # Determine GeoTIFF URLs
     geotiff_filenames = []
@@ -146,7 +158,7 @@ def create_job(
 def forget(user_id: str, job_id: str) -> None:
     conn = get_connection()
     if not jobs_db.exists(conn, job_id=job_id):
-        raise NotExists(job_id)
+        raise NotFound(job_id)
     try:
         jobs_db.delete_job_user(conn, job_id=job_id, user_id=user_id)
         conn.commit()
@@ -344,10 +356,9 @@ def _fetch_tide_prediction(scene: scenes_service.Scene) -> (float, float, float)
         })
         response.raise_for_status()
     except requests.ConnectionError:
-        raise TidePredictionError('Tide prediction service is unreachable')  # TODO -- should this be a hard failure?
+        raise TidePredictionError('service is unreachable')
     except requests.HTTPError as err:
-        log.error('Tide prediction call failed: %s', err)
-        raise TidePredictionError('unknown error (HTTP {})'.format(err.response.status_code))
+        raise TidePredictionError('HTTP {}'.format(err.response.status_code))
 
     # Validate and extract the response
     try:
@@ -423,20 +434,17 @@ def _to_feature(
 #
 
 class ExecutionError(Exception):
-    def __init__(self, err: Exception = None, message=None):
-        if not message:
-            (message,) = err.args
-        super().__init__(message)
-        self.message = message
+    def __init__(self, err: Exception = None, message: str = None):
+        super().__init__('Cannot execute: {}'.format(message if message else str(err)))
         self.original_error = err
 
 
-class NotExists(Exception):
+class NotFound(Exception):
     def __init__(self, job_id: str):
-        super().__init__('Job `{}` does not exist'.format(job_id))
+        super().__init__('job `{}` not found'.format(job_id))
         self.job_id = job_id
 
 
 class TidePredictionError(ExecutionError):
     def __init__(self, message: str):
-        super().__init__(message='Tide prediction error: {}'.format(message))
+        super().__init__(message='tide prediction error: {}'.format(message))

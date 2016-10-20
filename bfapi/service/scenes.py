@@ -54,16 +54,25 @@ class Scene:
 def fetch(scene_id: str) -> Scene:
     log = get_logger()
     if not re.match(r'^landsat:\w+$', scene_id):
-        raise InvalidIDError(scene_id)
+        raise MalformedSceneID(scene_id)
 
     scene_uri = 'https://{}/image/{}'.format(CATALOG, scene_id)
     try:
-        log.info('fetch `%s`', scene_uri)
+        log.info('Fetch `%s`', scene_uri)
         scene_req = requests.get(scene_uri)
         scene_req.raise_for_status()
-    except (requests.ConnectionError, requests.HTTPError) as err:
-        log.error('Could not fetch scene metadata: %s', err)
-        raise FetchError(scene_id)
+    except requests.ConnectionError:
+        raise CatalogError()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 404:
+            raise NotFound(scene_id)
+        # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+        # TODO -- this can go away once Redmine #9287 is closed
+        if status_code == 400 and 'Unable to retrieve metadata for ' + scene_id in err.response.text:
+            raise NotFound(scene_id)
+        # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+        raise CatalogError(scene_id, status_code)
 
     geojson = scene_req.json()
     scene = Scene(
@@ -164,20 +173,24 @@ def _extract_sensor_name(scene_id: str, feature: dict) -> str:
 # Errors
 #
 
-class InvalidIDError(Exception):
+class CatalogError(Exception):
+    def __init__(self):
+        super().__init__('error communicating with image catalog')
+
+
+class MalformedSceneID(Exception):
     def __init__(self, scene_id: str):
-        super().__init__('InvalidIDError (scene_id={})'.format(scene_id))
+        super().__init__('malformed scene id `{}`'.format(scene_id))
         self.scene_id = scene_id
 
 
-class FetchError(Exception):
+class NotFound(Exception):
     def __init__(self, scene_id: str):
-        super().__init__('FetchError (scene_id={})'.format(scene_id))
+        super().__init__('scene `{}` not found in catalog'.format(scene_id))
         self.scene_id = scene_id
 
 
 class ValidationError(Exception):
     def __init__(self, scene_id: str, message: str):
-        super().__init__('ValidationError (scene_id={}): {}'.format(scene_id, message))
+        super().__init__('scene `{}` has invalid metadata: {}'.format(scene_id, message))
         self.scene_id = scene_id
-        self.message = message

@@ -97,6 +97,11 @@ def get(session_token: str, service_id: str):
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id)
         service = piazza.get_service(session_token, service_id)
+    except piazza.ServerError as err:
+        log.error('Service lookup failed: %s', err)
+        if err.status_code == 404:
+            raise NotFound(service_id)
+        raise err
     except piazza.Error as err:
         log.error('Service lookup failed: %s', err)
         raise err
@@ -170,7 +175,7 @@ def _extract_version(service: piazza.ServiceDescriptor) -> str:
 # Errors
 #
 
-class NotExists(Exception):
+class NotFound(Exception):
     def __init__(self, service_id: str):
         super().__init__('algorithm `{}` does not exist'.format(service_id))
         self.service_id = service_id
