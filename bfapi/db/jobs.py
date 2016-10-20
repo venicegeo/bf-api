@@ -11,9 +11,9 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from sqlite3 import Connection, Cursor, IntegrityError, OperationalError
+import psycopg2 as pg
 
-from bfapi.db import DatabaseError
+from bfapi.db import Connection, Cursor, DatabaseError
 
 
 def delete_job_user(
@@ -23,17 +23,18 @@ def delete_job_user(
         user_id: str) -> bool:
     query = """
         DELETE FROM __beachfront__job_user
-        WHERE job_id = :job_id
-              AND user_id = :user_id
+        WHERE job_id = %(job_id)s
+              AND user_id = %(user_id)s
         """
     params = {
         'job_id': job_id,
         'user_id': user_id,
     }
     try:
-        cursor = conn.execute(query, params)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
         return cursor.rowcount > 0
-    except OperationalError as err:
+    except pg.Error as err:
         raise DatabaseError(err, query, params)
 
 
@@ -42,15 +43,16 @@ def exists(
         *,
         job_id: str) -> bool:
     query = """
-        SELECT 1 FROM __beachfront__job WHERE job_id = :job_id
+        SELECT 1 FROM __beachfront__job WHERE job_id = %(job_id)s
         """
     params = {
         'job_id': job_id,
     }
     try:
-        cursor = conn.execute(query, params)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
         return len(cursor.fetchall()) > 0
-    except OperationalError as err:
+    except pg.Error as err:
         raise DatabaseError(err, query, params)
 
 
@@ -66,7 +68,7 @@ def insert_job(
         user_id: str):
     query = """
         INSERT INTO __beachfront__job (job_id, algorithm_name, algorithm_version, created_by, name, scene_id, status)
-        VALUES (:job_id, :algorithm_name, :algorithm_version, :created_by, :name, :scene_id, :status)
+        VALUES (%(job_id)s, %(algorithm_name)s, %(algorithm_version)s, %(created_by)s, %(name)s, %(scene_id)s, %(status)s)
         """
     params = {
         'job_id': job_id,
@@ -78,8 +80,9 @@ def insert_job(
         'status': status,
     }
     try:
-        conn.execute(query, params)
-    except (IntegrityError, OperationalError) as err:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+    except pg.Error as err:
         raise DatabaseError(err, query, params)
 
 
@@ -91,7 +94,7 @@ def insert_job_failure(
         job_id: str) -> None:
     query = """
         INSERT INTO __beachfront__job_error (job_id, error_message, execution_step)
-        VALUES (:job_id, :error_message, :execution_step)
+        VALUES (%(job_id)s, %(error_message)s, %(execution_step)s)
         """
     params = {
         'job_id': job_id,
@@ -99,8 +102,9 @@ def insert_job_failure(
         'execution_step': execution_step,
     }
     try:
-        conn.execute(query, params)
-    except (IntegrityError, OperationalError) as err:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+    except pg.Error as err:
         raise DatabaseError(err, query, params)
 
 
@@ -110,16 +114,18 @@ def insert_job_user(
         job_id: str,
         user_id: str) -> None:
     query = """
-        INSERT OR IGNORE INTO __beachfront__job_user (job_id, user_id)
-        VALUES (:job_id, :user_id)
+        INSERT INTO __beachfront__job_user (job_id, user_id)
+        VALUES (%(job_id)s, %(user_id)s)
+        ON CONFLICT DO NOTHING
         """
     params = {
         'job_id': job_id,
         'user_id': user_id,
     }
     try:
-        conn.execute(query, params)
-    except (IntegrityError, OperationalError) as err:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+    except pg.Error as err:
         raise DatabaseError(err, query, params)
 
 
@@ -131,19 +137,20 @@ def select_job(
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
                e.error_message, e.execution_step,
-               s.geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
+               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__job_error e ON (e.job_id = j.job_id)
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
-         WHERE j.job_id = :job_id
+         WHERE j.job_id = %(job_id)s
         """
     params = {
         'job_id': job_id,
     }
     try:
-        cursor = conn.execute(query, params)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
         return cursor
-    except OperationalError as err:
+    except pg.Error as err:
         raise DatabaseError(err, query, params)
 
 
@@ -155,20 +162,21 @@ def select_jobs_for_user(
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
                e.error_message, e.execution_step,
-               s.geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
+               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__job_user u ON (u.job_id = j.job_id)
                LEFT OUTER JOIN __beachfront__job_error e ON (e.job_id = j.job_id)
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
-         WHERE u.user_id = :user_id
+         WHERE u.user_id = %(user_id)s
         """
     params = {
         'user_id': user_id,
     }
     try:
-        cursor = conn.execute(query, params)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
         return cursor
-    except OperationalError as err:
+    except pg.Error as err:
         raise DatabaseError(err, query, params)
 
 
@@ -179,15 +187,16 @@ def select_summary_for_status(
     query = """
         SELECT job_id, created_on
           FROM __beachfront__job
-         WHERE status = :status
+         WHERE status = %(status)s
         """
     params = {
         'status': status,
     }
     try:
-        cursor = conn.execute(query, params)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
         return cursor
-    except OperationalError as err:
+    except pg.Error as err:
         raise DatabaseError(err, query, params)
 
 
@@ -199,9 +208,9 @@ def update_status(
         status: str) -> Cursor:
     query = """
         UPDATE __beachfront__job
-           SET detections_id = :detections_id,
-               status = :status
-         WHERE job_id = :job_id
+           SET detections_id = %(detections_id)s,
+               status = %(status)s
+         WHERE job_id = %(job_id)s
         """
     params = {
         'job_id': job_id,
@@ -209,6 +218,7 @@ def update_status(
         'detections_id': data_id,
     }
     try:
-        conn.execute(query, params)
-    except (IntegrityError, OperationalError) as err:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+    except pg.Error as err:
         raise DatabaseError(err, query, params)

@@ -13,22 +13,26 @@
 
 import json
 from datetime import datetime
-from sqlite3 import Connection, IntegrityError, OperationalError
 
-from bfapi.db import DatabaseError
+import psycopg2 as pg
+
+from bfapi.db import Connection, DatabaseError
 
 
 def insert(conn: Connection,
-           scene_id: str,
+           *,
            captured_on: datetime,
            catalog_uri: str,
            cloud_cover: float,
            geometry: dict,
            resolution: int,
+           scene_id: str,
            sensor_name: str) -> str:
     query = """
-        INSERT OR IGNORE INTO __beachfront__scene (scene_id, captured_on, catalog_uri, cloud_cover, geometry, resolution, sensor_name)
-        VALUES (:scene_id, :captured_on, :catalog_uri, :cloud_cover, :geometry, :resolution, :sensor_name)
+        INSERT INTO __beachfront__scene (scene_id, captured_on, catalog_uri, cloud_cover, geometry, resolution, sensor_name)
+        VALUES (%(scene_id)s, %(captured_on)s, %(catalog_uri)s, %(cloud_cover)s, ST_GeomFromGeoJSON(%(geometry)s),
+               %(resolution)s, %(sensor_name)s)
+        ON CONFLICT DO NOTHING
         """
     params = {
         'scene_id': scene_id,
@@ -40,6 +44,7 @@ def insert(conn: Connection,
         'sensor_name': sensor_name,
     }
     try:
-        conn.execute(query, params)
-    except (IntegrityError, OperationalError) as err:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+    except pg.Error as err:
         raise DatabaseError(err, query, params)

@@ -15,31 +15,31 @@
 -- SQL Dialect: PostgreSQL + PostGIS
 
 CREATE TABLE __beachfront__scene (
-    scene_id          VARCHAR(32)    PRIMARY KEY,
+    scene_id          VARCHAR(64)    PRIMARY KEY,
     captured_on       TIMESTAMP      NOT NULL,
     cloud_cover       FLOAT          NOT NULL,
     geometry          GEOMETRY       NOT NULL,
     resolution        INTEGER        NOT NULL,
-    sensor_name       VARCHAR(32)    NOT NULL,
+    sensor_name       VARCHAR(64)    NOT NULL,
     catalog_uri       VARCHAR(255)   NOT NULL
 );
 
 CREATE TABLE __beachfront__job (
-    job_id            VARCHAR(32)    PRIMARY KEY,
+    job_id            VARCHAR(64)    PRIMARY KEY,
     algorithm_name    VARCHAR(100)   NOT NULL,
     algorithm_version VARCHAR(12)    NOT NULL,
     created_by        VARCHAR(64)    NOT NULL,
     created_on        TIMESTAMP      NOT NULL     DEFAULT CURRENT_TIMESTAMP,
-    detections_id     VARCHAR(32),
+    detections_id     VARCHAR(64),
     name              VARCHAR(100)   NOT NULL,
-    scene_id          VARCHAR(32)    NOT NULL,
+    scene_id          VARCHAR(64)    NOT NULL,
     status            VARCHAR(16)    NOT NULL,
 
     FOREIGN KEY (scene_id) REFERENCES __beachfront__scene(scene_id)
 );
 
 CREATE TABLE __beachfront__job_user (
-    job_id            VARCHAR(32),
+    job_id            VARCHAR(64),
     user_id           VARCHAR(64),
 
     PRIMARY KEY (job_id, user_id),
@@ -47,7 +47,7 @@ CREATE TABLE __beachfront__job_user (
 );
 
 CREATE TABLE __beachfront__job_error (
-    job_id            VARCHAR(32),
+    job_id            VARCHAR(64),
     error_message     VARCHAR(64),
     execution_step    VARCHAR(64),  -- e.g., 'fetch', 'compute', 'deployment', 'async'
 

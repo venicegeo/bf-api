@@ -15,7 +15,6 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 
-import dateutil.parser
 import requests
 
 from bfapi import piazza
@@ -188,12 +187,12 @@ def get(user_id: str, job_id: str) -> dict:
         algorithm_name=columns['algorithm_name'],
         algorithm_version=columns['algorithm_version'],
         created_by=columns['created_by'],
-        created_on=dateutil.parser.parse(columns['created_on']),
+        created_on=columns['created_on'],
         detections_id=columns['detections_id'],
         geometry=columns['geometry'],
         job_id=columns['job_id'],
         name=columns['name'],
-        scene_capture_date=dateutil.parser.parse(columns['scene_capture_date']),
+        scene_capture_date=columns['scene_capture_date'],
         scene_sensor_name=columns['scene_sensor_name'],
         scene_id=columns['scene_id'],
         status=columns['status'],
@@ -219,12 +218,12 @@ def get_all(user_id: str) -> dict:
             algorithm_name=columns['algorithm_name'],
             algorithm_version=columns['algorithm_version'],
             created_by=columns['created_by'],
-            created_on=dateutil.parser.parse(columns['created_on']),
+            created_on=columns['created_on'],
             detections_id=columns['detections_id'],
             geometry=columns['geometry'],
             job_id=columns['job_id'],
             name=columns['name'],
-            scene_capture_date=dateutil.parser.parse(columns['scene_capture_date']),
+            scene_capture_date=columns['scene_capture_date'],
             scene_sensor_name=columns['scene_sensor_name'],
             scene_id=columns['scene_id'],
             status=columns['status'],
@@ -273,7 +272,7 @@ async def _worker(
         for row in cursor.fetchall():
             columns = dict(row)
             job_id = columns['job_id']
-            created_on = dateutil.parser.parse(columns['created_on'])
+            created_on = columns['created_on']
             tasks.append(_update_status(auth_token, job_id, created_on, job_ttl, len(tasks) + 1))
 
         # Dispatch
@@ -301,9 +300,13 @@ async def _update_status(
     except piazza.Unauthorized:
         log.error('<%03d/%s> credentials rejected during polling!', index, job_id)
         return
-    except piazza.Error as err:
-        log.error('<%03d/%s> call to Piazza failed:', index, job_id, err.message)
-        return
+    except (piazza.ServerError, piazza.Error) as err:
+        if isinstance(err, piazza.ServerError) and err.status_code == 404:
+            # Mark the job as failed and proceed with database updates
+            status = piazza.Status(status='Error', error_message='Job Not Found')
+        else:
+            log.error('<%03d/%s> call to Piazza failed: %s', index, job_id, err.message)
+            return
 
     # Check for expiration
     age = datetime.utcnow() - created_on

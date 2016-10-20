@@ -80,7 +80,7 @@ async def create_job(request: Request):
         return Response(status=500, text=str(err))
     except DatabaseError:
         return Response(status=500, text='A database error prevents job execution')
-    return json_response(record)
+    return json_response(status=201, data=record)
 
 
 async def forget_job(request: Request):
