@@ -14,7 +14,7 @@
 from aiohttp.web import Request, Response, json_response
 
 from bfapi.db import DatabaseError
-from bfapi.service import jobs
+from bfapi.service import algorithms as algorithms_service, jobs as jobs_service
 
 
 async def create_job(request: Request):
@@ -49,21 +49,28 @@ async def create_job(request: Request):
 async def forget_job(request: Request):
     job_id = request.match_info['job_id']
     try:
-        jobs.forget(request['username'], job_id)
-    except jobs.NotExists:
+        jobs_service.forget(request['username'], job_id)
+    except jobs_service.NotExists:
         return Response(status=404, text='Job not found')
     return Response(text='Forgot {}'.format(job_id))
 
 
+async def list_algorithms(request: Request):
+    algorithms = algorithms_service.list_all(session_token=request.headers['Authorization'])
+    return json_response({
+        'algorithms': [algorithm.to_json() for algorithm in algorithms]
+    })
+
+
 async def list_jobs(request: Request):
-    feature_collection = jobs.get_all(request['username'])
+    feature_collection = jobs_service.get_all(request['username'])
     return json_response({
         'jobs': feature_collection,
     })
 
 
 async def get_job(request: Request):
-    record = jobs.get(request['username'], request.match_info['job_id'])
+    record = jobs_service.get(request['username'], request.match_info['job_id'])
     if not record:
         return Response(status=404, text='Job not found')
     return json_response(record)

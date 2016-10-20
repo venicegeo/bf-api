@@ -62,6 +62,7 @@ server.router.add_get('/', routes.health_check)
 server.router.add_get('/login', routes.login)
 
 # API v0
+server.router.add_get('/v0/algorithm', routes.v0.list_algorithms)
 server.router.add_post('/v0/job', routes.v0.create_job)
 server.router.add_get('/v0/job', routes.v0.list_jobs)
 server.router.add_get('/v0/job/{job_id}', routes.v0.get_job)

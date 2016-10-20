@@ -13,6 +13,8 @@
 
 import base64
 import re
+from typing import List
+
 
 import requests
 
@@ -38,6 +40,22 @@ class Status:
         self.status = status
         self.data_id = data_id
         self.error_message = error_message
+
+
+class ServiceDescriptor:
+    def __init__(
+            self,
+            *,
+            description: str,
+            metadata: dict,
+            name: str,
+            service_id: str,
+            url: str):
+        self.description = description
+        self.metadata = metadata
+        self.name = name
+        self.service_id = service_id
+        self.url = url
 
 
 #
@@ -111,6 +129,74 @@ def execute(session_token: str, service_id: str, data_inputs: dict, data_output:
         raise InvalidResponse('missing `data.jobId`', response.text)
 
     return job_id
+
+
+def get_services(session_token: str, pattern: str, count: int = 100) -> List[ServiceDescriptor]:
+    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
+        raise MalformedSessionToken()
+
+    try:
+        response = requests.get(
+            'https://{}/service'.format(PZ_GATEWAY),
+            headers={
+                'Authorization': session_token,
+            },
+            params={
+                'keyword': pattern,
+                'perPage': count,
+            }
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+
+    data = response.json().get('data')
+    if data is None:
+        raise InvalidResponse('missing `data`', response.text)
+    elif not isinstance(data, list):
+        raise InvalidResponse('`data` is of the wrong type', response.text)
+
+    services = []
+    for i, datum in enumerate(data):
+        metadata = datum.get('resourceMetadata')
+        if not metadata:
+            raise InvalidResponse('Missing `data.{}.resourceMetadata`'.format(i), response.text)
+
+        name = metadata.get('name')
+        if not name:
+            raise InvalidResponse('Missing `data.{}.resourceMetadata.name`'.format(i), response.text)
+
+        description = metadata.get('description')
+        if not description:
+            raise InvalidResponse('Missing `data.{}.resourceMetadata.description`'.format(i), response.text)
+
+        service_id = datum.get('serviceId')
+        if not service_id:
+            raise InvalidResponse('Missing `data.{}.serviceId`'.format(i), response.text)
+
+        url = datum.get('url')
+        if not url:
+            raise InvalidResponse('Missing `data.{}.url`'.format(i), response.text)
+
+        # Prune redundant properties
+        metadata.pop('name')
+        metadata.pop('description')
+
+        service = ServiceDescriptor(
+            service_id=service_id,
+            description=description,
+            metadata=metadata,
+            name=name,
+            url=url,
+        )
+
+        services.append(service)
+    return services
 
 
 def get_status(session_token: str, job_id: str) -> Status:
