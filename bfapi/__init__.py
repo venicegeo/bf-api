@@ -15,7 +15,7 @@ import time
 
 from aiohttp.web import Application
 
-from bfapi import config, logger, routes
+from bfapi import config, db, logger, routes
 from bfapi.middleware import create_session_validation_filter
 from bfapi.service.jobs import start_worker as start_jobs_worker
 
@@ -37,10 +37,11 @@ print('-' * 80)
 ################################################################################
 
 #
-# Configuration
+# Initialize core components
 #
 
 logger.init(config.DEBUG_MODE)
+db.init()
 server = Application(
     middlewares=[create_session_validation_filter],
     debug=config.DEBUG_MODE
@@ -52,6 +53,7 @@ server = Application(
 #
 
 server.on_startup.append(start_jobs_worker)
+
 
 #
 # Attach Routing

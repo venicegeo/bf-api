@@ -11,6 +11,9 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import os
+import signal
+from logging import Logger
 from os.path import dirname, join
 from pprint import pformat
 
@@ -47,6 +50,21 @@ def get_connection() -> Connection:
         raise ConnectionFailed(err)
 
 
+def init():
+    try:
+        install_if_needed()
+    except:
+        # Fail fast
+        print(
+            '-' * 80,
+            'Halting server initialization.'.center(80),
+            '-' * 80,
+            sep='\n\n',
+        )
+        os.kill(os.getppid(), signal.SIGQUIT)
+        exit(1)
+
+
 def install():
     conn = get_connection()
     log = get_logger()
@@ -73,7 +91,7 @@ def install():
         raise InstallationError('schema install failed', err)
 
     conn.commit()
-    log.info('DONE!')
+    log.info('Installation complete!')
 
 
 def install_if_needed():
