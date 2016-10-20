@@ -141,6 +141,84 @@ class PiazzaGetStatusTest(unittest.TestCase):
 
 
 @Mocker()
+class PiazzaGetServiceTest(unittest.TestCase):
+    def test_calls_correct_url(self, m: Mocker):
+        m.get('/service/test-id', text=RESPONSE_SERVICE)
+        piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+        self.assertEqual(m.request_history[0].url, 'https://pz-gateway.localhost/service/test-id')
+
+    def test_returns_a_service_descriptor(self, m: Mocker):
+        m.get('/service/test-id', text=RESPONSE_SERVICE)
+        descriptor = piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+        self.assertIsInstance(descriptor, piazza.ServiceDescriptor)
+
+    def test_deserializes_canonical_data(self, m: Mocker):
+        m.get('/service/test-id', text=RESPONSE_SERVICE)
+        descriptor = piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+        self.assertEqual(descriptor.service_id, 'test-id')
+        self.assertEqual(descriptor.description, 'test-description')
+        self.assertEqual(descriptor.name, 'test-name')
+        self.assertEqual(descriptor.url, 'test-url')
+
+    def test_deserializes_metadata(self, m: Mocker):
+        m.get('/service/test-id', text=RESPONSE_SERVICE)
+        descriptor = piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+        self.assertEqual(descriptor.metadata, {'classType': {'classification': 'UNCLASSIFIED'}, 'version': 'test-version'})
+
+    def test_handles_http_errors_gracefully(self, m: Mocker):
+        m.get('/service/test-id', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+
+    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+        self.skipTest('Unsure how to test this one')
+
+    def test_throws_when_service_does_not_exist(self, m: Mocker):
+        m.get('/service/test-id', text=RESPONSE_SERVICE_NOT_FOUND, status_code=404)
+        with self.assertRaises(piazza.ServerError):
+            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+
+    def test_throws_when_data_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_SERVICE)
+        mangled_response.pop('data')
+        m.get('/service/test-id', json=mangled_response)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+
+    def test_throws_when_data_is_malformed(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_SERVICE)
+        mangled_response['data'] = 'lol'
+        m.get('/service/test-id', json=mangled_response)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+
+    def test_throws_when_name_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_SERVICE)
+        mangled_response['data']['resourceMetadata'].pop('name')
+        m.get('/service/test-id', json=mangled_response)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+
+    def test_throws_when_url_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_SERVICE)
+        mangled_response['data'].pop('url')
+        m.get('/service/test-id', json=mangled_response)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+
+    def test_throws_when_descriptors_are_malformed(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_SERVICE)
+        mangled_response['data'].pop('serviceId')
+        m.get('/service/test-id', json=mangled_response)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+
+    def test_throws_when_passed_malformed_session_token(self, m: Mocker):
+        with self.assertRaises(piazza.MalformedSessionToken):
+            piazza.get_service('lolwut', service_id='test-id')
+
+
+@Mocker()
 class PiazzaGetServicesTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
@@ -429,6 +507,24 @@ RESPONSE_JOB_SUCCESS = """{
   }
 }"""
 
+RESPONSE_SERVICE = """{
+  "type": "service",
+  "data": {
+    "serviceId": "test-id",
+    "url": "test-url",
+    "contractUrl": "test-contract-url",
+    "method": "POST",
+    "resourceMetadata": {
+      "name": "test-name",
+      "description": "test-description",
+      "classType": {
+        "classification": "UNCLASSIFIED"
+      },
+      "version": "test-version"
+    }
+  }
+}"""
+
 RESPONSE_SERVICE_LIST = """{
   "type": "service-list",
   "data": [
@@ -467,4 +563,10 @@ RESPONSE_SERVICE_LIST = """{
     "page": 0,
     "per_page": 100
   }
+}"""
+
+RESPONSE_SERVICE_NOT_FOUND = """{
+  "type": "error",
+  "message": "Service not found: test-id",
+  "origin": "Service Controller"
 }"""

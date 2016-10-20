@@ -17,6 +17,35 @@ from bfapi.db import DatabaseError
 from bfapi.service import algorithms as algorithms_service, jobs as jobs_service
 
 
+#
+# Algorithms
+#
+
+async def get_algorithm(request: Request):
+    service_id = request.match_info['service_id']
+    try:
+        algorithm = algorithms_service.get(
+            session_token=request.headers['Authorization'],
+            service_id=service_id,
+        )
+    except algorithms_service.NotExists:
+        return Response(status=404, text='Algorithm not found')
+    return json_response({
+        'algorithm': algorithm.serialize(),
+    })
+
+
+async def list_algorithms(request: Request):
+    algorithms = algorithms_service.list_all(session_token=request.headers['Authorization'])
+    return json_response({
+        'algorithms': [algorithm.serialize() for algorithm in algorithms]
+    })
+
+
+#
+# Jobs
+#
+
 async def create_job(request: Request):
     # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
     # Collect data
@@ -55,13 +84,6 @@ async def forget_job(request: Request):
     return Response(text='Forgot {}'.format(job_id))
 
 
-async def list_algorithms(request: Request):
-    algorithms = algorithms_service.list_all(session_token=request.headers['Authorization'])
-    return json_response({
-        'algorithms': [algorithm.to_json() for algorithm in algorithms]
-    })
-
-
 async def list_jobs(request: Request):
     feature_collection = jobs_service.get_all(request['username'])
     return json_response({
@@ -75,6 +97,10 @@ async def get_job(request: Request):
         return Response(status=404, text='Job not found')
     return json_response(record)
 
+
+#
+# Product Lines
+#
 
 async def list_productlines(request: Request):
     return json_response({

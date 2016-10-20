@@ -42,7 +42,7 @@ class Algorithm:
         self.url = url
         self.version = version
 
-    def to_json(self):
+    def serialize(self):
         return {
             'bands': self.bands,
             'description': self.description,
@@ -62,17 +62,17 @@ class Algorithm:
 def list_all(session_token: str) -> List[Algorithm]:
     log = get_logger()
     try:
-        log.info('Querying Piazza for available beachfront algorithms')
+        log.info('Fetching beachfront services from Piazza')
         services = piazza.get_services(session_token, '^BF_Algo_')
     except piazza.Error as err:
-        log.error('Service listing failed: %s', err)
+        log.error('Service discovery failed: %s', err)
         raise err
 
     algorithms = []
     for service in services:
         metadata = service.metadata.get('metadata')
         if not metadata:
-            log.warning('Algorithm %s missing `metadata` hash', service.service_id)
+            log.warning('Algorithm <%s> missing `metadata` hash', service.service_id)
             continue
         try:
             algorithm = Algorithm(
@@ -87,9 +87,33 @@ def list_all(session_token: str) -> List[Algorithm]:
             )
             algorithms.append(algorithm)
         except ValidationError as err:
-            log.error('Algorithm transformation failed: %s', err)
+            log.error('Algorithm conversion failed: %s', err)
             continue
     return algorithms
+
+
+def get(session_token: str, service_id: str):
+    log = get_logger()
+    try:
+        log.info('Fetch beachfront service `%s` from Piazza', service_id)
+        service = piazza.get_service(session_token, service_id)
+    except piazza.Error as err:
+        log.error('Service lookup failed: %s', err)
+        raise err
+    try:
+        return Algorithm(
+            bands=_extract_bands(service),
+            interface=_extract_interface(service),
+            description=_extract_description(service),
+            max_cloud_cover=_extract_max_cloud_cover(service),
+            name=_extract_name(service),
+            service_id=service.service_id,
+            url=_extract_url(service),
+            version=_extract_version(service),
+        )
+    except ValidationError as err:
+        log.error('Algorithm conversion failed: %s', err)
+        raise err
 
 
 #
@@ -145,6 +169,12 @@ def _extract_version(service: piazza.ServiceDescriptor) -> str:
 #
 # Errors
 #
+
+class NotExists(Exception):
+    def __init__(self, service_id: str):
+        super().__init__('algorithm `{}` does not exist'.format(service_id))
+        self.service_id = service_id
+
 
 class ValidationError(Exception):
     def __init__(self, message: str):

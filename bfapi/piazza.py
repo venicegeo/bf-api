@@ -15,7 +15,6 @@ import base64
 import re
 from typing import List
 
-
 import requests
 
 from bfapi.config import PZ_GATEWAY
@@ -131,6 +130,35 @@ def execute(session_token: str, service_id: str, data_inputs: dict, data_output:
     return job_id
 
 
+def get_service(session_token: str, service_id: str) -> ServiceDescriptor:
+    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
+        raise MalformedSessionToken()
+
+    try:
+        response = requests.get(
+            'https://{}/service/{}'.format(PZ_GATEWAY, service_id),
+            headers={
+                'Authorization': session_token,
+            },
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+
+    datum = response.json().get('data')
+    if datum is None:
+        raise InvalidResponse('missing `data`', response.text)
+    elif not isinstance(datum, dict):
+        raise InvalidResponse('`data` is of the wrong type', response.text)
+
+    return _to_service_descriptor(datum, response.text)
+
+
 def get_services(session_token: str, pattern: str, count: int = 100) -> List[ServiceDescriptor]:
     if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
         raise MalformedSessionToken()
@@ -161,42 +189,7 @@ def get_services(session_token: str, pattern: str, count: int = 100) -> List[Ser
     elif not isinstance(data, list):
         raise InvalidResponse('`data` is of the wrong type', response.text)
 
-    services = []
-    for i, datum in enumerate(data):
-        metadata = datum.get('resourceMetadata')
-        if not metadata:
-            raise InvalidResponse('Missing `data.{}.resourceMetadata`'.format(i), response.text)
-
-        name = metadata.get('name')
-        if not name:
-            raise InvalidResponse('Missing `data.{}.resourceMetadata.name`'.format(i), response.text)
-
-        description = metadata.get('description')
-        if not description:
-            raise InvalidResponse('Missing `data.{}.resourceMetadata.description`'.format(i), response.text)
-
-        service_id = datum.get('serviceId')
-        if not service_id:
-            raise InvalidResponse('Missing `data.{}.serviceId`'.format(i), response.text)
-
-        url = datum.get('url')
-        if not url:
-            raise InvalidResponse('Missing `data.{}.url`'.format(i), response.text)
-
-        # Prune redundant properties
-        metadata.pop('name')
-        metadata.pop('description')
-
-        service = ServiceDescriptor(
-            service_id=service_id,
-            description=description,
-            metadata=metadata,
-            name=name,
-            url=url,
-        )
-
-        services.append(service)
-    return services
+    return [_to_service_descriptor(datum, response.text) for datum in data]
 
 
 def get_status(session_token: str, job_id: str) -> Status:
@@ -290,6 +283,39 @@ def get_username(session_token: str) -> str:
         raise InvalidResponse('missing `username`', response.text)
 
     return username
+
+
+#
+# Helpers
+#
+
+def _to_service_descriptor(datum, response_text: str):
+    metadata = datum.get('resourceMetadata')
+    if not metadata:
+        raise InvalidResponse('Missing `resourceMetadata`', response_text)
+    name = metadata.get('name')
+    if not name:
+        raise InvalidResponse('Missing `resourceMetadata.name`', response_text)
+    description = metadata.get('description')
+    if not description:
+        raise InvalidResponse('Missing `resourceMetadata.description`', response_text)
+    service_id = datum.get('serviceId')
+    if not service_id:
+        raise InvalidResponse('Missing `serviceId`', response_text)
+    url = datum.get('url')
+    if not url:
+        raise InvalidResponse('Missing `url`', response_text)
+
+    # Prune redundant properties
+    metadata.pop('name')
+    metadata.pop('description')
+    return ServiceDescriptor(
+        service_id=service_id,
+        description=description,
+        metadata=metadata,
+        name=name,
+        url=url,
+    )
 
 
 #
