@@ -44,7 +44,7 @@ def create_job(
     # Fetch prerequisites
     try:
         algorithm = algorithms_service.get(session_token, service_id)
-        scene = scenes_service.fetch(scene_id)
+        scene = scenes_service.get(scene_id)
     except (algorithms_service.NotFound,
             algorithms_service.ValidationError,
             scenes_service.CatalogError,

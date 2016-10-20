@@ -51,7 +51,7 @@ class Scene:
 # Actions
 #
 
-def fetch(scene_id: str) -> Scene:
+def get(scene_id: str) -> Scene:
     log = get_logger()
     if not re.match(r'^landsat:\w+$', scene_id):
         raise MalformedSceneID(scene_id)
@@ -72,7 +72,7 @@ def fetch(scene_id: str) -> Scene:
         if status_code == 400 and 'Unable to retrieve metadata for ' + scene_id in err.response.text:
             raise NotFound(scene_id)
         # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-        raise CatalogError(scene_id, status_code)
+        raise CatalogError()
 
     geojson = scene_req.json()
     scene = Scene(

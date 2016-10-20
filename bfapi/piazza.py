@@ -230,7 +230,7 @@ def get_status(session_token: str, job_id: str) -> Status:
             raise InvalidResponse('missing `data.result`', response.text)
         data_id = result.get('dataId')
         if not data_id:
-            raise InvalidResponse('missing `data.result.dataId`')
+            raise InvalidResponse('missing `data.result.dataId`', response.text)
         return Status(status, data_id=data_id)
 
     elif status == STATUS_ERROR:

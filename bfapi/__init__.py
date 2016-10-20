@@ -13,7 +13,7 @@
 
 import time
 
-from aiohttp.web import Application
+from aiohttp.web import Application, UrlDispatcher
 
 from bfapi import config, db, logger, routes
 from bfapi.middleware import create_session_validation_filter
@@ -59,15 +59,17 @@ server.on_startup.append(start_jobs_worker)
 # Attach Routing
 #
 
-resource = server.router.add_resource
-server.router.add_get('/', routes.health_check)
-server.router.add_get('/login', routes.login)
+router = server.router  # type: UrlDispatcher
+
+# Public Endpoints
+router.add_get('/', routes.health_check)
+router.add_get('/login', routes.login)
 
 # API v0
-server.router.add_get('/v0/algorithm', routes.v0.list_algorithms)
-server.router.add_get('/v0/algorithm/{service_id}', routes.v0.get_algorithm)
-server.router.add_post('/v0/job', routes.v0.create_job)
-server.router.add_get('/v0/job', routes.v0.list_jobs)
-server.router.add_get('/v0/job/{job_id}', routes.v0.get_job)
-server.router.add_delete('/v0/job/{job_id}', routes.v0.forget_job)
-server.router.add_get('/v0/productline', routes.v0.list_productlines)
+router.add_get('/v0/algorithm', routes.v0.list_algorithms)
+router.add_get('/v0/algorithm/{service_id}', routes.v0.get_algorithm)
+router.add_post('/v0/job', routes.v0.create_job)
+router.add_get('/v0/job', routes.v0.list_jobs)
+router.add_get('/v0/job/{job_id}', routes.v0.get_job)
+router.add_delete('/v0/job/{job_id}', routes.v0.forget_job)
+router.add_get('/v0/productline', routes.v0.list_productlines)
