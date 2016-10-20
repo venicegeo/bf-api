@@ -12,49 +12,44 @@
 -- License for the specific language governing permissions and limitations
 -- under the License.
 
-PRAGMA foreign_keys = ON;
+-- SQL Dialect: PostgreSQL + PostGIS
 
-DROP TABLE IF EXISTS job_error;
-DROP TABLE IF EXISTS job_user;
-DROP TABLE IF EXISTS job;
-DROP TABLE IF EXISTS scene;
-
-CREATE TABLE scene (
+CREATE TABLE __beachfront__scene (
     scene_id          VARCHAR(32)    PRIMARY KEY,
     captured_on       TIMESTAMP      NOT NULL,
     cloud_cover       FLOAT          NOT NULL,
-    geometry          VARCHAR(4000)  NOT NULL,
+    geometry          GEOMETRY       NOT NULL,
     resolution        INTEGER        NOT NULL,
     sensor_name       VARCHAR(32)    NOT NULL,
     catalog_uri       VARCHAR(255)   NOT NULL
 );
 
-CREATE TABLE job (
+CREATE TABLE __beachfront__job (
     job_id            VARCHAR(32)    PRIMARY KEY,
     algorithm_name    VARCHAR(100)   NOT NULL,
     algorithm_version VARCHAR(12)    NOT NULL,
     created_by        VARCHAR(64)    NOT NULL,
-    created_on        TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    created_on        TIMESTAMP      NOT NULL     DEFAULT CURRENT_TIMESTAMP,
     detections_id     VARCHAR(32),
     name              VARCHAR(100)   NOT NULL,
     scene_id          VARCHAR(32)    NOT NULL,
     status            VARCHAR(16)    NOT NULL,
 
-    FOREIGN KEY (scene_id) REFERENCES scene(scene_id)
+    FOREIGN KEY (scene_id) REFERENCES __beachfront__scene(scene_id)
 );
 
-CREATE TABLE job_user (
-    job_id            VARCHAR(32),  -- on create, automatically fill this
+CREATE TABLE __beachfront__job_user (
+    job_id            VARCHAR(32),
     user_id           VARCHAR(64),
 
     PRIMARY KEY (job_id, user_id),
-    FOREIGN KEY (job_id) REFERENCES job(job_id)
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
 );
 
-CREATE TABLE job_error (
+CREATE TABLE __beachfront__job_error (
     job_id            VARCHAR(32),
     error_message     VARCHAR(64),
     execution_step    VARCHAR(64),  -- e.g., 'fetch', 'compute', 'deployment', 'async'
 
-    FOREIGN KEY (job_id) REFERENCES job(job_id)
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
 );

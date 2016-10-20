@@ -22,7 +22,7 @@ def delete_job_user(
         job_id: str,
         user_id: str) -> bool:
     query = """
-        DELETE FROM job_user
+        DELETE FROM __beachfront__job_user
         WHERE job_id = :job_id
               AND user_id = :user_id
         """
@@ -42,7 +42,7 @@ def exists(
         *,
         job_id: str) -> bool:
     query = """
-        SELECT 1 FROM job WHERE job_id = :job_id
+        SELECT 1 FROM __beachfront__job WHERE job_id = :job_id
         """
     params = {
         'job_id': job_id,
@@ -65,7 +65,7 @@ def insert_job(
         status: str,
         user_id: str):
     query = """
-        INSERT INTO job (job_id, algorithm_name, algorithm_version, created_by, name, scene_id, status)
+        INSERT INTO __beachfront__job (job_id, algorithm_name, algorithm_version, created_by, name, scene_id, status)
         VALUES (:job_id, :algorithm_name, :algorithm_version, :created_by, :name, :scene_id, :status)
         """
     params = {
@@ -90,7 +90,7 @@ def insert_job_failure(
         execution_step: str,
         job_id: str) -> None:
     query = """
-        INSERT INTO job_error (job_id, error_message, execution_step)
+        INSERT INTO __beachfront__job_error (job_id, error_message, execution_step)
         VALUES (:job_id, :error_message, :execution_step)
         """
     params = {
@@ -110,7 +110,7 @@ def insert_job_user(
         job_id: str,
         user_id: str) -> None:
     query = """
-        INSERT OR IGNORE INTO job_user (job_id, user_id)
+        INSERT OR IGNORE INTO __beachfront__job_user (job_id, user_id)
         VALUES (:job_id, :user_id)
         """
     params = {
@@ -132,9 +132,9 @@ def select_job(
                j.name, j.scene_id, j.status,
                e.error_message, e.execution_step,
                s.geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
-          FROM job j
-               LEFT OUTER JOIN job_error e ON (e.job_id = j.job_id)
-               LEFT OUTER JOIN scene s ON (s.scene_id = j.scene_id)
+          FROM __beachfront__job j
+               LEFT OUTER JOIN __beachfront__job_error e ON (e.job_id = j.job_id)
+               LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE j.job_id = :job_id
         """
     params = {
@@ -156,10 +156,10 @@ def select_jobs_for_user(
                j.name, j.scene_id, j.status,
                e.error_message, e.execution_step,
                s.geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
-          FROM job j
-               LEFT OUTER JOIN job_user u ON (u.job_id = j.job_id)
-               LEFT OUTER JOIN job_error e ON (e.job_id = j.job_id)
-               LEFT OUTER JOIN scene s ON (s.scene_id = j.scene_id)
+          FROM __beachfront__job j
+               LEFT OUTER JOIN __beachfront__job_user u ON (u.job_id = j.job_id)
+               LEFT OUTER JOIN __beachfront__job_error e ON (e.job_id = j.job_id)
+               LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE u.user_id = :user_id
         """
     params = {
@@ -178,7 +178,7 @@ def select_summary_for_status(
         status: str) -> Cursor:
     query = """
         SELECT job_id, created_on
-          FROM job
+          FROM __beachfront__job
          WHERE status = :status
         """
     params = {
@@ -198,7 +198,7 @@ def update_status(
         job_id: str,
         status: str) -> Cursor:
     query = """
-        UPDATE job
+        UPDATE __beachfront__job
            SET detections_id = :detections_id,
                status = :status
          WHERE job_id = :job_id

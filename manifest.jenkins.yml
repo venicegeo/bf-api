@@ -7,3 +7,5 @@ applications:
   disk_quota: 2G
   instances: 1
   buildpack: https://github.com/venicegeo/python-buildpack
+  services:
+    - pz-postgres

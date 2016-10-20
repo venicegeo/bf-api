@@ -27,7 +27,7 @@ def insert(conn: Connection,
            resolution: int,
            sensor_name: str) -> str:
     query = """
-        INSERT OR IGNORE INTO scene (scene_id, captured_on, catalog_uri, cloud_cover, geometry, resolution, sensor_name)
+        INSERT OR IGNORE INTO __beachfront__scene (scene_id, captured_on, catalog_uri, cloud_cover, geometry, resolution, sensor_name)
         VALUES (:scene_id, :captured_on, :catalog_uri, :cloud_cover, :geometry, :resolution, :sensor_name)
         """
     params = {
