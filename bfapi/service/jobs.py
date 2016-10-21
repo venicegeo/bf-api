@@ -233,7 +233,7 @@ def get_all(user_id: str) -> dict:
     return feature_collection
 
 
-async def start_worker(
+def start_worker(
         server,
         auth_token: str = SYSTEM_AUTH_TOKEN,
         job_ttl: timedelta = JOB_TTL,

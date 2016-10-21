@@ -18,42 +18,82 @@ import signal
 from datetime import timedelta
 
 ################################################################################
-# Helpers
-def _failfast(error_message: str) -> None: print('!' * 80, 'Configuration error: ' + error_message, '!' * 80, sep='\n\n', file=sys.stderr); os.kill(os.getppid(), signal.SIGQUIT); exit(1)
-def _sibling_node(subdomain: str) -> str: return '{}.{}'.format(subdomain, os.getenv('DOMAIN', 'localhost').replace('int.', 'stage.'))
-def _vcap_service_property(service_name: str, key: str) -> str:
+_errors = []
+def validate(failfast: bool = True):
+    if not SYSTEM_AUTH_TOKEN: _errors.append('SYSTEM_AUTH_TOKEN cannot be blank')
+    if not POSTGRES_HOST: _errors.append('POSTGRES_HOST cannot be blank')
+    if not POSTGRES_PORT: _errors.append('POSTGRES_PORT cannot be blank')
+    if not POSTGRES_DATABASE: _errors.append('POSTGRES_DATABASE cannot be blank')
+    if not POSTGRES_USERNAME: _errors.append('POSTGRES_USERNAME cannot be blank')
+    if not POSTGRES_PASSWORD: _errors.append('POSTGRES_PASSWORD cannot be blank')
+
+    if not _errors:
+        return
+
+    error_message = 'Configuration error:\n{}'.format('\n'.join(['\t* ' + s for s in _errors]))
+    if failfast:
+        print('!' * 80, error_message, '!' * 80, sep='\n\n', file=sys.stderr)
+        os.kill(os.getppid(), signal.SIGQUIT)
+        exit(1)
+    else:
+        raise Exception(error_message)
+
+def _getdomain() -> str:
+    value = os.getenv('DOMAIN')
+    if not value:
+        _errors.append('DOMAIN cannot be blank')
+        return 'localhost'
+    return value.strip().replace('int.', 'stage.')
+
+def _getservices() -> dict:
+    def collect(node: dict):
+        for k, v in node.items():
+            path.append(k)
+            if isinstance(v, dict):
+                collect(v)
+            else:
+                services['.'.join(path)] = v
+            path.pop()
+
+    services = {}
+    path = []
+
     vcap_services = os.getenv('VCAP_SERVICES')
     if not vcap_services:
-        _failfast('VCAP_SERVICES cannot be blank')
+        _errors.append('VCAP_SERVICES cannot be blank')
+        return services
+
     try:
-        for service in json.loads(vcap_services)['user-provided']:
-            if service['name'] == service_name:
-                credentials = service['credentials']
-                if not isinstance(credentials, dict):
-                    _failfast('`VCAP_SERVICES.user-provided.{}.credentials` is malformed'.format(service_name))
-                value = credentials[key]
-                if not value:
-                    _failfast('`VCAP_SERVICES.user-provided.{}.credentials.{}` is empty'.format(service_name, key))
-                return value
-        _failfast('service `{}` not found in `VCAP_SERVICES.user-provided`'.format(service_name))
+        for user_service in json.loads(vcap_services)['user-provided']:
+            path.append(user_service['name'])
+            collect(user_service)
+            path.pop()
+    except TypeError as err:
+        _errors.append('In VCAP_SERVICES: encountered malformed entry: {}'.format(err))
     except KeyError as err:
-        _failfast('in VCAP_SERVICES, some node is missing property {}'.format(err))
+        _errors.append('In VCAP_SERVICES: some entry is missing property `{}`'.format(err))
     except Exception as err:
-        _failfast('in VCAP_SERVICES, {}'.format(err))
+        _errors.append('In _getservices: {}'.format(err))
+    return services
 ################################################################################
 
-DEBUG_MODE = os.getenv('DEBUG_MODE') == '1'
+IS_DEBUG_MODE = os.getenv('DEBUG_MODE') == '1'
 
-PZ_GATEWAY   = os.getenv('PZ_GATEWAY', _sibling_node('pz-gateway'))
-CATALOG      = os.getenv('CATALOG', _sibling_node('pzsvc-image-catalog'))
-TIDE_SERVICE = os.getenv('TIDE_SERVICE', _sibling_node('bf-tideprediction'))
+_domain = _getdomain()
+
+PZ_GATEWAY   = os.getenv('PZ_GATEWAY', 'pz-gateway.' + _domain)
+CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + _domain)
+TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _domain)
 
 SYSTEM_AUTH_TOKEN = os.getenv('SYSTEM_AUTH_TOKEN')
+
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_TTL = timedelta(seconds=900)
 
-POSTGRES_HOST = _vcap_service_property('pz-postgres', 'hostname')
-POSTGRES_PORT = _vcap_service_property('pz-postgres', 'port')
-POSTGRES_DATABASE = _vcap_service_property('pz-postgres', 'database')
-POSTGRES_USERNAME = _vcap_service_property('pz-postgres', 'username')
-POSTGRES_PASSWORD = _vcap_service_property('pz-postgres', 'password')
+_services = _getservices()
+
+POSTGRES_HOST = _services.get('pz-postgres.credentials.hostname')
+POSTGRES_PORT = _services.get('pz-postgres.credentials.port')
+POSTGRES_DATABASE = _services.get('pz-postgres.credentials.database')
+POSTGRES_USERNAME = _services.get('pz-postgres.credentials.username')
+POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')

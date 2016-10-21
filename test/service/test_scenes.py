@@ -11,78 +11,99 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import unittest
+import unittest.mock
 
-import dateutil.parser
+import psycopg2 as pg
 import requests_mock as rm
+
+from bfapi import db
 
 from bfapi.service import scenes as service
 
-
 @rm.Mocker()
+@unittest.mock.patch('psycopg2.connect')
 class SceneGetTest(unittest.TestCase):
-    def test_calls_correct_url(self, m: rm.Mocker):
+    def test_calls_correct_url(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         service.get('landsat:LC80110632016220LGN00')
-        self.assertEqual(m.request_history[0].url,
-                         'https://pzsvc-image-catalog.localhost/image/landsat:LC80110632016220LGN00')
+        self.assertEqual('https://pzsvc-image-catalog.localhost/image/landsat:LC80110632016220LGN00',
+                         m.request_history[0].url)
 
-    def test_fetches_scenes(self, m: rm.Mocker):
+    def test_fetches_scenes(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
         self.assertIsInstance(scene, service.Scene)
 
-    def test_yields_correct_capture_date(self, m: rm.Mocker):
+    def test_yields_correct_capture_date(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
-        self.assertEqual(scene.capture_date, dateutil.parser.parse('2016-08-07T15:33:42.572449+00:00'))
+        self.assertEqual('2016-08-07T15:33:42.572449+00:00',
+                         scene.capture_date.isoformat())
 
-    def test_yields_correct_bands(self, m: rm.Mocker):
+    def test_yields_correct_bands(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
-        self.assertSetEqual(set(scene.bands.keys()),
-                            {'blue', 'cirrus', 'coastal', 'green', 'nir', 'panchromatic', 'red', 'swir1', 'swir2',
-                             'tirs1', 'tirs2'})
+        self.assertSetEqual({'blue', 'cirrus', 'coastal', 'green', 'nir', 'panchromatic', 'red', 'swir1', 'swir2',
+                             'tirs1', 'tirs2'},
+                            set(scene.bands.keys()))
 
-    def test_yields_correct_cloud_cover(self, m: rm.Mocker):
+    def test_yields_correct_cloud_cover(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
-        self.assertEqual(scene.cloud_cover, 1.47)
+        self.assertEqual(1.47, scene.cloud_cover)
 
-    def test_yields_correct_id(self, m: rm.Mocker):
+    def test_yields_correct_id(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
-        self.assertEqual(scene.id, 'landsat:LC80110632016220LGN00')
+        self.assertEqual('landsat:LC80110632016220LGN00', scene.id)
 
-    def test_yields_correct_geometry(self, m: rm.Mocker):
+    def test_yields_correct_geometry(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
         self.assertIsInstance(scene.geometry, dict)
         self.assertIsInstance(scene.geometry.get('coordinates'), list)
-        self.assertEqual(scene.geometry.get('coordinates'), [
-            [[-81.5725334896228, -3.29632263428811], [-79.934112104967, -3.64597257671337],
-             [-80.3035877737851, -5.38806769101045], [-81.9453446162527, -5.03306405829352],
-             [-81.5725334896228, -3.29632263428811]]])
+        self.assertEqual([[[-81.5725334896228, -3.29632263428811], [-79.934112104967, -3.64597257671337],
+                           [-80.3035877737851, -5.38806769101045], [-81.9453446162527, -5.03306405829352],
+                           [-81.5725334896228, -3.29632263428811]]],
+                         scene.geometry.get('coordinates'))
 
-    def test_yields_correct_resolution(self, m: rm.Mocker):
+    def test_yields_correct_resolution(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
-        self.assertEqual(scene.resolution, 30)
+        self.assertEqual(30, scene.resolution)
 
-    def test_yields_correct_sensor_name(self, m: rm.Mocker):
+    def test_yields_correct_sensor_name(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
-        self.assertEqual(scene.sensor_name, 'Landsat8')
+        self.assertEqual('Landsat8', scene.sensor_name)
 
-    def test_yields_correct_uri(self, m: rm.Mocker):
+    def test_yields_correct_uri(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         scene = service.get('landsat:LC80110632016220LGN00')
-        self.assertEqual(scene.uri, 'https://pzsvc-image-catalog.localhost/image/landsat:LC80110632016220LGN00')
+        self.assertEqual('https://pzsvc-image-catalog.localhost/image/landsat:LC80110632016220LGN00',
+                         scene.uri)
 
-    def test_gracefully_handles_errors(self, m: rm.Mocker):
+    def test_handles_catalog_http_errors_gracefully(self, m: rm.Mocker, _):
+        m.get('/image/landsat:LC80110632016220LGN00', status_code=500, text='oh noes')
+        with self.assertRaises(service.CatalogError):
+            service.get('landsat:LC80110632016220LGN00')
+
+    def test_throws_if_scene_does_not_exist(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', status_code=400,
               text='Unable to retrieve metadata for landsat:LC80110632016220LGN00: lorem ipsum')
-        with self.assertRaises(service.CatalogError):
+        with self.assertRaises(service.NotFound):
+            service.get('landsat:LC80110632016220LGN00')
+
+    def test_saves_scene_to_database(self, m: rm.Mocker, mockdb):
+        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
+        service.get('landsat:LC80110632016220LGN00')
+        cursor = mockdb.return_value.cursor.return_value
+        self.assertTrue(cursor.execute.called)
+
+    def test_handles_database_errors_gracefully(self, m: rm.Mocker, mockdb):
+        mockdb.side_effect = db.DatabaseError(pg.OperationalError(), 'test-query')
+        with self.assertRaises(service.DatabaseError):
+            m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
             service.get('landsat:LC80110632016220LGN00')
 
 

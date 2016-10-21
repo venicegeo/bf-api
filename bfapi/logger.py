@@ -13,7 +13,7 @@
 
 from os.path import dirname, relpath
 import sys
-from logging import Formatter, StreamHandler, Logger, DEBUG, INFO
+from logging import Formatter, NullHandler, StreamHandler, Logger, DEBUG, INFO
 
 _MODULE_ROOT = dirname(__file__)
 
@@ -39,6 +39,11 @@ def init(debug_mode: bool = False):
 
 
 def get_logger() -> Logger:
+    if not _logger:
+        nil = Logger('bfapi-nil')
+        nil.handlers.clear()
+        nil.addHandler(NullHandler())
+        return nil
     return _logger
 
 

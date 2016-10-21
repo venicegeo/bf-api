@@ -24,17 +24,17 @@ class PiazzaCreateSessionTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/key', text=RESPONSE_AUTH_SUCCESS)
         piazza.create_session('Basic Og==')
-        self.assertEqual(m.request_history[0].url, 'https://pz-gateway.localhost/key')
+        self.assertEqual('https://pz-gateway.localhost/key', m.request_history[0].url)
 
     def test_sends_correct_payload(self, m: Mocker):
         m.get('/key', text=RESPONSE_AUTH_SUCCESS)
         piazza.create_session('Basic Og==')
-        self.assertEqual(m.request_history[0].headers.get('Authorization'), 'Basic Og==')
+        self.assertEqual('Basic Og==', m.request_history[0].headers.get('Authorization'))
 
     def test_returns_correct_session_token(self, m: Mocker):
         m.get('/key', text=RESPONSE_AUTH_SUCCESS)
         token = piazza.create_session('Basic Og==')
-        self.assertEqual(token, 'Basic dGVzdC11dWlkOg==')
+        self.assertEqual('Basic dGVzdC11dWlkOg==', token)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.get('/key', text=RESPONSE_ERROR_GENERIC, status_code=500)
@@ -66,33 +66,33 @@ class PiazzaGetStatusTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING)
         piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
-        self.assertEqual(m.request_history[0].url, 'https://pz-gateway.localhost/job/test-job-id')
+        self.assertEqual('https://pz-gateway.localhost/job/test-job-id', m.request_history[0].url)
 
     def test_returns_correct_status_for_running_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING)
         status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
-        self.assertEqual(status.status, 'Running')
+        self.assertEqual('Running', status.status)
         self.assertIsNone(status.data_id)
         self.assertIsNone(status.error_message)
 
     def test_returns_correct_status_for_successful_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_SUCCESS)
         status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
-        self.assertEqual(status.status, 'Success')
-        self.assertEqual(status.data_id, 'test-data-id')
+        self.assertEqual('Success', status.status)
+        self.assertEqual('test-data-id', status.data_id)
         self.assertIsNone(status.error_message)
 
     def test_returns_correct_status_for_failed_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_ERROR)
         status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
-        self.assertEqual(status.status, 'Error')
+        self.assertEqual('Error', status.status)
         self.assertIsNone(status.data_id)
-        self.assertEqual(status.error_message, 'test-failure-message')
+        self.assertEqual('test-failure-message', status.error_message)
 
     def test_returns_correct_status_for_canceled_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_CANCELLED)
         status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
-        self.assertEqual(status.status, 'Cancelled')
+        self.assertEqual('Cancelled', status.status)
         self.assertIsNone(status.data_id)
         self.assertIsNone(status.error_message)
 
@@ -145,7 +145,7 @@ class PiazzaGetServiceTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
         piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
-        self.assertEqual(m.request_history[0].url, 'https://pz-gateway.localhost/service/test-id')
+        self.assertEqual('https://pz-gateway.localhost/service/test-id', m.request_history[0].url)
 
     def test_returns_a_service_descriptor(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
@@ -155,15 +155,16 @@ class PiazzaGetServiceTest(unittest.TestCase):
     def test_deserializes_canonical_data(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
         descriptor = piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
-        self.assertEqual(descriptor.service_id, 'test-id')
-        self.assertEqual(descriptor.description, 'test-description')
-        self.assertEqual(descriptor.name, 'test-name')
-        self.assertEqual(descriptor.url, 'test-url')
+        self.assertEqual('test-id', descriptor.service_id)
+        self.assertEqual('test-description', descriptor.description)
+        self.assertEqual('test-name', descriptor.name)
+        self.assertEqual('test-url', descriptor.url)
 
     def test_deserializes_metadata(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
         descriptor = piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
-        self.assertEqual(descriptor.metadata, {'classType': {'classification': 'UNCLASSIFIED'}, 'version': 'test-version'})
+        self.assertEqual({'classType': {'classification': 'UNCLASSIFIED'}, 'version': 'test-version'},
+                         descriptor.metadata)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_ERROR_GENERIC, status_code=500)
@@ -223,7 +224,7 @@ class PiazzaGetServicesTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
         piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
-        self.assertEqual(m.request_history[0].url[0:37], 'https://pz-gateway.localhost/service?')
+        self.assertEqual('https://pz-gateway.localhost/service?', m.request_history[0].url[0:37])
         self.assertIn('perPage=100', m.request_history[0].url[37:])
         self.assertIn('keyword=%5Etest-pattern%24', m.request_history[0].url[37:])
 
@@ -231,20 +232,21 @@ class PiazzaGetServicesTest(unittest.TestCase):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
         descriptors = piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
         self.assertIsInstance(descriptors, list)
-        self.assertEqual(len(descriptors), 2)
+        self.assertEqual(2, len(descriptors))
 
     def test_deserializes_canonical_data(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
         (descriptor, _) = piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
-        self.assertEqual(descriptor.service_id, 'test-id-1')
-        self.assertEqual(descriptor.description, 'test-description')
-        self.assertEqual(descriptor.name, 'test-name')
-        self.assertEqual(descriptor.url, 'test-url')
+        self.assertEqual('test-id-1', descriptor.service_id)
+        self.assertEqual('test-description', descriptor.description)
+        self.assertEqual('test-name', descriptor.name)
+        self.assertEqual('test-url', descriptor.url)
 
     def test_deserializes_metadata(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
         (descriptor, _) = piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
-        self.assertEqual(descriptor.metadata, {'classType': {'classification': 'UNCLASSIFIED'}, 'version': 'test-version'})
+        self.assertEqual({'classType': {'classification': 'UNCLASSIFIED'}, 'version': 'test-version'},
+                         descriptor.metadata)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.get('/service', text=RESPONSE_ERROR_GENERIC, status_code=500)
@@ -302,17 +304,17 @@ class PiazzaGetUsernameTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
         piazza.get_username('Basic dGVzdC1hdXRoLXRva2VuOg==')
-        self.assertEqual(m.request_history[0].url, 'https://pz-idam.localhost/v2/verification')
+        self.assertEqual('https://pz-idam.localhost/v2/verification', m.request_history[0].url)
 
     def test_sends_correct_payload(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
         piazza.get_username('Basic dGVzdC1hdXRoLXRva2VuOg==')
-        self.assertEqual(m.request_history[0].json(), {'uuid': 'test-auth-token'})
+        self.assertEqual({'uuid': 'test-auth-token'}, m.request_history[0].json())
 
     def test_returns_correct_username(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
         username = piazza.get_username('Basic dGVzdC1hdXRoLXRva2VuOg==')
-        self.assertEqual(username, 'test-username')
+        self.assertEqual('test-username', username)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_ERROR_GENERIC, status_code=500)
@@ -350,33 +352,33 @@ class PiazzaExecuteTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
         piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
-        self.assertEqual(m.request_history[0].url, 'https://pz-gateway.localhost/job')
+        self.assertEqual('https://pz-gateway.localhost/job', m.request_history[0].url)
 
     def test_sends_correct_service_id(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
         piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
-        self.assertEqual(m.request_history[0].json()['data']['serviceId'], 'test-service-id')
+        self.assertEqual('test-service-id', m.request_history[0].json()['data']['serviceId'])
 
     def test_sends_correct_input_parameters(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
         piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {'foo': 'bar'})
-        self.assertEqual(m.request_history[0].json()['data']['dataInputs'], {'foo': 'bar'})
+        self.assertEqual({'foo': 'bar'}, m.request_history[0].json()['data']['dataInputs'])
 
     def test_sends_default_output_parameters(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
         piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
-        self.assertEqual(m.request_history[0].json()['data']['dataOutput'],
-                         [{'mimeType': 'application/json', 'type': 'text'}])
+        self.assertEqual([{'mimeType': 'application/json', 'type': 'text'}],
+                         m.request_history[0].json()['data']['dataOutput'])
 
     def test_sends_correct_output_parameters_when_explicitly_set(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
         piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {}, [{'boo': 'baz'}])
-        self.assertEqual(m.request_history[0].json()['data']['dataOutput'], [{'boo': 'baz'}])
+        self.assertEqual([{'boo': 'baz'}], m.request_history[0].json()['data']['dataOutput'])
 
     def test_returns_job_id(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
         job_id = piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {'foo': 'bar'}, [{'boo': 'baz'}])
-        self.assertEqual(job_id, 'test-job-id')
+        self.assertEqual('test-job-id', job_id)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.post('/job', text=RESPONSE_ERROR_GENERIC, status_code=500)

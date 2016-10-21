@@ -11,24 +11,205 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import os
 import unittest
 from datetime import timedelta
 
 from bfapi import config
 
 
-class ConfigurationTest(unittest.TestCase):
+class ConfigurationValueTest(unittest.TestCase):
     def test_autodetects_piazza_gateway(self):
-        self.assertIn('pz-gateway.', config.PZ_GATEWAY)
+        self.assertEqual('pz-gateway.localhost', config.PZ_GATEWAY)
 
     def test_autodetects_catalog_url(self):
-        self.assertIn('pzsvc-image-catalog.', config.CATALOG)
+        self.assertEqual('pzsvc-image-catalog.localhost', config.CATALOG)
 
     def test_autodetects_tideprediction_url(self):
-        self.assertIn('bf-tideprediction.', config.TIDE_SERVICE)
+        self.assertEqual('bf-tideprediction.localhost', config.TIDE_SERVICE)
 
     def test_defines_sensible_job_ttl(self):
         self.assertGreaterEqual(config.JOB_TTL, timedelta(seconds=600))
 
     def test_defines_sensible_job_polling_frequency(self):
         self.assertGreaterEqual(config.JOB_WORKER_INTERVAL, timedelta(seconds=15))
+
+
+class ConfigurationValidateTest(unittest.TestCase):
+    def setUp(self):
+        self._original_values = {}
+        self.override('_errors', [])
+        self.override('SYSTEM_AUTH_TOKEN', 'Basic Og==')
+        self.override('POSTGRES_HOST', 'test-host')
+        self.override('POSTGRES_PORT', 'test-port')
+        self.override('POSTGRES_DATABASE', 'test-database')
+        self.override('POSTGRES_USERNAME', 'test-username')
+        self.override('POSTGRES_PASSWORD', 'test-password')
+
+    def tearDown(self):
+        for key, value in self._original_values.items():
+            setattr(config, key, value)
+
+    def override(self, key: str, value: any):
+        self._original_values[key] = value
+        setattr(config, key, value)
+
+    def test_succeeds_if_config_is_valid(self):
+        config.validate(failfast=False)
+
+    def test_throws_if_SYSTEM_AUTH_TOKEN_is_blank(self):
+        self.override('SYSTEM_AUTH_TOKEN', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+    def test_throws_if_POSTGRES_HOST_is_blank(self):
+        self.override('POSTGRES_HOST', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+    def test_throws_if_POSTGRES_PORT_is_blank(self):
+        self.override('POSTGRES_PORT', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+    def test_throws_if_POSTGRES_DATABASE_is_blank(self):
+        self.override('POSTGRES_DATABASE', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+    def test_throws_if_POSTGRES_USERNAME_is_blank(self):
+        self.override('POSTGRES_USERNAME', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+    def test_throws_if_POSTGRES_PASSWORD_is_blank(self):
+        self.override('POSTGRES_PASSWORD', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+
+class ConfigurationGetDomain(unittest.TestCase):
+    def setUp(self):
+        self._DOMAIN = os.getenv('DOMAIN')
+
+    def tearDown(self):
+        self.override(self._DOMAIN)
+
+    def override(self, value):
+        if value is None:
+            if 'DOMAIN' in os.environ:
+                os.environ.pop('DOMAIN')
+        else:
+            os.environ['DOMAIN'] = value
+
+    def test_normalizes_domain(self):
+        self.override('int.test-domain')
+        self.assertEqual('stage.test-domain', config._getdomain())
+
+    def test_returns_localhost_if_not_defined(self):
+        self.override(None)
+        self.assertEqual('localhost', config._getdomain())
+
+
+class ConfigureGetServices(unittest.TestCase):
+    maxDiff = None
+
+    def setUp(self):
+        self._VCAP_SERVICES = os.getenv('VCAP_SERVICES')
+        self._original_errors = config._errors
+
+    def tearDown(self):
+        self.override(self._VCAP_SERVICES)
+        config._errors = self._original_errors
+
+    def override(self, value):
+        if value is None:
+            if 'VCAP_SERVICES' in os.environ:
+                os.environ.pop('VCAP_SERVICES')
+        else:
+            os.environ['VCAP_SERVICES'] = value
+
+    def test_always_returns_a_dictionary(self):
+        self.assertIsInstance(config._getservices(), dict)
+
+    def test_returns_defined_services(self):
+        self.override(
+            """
+            {
+              "user-provided": [
+                {
+                  "name": "test-service-1",
+                  "credentials": {
+                    "database": "test-database",
+                    "host": "test-host",
+                    "hostname": "test-hostname",
+                    "password": "test-password",
+                    "port": "test-port",
+                    "username": "test-username"
+                  }
+                },
+                {
+                  "name": "test-service-2",
+                  "lorem": "ipsum",
+                  "some": {
+                    "arbitrarily": {
+                      "nested": "value"
+                    }
+                  }
+                }
+              ]
+            }
+            """)
+        self.assertEqual(
+            {
+                'test-service-1.name': 'test-service-1',
+                'test-service-1.credentials.database': 'test-database',
+                'test-service-1.credentials.host': 'test-host',
+                'test-service-1.credentials.hostname': 'test-hostname',
+                'test-service-1.credentials.username': 'test-username',
+                'test-service-1.credentials.password': 'test-password',
+                'test-service-1.credentials.port': 'test-port',
+                'test-service-2.name': 'test-service-2',
+                'test-service-2.lorem': 'ipsum',
+                'test-service-2.some.arbitrarily.nested': 'value',
+            },
+            config._getservices())
+
+    def test_flags_error_if_VCAP_SERVICES_is_blank(self):
+        self.override(None)
+        config._getservices()
+        self.assertIn('VCAP_SERVICES cannot be blank', config._errors)
+
+    def test_flags_error_if_VCAP_SERVICES_is_malformed(self):
+        self.override('lolwut')
+        config._getservices()
+        self.assertIn('VCAP_SERVICES cannot be blank', config._errors)
+
+    def test_flags_error_if_service_name_is_missing(self):
+        self.override(
+            """
+            {
+              "user-provided": [
+                {
+                  "lorem": "ipsum"
+                }
+              ]
+            }
+            """)
+        self.assertIn('VCAP_SERVICES cannot be blank', config._errors)
+        self.assertEqual({}, config._getservices())
+
+    def test_flags_error_if_user_services_are_absent(self):
+        self.override(
+            """
+            {
+              "lolwut-provided": [
+                {
+                  "name": "test-service-2",
+                  "lorem": "ipsum"
+                }
+              ]
+            }
+            """)
+        self.assertIn('VCAP_SERVICES cannot be blank', config._errors)
+        self.assertEqual({}, config._getservices())
