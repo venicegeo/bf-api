@@ -24,6 +24,7 @@ pip download -d vendor -r requirements.txt
 target_files="
 bfapi/
 vendor/
+sql/
 Procfile
 requirements.txt
 runtime.txt
