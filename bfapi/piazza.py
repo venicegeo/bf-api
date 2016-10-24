@@ -28,6 +28,9 @@ STATUS_ERROR = 'Error'
 TYPE_DATA = 'data'
 TYPE_DEPLOYMENT = 'deployment'
 
+TIMEOUT_LONG = 24
+TIMEOUT_SHORT = 6
+
 
 #
 # Types
@@ -74,6 +77,7 @@ def create_session(auth_header: str):
     try:
         response = requests.get(
             'https://{}/key'.format(PZ_GATEWAY),
+            timeout=TIMEOUT_LONG,
             headers={
                 'Authorization': auth_header,
             },
@@ -101,6 +105,7 @@ def deploy(session_token: str, data_id: str, *, poll_interval: int = 5, max_poll
     try:
         response = requests.post(
             'https://{}/deployment'.format(PZ_GATEWAY),
+            timeout=TIMEOUT_LONG,
             headers={
                 'Authorization': session_token,
             },
@@ -156,6 +161,7 @@ def execute(session_token: str, service_id: str, data_inputs: dict, data_output:
     try:
         response = requests.post(
             'https://{}/job'.format(PZ_GATEWAY),
+            timeout=TIMEOUT_LONG,
             headers={
                 'Authorization': session_token,
                 'Content-Type': 'application/json',
@@ -199,6 +205,7 @@ def get_service(session_token: str, service_id: str) -> ServiceDescriptor:
     try:
         response = requests.get(
             'https://{}/service/{}'.format(PZ_GATEWAY, service_id),
+            timeout=TIMEOUT_LONG,
             headers={
                 'Authorization': session_token,
             },
@@ -228,6 +235,7 @@ def get_services(session_token: str, pattern: str, count: int = 100) -> List[Ser
     try:
         response = requests.get(
             'https://{}/service'.format(PZ_GATEWAY),
+            timeout=TIMEOUT_LONG,
             headers={
                 'Authorization': session_token,
             },
@@ -261,6 +269,7 @@ def get_status(session_token: str, job_id: str) -> Status:
     try:
         response = requests.get(
             'https://{}/job/{}'.format(PZ_GATEWAY, job_id),
+            timeout=TIMEOUT_LONG,
             headers={
                 'Authorization': session_token,
             },
@@ -342,10 +351,10 @@ def get_username(session_token: str) -> str:
     try:
         response = requests.post(
             'https://{}/v2/verification'.format(PZ_GATEWAY.replace('pz-gateway.', 'pz-idam.')),
+            timeout=TIMEOUT_SHORT,
             json={
                 'uuid': uuid,
             },
-            timeout=5,
         )
         response.raise_for_status()
     except requests.ConnectionError:
