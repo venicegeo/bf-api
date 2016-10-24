@@ -11,6 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import logging
 import unittest.mock
 
 import psycopg2 as pg
@@ -23,6 +24,13 @@ from bfapi.service import scenes as service
 @rm.Mocker()
 @unittest.mock.patch('psycopg2.connect')
 class SceneGetTest(unittest.TestCase):
+    def setUp(self):
+        self._logger = logging.getLogger('bfapi.service.scenes')
+        self._logger.disabled = True
+
+    def tearDown(self):
+        self._logger.disabled = False
+
     def test_calls_correct_url(self, m: rm.Mocker, _):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
         service.get('landsat:LC80110632016220LGN00')

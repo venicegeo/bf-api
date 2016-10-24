@@ -11,10 +11,10 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import logging
 from typing import List
 
 from bfapi import piazza
-from bfapi.logger import get_logger
 
 
 #
@@ -60,7 +60,7 @@ class Algorithm:
 #
 
 def list_all(session_token: str) -> List[Algorithm]:
-    log = get_logger()
+    log = logging.getLogger(__name__)
     try:
         log.info('Fetching beachfront services from Piazza')
         services = piazza.get_services(session_token, '^BF_Algo_')
@@ -93,7 +93,7 @@ def list_all(session_token: str) -> List[Algorithm]:
 
 
 def get(session_token: str, service_id: str):
-    log = get_logger()
+    log = logging.getLogger(__name__)
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id)
         service = piazza.get_service(session_token, service_id)

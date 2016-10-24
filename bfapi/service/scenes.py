@@ -11,15 +11,15 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from datetime import datetime
+import logging
 import re
+from datetime import datetime
 
 import dateutil.parser
 import requests
 
 from bfapi.config import CATALOG
 from bfapi.db import get_connection, scenes, DatabaseError
-from bfapi.logger import get_logger
 
 
 #
@@ -52,7 +52,7 @@ class Scene:
 #
 
 def get(scene_id: str) -> Scene:
-    log = get_logger()
+    log = logging.getLogger(__name__)
     if not re.match(r'^landsat:\w+$', scene_id):
         raise MalformedSceneID(scene_id)
 

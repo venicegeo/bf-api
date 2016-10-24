@@ -11,11 +11,11 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import logging
 import time
 
 from aiohttp.web import json_response, Request, Response
 
-from bfapi.logger import get_logger
 from bfapi import piazza
 from bfapi.routes import v0
 
@@ -30,7 +30,7 @@ async def health_check(request: Request):
 
 
 async def login(request: Request):
-    log = get_logger()
+    log = logging.getLogger(__name__)
 
     auth_header = request.headers.get('Authorization')
     if not auth_header:

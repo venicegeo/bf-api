@@ -11,17 +11,18 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import logging
+
 from aiohttp.web import Application, Request, Response
 
 from bfapi import piazza
-from bfapi.logger import get_logger
 
 PUBLIC_ENDPOINTS = ('/', '/login')
 
 
 async def create_session_validation_filter(app: Application, handler):
     async def validate_session(request: Request):
-        log = get_logger()
+        log = logging.getLogger(__name__)
 
         if request.path in PUBLIC_ENDPOINTS:
             log.debug('Allowing access to public endpoint')

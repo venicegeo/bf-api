@@ -78,8 +78,6 @@ def _getservices() -> dict:
     return services
 ################################################################################
 
-IS_DEBUG_MODE = os.getenv('DEBUG_MODE') == '1'
-
 _domain = _getdomain()
 
 PZ_GATEWAY   = os.getenv('PZ_GATEWAY', 'pz-gateway.' + _domain)

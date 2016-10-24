@@ -13,13 +13,13 @@
 
 import asyncio
 import json
+import logging
 from datetime import datetime, timedelta
 
 import requests
 
 from bfapi import piazza
 from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, SYSTEM_AUTH_TOKEN, TIDE_SERVICE
-from bfapi.logger import get_logger
 from bfapi.service import algorithms as algorithms_service, scenes as scenes_service
 from bfapi.db import jobs as jobs_db, get_connection, DatabaseError
 
@@ -39,7 +39,7 @@ def create_job(
         scene_id: str,
         service_id: str,
         job_name: str) -> dict:
-    log = get_logger()
+    log = logging.getLogger(__name__)
 
     # Fetch prerequisites
     try:
@@ -238,7 +238,7 @@ def start_worker(
         auth_token: str = SYSTEM_AUTH_TOKEN,
         job_ttl: timedelta = JOB_TTL,
         interval: timedelta = JOB_WORKER_INTERVAL):
-    log = get_logger()
+    log = logging.getLogger(__name__)
 
     log.info('Starting jobs service worker')
     loop = server.loop
@@ -253,7 +253,7 @@ async def _worker(
         auth_token: str,
         job_ttl,
         interval: timedelta):
-    log = get_logger()
+    log = logging.getLogger(__name__)
     conn = get_connection()
 
     while True:
@@ -294,7 +294,7 @@ async def _update_status(
         created_on: datetime,
         job_ttl: timedelta,
         index: int):
-    log = get_logger()
+    log = logging.getLogger(__name__)
     try:
         status = piazza.get_status(auth_token, job_id)
     except piazza.Unauthorized:
@@ -344,7 +344,7 @@ async def _update_status(
 #
 
 def _fetch_tide_prediction(scene: scenes_service.Scene) -> (float, float, float):
-    log = get_logger()
+    log = logging.getLogger(__name__)
     x, y = _get_centroid(scene.geometry['coordinates'])
     dtg = scene.capture_date.strftime(FORMAT_DTG)
 

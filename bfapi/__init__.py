@@ -11,64 +11,54 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from aiohttp.web import Application, UrlDispatcher
+import logging
+import logging.config
+import os
 
-from bfapi import config, db, logger, routes
-from bfapi.middleware import create_session_validation_filter
-from bfapi.service import jobs as jobs_service
-
-def init(server_: Application):
-    ################################################################################
-    # Debugging Info
-    print('-' * 80)
-    print()
-    print('bf-api'.center(80))
-    print('~~~~~~'.center(80))
-    print()
-    for key, value in sorted(config.__dict__.items()):
-        if not key.isupper():
-            continue
-        print('{key:>38} : {value}'.format(key=key, value=value))
-    print()
-    print('-' * 80)
-    ################################################################################
-
-    config.validate()
-    logger.init(config.IS_DEBUG_MODE)
-    db.init()
-
-    #
-    # Start Background Processes
-    #
-
-    server_.on_startup.append(jobs_service.start_worker)
-
-    #
-    # Attach Routing
-    #
-
-    router = server_.router  # type: UrlDispatcher
-
-    # Public Endpoints
-    router.add_get('/', routes.health_check)
-    router.add_get('/login', routes.login)
-
-    # API v0
-    router.add_get('/v0/algorithm', routes.v0.list_algorithms)
-    router.add_get('/v0/algorithm/{service_id}', routes.v0.get_algorithm)
-    router.add_post('/v0/job', routes.v0.create_job)
-    router.add_get('/v0/job', routes.v0.list_jobs)
-    router.add_get('/v0/job/{job_id}', routes.v0.get_job)
-    router.add_delete('/v0/job/{job_id}', routes.v0.forget_job)
-    router.add_get('/v0/productline', routes.v0.list_productlines)
+IS_DEBUG_MODE = os.getenv('DEBUG_MODE') == '1'
+if IS_DEBUG_MODE:
+    print('*' * 80, '\u26A0  SERVER IS RUNNING IN DEBUG MODE'.center(80), '*' * 80, sep='\n\n\n')
 
 
-#
-# Initialize core components
-#
+class _ErrorExclusionFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord):
+        return record.levelno < logging.ERROR
 
-server = Application(
-    middlewares=[create_session_validation_filter],
-    debug=config.IS_DEBUG_MODE,
-)
-server.on_startup.append(init)
+
+logging.config.dictConfig(dict(
+    version=1,
+    disable_existing_loggers=False,
+    filters={
+        'error_exclusion': {
+            '()': _ErrorExclusionFilter,
+        },
+    },
+    formatters={
+        'standard': {
+            'format': '%(levelname)-5s - [%(name)s:%(funcName)s]  %(message)s',
+        }
+    },
+    handlers={
+        'stdout': {
+            'class': 'logging.StreamHandler',
+            'filters': ['error_exclusion'],
+            'formatter': 'standard',
+            'stream': 'ext://sys.stdout',
+        },
+        'stderr': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+            'level': logging.ERROR,
+            'stream': 'ext://sys.stderr',
+        },
+    },
+    loggers={
+        'bfapi': {
+            'handlers': ['stdout', 'stderr'],
+            'level': logging.DEBUG if IS_DEBUG_MODE else logging.INFO,
+        },
+    }
+))
+
+log = logging.getLogger(__name__)
+log.debug('Initialized logging')

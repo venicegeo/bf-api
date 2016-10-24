@@ -17,7 +17,7 @@ if [ "${PORT}" == "" ]; then
     exit 1
 fi
 
-gunicorn bfapi:server \
+gunicorn bfapi.server:server \
   -b localhost:${PORT} \
   --reload \
   --worker-class aiohttp.worker.GunicornWebWorker \

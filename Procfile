@@ -1,1 +1,1 @@
-web: gunicorn bfapi:server --worker-class aiohttp.worker.GunicornWebWorker
+web: gunicorn bfapi.server:server --worker-class aiohttp.worker.GunicornWebWorker

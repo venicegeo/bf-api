@@ -11,9 +11,9 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import logging
 import os
 import signal
-from logging import Logger
 from os.path import dirname, join
 from pprint import pformat
 
@@ -22,7 +22,6 @@ import psycopg2.extras as pge
 from psycopg2.psycopg1 import connection as _t_connection, cursor as _t_cursor
 
 from bfapi.config import POSTGRES_DATABASE, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USERNAME
-from bfapi.logger import get_logger
 
 CONNECTION_TIMEOUT = 15
 
@@ -33,7 +32,7 @@ Row = pge.DictRow
 
 
 def get_connection() -> Connection:
-    log = get_logger()
+    log = logging.getLogger(__name__)
     log.debug('Connecting to database <{}:{}/{}>'.format(POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DATABASE))
     try:
         return pg.connect(
@@ -68,7 +67,7 @@ def init():
 
 def install():
     conn = get_connection()
-    log = get_logger()
+    log = logging.getLogger(__name__)
 
     log.info('Installing schema')
 
@@ -97,7 +96,7 @@ def install():
 
 def install_if_needed():
     conn = get_connection()
-    log = get_logger()
+    log = logging.getLogger(__name__)
 
     log.info('Checking to see if installation is required')
 
