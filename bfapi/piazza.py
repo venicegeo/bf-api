@@ -108,7 +108,7 @@ def deploy(session_token: str, data_id: str, *, poll_interval: int = 5, max_poll
                 'dataId': data_id,
                 'deploymentType': 'geoserver',
                 'type': 'access',
-            }
+            },
         )
         response.raise_for_status()
     except requests.ConnectionError:
@@ -170,7 +170,8 @@ def execute(session_token: str, service_id: str, data_inputs: dict, data_output:
                         'type': 'text'
                     }]
                 },
-            })
+            },
+        )
         response.raise_for_status()
     except requests.ConnectionError:
         raise Unreachable()
@@ -233,7 +234,7 @@ def get_services(session_token: str, pattern: str, count: int = 100) -> List[Ser
             params={
                 'keyword': pattern,
                 'perPage': count,
-            }
+            },
         )
         response.raise_for_status()
     except requests.ConnectionError:
@@ -262,7 +263,7 @@ def get_status(session_token: str, job_id: str) -> Status:
             'https://{}/job/{}'.format(PZ_GATEWAY, job_id),
             headers={
                 'Authorization': session_token,
-            }
+            },
         )
         response.raise_for_status()
     except requests.ConnectionError:
