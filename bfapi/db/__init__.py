@@ -30,20 +30,26 @@ Connection = _t_connection
 Cursor = _t_cursor
 Row = pge.DictRow
 
+_conn = None  # type: Connection
 
 def get_connection() -> Connection:
+    global _conn
     log = logging.getLogger(__name__)
-    log.debug('Connecting to database <{}:{}/{}>'.format(POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DATABASE))
     try:
-        return pg.connect(
-            host=POSTGRES_HOST,
-            port=POSTGRES_PORT,
-            user=POSTGRES_USERNAME,
-            database=POSTGRES_DATABASE,
-            password=POSTGRES_PASSWORD,
-            connect_timeout=CONNECTION_TIMEOUT,
-            cursor_factory=pge.DictCursor,
-        )
+        if not _conn or _conn.closed:
+            log.debug('Connecting to database <{}:{}/{}>'.format(POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DATABASE))
+            _conn = pg.connect(
+                host=POSTGRES_HOST,
+                port=POSTGRES_PORT,
+                user=POSTGRES_USERNAME,
+                database=POSTGRES_DATABASE,
+                password=POSTGRES_PASSWORD,
+                connect_timeout=CONNECTION_TIMEOUT,
+                cursor_factory=pge.DictCursor,
+            )
+        else:
+            log.debug('Reusing open connection to database <{}:{}/{}>'.format(POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DATABASE))
+        return _conn
     except pg.OperationalError as err:
         log.critical('Database connection failed: %s', err)
         raise ConnectionFailed(err)
