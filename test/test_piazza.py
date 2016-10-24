@@ -12,8 +12,9 @@
 # specific language governing permissions and limitations under the License.
 
 import json
-import unittest
+import unittest.mock
 
+from requests import ConnectionError
 from requests_mock import Mocker
 
 from bfapi import piazza
@@ -42,7 +43,10 @@ class PiazzaCreateSessionTest(unittest.TestCase):
             piazza.create_session('Basic Og==')
 
     def test_throws_when_piazza_is_unreachable(self, m: Mocker):
-        self.skipTest('Unsure how to test this one')
+        with unittest.mock.patch('requests.get') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.create_session('Basic Og==')
 
     def test_throws_when_credentials_are_rejected(self, m: Mocker):
         m.get('/key', text=RESPONSE_AUTH_REJECTED, status_code=401)
@@ -62,36 +66,131 @@ class PiazzaCreateSessionTest(unittest.TestCase):
 
 
 @Mocker()
+class PiazzaDeployTest(unittest.TestCase):
+    def test_calls_correct_urls(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_JOB_CREATED, status_code=201)
+        m.get('/job/test-job-id', [
+            {'text': RESPONSE_JOB_RUNNING},
+            {'text': RESPONSE_DEPLOY_SUCCESS},
+        ])
+        piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+        self.assertEqual('https://pz-gateway.localhost/deployment', m.request_history[0].url)
+        self.assertEqual('https://pz-gateway.localhost/job/test-job-id', m.request_history[1].url)
+
+    def test_sends_correct_payload(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_JOB_CREATED, status_code=201)
+        m.get('/job/test-job-id', [
+            {'text': RESPONSE_JOB_RUNNING},
+            {'text': RESPONSE_DEPLOY_SUCCESS},
+        ])
+        piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+        self.assertEqual({'dataId': 'test-data-id', 'deploymentType': 'geoserver', 'type': 'access'},
+                         m.request_history[0].json())
+
+    def test_honors_polling_interval(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_JOB_CREATED, status_code=201)
+        m.get('/job/test-job-id', [
+            {'text': RESPONSE_JOB_RUNNING},
+            {'text': RESPONSE_DEPLOY_SUCCESS},
+        ])
+        with unittest.mock.patch('time.sleep') as stub:
+            piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=-12345, max_poll_attempts=2)
+            self.assertEqual([(-12345,)], stub.call_args)
+
+    def test_returns_layer_id(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_JOB_CREATED, status_code=201)
+        m.get('/job/test-job-id', [
+            {'text': RESPONSE_JOB_RUNNING},
+            {'text': RESPONSE_DEPLOY_SUCCESS},
+        ])
+        layer_id = piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+        self.assertEqual('test-layer-id', layer_id)
+
+    def test_handles_http_errors_gracefully_during_creation(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+    def test_handles_http_errors_gracefully_during_polling(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_JOB_CREATED, status_code=201)
+        m.get('/job/test-job-id', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+        with unittest.mock.patch('requests.post') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+    def test_throws_when_credentials_are_rejected(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_ERROR_GENERIC, status_code=401)
+        with self.assertRaises(piazza.Unauthorized):
+            piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+    def test_throws_when_max_polling_attempts_exhausted(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_JOB_CREATED, status_code=201)
+        m.get('/job/test-job-id', [
+            {'text': RESPONSE_JOB_RUNNING},
+            {'text': RESPONSE_JOB_RUNNING},
+            {'text': RESPONSE_JOB_RUNNING},
+            {'text': RESPONSE_JOB_RUNNING},
+        ])
+        with self.assertRaisesRegex(piazza.DeploymentError, 'exhausted max poll attempts'):
+            piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+    def test_throws_when_deployment_fails(self, m: Mocker):
+        m.post('/deployment', text=RESPONSE_JOB_CREATED, status_code=201)
+        m.get('/job/test-job-id', [
+            {'text': RESPONSE_JOB_RUNNING},
+            {'text': RESPONSE_JOB_ERROR},
+        ])
+        with self.assertRaisesRegex(piazza.DeploymentError, 'job failed'):
+            piazza.deploy('Basic Og==', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+    def test_throws_when_passed_malformed_session_token(self, m: Mocker):
+        with self.assertRaises(piazza.MalformedSessionToken):
+            piazza.deploy('lolwut', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+
+@Mocker()
 class PiazzaGetStatusTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING)
-        piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        piazza.get_status('Basic Og==', 'test-job-id')
         self.assertEqual('https://pz-gateway.localhost/job/test-job-id', m.request_history[0].url)
 
     def test_returns_correct_status_for_running_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING)
-        status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        status = piazza.get_status('Basic Og==', 'test-job-id')
         self.assertEqual('Running', status.status)
         self.assertIsNone(status.data_id)
         self.assertIsNone(status.error_message)
 
-    def test_returns_correct_status_for_successful_job(self, m: Mocker):
+    def test_returns_correct_status_for_successful_execution_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_SUCCESS)
-        status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        status = piazza.get_status('Basic Og==', 'test-job-id')
+        self.assertEqual('Success', status.status)
+        self.assertEqual('test-data-id', status.data_id)
+        self.assertIsNone(status.error_message)
+
+    def test_returns_correct_status_for_successful_deployment_job(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_SUCCESS)
+        status = piazza.get_status('Basic Og==', 'test-job-id')
         self.assertEqual('Success', status.status)
         self.assertEqual('test-data-id', status.data_id)
         self.assertIsNone(status.error_message)
 
     def test_returns_correct_status_for_failed_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_ERROR)
-        status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        status = piazza.get_status('Basic Og==', 'test-job-id')
         self.assertEqual('Error', status.status)
         self.assertIsNone(status.data_id)
         self.assertEqual('test-failure-message', status.error_message)
 
     def test_returns_correct_status_for_canceled_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_CANCELLED)
-        status = piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        status = piazza.get_status('Basic Og==', 'test-job-id')
         self.assertEqual('Cancelled', status.status)
         self.assertIsNone(status.data_id)
         self.assertIsNone(status.error_message)
@@ -99,41 +198,58 @@ class PiazzaGetStatusTest(unittest.TestCase):
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING, status_code=500)
         with self.assertRaises(piazza.ServerError):
-            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+            piazza.get_status('Basic Og==', 'test-job-id')
 
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
-        self.skipTest('Unsure how to test this one')
+    def test_throws_when_piazza_is_unreachable(self, _):
+        with unittest.mock.patch('requests.get') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.get_status('Basic Og==', 'test-job-id')
 
     def test_throws_when_credentials_are_rejected(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_ERROR_UNAUTHORIZED, status_code=401)
         with self.assertRaises(piazza.Unauthorized):
-            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+            piazza.get_status('Basic Og==', 'test-job-id')
 
     def test_throws_when_job_doesnt_exist(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_NOT_FOUND, status_code=404)
         with self.assertRaises(piazza.ServerError):
-            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+            piazza.get_status('Basic Og==', 'test-job-id')
 
     def test_throws_when_status_is_ambiguous(self, m: Mocker):
-        mutated_status = json.loads(RESPONSE_JOB_SUCCESS)
-        mutated_status['data']['status'] = 'lolwut'
-        m.get('/job/test-job-id', json=mutated_status)
-        with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        mangled_response = json.loads(RESPONSE_JOB_SUCCESS)
+        mangled_response['data']['status'] = 'lolwut'
+        m.get('/job/test-job-id', json=mangled_response)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'ambiguous value for `data.status`'):
+            piazza.get_status('Basic Og==', 'test-job-id')
+
+    def test_throws_when_deployment_layer_id_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_DEPLOY_SUCCESS)
+        mangled_response['data']['result']['deployment'].pop('layer')
+        m.get('/job/test-job-id', json=mangled_response)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data.result.deployment.layer`'):
+            piazza.get_status('Basic Og==', 'test-job-id')
+
+    def test_throws_when_deployment_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_DEPLOY_SUCCESS)
+        mangled_response['data']['result'].pop('deployment')
+        m.get('/job/test-job-id', json=mangled_response)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data.result.deployment`'):
+            piazza.get_status('Basic Og==', 'test-job-id')
 
     def test_throws_when_status_is_missing(self, m: Mocker):
-        mutated_status = json.loads(RESPONSE_JOB_SUCCESS)
-        mutated_status['data'].pop('status')
-        m.get('/job/test-job-id', json=mutated_status)
-        with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        mangled_response = json.loads(RESPONSE_JOB_SUCCESS)
+        mangled_response['data'].pop('status')
+        m.get('/job/test-job-id', json=mangled_response)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data.status`'):
+            piazza.get_status('Basic Og==', 'test-job-id')
 
     def test_throws_when_result_is_missing(self, m: Mocker):
-        mutated_status = json.loads(RESPONSE_JOB_SUCCESS)
-        mutated_status['data'].pop('result')
-        m.get('/job/test-job-id', json=mutated_status)
-        with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_status('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-job-id')
+        mangled_response = json.loads(RESPONSE_JOB_SUCCESS)
+        mangled_response['data'].pop('result')
+        m.get('/job/test-job-id', json=mangled_response)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data.result`'):
+            piazza.get_status('Basic Og==', 'test-job-id')
 
     def test_throws_when_passed_malformed_session_token(self, m: Mocker):
         with self.assertRaises(piazza.MalformedSessionToken):
@@ -144,17 +260,17 @@ class PiazzaGetStatusTest(unittest.TestCase):
 class PiazzaGetServiceTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
-        piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+        piazza.get_service('Basic Og==', service_id='test-id')
         self.assertEqual('https://pz-gateway.localhost/service/test-id', m.request_history[0].url)
 
     def test_returns_a_service_descriptor(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
-        descriptor = piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+        descriptor = piazza.get_service('Basic Og==', service_id='test-id')
         self.assertIsInstance(descriptor, piazza.ServiceDescriptor)
 
     def test_deserializes_canonical_data(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
-        descriptor = piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+        descriptor = piazza.get_service('Basic Og==', service_id='test-id')
         self.assertEqual('test-id', descriptor.service_id)
         self.assertEqual('test-description', descriptor.description)
         self.assertEqual('test-name', descriptor.name)
@@ -162,57 +278,60 @@ class PiazzaGetServiceTest(unittest.TestCase):
 
     def test_deserializes_metadata(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
-        descriptor = piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+        descriptor = piazza.get_service('Basic Og==', service_id='test-id')
         self.assertEqual({'classType': {'classification': 'UNCLASSIFIED'}, 'version': 'test-version'},
                          descriptor.metadata)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_ERROR_GENERIC, status_code=500)
         with self.assertRaises(piazza.ServerError):
-            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+            piazza.get_service('Basic Og==', service_id='test-id')
 
     def test_throws_when_piazza_is_unreachable(self, m: Mocker):
-        self.skipTest('Unsure how to test this one')
+        with unittest.mock.patch('requests.get') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.get_service('Basic Og==', service_id='test-id')
 
     def test_throws_when_service_does_not_exist(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE_NOT_FOUND, status_code=404)
         with self.assertRaises(piazza.ServerError):
-            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+            piazza.get_service('Basic Og==', service_id='test-id')
 
     def test_throws_when_data_is_missing(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE)
         mangled_response.pop('data')
         m.get('/service/test-id', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+            piazza.get_service('Basic Og==', service_id='test-id')
 
     def test_throws_when_data_is_malformed(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE)
         mangled_response['data'] = 'lol'
         m.get('/service/test-id', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+            piazza.get_service('Basic Og==', service_id='test-id')
 
     def test_throws_when_name_is_missing(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE)
         mangled_response['data']['resourceMetadata'].pop('name')
         m.get('/service/test-id', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+            piazza.get_service('Basic Og==', service_id='test-id')
 
     def test_throws_when_url_is_missing(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE)
         mangled_response['data'].pop('url')
         m.get('/service/test-id', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+            piazza.get_service('Basic Og==', service_id='test-id')
 
     def test_throws_when_descriptors_are_malformed(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE)
         mangled_response['data'].pop('serviceId')
         m.get('/service/test-id', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_service('Basic dGVzdC1hdXRoLXRva2VuOg==', service_id='test-id')
+            piazza.get_service('Basic Og==', service_id='test-id')
 
     def test_throws_when_passed_malformed_session_token(self, m: Mocker):
         with self.assertRaises(piazza.MalformedSessionToken):
@@ -223,20 +342,20 @@ class PiazzaGetServiceTest(unittest.TestCase):
 class PiazzaGetServicesTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
-        piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+        piazza.get_services('Basic Og==', pattern='^test-pattern$')
         self.assertEqual('https://pz-gateway.localhost/service?', m.request_history[0].url[0:37])
         self.assertIn('perPage=100', m.request_history[0].url[37:])
         self.assertIn('keyword=%5Etest-pattern%24', m.request_history[0].url[37:])
 
     def test_returns_a_list_of_service_descriptors(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
-        descriptors = piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+        descriptors = piazza.get_services('Basic Og==', pattern='^test-pattern$')
         self.assertIsInstance(descriptors, list)
         self.assertEqual(2, len(descriptors))
 
     def test_deserializes_canonical_data(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
-        (descriptor, _) = piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+        (descriptor, _) = piazza.get_services('Basic Og==', pattern='^test-pattern$')
         self.assertEqual('test-id-1', descriptor.service_id)
         self.assertEqual('test-description', descriptor.description)
         self.assertEqual('test-name', descriptor.name)
@@ -244,31 +363,34 @@ class PiazzaGetServicesTest(unittest.TestCase):
 
     def test_deserializes_metadata(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
-        (descriptor, _) = piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+        (descriptor, _) = piazza.get_services('Basic Og==', pattern='^test-pattern$')
         self.assertEqual({'classType': {'classification': 'UNCLASSIFIED'}, 'version': 'test-version'},
                          descriptor.metadata)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.get('/service', text=RESPONSE_ERROR_GENERIC, status_code=500)
         with self.assertRaises(piazza.ServerError):
-            piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+            piazza.get_services('Basic Og==', pattern='^test-pattern$')
 
     def test_throws_when_piazza_is_unreachable(self, m: Mocker):
-        self.skipTest('Unsure how to test this one')
+        with unittest.mock.patch('requests.get') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.get_services('Basic Og==', pattern='^test-pattern$')
 
     def test_throws_when_data_is_missing(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE_LIST)
         mangled_response.pop('data')
         m.get('/service', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+            piazza.get_services('Basic Og==', pattern='^test-pattern$')
 
     def test_throws_when_data_is_malformed(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE_LIST)
         mangled_response['data'] = {}
         m.get('/service', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+            piazza.get_services('Basic Og==', pattern='^test-pattern$')
 
     def test_throws_when_name_is_missing(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE_LIST)
@@ -276,7 +398,7 @@ class PiazzaGetServicesTest(unittest.TestCase):
         mangled_response['data'][1]['resourceMetadata'].pop('name')
         m.get('/service', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+            piazza.get_services('Basic Og==', pattern='^test-pattern$')
 
     def test_throws_when_url_is_missing(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE_LIST)
@@ -284,7 +406,7 @@ class PiazzaGetServicesTest(unittest.TestCase):
         mangled_response['data'][1].pop('url')
         m.get('/service', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+            piazza.get_services('Basic Og==', pattern='^test-pattern$')
 
     def test_throws_when_descriptors_are_malformed(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE_LIST)
@@ -292,7 +414,7 @@ class PiazzaGetServicesTest(unittest.TestCase):
         descriptor.pop('serviceId')
         m.get('/service', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_services('Basic dGVzdC1hdXRoLXRva2VuOg==', pattern='^test-pattern$')
+            piazza.get_services('Basic Og==', pattern='^test-pattern$')
 
     def test_throws_when_passed_malformed_session_token(self, m: Mocker):
         with self.assertRaises(piazza.MalformedSessionToken):
@@ -303,7 +425,7 @@ class PiazzaGetServicesTest(unittest.TestCase):
 class PiazzaGetUsernameTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
-        piazza.get_username('Basic dGVzdC1hdXRoLXRva2VuOg==')
+        piazza.get_username('Basic Og==')
         self.assertEqual('https://pz-idam.localhost/v2/verification', m.request_history[0].url)
 
     def test_sends_correct_payload(self, m: Mocker):
@@ -313,28 +435,31 @@ class PiazzaGetUsernameTest(unittest.TestCase):
 
     def test_returns_correct_username(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
-        username = piazza.get_username('Basic dGVzdC1hdXRoLXRva2VuOg==')
+        username = piazza.get_username('Basic Og==')
         self.assertEqual('test-username', username)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_ERROR_GENERIC, status_code=500)
         with self.assertRaises(piazza.ServerError):
-            piazza.get_username('Basic dGVzdC1hdXRoLXRva2VuOg==')
+            piazza.get_username('Basic Og==')
 
     def test_throws_when_session_is_not_current(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_EXPIRED)
         with self.assertRaises(piazza.SessionExpired):
-            piazza.get_username('Basic dGVzdC1hdXRoLXRva2VuOg==')
+            piazza.get_username('Basic Og==')
 
     def test_throws_when_username_is_missing(self, m: Mocker):
         truncated_response = json.loads(RESPONSE_AUTH_ACTIVE)
         truncated_response.pop('username')
         m.post('/v2/verification', json=truncated_response)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_username('Basic dGVzdC1hdXRoLXRva2VuOg==')
+            piazza.get_username('Basic Og==')
 
     def test_throws_when_piazza_is_unreachable(self, m: Mocker):
-        self.skipTest('Unsure how to test this one')
+        with unittest.mock.patch('requests.post') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.get_username('Basic Og==')
 
     def test_throws_when_passed_malformed_session_token(self, m: Mocker):
         m.post('/v2/verification', text='{}')
@@ -351,54 +476,57 @@ class PiazzaGetUsernameTest(unittest.TestCase):
 class PiazzaExecuteTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
+        piazza.execute('Basic Og==', 'test-service-id', {})
         self.assertEqual('https://pz-gateway.localhost/job', m.request_history[0].url)
 
     def test_sends_correct_service_id(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
+        piazza.execute('Basic Og==', 'test-service-id', {})
         self.assertEqual('test-service-id', m.request_history[0].json()['data']['serviceId'])
 
     def test_sends_correct_input_parameters(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {'foo': 'bar'})
+        piazza.execute('Basic Og==', 'test-service-id', {'foo': 'bar'})
         self.assertEqual({'foo': 'bar'}, m.request_history[0].json()['data']['dataInputs'])
 
     def test_sends_default_output_parameters(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
+        piazza.execute('Basic Og==', 'test-service-id', {})
         self.assertEqual([{'mimeType': 'application/json', 'type': 'text'}],
                          m.request_history[0].json()['data']['dataOutput'])
 
     def test_sends_correct_output_parameters_when_explicitly_set(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {}, [{'boo': 'baz'}])
+        piazza.execute('Basic Og==', 'test-service-id', {}, [{'boo': 'baz'}])
         self.assertEqual([{'boo': 'baz'}], m.request_history[0].json()['data']['dataOutput'])
 
     def test_returns_job_id(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        job_id = piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {'foo': 'bar'}, [{'boo': 'baz'}])
+        job_id = piazza.execute('Basic Og==', 'test-service-id', {'foo': 'bar'}, [{'boo': 'baz'}])
         self.assertEqual('test-job-id', job_id)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
         m.post('/job', text=RESPONSE_ERROR_GENERIC, status_code=500)
         with self.assertRaises(piazza.ServerError):
-            piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
+            piazza.execute('Basic Og==', 'test-service-id', {})
 
     def test_throws_when_piazza_is_unreachable(self, m: Mocker):
-        self.skipTest('Unsure how to test this one')
+        with unittest.mock.patch('requests.post') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.execute('Basic Og==', 'test-service-id', {})
 
     def test_throws_when_credentials_are_rejected(self, m: Mocker):
         m.post('/job', text=RESPONSE_ERROR_GENERIC, status_code=401)
         with self.assertRaises(piazza.Unauthorized):
-            piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
+            piazza.execute('Basic Og==', 'test-service-id', {})
 
     def test_throws_when_job_id_is_missing(self, m: Mocker):
         truncated_response = json.loads(RESPONSE_JOB_CREATED)
         truncated_response['data'].pop('jobId')
         m.post('/job', json=truncated_response, status_code=201)
         with self.assertRaises(piazza.InvalidResponse):
-            piazza.execute('Basic dGVzdC1hdXRoLXRva2VuOg==', 'test-service-id', {})
+            piazza.execute('Basic Og==', 'test-service-id', {})
 
     def test_throws_when_passed_malformed_session_token(self, m: Mocker):
         with self.assertRaises(piazza.MalformedSessionToken):
@@ -429,6 +557,29 @@ RESPONSE_AUTH_REJECTED = """{
 RESPONSE_AUTH_SUCCESS = """{
     "type": "uuid",
     "uuid": "test-uuid"
+}"""
+
+RESPONSE_DEPLOY_SUCCESS = """{
+  "type": "status",
+  "data": {
+    "result": {
+      "type": "deployment",
+      "deployment": {
+        "deploymentId": "test-deployment-id",
+        "dataId": "test-data-id",
+        "host": "test-host",
+        "port": "test-port",
+        "layer": "test-layer-id",
+        "capabilitiesUrl": "test-capabilities-url",
+        "createdOn": "test-created-on"
+      }
+    },
+    "status": "Success",
+    "jobType": "AccessJob",
+    "createdBy": "test-created-by",
+    "progress": {},
+    "jobId": "test-job-id"
+  }
 }"""
 
 RESPONSE_ERROR_UNAUTHORIZED = """{

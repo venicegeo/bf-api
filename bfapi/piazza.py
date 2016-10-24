@@ -16,6 +16,7 @@ import re
 from typing import List
 
 import requests
+import time
 
 from bfapi.config import PZ_GATEWAY
 
@@ -24,6 +25,8 @@ STATUS_CANCELLED = 'Cancelled'
 STATUS_SUCCESS = 'Success'
 STATUS_RUNNING = 'Running'
 STATUS_ERROR = 'Error'
+TYPE_DATA = 'data'
+TYPE_DEPLOYMENT = 'deployment'
 
 
 #
@@ -34,11 +37,14 @@ class Status:
     def __init__(
             self,
             status: str,
-            error_message: str = None,
-            data_id: str = None):
+            *,
+            data_id: str = None,
+            layer_id: str = None,
+            error_message: str = None):
         self.status = status
         self.data_id = data_id
         self.error_message = error_message
+        self.layer_id = layer_id
 
 
 class ServiceDescriptor:
@@ -86,6 +92,61 @@ def create_session(auth_header: str):
         raise InvalidResponse('missing `uuid`', response.text)
 
     return 'Basic ' + base64.encodebytes((uuid + ':').encode()).decode().strip()
+
+
+def deploy(session_token: str, data_id: str, *, poll_interval: int = 5, max_poll_attempts: int = 6):
+    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
+        raise MalformedSessionToken()
+
+    try:
+        response = requests.post(
+            'https://{}/deployment'.format(PZ_GATEWAY),
+            headers={
+                'Authorization': session_token,
+            },
+            json={
+                'dataId': data_id,
+                'deploymentType': 'geoserver',
+                'type': 'access',
+            }
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+
+    data = response.json().get('data')
+    if not data:
+        raise InvalidResponse('missing `data`', response.text)
+
+    job_id = data.get('jobId')
+    if not job_id:
+        raise InvalidResponse('missing `jobId`', response.text)
+
+    # Poll until complete
+    poll_attempts = 0
+    while True:
+        status = get_status(session_token, job_id)
+
+        if status.status == STATUS_SUCCESS:
+            return status.layer_id
+
+        elif status.status == STATUS_RUNNING:
+            poll_attempts += 1
+            if poll_attempts >= max_poll_attempts:
+                raise DeploymentError('exhausted max poll attempts')
+            time.sleep(poll_interval)
+            continue
+
+        if status.status == STATUS_ERROR:
+            raise DeploymentError('deployment job failed')
+
+        else:
+            raise DeploymentError('unexpected deployment job status: ' + status.status)
 
 
 def execute(session_token: str, service_id: str, data_inputs: dict, data_output: list = None) -> str:
@@ -228,10 +289,28 @@ def get_status(session_token: str, job_id: str) -> Status:
         result = data.get('result')
         if not result:
             raise InvalidResponse('missing `data.result`', response.text)
-        data_id = result.get('dataId')
-        if not data_id:
-            raise InvalidResponse('missing `data.result.dataId`', response.text)
-        return Status(status, data_id=data_id)
+
+        result_type = result.get('type')
+        if not result_type:
+            raise InvalidResponse('missing `data.result.type`', response.text)
+
+        if result_type == TYPE_DATA:
+            data_id = result.get('dataId')
+            if not data_id:
+                raise InvalidResponse('missing `data.result.dataId`', response.text)
+            return Status(status, data_id=data_id)
+
+        elif result_type == TYPE_DEPLOYMENT:
+            deployment = result.get('deployment')
+            if not deployment:
+                raise InvalidResponse('missing `data.result.deployment`', response.text)
+            layer_id = deployment.get('layer')
+            if not layer_id:
+                raise InvalidResponse('missing `data.result.deployment.layer`', response.text)
+            return Status(status, layer_id=layer_id)
+
+        else:
+            raise InvalidResponse('unknown result type `{}`'.format(result_type), response.text)
 
     elif status == STATUS_ERROR:
         result = data.get('result')
@@ -326,6 +405,12 @@ class Error(Exception):
     def __init__(self, message: str):
         super().__init__(message)
         self.message = message
+
+
+class DeploymentError(Error):
+    def __init__(self, message: str, err: Exception = None):
+        super().__init__('Piazza deployment error: ' + message)
+        self.original_error = err
 
 
 class ExecutionError(Error):
