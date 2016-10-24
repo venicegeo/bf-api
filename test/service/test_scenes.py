@@ -97,10 +97,17 @@ class SceneGetTest(unittest.TestCase):
             service.get('landsat:LC80110632016220LGN00')
 
     def test_throws_if_scene_does_not_exist(self, m: rm.Mocker, _):
-        m.get('/image/landsat:LC80110632016220LGN00', status_code=400,
-              text='Unable to retrieve metadata for landsat:LC80110632016220LGN00: lorem ipsum')
+        m.get('/image/landsat:LC80110632016220LGN00', status_code=400, text=RESPONSE_SCENE_NOT_FOUND)
         with self.assertRaises(service.NotFound):
             service.get('landsat:LC80110632016220LGN00')
+
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+    # TODO -- this can go away once Redmine #9287 is closed
+    def test_throws_if_scene_does_not_exist___TEMPORARY_WORKAROUND_FOR_REDMINE_9287___(self, m: rm.Mocker, _):
+        m.get('/image/landsat:LC80110632016220LGN00', status_code=400, text=RESPONSE_SCENE_NOT_FOUND)
+        with self.assertRaises(service.NotFound):
+            service.get('landsat:LC80110632016220LGN00')
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 
     def test_saves_scene_to_database(self, m: rm.Mocker, mockdb):
         m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
@@ -118,6 +125,10 @@ class SceneGetTest(unittest.TestCase):
 #
 # Fixtures
 #
+
+RESPONSE_SCENE_NOT_FOUND = (
+    'Unable to retrieve metadata for landsat:LC80110632016220LGN00: redis: nil even using wildcard search'
+)
 
 RESPONSE_SCENE = """{
   "type": "Feature",

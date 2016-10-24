@@ -20,7 +20,7 @@ from bfapi import piazza
 PUBLIC_ENDPOINTS = ('/', '/login')
 
 
-async def create_session_validation_filter(app: Application, handler):
+async def create_session_validation_filter(_: Application, handler):
     async def validate_session(request: Request):
         log = logging.getLogger(__name__)
 

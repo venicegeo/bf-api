@@ -69,7 +69,7 @@ def get(scene_id: str) -> Scene:
             raise NotFound(scene_id)
         # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
         # TODO -- this can go away once Redmine #9287 is closed
-        if status_code == 400 and 'Unable to retrieve metadata for ' + scene_id in err.response.text:
+        if status_code == 400 and '{}: redis: nil even using wildcard search'.format(scene_id) in err.response.text:
             raise NotFound(scene_id)
         # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
         raise CatalogError()

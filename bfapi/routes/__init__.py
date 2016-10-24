@@ -22,7 +22,7 @@ from bfapi.routes import v0
 _time_started = time.time()
 
 
-async def health_check(request: Request):
+async def health_check(_: Request):
     uptime = round(time.time() - _time_started, 3)
     return json_response({
         'uptime': uptime,
