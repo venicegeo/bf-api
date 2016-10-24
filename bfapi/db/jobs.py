@@ -168,6 +168,7 @@ def select_jobs_for_user(
                LEFT OUTER JOIN __beachfront__job_error e ON (e.job_id = j.job_id)
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE u.user_id = %(user_id)s
+        ORDER BY created_on ASC
         """
     params = {
         'user_id': user_id,
