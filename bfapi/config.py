@@ -34,6 +34,7 @@ def validate(failfast: bool = True):
     if failfast:
         print('!' * 80, error_message, '!' * 80, sep='\n\n', file=sys.stderr)
         os.kill(os.getppid(), signal.SIGQUIT)
+        signal.pause()
         exit(1)
     else:
         raise Exception(error_message)

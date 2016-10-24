@@ -62,6 +62,7 @@ def init():
             sep='\n\n',
         )
         os.kill(os.getppid(), signal.SIGQUIT)
+        signal.pause()
         exit(1)
 
 
