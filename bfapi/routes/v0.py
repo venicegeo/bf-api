@@ -76,8 +76,8 @@ async def create_job(request: Request):
             scene_id=scene_id,
             job_name=job_name.strip(),
         )
-    except jobs_service.ExecutionError as err:
-        return Response(status=500, text=str(err))
+    except jobs_service.PreprocessingError as err:
+        return Response(status=500, text='Cannot execute: {}'.format(err))
     except DatabaseError:
         return Response(status=500, text='A database error prevents job execution')
     return json_response(status=201, data=record)

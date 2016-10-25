@@ -50,13 +50,13 @@ def create_job(
             scenes_service.CatalogError,
             scenes_service.NotFound,
             scenes_service.ValidationError) as err:
-        raise ExecutionError(err)
+        raise PreprocessingError(err)
 
     # Fetch tide info
     try:
         tide_current, tide_min, tide_max = _fetch_tide_prediction(scene)
     except TidePredictionError as err:
-        raise ExecutionError(err)  # TODO -- should this be a hard failure?
+        raise PreprocessingError(err)
 
     # Determine GeoTIFF URLs
     geotiff_filenames = []
@@ -64,7 +64,7 @@ def create_job(
     for key in algorithm.bands:
         geotiff_url = scene.bands.get(key)
         if not geotiff_url:
-            raise ExecutionError(message='Scene `{}` is missing band `{}`'.format(scene.id, key))
+            raise PreprocessingError(message='Scene `{}` is missing band `{}`'.format(scene.id, key))
         geotiff_urls.append(geotiff_url)
         geotiff_filenames.append(key + '.TIF')
 
@@ -282,6 +282,8 @@ async def _update_status(
         job_ttl: timedelta,
         index: int):
     log = logging.getLogger(__name__)
+
+    # Get latest status
     try:
         status = piazza.get_status(auth_token, job_id)
     except piazza.Unauthorized:
@@ -289,41 +291,62 @@ async def _update_status(
         return
     except (piazza.ServerError, piazza.Error) as err:
         if isinstance(err, piazza.ServerError) and err.status_code == 404:
-            # Mark the job as failed and proceed with database updates
-            status = piazza.Status(status='Error', error_message='Job Not Found')
+            log.warning('<%03d/%s> Job not found', index, job_id)
+            _save_execution_error(job_id, 'runtime:polling-for-status', 'Job not found')
+            return
         else:
             log.error('<%03d/%s> call to Piazza failed: %s', index, job_id, err.message)
             return
 
-    # Check for expiration
-    age = datetime.utcnow() - created_on
-    if age > job_ttl and status.status == piazza.STATUS_RUNNING:
-        status.status = STATUS_TIMED_OUT
-        status.error_message = 'Processing time exceeded'
-
+    # Emit console feedback
     log.info('<%03d/%s> polled (%s)', index, job_id, status.status)
 
-    conn = get_connection()
+    # Determine appropriate action by status
+    if status.status == piazza.STATUS_RUNNING:
+        if datetime.utcnow() - created_on < job_ttl:
+            return
+        log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
+        _save_execution_error(job_id, 'runtime:timed-out', 'Processing time exceeded', status=STATUS_TIMED_OUT)
+
+    elif status.status == piazza.STATUS_SUCCESS:
+        log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
+        try:
+            detections_data_id = _resolve_detections_data_id(auth_token, status.data_id)
+        except PostprocessingError as err:
+            log.error('<%03d/%s> could not resolve detections data ID %s', index, job_id, err)
+            _save_execution_error(job_id, 'postprocessing:resolve-detections-data-id', str(err))
+            return
+
+        log.info('<%03d/%s> Deploying <%s> to GeoServer via Piazza', index, job_id, detections_data_id)
+        try:
+            piazza.deploy(auth_token, detections_data_id)
+        except piazza.Unauthorized:
+            log.error('<%03d/%s> credentials rejected during deployment!', index, job_id)
+            return
+        except piazza.DeploymentError as err:
+            log.error('<%03d/%s> could not deploy data ID <%s>: %s', index, job_id, detections_data_id, err)
+            _save_execution_error(job_id, 'postprocessing:deploy', 'Could not deploy to GeoServer via Piazza')
+            return
+
+        _save_execution_success(job_id, detections_data_id)
+
+    elif status.status == piazza.STATUS_ERROR:
+        _save_execution_error(job_id, 'runtime:during-algorithm', 'Job failed during algorithm run')  # FIXME -- use heuristics to determine specifics here
+
+    elif status.status == piazza.STATUS_CANCELLED:
+        _save_execution_error(job_id, 'runtime:cancelled', 'Job was cancelled', status=piazza.STATUS_CANCELLED)
+
+
+def _resolve_detections_data_id(auth_token, output_data_id) -> str:
     try:
-        jobs_db.update_status(
-            conn,
-            job_id=job_id,
-            status=status.status,
-            data_id=status.data_id,
-        )
-        if status.error_message:
-            jobs_db.insert_job_failure(
-                conn,
-                job_id=job_id,
-                execution_step='lolwut',  # TODO -- use heuristics to determine this?
-                error_message=status.error_message  # TODO -- make this user-friendly, not tech mumbo-jumbo
-            )
-        conn.commit()
-    except DatabaseError as err:
-        conn.rollback()
-        log.error('<%03d/%s> update failed', index, job_id)
-        err.print_diagnostics()
-        raise err
+        execution_output = piazza.get_file(auth_token, output_data_id).json()
+        return str(execution_output['OutFiles']['shoreline.geojson'])
+    except piazza.Error as err:
+        raise PostprocessingError(err, 'could not fetch execution output: {}'.format(err))
+    except json.JSONDecodeError as err:
+        raise PostprocessingError(err, 'malformed execution output: {}'.format(err))
+    except KeyError as err:
+        raise PostprocessingError(err, 'execution output is missing key `{}`'.format(err))
 
 
 #
@@ -381,6 +404,49 @@ def _get_centroid(polygon: list):
     return (max_x + min_x) / 2, (max_y + min_y) / 2
 
 
+def _save_execution_error(job_id: str, execution_step: str, error_message: str, status: str = piazza.STATUS_ERROR):
+    log = logging.getLogger(__name__)
+    log.debug('<%s> updating database record', job_id)
+    conn = get_connection()
+    try:
+        jobs_db.update_status(
+            conn,
+            job_id=job_id,
+            status=status,
+            data_id=None,
+        )
+        jobs_db.insert_job_failure(
+            conn,
+            job_id=job_id,
+            execution_step=execution_step,
+            error_message=error_message,
+        )
+        conn.commit()
+    except DatabaseError as err:
+        conn.rollback()
+        log.error('<%s> database update failed', job_id)
+        err.print_diagnostics()
+
+
+def _save_execution_success(job_id: str, detections_data_id: str):
+    log = logging.getLogger(__name__)
+    log.debug('<%s> updating database record', job_id)
+    conn = get_connection()
+    try:
+        jobs_db.update_status(
+            conn,
+            job_id=job_id,
+            status=piazza.STATUS_SUCCESS,
+            data_id=detections_data_id,
+        )
+        conn.commit()
+    except DatabaseError as err:
+        conn.rollback()
+        log.error('<%s> database update failed', job_id)
+        err.print_diagnostics()
+        raise err
+
+
 def _serialize_dt(dt: datetime = None) -> str:
     if dt is not None:
         return dt.strftime(FORMAT_ISO8601)
@@ -423,18 +489,27 @@ def _to_feature(
 # Errors
 #
 
-class ExecutionError(Exception):
-    def __init__(self, err: Exception = None, message: str = None):
-        super().__init__('Cannot execute: {}'.format(message if message else str(err)))
-        self.original_error = err
+class Error(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
-class NotFound(Exception):
+class NotFound(Error):
     def __init__(self, job_id: str):
         super().__init__('job `{}` not found'.format(job_id))
         self.job_id = job_id
 
 
-class TidePredictionError(ExecutionError):
+class PostprocessingError(Error):
+    def __init__(self, err: Exception = None, message: str = None):
+        super().__init__('during postprocessing, {}'.format(message or err))
+
+
+class PreprocessingError(Error):
+    def __init__(self, err: Exception = None, message: str = None):
+        super().__init__('during preprocessing, {}'.format(message or err))
+
+
+class TidePredictionError(Error):
     def __init__(self, message: str):
-        super().__init__(message='tide prediction error: {}'.format(message))
+        super().__init__(message='tide prediction failed: {}'.format(message))
