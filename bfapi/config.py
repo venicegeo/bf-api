@@ -20,7 +20,7 @@ from datetime import timedelta
 ################################################################################
 _errors = []
 def validate(failfast: bool = True):
-    if not SYSTEM_AUTH_TOKEN: _errors.append('SYSTEM_AUTH_TOKEN cannot be blank')
+    if not SYSTEM_API_KEY: _errors.append('SYSTEM_API_KEY cannot be blank')
     if not POSTGRES_HOST: _errors.append('POSTGRES_HOST cannot be blank')
     if not POSTGRES_PORT: _errors.append('POSTGRES_PORT cannot be blank')
     if not POSTGRES_DATABASE: _errors.append('POSTGRES_DATABASE cannot be blank')
@@ -84,7 +84,7 @@ PZ_GATEWAY   = os.getenv('PZ_GATEWAY', 'pz-gateway.' + _domain)
 CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + _domain)
 TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _domain)
 
-SYSTEM_AUTH_TOKEN = os.getenv('SYSTEM_AUTH_TOKEN')
+SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
 
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_TTL = timedelta(seconds=900)

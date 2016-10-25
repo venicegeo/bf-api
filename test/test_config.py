@@ -39,7 +39,7 @@ class ConfigurationValidateTest(unittest.TestCase):
     def setUp(self):
         self._original_values = {}
         self.override('_errors', [])
-        self.override('SYSTEM_AUTH_TOKEN', 'Basic Og==')
+        self.override('SYSTEM_API_KEY', 'Basic Og==')
         self.override('POSTGRES_HOST', 'test-host')
         self.override('POSTGRES_PORT', 'test-port')
         self.override('POSTGRES_DATABASE', 'test-database')
@@ -57,8 +57,8 @@ class ConfigurationValidateTest(unittest.TestCase):
     def test_succeeds_if_config_is_valid(self):
         config.validate(failfast=False)
 
-    def test_throws_if_SYSTEM_AUTH_TOKEN_is_blank(self):
-        self.override('SYSTEM_AUTH_TOKEN', None)
+    def test_throws_if_SYSTEM_API_KEY_is_blank(self):
+        self.override('SYSTEM_API_KEY', None)
         with self.assertRaises(Exception):
             config.validate(failfast=False)
 

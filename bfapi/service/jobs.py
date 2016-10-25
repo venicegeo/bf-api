@@ -19,9 +19,9 @@ from datetime import datetime, timedelta
 import requests
 
 from bfapi import piazza
-from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, SYSTEM_AUTH_TOKEN, TIDE_SERVICE
-from bfapi.service import algorithms as algorithms_service, scenes as scenes_service
+from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, SYSTEM_API_KEY, TIDE_SERVICE
 from bfapi.db import jobs as jobs_db, get_connection, DatabaseError
+from bfapi.service import algorithms as algorithms_service, scenes as scenes_service
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
@@ -34,7 +34,7 @@ STATUS_TIMED_OUT = 'Timed Out'
 #
 
 def create_job(
-        session_token: str,
+        api_key: str,
         user_id: str,
         scene_id: str,
         service_id: str,
@@ -43,7 +43,7 @@ def create_job(
 
     # Fetch prerequisites
     try:
-        algorithm = algorithms_service.get(session_token, service_id)
+        algorithm = algorithms_service.get(api_key, service_id)
         scene = scenes_service.get(scene_id)
     except (algorithms_service.NotFound,
             algorithms_service.ValidationError,
@@ -71,10 +71,10 @@ def create_job(
     # Dispatch to Piazza
     try:
         log.info('<scene:%s> dispatched to algorithm via Piazza', scene_id)
-        job_id = piazza.execute(session_token, algorithm.service_id, {
+        job_id = piazza.execute(api_key, algorithm.service_id, {
             'body': {
                 'content': json.dumps({
-                    'pzAuthKey': session_token,
+                    'pzAuthKey': piazza.to_auth_header(api_key),
                     'cmd': ' '.join([
                         'shoreline',
                         '--image ' + ','.join(geotiff_filenames),
@@ -222,14 +222,14 @@ def get_all(user_id: str) -> dict:
 
 def start_worker(
         server,
-        auth_token: str = SYSTEM_AUTH_TOKEN,
+        api_key: str = SYSTEM_API_KEY,
         job_ttl: timedelta = JOB_TTL,
         interval: timedelta = JOB_WORKER_INTERVAL):
     log = logging.getLogger(__name__)
 
     log.info('Starting jobs service worker')
     loop = server.loop
-    server['jobs_worker'] = loop.create_task(_worker(auth_token, job_ttl, interval))
+    server['jobs_worker'] = loop.create_task(_worker(api_key, job_ttl, interval))
 
 
 #
@@ -237,7 +237,7 @@ def start_worker(
 #
 
 async def _worker(
-        auth_token: str,
+        api_key: str,
         job_ttl,
         interval: timedelta):
     log = logging.getLogger(__name__)
@@ -260,7 +260,7 @@ async def _worker(
             columns = dict(row)
             job_id = columns['job_id']
             created_on = columns['created_on']
-            tasks.append(_update_status(auth_token, job_id, created_on, job_ttl, len(tasks) + 1))
+            tasks.append(_update_status(api_key, job_id, created_on, job_ttl, len(tasks) + 1))
 
         # Dispatch
         next_run = (datetime.utcnow() + interval).strftime(FORMAT_TIME)
@@ -276,7 +276,7 @@ async def _worker(
 
 
 async def _update_status(
-        auth_token: str,
+        api_key: str,
         job_id: str,
         created_on: datetime,
         job_ttl: timedelta,
@@ -285,7 +285,7 @@ async def _update_status(
 
     # Get latest status
     try:
-        status = piazza.get_status(auth_token, job_id)
+        status = piazza.get_status(api_key, job_id)
     except piazza.Unauthorized:
         log.error('<%03d/%s> credentials rejected during polling!', index, job_id)
         return
@@ -311,7 +311,7 @@ async def _update_status(
     elif status.status == piazza.STATUS_SUCCESS:
         log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
         try:
-            detections_data_id = _resolve_detections_data_id(auth_token, status.data_id)
+            detections_data_id = _resolve_detections_data_id(api_key, status.data_id)
         except PostprocessingError as err:
             log.error('<%03d/%s> could not resolve detections data ID %s', index, job_id, err)
             _save_execution_error(job_id, 'postprocessing:resolve-detections-data-id', str(err))
@@ -319,7 +319,7 @@ async def _update_status(
 
         log.info('<%03d/%s> Deploying <%s> to GeoServer via Piazza', index, job_id, detections_data_id)
         try:
-            piazza.deploy(auth_token, detections_data_id)
+            piazza.deploy(api_key, detections_data_id)
         except piazza.Unauthorized:
             log.error('<%03d/%s> credentials rejected during deployment!', index, job_id)
             return
@@ -337,9 +337,9 @@ async def _update_status(
         _save_execution_error(job_id, 'runtime:cancelled', 'Job was cancelled', status=piazza.STATUS_CANCELLED)
 
 
-def _resolve_detections_data_id(auth_token, output_data_id) -> str:
+def _resolve_detections_data_id(api_key, output_data_id) -> str:
     try:
-        execution_output = piazza.get_file(auth_token, output_data_id).json()
+        execution_output = piazza.get_file(api_key, output_data_id).json()
         return str(execution_output['OutFiles']['shoreline.geojson'])
     except piazza.Error as err:
         raise PostprocessingError(err, 'could not fetch execution output: {}'.format(err))

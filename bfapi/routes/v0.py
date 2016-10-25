@@ -27,7 +27,7 @@ async def get_algorithm(request: Request):
     service_id = request.match_info['service_id']
     try:
         algorithm = algorithms_service.get(
-            session_token=request.headers['Authorization'],
+            api_key=request['api_key'],
             service_id=service_id,
         )
     except algorithms_service.NotFound:
@@ -38,7 +38,7 @@ async def get_algorithm(request: Request):
 
 
 async def list_algorithms(request: Request):
-    algorithms = algorithms_service.list_all(session_token=request.headers['Authorization'])
+    algorithms = algorithms_service.list_all(api_key=request['api_key'])
     return json_response({
         'algorithms': [algorithm.serialize() for algorithm in algorithms]
     })
@@ -49,8 +49,6 @@ async def list_algorithms(request: Request):
 #
 
 async def create_job(request: Request):
-    session_token = request.headers['Authorization']
-
     try:
         payload = await request.json()
     except JSONDecodeError:
@@ -70,7 +68,7 @@ async def create_job(request: Request):
 
     try:
         record = jobs_service.create_job(
-            session_token=session_token,
+            api_key=request['api_key'],
             user_id=request['username'],
             service_id=service_id,
             scene_id=scene_id,

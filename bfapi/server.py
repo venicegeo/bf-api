@@ -13,8 +13,7 @@
 
 from aiohttp.web import Application, UrlDispatcher
 
-from bfapi import config, db, routes, IS_DEBUG_MODE
-from bfapi.middleware import create_session_validation_filter
+from bfapi import config, db, middleware, routes, IS_DEBUG_MODE
 from bfapi.service import jobs as jobs_service
 
 def init(server_: Application):
@@ -67,7 +66,7 @@ def init(server_: Application):
 #
 
 server = Application(
-    middlewares=[create_session_validation_filter],
+    middlewares=[middleware.create_verify_api_key_filter],
     debug=IS_DEBUG_MODE,
 )
 

@@ -20,34 +20,40 @@ from bfapi import piazza
 PUBLIC_ENDPOINTS = ('/', '/login')
 
 
-async def create_session_validation_filter(_: Application, handler):
-    async def validate_session(request: Request):
+async def create_verify_api_key_filter(_: Application, handler):
+    async def verify_api_key(request: Request):
         log = logging.getLogger(__name__)
 
         if request.path in PUBLIC_ENDPOINTS:
             log.debug('Allowing access to public endpoint')
             return await handler(request)
 
-        log.debug('Verifying session')
-        session_token = request.headers.get('Authorization')
-
-        if session_token is None:
+        log.debug('Verifying auth header')
+        auth_header = request.headers.get('Authorization')
+        if auth_header is None:
             return Response(status=400, text='Missing authorization header')
 
         try:
-            log.debug('Attaching username to request context')
-            request['username'] = piazza.get_username(session_token)
-        except piazza.SessionExpired:
-            return Response(status=401, text='Piazza session has expired')
+            log.debug('Extracting API key from Auth header')
+            api_key = piazza.to_api_key(auth_header)
+
+            log.debug('Identifying user')
+            username = piazza.verify_api_key(api_key)
+
+            log.debug('Attaching username and API key to request context')
+            request['username'] = username
+            request['api_key'] = api_key
+        except piazza.ApiKeyExpired:
+            return Response(status=401, text='Your Piazza API key has expired')
         except piazza.ServerError as err:
-            log.error('Cannot validate session: %s', err)
-            return Response(status=500, text='A Piazza error prevents session validation')
-        except piazza.MalformedSessionToken as err:
-            log.error('Client passed malformed session token: %s', err)
-            return Response(status=500, text='Cannot validate malformed session token')
+            log.error('Cannot verify API key: %s', err)
+            return Response(status=500, text='A Piazza error prevents API key verification')
+        except piazza.MalformedCredentials as err:
+            log.error('Client passed malformed API key: %s', err)
+            return Response(status=500, text='Cannot verify malformed API key')
         except Exception as err:
-            log.exception('Cannot validate session: %s', err)
-            return Response(status=500, text='A server error prevents session validation')
+            log.exception('Cannot verify API key: %s', err)
+            return Response(status=500, text='An internal error prevents API key verification')
         return await handler(request)
 
-    return validate_session
+    return verify_api_key

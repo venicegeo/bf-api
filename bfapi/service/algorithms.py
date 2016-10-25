@@ -59,11 +59,11 @@ class Algorithm:
 # Actions
 #
 
-def list_all(session_token: str) -> List[Algorithm]:
+def list_all(api_key: str) -> List[Algorithm]:
     log = logging.getLogger(__name__)
     try:
         log.info('Fetching beachfront services from Piazza')
-        services = piazza.get_services(session_token, '^BF_Algo_')
+        services = piazza.get_services(api_key, '^BF_Algo_')
     except piazza.Error as err:
         log.error('Service discovery failed: %s', err)
         raise err
@@ -92,11 +92,11 @@ def list_all(session_token: str) -> List[Algorithm]:
     return algorithms
 
 
-def get(session_token: str, service_id: str):
+def get(api_key: str, service_id: str):
     log = logging.getLogger(__name__)
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id)
-        service = piazza.get_service(session_token, service_id)
+        service = piazza.get_service(api_key, service_id)
     except piazza.ServerError as err:
         log.error('Service lookup failed: %s', err)
         if err.status_code == 404:

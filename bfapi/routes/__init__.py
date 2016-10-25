@@ -37,8 +37,8 @@ async def login(request: Request):
         return 'Authorization header is missing', 401
 
     try:
-        token = piazza.create_session(auth_header)
-    except piazza.MalformedSessionToken as err:
+        api_key = piazza.create_api_key(auth_header)
+    except piazza.MalformedCredentials as err:
         return Response(status=400, text=err.message)
     except piazza.Unauthorized as err:
         return Response(status=401, text=err.message)
@@ -47,5 +47,5 @@ async def login(request: Request):
         return Response(status=500, text='A Piazza error prevents login')
 
     return json_response({
-        'token': token,
+        'apiKey': api_key,
     })

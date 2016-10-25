@@ -20,7 +20,8 @@ import time
 
 from bfapi.config import PZ_GATEWAY
 
-PATTERN_VALID_SESSION_TOKEN = re.compile('^Basic \S+$')
+PATTERN_VALID_API_KEY = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
+PATTERN_VALID_AUTH_HEADER = re.compile('^Basic \S+$')
 STATUS_CANCELLED = 'Cancelled'
 STATUS_SUCCESS = 'Success'
 STATUS_RUNNING = 'Running'
@@ -70,9 +71,9 @@ class ServiceDescriptor:
 # Actions
 #
 
-def create_session(auth_header: str):
-    if not PATTERN_VALID_SESSION_TOKEN.match(auth_header):
-        raise MalformedSessionToken()
+def create_api_key(auth_header: str):
+    if not PATTERN_VALID_AUTH_HEADER.match(auth_header):
+        raise MalformedCredentials()
 
     try:
         response = requests.get(
@@ -91,23 +92,21 @@ def create_session(auth_header: str):
             raise Unauthorized()
         raise ServerError(status_code)
 
-    uuid = response.json().get('uuid')
-    if not uuid:
+    api_key = response.json().get('uuid')
+    if not api_key:
         raise InvalidResponse('missing `uuid`', response.text)
 
-    return 'Basic ' + base64.encodebytes((uuid + ':').encode()).decode().strip()
+    return api_key
 
 
-def deploy(session_token: str, data_id: str, *, poll_interval: int = 5, max_poll_attempts: int = 6):
-    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
-        raise MalformedSessionToken()
-
+def deploy(api_key: str, data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
+    auth_header = to_auth_header(api_key)
     try:
         response = requests.post(
             'https://{}/deployment'.format(PZ_GATEWAY),
             timeout=TIMEOUT_LONG,
             headers={
-                'Authorization': session_token,
+                'Authorization': auth_header,
             },
             json={
                 'dataId': data_id,
@@ -135,7 +134,7 @@ def deploy(session_token: str, data_id: str, *, poll_interval: int = 5, max_poll
     # Poll until complete
     poll_attempts = 0
     while True:
-        status = get_status(session_token, job_id)
+        status = get_status(api_key, job_id)
 
         if status.status == STATUS_SUCCESS:
             return status.layer_id
@@ -154,16 +153,14 @@ def deploy(session_token: str, data_id: str, *, poll_interval: int = 5, max_poll
             raise DeploymentError('unexpected deployment job status: ' + status.status)
 
 
-def execute(session_token: str, service_id: str, data_inputs: dict, data_output: list = None) -> str:
-    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
-        raise MalformedSessionToken()
-
+def execute(api_key: str, service_id: str, data_inputs: dict, data_output: list = None) -> str:
+    auth_header = to_auth_header(api_key)
     try:
         response = requests.post(
             'https://{}/job'.format(PZ_GATEWAY),
             timeout=TIMEOUT_LONG,
             headers={
-                'Authorization': session_token,
+                'Authorization': auth_header,
                 'Content-Type': 'application/json',
             },
             json={
@@ -198,16 +195,14 @@ def execute(session_token: str, service_id: str, data_inputs: dict, data_output:
     return job_id
 
 
-def get_file(session_token: str, data_id: str) -> requests.Response:
-    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
-        raise MalformedSessionToken()
-
+def get_file(api_key: str, data_id: str) -> requests.Response:
+    auth_header = to_auth_header(api_key)
     try:
         response = requests.get(
             'https://{}/file/{}'.format(PZ_GATEWAY, data_id),
             timeout=TIMEOUT_LONG,
             headers={
-                'Authorization': session_token,
+                'Authorization': auth_header,
             },
         )
         response.raise_for_status()
@@ -221,16 +216,14 @@ def get_file(session_token: str, data_id: str) -> requests.Response:
     return response
 
 
-def get_service(session_token: str, service_id: str) -> ServiceDescriptor:
-    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
-        raise MalformedSessionToken()
-
+def get_service(api_key: str, service_id: str) -> ServiceDescriptor:
+    auth_header = to_auth_header(api_key)
     try:
         response = requests.get(
             'https://{}/service/{}'.format(PZ_GATEWAY, service_id),
             timeout=TIMEOUT_LONG,
             headers={
-                'Authorization': session_token,
+                'Authorization': auth_header,
             },
         )
         response.raise_for_status()
@@ -251,16 +244,14 @@ def get_service(session_token: str, service_id: str) -> ServiceDescriptor:
     return _to_service_descriptor(datum, response.text)
 
 
-def get_services(session_token: str, pattern: str, count: int = 100) -> List[ServiceDescriptor]:
-    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
-        raise MalformedSessionToken()
-
+def get_services(api_key: str, pattern: str, count: int = 100) -> List[ServiceDescriptor]:
+    auth_header = to_auth_header(api_key)
     try:
         response = requests.get(
             'https://{}/service'.format(PZ_GATEWAY),
             timeout=TIMEOUT_LONG,
             headers={
-                'Authorization': session_token,
+                'Authorization': auth_header,
             },
             params={
                 'keyword': pattern,
@@ -285,16 +276,14 @@ def get_services(session_token: str, pattern: str, count: int = 100) -> List[Ser
     return [_to_service_descriptor(datum, response.text) for datum in data]
 
 
-def get_status(session_token: str, job_id: str) -> Status:
-    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
-        raise MalformedSessionToken()
-
+def get_status(api_key: str, job_id: str) -> Status:
+    auth_header = to_auth_header(api_key)
     try:
         response = requests.get(
             'https://{}/job/{}'.format(PZ_GATEWAY, job_id),
             timeout=TIMEOUT_LONG,
             headers={
-                'Authorization': session_token,
+                'Authorization': auth_header,
             },
         )
         response.raise_for_status()
@@ -360,15 +349,29 @@ def get_status(session_token: str, job_id: str) -> Status:
         raise InvalidResponse('ambiguous value for `data.status`', response.text)
 
 
-def get_username(session_token: str) -> str:
-    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
-        raise MalformedSessionToken()
-
-    # Extract the UUID
+def to_api_key(auth_header: str) -> str:
+    if not PATTERN_VALID_AUTH_HEADER.match(auth_header):
+        raise MalformedCredentials()
     try:
-        uuid = base64.decodebytes(session_token[6:].encode()).decode()[:-1]  # Drop trailing ':'
+        api_key = base64.b64decode(auth_header[6:]).decode().rstrip(':')
     except Exception as err:
-        raise MalformedSessionToken(err)
+        raise MalformedCredentials(err)
+
+    # Redundant check for good measure
+    if not PATTERN_VALID_API_KEY.match(api_key):
+        raise MalformedCredentials()
+    return api_key
+
+
+def to_auth_header(api_key: str) -> str:
+    if not PATTERN_VALID_API_KEY.match(api_key):
+        raise MalformedCredentials()
+    return 'Basic ' + base64.b64encode((api_key + ':').encode()).decode()
+
+
+def verify_api_key(api_key: str) -> str:
+    if not PATTERN_VALID_API_KEY.match(api_key):
+        raise MalformedCredentials()
 
     # Verify with Piazza IDAM
     try:
@@ -376,7 +379,7 @@ def get_username(session_token: str) -> str:
             'https://{}/v2/verification'.format(PZ_GATEWAY.replace('pz-gateway.', 'pz-idam.')),
             timeout=TIMEOUT_SHORT,
             json={
-                'uuid': uuid,
+                'uuid': api_key,
             },
         )
         response.raise_for_status()
@@ -388,13 +391,18 @@ def get_username(session_token: str) -> str:
     # Validate the response
     auth = response.json()
     if not auth.get('authenticated'):
-        raise SessionExpired()
+        raise ApiKeyExpired()
 
     username = auth.get('username')
     if not username:
         raise InvalidResponse('missing `username`', response.text)
 
     return username
+
+
+def verify_user_credentials(auth_header: str) -> bool:
+    # This needs implementation on Piazza's end
+    raise Exception('not yet implemented')
 
 
 #
@@ -458,11 +466,11 @@ class InvalidResponse(Error):
         self.response_text = response_text
 
 
-class MalformedSessionToken(Error):
+class MalformedCredentials(Error):
     def __init__(self, err: Exception = None):
-        message = 'malformed Piazza session token'
+        message = 'malformed Piazza credentials'
         if err:
-            message += ' ({})'.format(err)
+            message += ': {}'.format(err)
         super().__init__(message)
         self.original_error = err
 
@@ -473,9 +481,9 @@ class ServerError(Error):
         self.status_code = status_code
 
 
-class SessionExpired(Error):
+class ApiKeyExpired(Error):
     def __init__(self):
-        super().__init__('Piazza session expired')
+        super().__init__('Piazza API key expired')
 
 
 class Unauthorized(Error):
