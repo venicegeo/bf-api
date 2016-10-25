@@ -68,46 +68,33 @@ def create_job(
         geotiff_urls.append(geotiff_url)
         geotiff_filenames.append(key + '.TIF')
 
-    # Serialize inputs
-    geotiff_urls = ','.join(geotiff_urls)
-    geotiff_filenames = ','.join(geotiff_filenames)
-
     # Dispatch to Piazza
     try:
-        log.info('<scene:%s> dispatch to Piazza', scene_id)
+        log.info('<scene:%s> dispatched to algorithm via Piazza', scene_id)
         job_id = piazza.execute(session_token, algorithm.service_id, {
-            'authKey': {
-                'content': session_token,
-                'type': 'urlparameter'
+            'body': {
+                'content': json.dumps({
+                    'pzAuthKey': session_token,
+                    'cmd': ' '.join([
+                        'shoreline',
+                        '--image ' + ','.join(geotiff_filenames),
+                        '--projection geo-scaled',
+                        '--threshold 0.5',
+                        '--tolerance 0.2',
+                        '--prop tideMin24H:{}'.format(tide_min or 'null'),
+                        '--prop tideMax24H:{}'.format(tide_max or 'null'),
+                        '--prop tideCurrent:{}'.format(tide_current or 'null'),
+                        '--prop classification:Unclassified',
+                        '--prop dataUsage:Not_to_be_used_for_navigational_or_targeting_purposes.',
+                        'shoreline.geojson',
+                    ]),
+                    'inExtFiles': geotiff_urls,
+                    'inExtNames': ['coastal.TIF', 'swir1.TIF'],
+                    'outGeoJson': ['shoreline.geojson'],
+                }),
+                'type': 'body',
+                'mimeType': 'application/json',
             },
-            'cmd': {
-                'content': ' '.join([
-                    'shoreline',
-                    '--image ' + geotiff_filenames,
-                    '--projection geo-scaled',
-                    '--threshold 0.5',
-                    '--tolerance 0.2',
-                    '--prop tideMin24H:{}'.format(tide_min or 'null'),
-                    '--prop tideMax24H:{}'.format(tide_max or 'null'),
-                    '--prop tideCurrent:{}'.format(tide_current or 'null'),
-                    '--prop classification:Unclassified',
-                    '--prop dataUsage:Not_to_be_used_for_navigational_or_targeting_purposes.',
-                    'shoreline.geojson',
-                ]),
-                'type': 'urlparameter'
-            },
-            'inFileURLs': {
-                'content': geotiff_urls,
-                'type': 'urlparameter'
-            },
-            'inExtFileNames': {
-                'content': geotiff_filenames,
-                'type': 'urlparameter'
-            },
-            'outGeoJson': {
-                'content': 'shoreline.geojson',
-                'type': 'urlparameter'
-            }
         })
     except piazza.Error as err:
         log.error('Could not execute via Piazza: %s', err)
