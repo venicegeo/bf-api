@@ -198,6 +198,29 @@ def execute(session_token: str, service_id: str, data_inputs: dict, data_output:
     return job_id
 
 
+def get_file(session_token: str, data_id: str) -> requests.Response:
+    if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
+        raise MalformedSessionToken()
+
+    try:
+        response = requests.get(
+            'https://{}/file/{}'.format(PZ_GATEWAY, data_id),
+            timeout=TIMEOUT_LONG,
+            headers={
+                'Authorization': session_token,
+            },
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+    return response
+
+
 def get_service(session_token: str, service_id: str) -> ServiceDescriptor:
     if not PATTERN_VALID_SESSION_TOKEN.match(session_token):
         raise MalformedSessionToken()

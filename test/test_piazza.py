@@ -14,7 +14,7 @@
 import json
 import unittest.mock
 
-from requests import ConnectionError
+from requests import ConnectionError, Response
 from requests_mock import Mocker
 
 from bfapi import piazza
@@ -151,6 +151,44 @@ class PiazzaDeployTest(unittest.TestCase):
     def test_throws_when_passed_malformed_session_token(self, m: Mocker):
         with self.assertRaises(piazza.MalformedSessionToken):
             piazza.deploy('lolwut', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+
+@Mocker()
+class PiazzaGetFileTest(unittest.TestCase):
+    def test_calls_correct_urls(self, m: Mocker):
+        m.get('/file/test-data-id', text=RESPONSE_FILE)
+        piazza.get_file('Basic Og==', 'test-data-id')
+        self.assertEqual('https://pz-gateway.localhost/file/test-data-id', m.request_history[0].url)
+
+    def test_returns_a_response_object(self, m: Mocker):
+        m.get('/file/test-data-id', text=RESPONSE_FILE)
+        layer_id = piazza.get_file('Basic Og==', 'test-data-id')
+        self.assertIsInstance(layer_id, Response)
+
+    def test_returns_response_object_with_correct_contents(self, m: Mocker):
+        m.get('/file/test-data-id', text=RESPONSE_FILE)
+        response = piazza.get_file('Basic Og==', 'test-data-id')
+        self.assertEqual({'foo': 'bar'}, response.json())
+
+    def test_handles_http_errors_gracefully(self, m: Mocker):
+        m.get('/file/test-data-id', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.get_file('Basic Og==', 'test-data-id')
+
+    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+        with unittest.mock.patch('requests.get') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.get_file('Basic Og==', 'test-data-id')
+
+    def test_throws_when_credentials_are_rejected(self, m: Mocker):
+        m.get('/file/test-data-id', text=RESPONSE_ERROR_GENERIC, status_code=401)
+        with self.assertRaises(piazza.Unauthorized):
+            piazza.get_file('Basic Og==', 'test-data-id')
+
+    def test_throws_when_passed_malformed_session_token(self, m: Mocker):
+        with self.assertRaises(piazza.MalformedSessionToken):
+            piazza.get_file('lolwut', 'test-data-id')
 
 
 @Mocker()
@@ -592,6 +630,8 @@ RESPONSE_ERROR_GENERIC = """{
     "type": "error",
     "origin": "someplace"
 }"""
+
+RESPONSE_FILE = """{"foo":"bar"}"""
 
 RESPONSE_JOB_CANCELLED = """{
   "type": "status",
