@@ -106,6 +106,7 @@ def create_job(
     try:
         jobs_db.insert_job(
             conn,
+            algorithm_id=algorithm.service_id,
             algorithm_name=algorithm.name,
             algorithm_version=algorithm.version,
             job_id=job_id,

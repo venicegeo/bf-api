@@ -59,6 +59,7 @@ def exists(
 def insert_job(
         conn: Connection,
         *,
+        algorithm_id: str,
         algorithm_name: str,
         algorithm_version: int,
         job_id: str,
@@ -67,11 +68,12 @@ def insert_job(
         status: str,
         user_id: str):
     query = """
-        INSERT INTO __beachfront__job (job_id, algorithm_name, algorithm_version, created_by, name, scene_id, status)
-        VALUES (%(job_id)s, %(algorithm_name)s, %(algorithm_version)s, %(created_by)s, %(name)s, %(scene_id)s, %(status)s)
+        INSERT INTO __beachfront__job (job_id, algorithm_id, algorithm_name, algorithm_version, created_by, name, scene_id, status)
+        VALUES (%(job_id)s, %(algorithm_id)s, %(algorithm_name)s, %(algorithm_version)s, %(created_by)s, %(name)s, %(scene_id)s, %(status)s)
         """
     params = {
         'job_id': job_id,
+        'algorithm_id': algorithm_id,
         'algorithm_name': algorithm_name,
         'algorithm_version': algorithm_version,
         'created_by': user_id,

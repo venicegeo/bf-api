@@ -26,10 +26,11 @@ CREATE TABLE __beachfront__scene (
 
 CREATE TABLE __beachfront__job (
     job_id            VARCHAR(64)    PRIMARY KEY,
+    algorithm_id      VARCHAR(64)    NOT NULL,
     algorithm_name    VARCHAR(100)   NOT NULL,
     algorithm_version VARCHAR(12)    NOT NULL,
     created_by        VARCHAR(64)    NOT NULL,
-    created_on        TIMESTAMP      NOT NULL     DEFAULT CURRENT_TIMESTAMP,
+    created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
     detections_id     VARCHAR(64),
     name              VARCHAR(100)   NOT NULL,
     scene_id          VARCHAR(64)    NOT NULL,
@@ -47,9 +48,9 @@ CREATE TABLE __beachfront__job_user (
 );
 
 CREATE TABLE __beachfront__job_error (
-    job_id            VARCHAR(64),
-    error_message     VARCHAR(64),
-    execution_step    VARCHAR(64),  -- e.g., 'fetch', 'compute', 'deployment', 'async'
+    job_id            VARCHAR(64)    PRIMARY KEY,
+    error_message     VARCHAR(64)    NOT NULL,
+    execution_step    VARCHAR(64)    NOT NULL,  -- e.g., 'fetch', 'compute', 'deployment', 'async'
 
     FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
 );
