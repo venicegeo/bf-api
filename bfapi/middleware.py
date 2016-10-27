@@ -17,7 +17,11 @@ from aiohttp.web import Application, Request, Response
 
 from bfapi import piazza
 
-PUBLIC_ENDPOINTS = ('/', '/login')
+PUBLIC_ENDPOINTS = (
+    '/',
+    '/login',
+    '/v0/scene/event/harvest',
+)
 
 
 async def create_verify_api_key_filter(_: Application, handler):

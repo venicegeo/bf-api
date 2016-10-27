@@ -26,16 +26,16 @@ VALUES ('landsat:LC80070692016272LGN00', '2016-09-28T15:11:34.822768+00:00', 50.
        ('landsat:LC80070662016272LGN00', '2016-09-28T15:10:23.031047+00:00', 81.11, ST_GeomFromGeoJSON('{"coordinates": [[[-76.3278188415546, -7.63348611630521], [-74.6761005274902, -7.98437953622967], [-75.048182808865, -9.72497154017745], [-76.7022655591329, -9.37003642172753], [-76.3278188415546, -7.63348611630521]]], "type": "Polygon"}'), 30, 'Landsat8', 'https://pzsvc-image-catalog.geointservices.io/image/landsat:LC80070662016272LGN00'),
        ('landsat:LC80070652016272LGN00', '2016-09-28T15:09:59.106121+00:00', 76.58, ST_GeomFromGeoJSON('{"coordinates": [[[-76.014989631339, -6.18810138577879], [-74.3686132999089, -6.53822024230797], [-74.7396098770223, -8.27939504902005], [-76.3907726033767, -7.92357053058024], [-76.014989631339, -6.18810138577879]]], "type": "Polygon"}'), 30, 'Landsat8', 'https://pzsvc-image-catalog.geointservices.io/image/landsat:LC80070652016272LGN00');
 
-INSERT INTO __beachfront__job (job_id, algorithm_name, algorithm_version, created_by, detections_id, name, scene_id, status)
-VALUES ('JOB_FIXTURE_01', 'NDWI', '13', 'baziledd', 'D0001', 'FIXTURE_ONE', 'landsat:LC80070682016272LGN00', 'Success'),
-       ('JOB_FIXTURE_02', 'NDWI', '13', 'baziledd', NULL, 'FIXTURE_TWO', 'landsat:LC80070682016272LGN00', 'Running'),
-       ('JOB_FIXTURE_03', 'NDWI', '13', 'baziledd', 'D0002', 'FIXTURE_THREE', 'landsat:LC80070672016272LGN00', 'Success'),
-       ('JOB_FIXTURE_04', 'NDWI', '13', 'baziledd', NULL, 'FIXTURE_FOUR', 'landsat:LC80070662016272LGN00', 'Error'),
-       ('JOB_FIXTURE_05', 'NDWI', '13', 'baziledd', NULL, 'FIXTURE_FIVE', 'landsat:LC80070652016272LGN00', 'Error'),
-       ('JOB_FIXTURE_06', 'NDWI', '13', 'baziledd', NULL, 'FIXTURE_SIX', 'landsat:LC80070652016272LGN00', 'Error');
+INSERT INTO __beachfront__job (job_id, algorithm_id, algorithm_name, algorithm_version, created_by, detections_id, name, scene_id, status)
+VALUES ('JOB_FIXTURE_01', 'test-algorithm-id', 'NDWI', '13', 'test-username', 'D0001', 'FIXTURE_ONE', 'landsat:LC80070682016272LGN00', 'Success'),
+       ('JOB_FIXTURE_02', 'test-algorithm-id', 'NDWI', '13', 'test-username', NULL, 'FIXTURE_TWO', 'landsat:LC80070682016272LGN00', 'Running'),
+       ('JOB_FIXTURE_03', 'test-algorithm-id', 'NDWI', '13', 'test-username', 'D0002', 'FIXTURE_THREE', 'landsat:LC80070672016272LGN00', 'Success'),
+       ('JOB_FIXTURE_04', 'test-algorithm-id', 'NDWI', '13', 'test-username', NULL, 'FIXTURE_FOUR', 'landsat:LC80070662016272LGN00', 'Error'),
+       ('JOB_FIXTURE_05', 'test-algorithm-id', 'NDWI', '13', 'test-username', NULL, 'FIXTURE_FIVE', 'landsat:LC80070652016272LGN00', 'Error'),
+       ('JOB_FIXTURE_06', 'test-algorithm-id', 'NDWI', '13', 'test-username', NULL, 'FIXTURE_SIX', 'landsat:LC80070652016272LGN00', 'Error');
 
 INSERT INTO __beachfront__job_user (job_id, user_id)
-VALUES ('JOB_FIXTURE_01', 'baziledd');
+VALUES ('JOB_FIXTURE_01', 'test-username');
 
 INSERT INTO __beachfront__job_error (job_id, error_message, execution_step)
 VALUES ('JOB_FIXTURE_04', 'Could not fetch GeoTIFF', 'EXTERNAL:FETCH_GEOTIFF'),

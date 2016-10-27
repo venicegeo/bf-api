@@ -156,6 +156,31 @@ def select_job(
         raise DatabaseError(err, query, params)
 
 
+def select_jobs_for_inputs(
+        conn: Connection,
+        *,
+        algorithm_id: str,
+        scene_id: str) -> Cursor:
+    query = """
+        SELECT job_id
+          FROM __beachfront__job
+         WHERE algorithm_id = %(algorithm_id)s
+           AND scene_id = %(scene_id)s
+           AND status IN ('Running', 'Success')
+         ORDER BY status DESC  -- Success first
+        """
+    params = {
+        'algorithm_id': algorithm_id,
+        'scene_id': scene_id,
+    }
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        return cursor
+    except pg.Error as err:
+        raise DatabaseError(err, query, params)
+
+
 def select_jobs_for_user(
         conn: Connection,
         *,

@@ -54,3 +54,30 @@ CREATE TABLE __beachfront__job_error (
 
     FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
 );
+
+CREATE TABLE __beachfront__productline (
+-- TODO -- add check constraint for start_on/stop_on
+    productline_id    VARCHAR(64)    PRIMARY KEY,
+    algorithm_id      VARCHAR(64)    NOT NULL,  -- Pz Service ID
+    algorithm_name    VARCHAR(100)   NOT NULL,
+    bbox              GEOMETRY,
+    category          VARCHAR(64),
+    compute_mask      GEOMETRY,
+    created_by        VARCHAR(64)    NOT NULL,
+    created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    max_cloud_cover   INTEGER        NOT NULL,
+    name              VARCHAR(100)   NOT NULL,
+    owned_by          VARCHAR(64)    NOT NULL,
+    spatial_filter_id VARCHAR(64),
+    start_on          DATE           NOT NULL,
+    stop_on           DATE
+);
+
+CREATE TABLE __beachfront__productline_job (
+    productline_id    VARCHAR(64),
+    job_id            VARCHAR(64), --
+
+    PRIMARY KEY (productline_id, job_id),
+    FOREIGN KEY (productline_id) REFERENCES __beachfront__productline(productline_id),
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
+);

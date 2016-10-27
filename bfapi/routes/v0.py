@@ -16,7 +16,7 @@ from json import JSONDecodeError
 from aiohttp.web import Request, Response, json_response
 
 from bfapi.db import DatabaseError
-from bfapi.service import algorithms as algorithms_service, jobs as jobs_service
+from bfapi.service import (algorithms as algorithms_service, jobs as jobs_service, productlines as productline_service)
 
 
 #
@@ -103,6 +103,42 @@ async def get_job(request: Request):
 #
 # Product Lines
 #
+
+async def on_harvest_event(request: Request):
+    try:
+        payload = await request.json()
+        signature = _get_string(payload, '__signature__')
+        scene_id = _get_string(payload, 'scene_id', max_length=64)
+        cloud_cover = _get_number(payload, 'cloud_cover', min_value=0, max_value=100)
+        min_x = _get_number(payload, 'min_x', min_value=-180, max_value=180)
+        min_y = _get_number(payload, 'min_y', min_value=-90, max_value=90)
+        max_x = _get_number(payload, 'max_x', min_value=-180, max_value=180)
+        max_y = _get_number(payload, 'max_y', min_value=-90, max_value=90)
+    except JSONDecodeError:
+        return Response(status=400, text='Invalid input: request body must be a JSON object')
+    except ValidationError as err:
+        return Response(status=400, text='Invalid input: {}'.format(err))
+
+    try:
+        disposition = productline_service.handle_harvest_event(
+            signature=signature,
+            scene_id=scene_id,
+            cloud_cover=cloud_cover,
+            min_x=min_x,
+            min_y=min_y,
+            max_x=max_x,
+            max_y=max_y,
+        )
+    except productline_service.UntrustedEventError:
+        return Response(status=401, text='Error: Invalid event signature')
+    except productline_service.EventValidationError as err:
+        return Response(status=400, text='Error: Invalid scene event: {}'.format(err))
+    except jobs_service.PreprocessingError as err:
+        return Response(status=500, text='Error: Cannot spawn job: {}'.format(err))
+    except DatabaseError:
+        return Response(status=500, text='A database error prevents job execution')
+    return Response(text=disposition)
+
 
 async def list_productlines(request: Request):
     return json_response({
