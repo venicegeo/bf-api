@@ -51,20 +51,13 @@ async def list_algorithms(request: Request):
 async def create_job(request: Request):
     try:
         payload = await request.json()
+        job_name = _get_string(payload, 'name', max_length=100)
+        service_id = _get_string(payload, 'algorithm_id', max_length=64)
+        scene_id = _get_string(payload, 'scene_id', max_length=64)
     except JSONDecodeError:
         return Response(status=400, text='Invalid input: request body must be a JSON object')
-
-    job_name = payload.get('name')
-    if not isinstance(job_name, str):
-        return Response(status=400, text='Invalid input: `name` must be a string')
-
-    service_id = payload.get('algorithmId')
-    if not service_id:
-        return Response(status=400, text='Invalid input: `algorithmId` must be a non-empty string')
-
-    scene_id = payload.get('sceneId')
-    if not scene_id:
-        return Response(status=400, text='Invalid input: `sceneId` must be a non-empty string')
+    except ValidationError as err:
+        return Response(status=400, text='Invalid input: {}'.format(err))
 
     try:
         record = jobs_service.create_job(
@@ -113,5 +106,40 @@ async def get_job(request: Request):
 
 async def list_productlines(request: Request):
     return json_response({
-        'productLines': [],
+        'product_lines': [],
     })
+
+
+#
+# Helpers
+#
+
+def _get_number(d: dict, key: str, *, fallback: int = 0, min_value: int = None, max_value: int = None):
+    value = d.get(key, fallback)
+    if not isinstance(value, int) and not isinstance(value, float):
+        raise ValidationError('`{}` must be a number'.format(key))
+
+    if min_value is not None and value < min_value or max_value is not None and value > max_value:
+        raise ValidationError('`{}` must be a number between {} and {}'.format(key, min_value, max_value))
+
+    return value
+
+
+def _get_string(d: dict, key: str, *, fallback: str = '', min_length: int = 1, max_length: int = 256):
+    value = d.get(key, fallback)
+    if not isinstance(value, str):
+        raise ValidationError('`{}` must be a string'.format(key))
+
+    value = value.strip()
+    if len(value) > max_length or len(value) < min_length:
+        raise ValidationError('`{}` must be a string of {}–{} characters'.format(key, min_length, max_length))
+
+    return value
+
+
+#
+# Errors
+#
+
+class ValidationError(Exception):
+    pass

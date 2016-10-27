@@ -47,9 +47,9 @@ class Algorithm:
             'bands': self.bands,
             'description': self.description,
             'interface': self.interface,
-            'maxCloudCover': self.max_cloud_cover,
+            'max_cloud_cover': self.max_cloud_cover,
             'name': self.name,
-            'serviceId': self.service_id,
+            'service_id': self.service_id,
             'url': self.url,
             'version': self.version,
         }
