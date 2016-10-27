@@ -78,7 +78,7 @@ async def create_job(request: Request):
         return Response(status=500, text='Cannot execute: {}'.format(err))
     except DatabaseError:
         return Response(status=500, text='A database error prevents job execution')
-    return json_response(status=201, data=record)
+    return json_response(status=201, data=record.serialize())
 
 
 async def forget_job(request: Request):
@@ -91,9 +91,12 @@ async def forget_job(request: Request):
 
 
 async def list_jobs(request: Request):
-    feature_collection = jobs_service.get_all(request['username'])
+    jobs = jobs_service.get_all(request['username'])
     return json_response({
-        'jobs': feature_collection,
+        'jobs': {
+            'type': 'FeatureCollection',
+            'features': [j.serialize() for j in jobs]
+        },
     })
 
 
@@ -101,7 +104,7 @@ async def get_job(request: Request):
     record = jobs_service.get(request['username'], request.match_info['job_id'])
     if not record:
         return Response(status=404, text='Job not found')
-    return json_response(record)
+    return json_response(record.serialize())
 
 
 #

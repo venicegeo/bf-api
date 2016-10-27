@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
+from typing import List
 
 import requests
 
@@ -28,6 +29,59 @@ FORMAT_DTG = '%Y-%m-%d-%H-%M'
 FORMAT_TIME = '%TZ'
 STATUS_TIMED_OUT = 'Timed Out'
 
+#
+# Types
+#
+
+class Job:
+    def __init__(
+            self,
+            *,
+            algorithm_name: str,
+            algorithm_version: str,
+            created_by: str,
+            created_on: datetime,
+            detections_id: str = None,
+            geometry: dict,
+            job_id: str,
+            name: str,
+            scene_capture_date: datetime,
+            scene_sensor_name: str,
+            scene_id: str,
+            status: str):
+        self.algorithm_name = algorithm_name
+        self.algorithm_version = algorithm_version
+        self.created_by = created_by
+        self.created_on = created_on
+        self.detections_id = detections_id
+        self.geometry = geometry
+        self.job_id = job_id
+        self.name = name
+        self.scene_capture_date = scene_capture_date
+        self.scene_sensor_name = scene_sensor_name
+        self.scene_id = scene_id
+        self.status = status
+
+    def serialize(self):
+        return {
+            'type': 'Feature',
+            'id': self.job_id,
+            'geometry': self.geometry,
+            'properties': {
+                'algorithmName': self.algorithm_name,
+                'algorithmVersion': self.algorithm_version,
+                'createdBy': self.created_by,
+                'createdOn': _serialize_dt(self.created_on),
+                'detectionsDataId': self.detections_id,
+                'name': self.name,
+                'sceneCaptureDate': _serialize_dt(self.scene_capture_date),
+                'sceneId': self.scene_id,
+                'sceneSensorName': self.scene_sensor_name,
+                'status': self.status,
+                'type': 'JOB',
+            }
+        }
+
 
 #
 # Actions
@@ -38,7 +92,7 @@ def create_job(
         user_id: str,
         scene_id: str,
         service_id: str,
-        job_name: str) -> dict:
+        job_name: str) -> Job:
     log = logging.getLogger(__name__)
 
     # Fetch prerequisites
@@ -127,7 +181,7 @@ def create_job(
         err.print_diagnostics()
         raise err
 
-    return _to_feature(
+    return Job(
         algorithm_name=algorithm.name,
         algorithm_version=algorithm.version,
         created_by=user_id,
@@ -155,7 +209,7 @@ def forget(user_id: str, job_id: str) -> None:
         raise err
 
 
-def get(user_id: str, job_id: str) -> dict:
+def get(user_id: str, job_id: str) -> Job:
     conn = get_connection()
     row = jobs_db.select_job(conn, job_id=job_id).fetchone()
     if not row:
@@ -171,13 +225,13 @@ def get(user_id: str, job_id: str) -> dict:
         raise err
 
     columns = dict(row)
-    return _to_feature(
+    return Job(
         algorithm_name=columns['algorithm_name'],
         algorithm_version=columns['algorithm_version'],
         created_by=columns['created_by'],
         created_on=columns['created_on'],
         detections_id=columns['detections_id'],
-        geometry=columns['geometry'],
+        geometry=json.loads(columns['geometry']),
         job_id=columns['job_id'],
         name=columns['name'],
         scene_capture_date=columns['scene_capture_date'],
@@ -187,7 +241,7 @@ def get(user_id: str, job_id: str) -> dict:
     )
 
 
-def get_all(user_id: str) -> dict:
+def get_all(user_id: str) -> List[Job]:
     conn = get_connection()
 
     try:
@@ -196,19 +250,16 @@ def get_all(user_id: str) -> dict:
         err.print_diagnostics()
         raise err
 
-    feature_collection = {
-        'type': 'FeatureCollection',
-        'features': []
-    }
+    jobs = []
     for row in cursor.fetchall():
         columns = dict(row)
-        feature = _to_feature(
+        feature = Job(
             algorithm_name=columns['algorithm_name'],
             algorithm_version=columns['algorithm_version'],
             created_by=columns['created_by'],
             created_on=columns['created_on'],
             detections_id=columns['detections_id'],
-            geometry=columns['geometry'],
+            geometry=json.loads(columns['geometry']),
             job_id=columns['job_id'],
             name=columns['name'],
             scene_capture_date=columns['scene_capture_date'],
@@ -216,9 +267,9 @@ def get_all(user_id: str) -> dict:
             scene_id=columns['scene_id'],
             status=columns['status'],
         )
-        feature_collection['features'].append(feature)
+        jobs.append(feature)
 
-    return feature_collection
+    return jobs
 
 
 def start_worker(
@@ -451,39 +502,6 @@ def _save_execution_success(job_id: str, detections_data_id: str):
 def _serialize_dt(dt: datetime = None) -> str:
     if dt is not None:
         return dt.strftime(FORMAT_ISO8601)
-
-
-def _to_feature(
-        algorithm_name: str = None,
-        algorithm_version: str = None,
-        created_by: str = None,
-        created_on: datetime = None,
-        detections_id: str = None,
-        geometry=None,  # HACK -- this seems... wrong
-        job_id: str = None,
-        name: str = None,
-        scene_capture_date: datetime = None,
-        scene_sensor_name: str = None,
-        scene_id: str = None,
-        status: str = None) -> dict:
-    return {
-        'type': 'Feature',
-        'id': job_id,
-        'geometry': geometry if isinstance(geometry, dict) else json.loads(geometry),
-        'properties': {
-            'algorithmName': algorithm_name,
-            'algorithmVersion': algorithm_version,
-            'createdBy': created_by,
-            'createdOn': _serialize_dt(created_on),
-            'detectionsDataId': detections_id,
-            'name': name,
-            'sceneCaptureDate': _serialize_dt(scene_capture_date),
-            'sceneId': scene_id,
-            'sceneSensorName': scene_sensor_name,
-            'status': status,
-            'type': 'JOB',
-        }
-    }
 
 
 #
