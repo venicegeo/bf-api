@@ -15,12 +15,13 @@ import hashlib
 import json
 import logging
 import re
+import time
 from datetime import datetime
-from typing import List
+from typing import List, Tuple
 
 from bfapi.config import SYSTEM_API_KEY, PZ_GATEWAY
-from bfapi.db import jobs as jobsdb, productlines as productlinesdb, get_connection, DatabaseError
-from bfapi.service import jobs as jobs_service
+from bfapi.db import jobs as jobs_db, productlines as productlines_db, get_connection, DatabaseError
+from bfapi.service import algorithms as algorithms_service, jobs as jobs_service
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 
@@ -82,10 +83,65 @@ class ProductLine:
 # Actions
 #
 
+def create_productline(
+        *,
+        api_key: str,
+        algorithm_id: str,
+        bbox: tuple,
+        category: str,
+        max_cloud_cover: int,
+        name: str,
+        spatial_filter_id: str,
+        start_on: datetime,
+        stop_on: datetime,
+        user_id: str) -> ProductLine:
+    log = logging.getLogger(__name__)
+    algorithm = algorithms_service.get(api_key, algorithm_id)
+    productline_id = _create_id()
+    log.info('Creating product line <%s>', productline_id)
+    conn = get_connection()
+    try:
+        productlines_db.insert_productline(
+            conn,
+            productline_id=productline_id,
+            algorithm_id=algorithm_id,
+            algorithm_name=algorithm.name,
+            bbox=bbox,
+            category=category,
+            max_cloud_cover=max_cloud_cover,
+            name=name,
+            spatial_filter_id=spatial_filter_id,
+            start_on=start_on,
+            stop_on=stop_on,
+            user_id=user_id,
+        )
+        conn.commit()
+    except DatabaseError as err:
+        conn.rollback()
+        log.error('Could not insert product line record')
+        err.print_diagnostics()
+        raise
+
+    return ProductLine(
+        productline_id=productline_id,
+        algorithm_name=algorithm.name,
+        bbox=_to_geometry(bbox),
+        category=category,
+        created_by=user_id,
+        created_on=datetime.utcnow(),
+        max_cloud_cover=max_cloud_cover,
+        name=name,
+        owned_by=user_id,
+        spatial_filter_id=spatial_filter_id,
+        start_on=start_on,
+        stop_on=stop_on,
+    )
+
+
 def get_all() -> List[ProductLine]:
     conn = get_connection()
     try:
-        cursor = productlinesdb.select_all(conn)
+        cursor = productlines_db.select_all(conn)
     except DatabaseError as err:
         err.print_diagnostics()
         raise err
@@ -126,7 +182,7 @@ def handle_harvest_event(
     # Find all interested productlines
     conn = get_connection()
     try:
-        cursor = productlinesdb.select_summary_for_scene(
+        cursor = productlines_db.select_summary_for_scene(
             conn,
             cloud_cover=cloud_cover,
             min_x=min_x,
@@ -185,6 +241,10 @@ def _is_valid_event_signature(signature: str):
 # Helpers
 #
 
+def _create_id() -> str:
+    return hashlib.md5(str(time.time()).encode()).hexdigest()
+
+
 def _create_job_name(productline_name: str, scene_id: str):
     return '/'.join([
         re.sub(r'\W+', '_', productline_name)[0:32],  # Truncate and normalize
@@ -197,7 +257,7 @@ def _find_existing_job_id_for_scene(scene_id: str, algorithm_id: str) -> str:
     log.debug('Searching for existing jobs for scene <%s> and algorithm <%s>', scene_id, algorithm_id)
     conn = get_connection()
     try:
-        row = jobsdb.select_jobs_for_inputs(
+        row = jobs_db.select_jobs_for_inputs(
             conn,
             scene_id=scene_id,
             algorithm_id=algorithm_id,
@@ -214,7 +274,7 @@ def _link_to_job(productline_id: str, job_id: str):
     log.info('<%s> Linking to job <%s>', productline_id, job_id)
     conn = get_connection()
     try:
-        productlinesdb.insert_productline_job(
+        productlines_db.insert_productline_job(
             conn,
             job_id=job_id,
             productline_id=productline_id,
@@ -230,6 +290,19 @@ def _serialize_dt(dt: datetime = None) -> str:
     if dt is not None:
         return dt.strftime(FORMAT_ISO8601)
 
+
+def _to_geometry(bbox: Tuple[float, float, float, float]) -> dict:
+    min_x, min_y, max_x, max_y = bbox
+    return {
+        'type': 'Polygon',
+        'coordinates': [[
+            [min_x, min_y],
+            [min_x, max_y],
+            [max_x, max_y],
+            [max_x, min_y],
+            [min_x, min_y],
+        ]]
+    }
 
 #
 # Errors

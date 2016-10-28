@@ -11,9 +11,54 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+from datetime import datetime
+
 import psycopg2 as pg
 
 from bfapi.db import Connection, Cursor, DatabaseError
+
+
+def insert_productline(
+        conn: Connection,
+        *,
+        productline_id: str,
+        algorithm_id: str,
+        algorithm_name: str,
+        bbox: tuple,
+        category: str = None,
+        max_cloud_cover: int,
+        name: str,
+        spatial_filter_id: str = None,
+        start_on: datetime,
+        stop_on: datetime = None,
+        user_id: str) -> Cursor:
+    query = """
+        INSERT INTO __beachfront__productline (productline_id, algorithm_id, algorithm_name, category, created_by, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on, bbox)
+        VALUES (%(productline_id)s, %(algorithm_id)s, %(algorithm_name)s, %(category)s, %(user_id)s, %(max_cloud_cover)s, %(name)s, %(user_id)s, %(spatial_filter_id)s, %(start_on)s, %(stop_on)s, ST_MakeEnvelope(%(min_x)s, %(min_y)s, %(max_x)s, %(max_y)s))
+        """
+    params = {
+        'productline_id': productline_id,
+        'algorithm_id': algorithm_id,
+        'algorithm_name': algorithm_name,
+        'category': category,
+        'compute_mask': None,
+        'max_cloud_cover': max_cloud_cover,
+        'min_x': bbox[0],
+        'min_y': bbox[1],
+        'max_x': bbox[2],
+        'max_y': bbox[3],
+        'name': name,
+        'spatial_filter_id': spatial_filter_id,
+        'start_on': start_on,
+        'stop_on': stop_on,
+        'user_id': user_id,
+    }
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        return cursor
+    except pg.Error as err:
+        raise DatabaseError(err, query, params)
 
 
 def insert_productline_job(

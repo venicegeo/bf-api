@@ -11,8 +11,10 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+from datetime import datetime
 from json import JSONDecodeError
 
+import dateutil.parser
 from aiohttp.web import Request, Response, json_response
 
 from bfapi.db import DatabaseError
@@ -124,6 +126,47 @@ async def get_job(request: Request):
 # Product Lines
 #
 
+async def create_productline(request: Request):
+    try:
+        payload = await request.json()
+        algorithm_id = _get_string(payload, 'algorithm_id', max_length=100)
+        category = _get_string(payload, 'category', nullable=True, max_length=64)
+        min_x = _get_number(payload, 'min_x', min_value=-180, max_value=180)
+        min_y = _get_number(payload, 'min_y', min_value=-90, max_value=90)
+        max_x = _get_number(payload, 'max_x', min_value=-180, max_value=180)
+        max_y = _get_number(payload, 'max_y', min_value=-90, max_value=90)
+        max_cloud_cover = int(_get_number(payload, 'max_cloud_cover', min_value=0, max_value=100))
+        name = _get_string(payload, 'name', max_length=100)
+        spatial_filter_id = _get_string(payload, 'spatial_filter_id', nullable=True, max_length=64)
+        start_on = _get_datetime(payload, 'start_on')
+        stop_on = _get_datetime(payload, 'stop_on', nullable=True)
+    except JSONDecodeError:
+        return Response(status=400, text='Invalid input: request body must be a JSON object')
+    except ValidationError as err:
+        return Response(status=400, text='Invalid input: {}'.format(err))
+
+    try:
+        productline = productline_service.create_productline(
+            api_key=request['api_key'],
+            algorithm_id=algorithm_id,
+            bbox=(min_x, min_y, max_x, max_y),
+            category=category,
+            max_cloud_cover=max_cloud_cover,
+            name=name,
+            spatial_filter_id=spatial_filter_id,
+            start_on=start_on,
+            stop_on=stop_on,
+            user_id=request['username'],
+        )
+    except algorithms_service.NotFound as err:
+        return Response(status=500, text='Algorithm {} does not exist'.format(err.service_id))
+    except DatabaseError:
+        return Response(status=500, text='A database error prevents product line creation')
+    return json_response({
+        'product_line': productline.serialize(),
+    })
+
+
 async def list_productlines(request: Request):
     productlines = productline_service.get_all()
     return json_response({
@@ -174,26 +217,41 @@ async def on_harvest_event(request: Request):
 # Helpers
 #
 
-def _get_number(d: dict, key: str, *, fallback: int = 0, min_value: int = None, max_value: int = None):
-    value = d.get(key, fallback)
-    if not isinstance(value, int) and not isinstance(value, float):
-        raise ValidationError('`{}` must be a number'.format(key))
-
-    if min_value is not None and value < min_value or max_value is not None and value > max_value:
-        raise ValidationError('`{}` must be a number between {} and {}'.format(key, min_value, max_value))
-
+def _get_datetime(d: dict, key: str, *, nullable: bool = False) -> datetime:
+    if key not in d:
+        raise ValidationError('`{}` is missing'.format(key))
+    value = d.get(key)
+    if nullable and not value:
+        return None
+    try:
+        value = dateutil.parser.parse(value)
+    except:
+        raise ValidationError('`{}` must be a valid timestamp'.format(key))
     return value
 
 
-def _get_string(d: dict, key: str, *, fallback: str = '', min_length: int = 1, max_length: int = 256):
-    value = d.get(key, fallback)
+def _get_number(d: dict, key: str, *, min_value: int = None, max_value: int = None):
+    if key not in d:
+        raise ValidationError('`{}` is missing'.format(key))
+    value = d.get(key)
+    if not isinstance(value, int) and not isinstance(value, float):
+        raise ValidationError('`{}` must be a number'.format(key))
+    if min_value is not None and value < min_value or max_value is not None and value > max_value:
+        raise ValidationError('`{}` must be a number between {} and {}'.format(key, min_value, max_value))
+    return value
+
+
+def _get_string(d: dict, key: str, *, nullable: bool = False, min_length: int = 1, max_length: int = 256):
+    if key not in d:
+        raise ValidationError('`{}` is missing'.format(key))
+    value = d.get(key)
+    if nullable and value is None:
+        return None
     if not isinstance(value, str):
         raise ValidationError('`{}` must be a string'.format(key))
-
     value = value.strip()
     if len(value) > max_length or len(value) < min_length:
         raise ValidationError('`{}` must be a string of {}–{} characters'.format(key, min_length, max_length))
-
     return value
 
 
