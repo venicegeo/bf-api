@@ -79,11 +79,11 @@ def _getservices() -> dict:
     return services
 ################################################################################
 
-_domain = _getdomain()
+DOMAIN = _getdomain()
 
-PZ_GATEWAY   = os.getenv('PZ_GATEWAY', 'pz-gateway.' + _domain)
-CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + _domain)
-TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _domain)
+PZ_GATEWAY   = os.getenv('PZ_GATEWAY', 'pz-gateway.' + DOMAIN)
+CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + DOMAIN)
+TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + DOMAIN)
 
 SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
 

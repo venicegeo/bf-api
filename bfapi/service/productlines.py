@@ -19,10 +19,12 @@ import time
 from datetime import datetime
 from typing import List, Tuple
 
-from bfapi.config import SYSTEM_API_KEY, PZ_GATEWAY
+from bfapi import piazza
+from bfapi.config import DOMAIN, SYSTEM_API_KEY, PZ_GATEWAY
 from bfapi.db import jobs as jobs_db, productlines as productlines_db, get_connection, DatabaseError
-from bfapi.service import algorithms as algorithms_service, jobs as jobs_service
+from bfapi.service import algorithms as algorithms_service, jobs as jobs_service, scenes as scenes_service
 
+HARVEST_EVENT_IDENTIFIER = 'beachfront:api:on_harvest_event'
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 
 
@@ -136,6 +138,63 @@ def create_productline(
         start_on=start_on,
         stop_on=stop_on,
     )
+
+
+def install_harvest_event_handlers_if_needed(handler_endpoint: str):
+    log = logging.getLogger(__name__)
+    api_key = SYSTEM_API_KEY
+
+    log.info('Checking to see if catalog harvest event handlers installation is required')
+
+    needs_installation = False
+    try:
+        if not piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER)):
+            needs_installation = True
+            log.info('Registering harvest event handler service with Piazza')
+            piazza.register_service(
+                api_key,
+                url='https://bf-api.{}/{}'.format(DOMAIN, handler_endpoint.lstrip('/')),
+                contract_url='https://{}'.format(DOMAIN),
+                description='Beachfront handler for Scene Harvest Event',
+                name=HARVEST_EVENT_IDENTIFIER,
+            )
+
+        if not piazza.get_triggers(api_key, HARVEST_EVENT_IDENTIFIER):
+            needs_installation = True
+            log.info('Registering harvest event trigger with Piazza')
+            event_type_id = scenes_service.get_event_type_id()
+            signature = create_event_signature()
+            handler_service = piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER))[0]
+            piazza.create_trigger(
+                api_key,
+                event_type_id=event_type_id,
+                name=HARVEST_EVENT_IDENTIFIER,
+                service_id=handler_service.service_id,
+                data_inputs={
+                    "body": {
+                        "content": """{
+                            "__signature__": "%s",
+                            "scene_id": "$imageID",
+                            "captured_on": "$acquiredDate",
+                            "cloud_cover": $cloudCover,
+                            "min_x": $minx,
+                            "min_y": $miny,
+                            "max_x": $maxx,
+                            "max_y": $maxy
+                        }""" % signature,
+                        "type": "body",
+                        "mimeType": "application/json",
+                    },
+                },
+            )
+    except piazza.Error as err:
+        log.error('Piazza call failed: %s', err)
+        raise
+
+    if needs_installation:
+        log.info('Installation complete!')
+    else:
+        log.info('Event handlers exist and will not be reinstalled')
 
 
 def get_all() -> List[ProductLine]:

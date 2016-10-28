@@ -99,6 +99,59 @@ def create_api_key(auth_header: str):
     return api_key
 
 
+def create_trigger(api_key: str, *, data_inputs: dict, event_type_id: str, name: str, service_id: str) -> str:
+    auth_header = to_auth_header(api_key)
+    try:
+        response = requests.post(
+            'https://{}/trigger'.format(PZ_GATEWAY),
+            timeout=TIMEOUT_LONG,
+            headers={
+                'Authorization': auth_header,
+            },
+            json={
+                'name': name,
+                'eventTypeId': event_type_id,
+                'condition': {
+                    'query': {'query': {'match_all': {}}},
+                },
+                'job': {
+                    'jobType': {
+                        'type': 'execute-service',
+                        'data': {
+                            'serviceId': service_id,
+                            'dataInputs': data_inputs,
+                            'dataOutput': [
+                                {
+                                    'mimeType': 'text/plain',
+                                    'type': 'text'
+                                },
+                            ],
+                        },
+                    },
+                },
+                'enabled': True
+            },
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+
+    data = response.json().get('data')
+    if not data:
+        raise InvalidResponse('missing `data`', response.text)
+
+    trigger_id = data.get('triggerId')
+    if not trigger_id:
+        raise InvalidResponse('missing `data.triggerId`', response.text)
+
+    return trigger_id
+
+
 def deploy(api_key: str, data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
     auth_header = to_auth_header(api_key)
     try:
@@ -347,6 +400,98 @@ def get_status(api_key: str, job_id: str) -> Status:
 
     else:
         raise InvalidResponse('ambiguous value for `data.status`', response.text)
+
+
+def get_triggers(api_key: str, name: str) -> list:
+    auth_header = to_auth_header(api_key)
+    try:
+        response = requests.post(
+            'https://{}/trigger/query'.format(PZ_GATEWAY),
+            timeout=TIMEOUT_LONG,
+            headers={
+                'Authorization': auth_header,
+            },
+            json={
+                'query': {
+                    'match': {
+                        'name': name,
+                    },
+                },
+            },
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+
+    data = response.json().get('data')
+    if data is None:
+        raise InvalidResponse('missing `data`', response.text)
+    elif not isinstance(data, list):
+        raise InvalidResponse('`data` is of the wrong type', response.text)
+
+    return data
+
+
+def register_service(
+        api_key: str,
+        *,
+        contract_url: str,
+        description: str,
+        method: str = 'POST',
+        name: str,
+        timeout: int = 60,
+        url: str,
+        version: str = '0.0') -> str:
+    auth_header = to_auth_header(api_key)
+    try:
+        response = requests.post(
+            'https://{}/service'.format(PZ_GATEWAY),
+            timeout=TIMEOUT_LONG,
+            headers={
+                'Authorization': auth_header,
+            },
+            json={
+                'url': url,
+                'contractUrl': contract_url,
+                'method': method,
+                'timeout': timeout,
+                'resourceMetadata': {
+                    'name': name,
+                    'description': description,
+                    'version': version,
+                    'classType': {
+                        'classification': 'Unclassified',
+                    },
+                },
+            },
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+
+    data = response.json().get('data')
+    if data is None:
+        raise InvalidResponse('missing `data`', response.text)
+    elif not isinstance(data, dict):
+        raise InvalidResponse('`data` is of the wrong type', response.text)
+
+    service_id = data.get('serviceId')
+    if service_id is None:
+        raise InvalidResponse('missing `serviceId`')
+    elif not isinstance(service_id, str):
+        raise InvalidResponse('`serviceId` is of the wrong type')
+
+    return service_id
 
 
 def to_api_key(auth_header: str) -> str:

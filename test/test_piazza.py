@@ -23,6 +23,12 @@ _api_key = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
 
 @Mocker()
+class PiazzaCreateTriggerTest(unittest.TestCase):
+    def test_calls_correct_url(self, m: Mocker):
+        self.fail('Not yet implemented')
+
+
+@Mocker()
 class PiazzaCreateApiKeyTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/key', text=RESPONSE_AUTH_SUCCESS)
@@ -459,6 +465,18 @@ class PiazzaGetServicesTest(unittest.TestCase):
     def test_throws_when_passed_malformed_api_key(self, m: Mocker):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.get_services('lolwut', pattern='^test-pattern$')
+
+
+@Mocker()
+class PiazzaGetTriggersTest(unittest.TestCase):
+    def test_calls_correct_url(self, m: Mocker):
+        self.fail('Not yet implemented')
+
+
+@Mocker()
+class PiazzaRegisterServiceTest(unittest.TestCase):
+    def test_calls_correct_url(self, m: Mocker):
+        self.fail('Not yet implemented')
 
 
 @Mocker()

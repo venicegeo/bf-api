@@ -14,7 +14,7 @@
 from aiohttp.web import Application, UrlDispatcher
 
 from bfapi import config, db, middleware, routes, IS_DEBUG_MODE
-from bfapi.service import jobs as jobs_service
+from bfapi.service import jobs as jobs_service, productlines as productlines_service
 
 def init(server_: Application):
     ################################################################################
@@ -64,6 +64,9 @@ def init(server_: Application):
     router.add_get('/v0/productline', routes.v0.list_productlines)
     router.add_post('/v0/productline', routes.v0.create_productline)
     router.add_post('/v0/scene/event/harvest', routes.v0.on_harvest_event)
+
+    # Misc
+    productlines_service.install_harvest_event_handlers_if_needed('/v0/scene/event/harvest')
 
 
 #
