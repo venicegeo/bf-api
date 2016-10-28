@@ -88,8 +88,18 @@ async def list_jobs(request: Request):
     return json_response({
         'jobs': {
             'type': 'FeatureCollection',
-            'features': [j.serialize() for j in jobs]
+            'features': [j.serialize() for j in jobs],
         },
+    })
+
+
+async def list_jobs_for_scene(request: Request):
+    jobs = jobs_service.get_by_scene(request.match_info['scene_id'])
+    return json_response({
+        'jobs': {
+            'type': 'FeatureCollection',
+            'features': [j.serialize() for j in jobs],
+        }
     })
 
 

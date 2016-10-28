@@ -272,6 +272,34 @@ def get_all(user_id: str) -> List[Job]:
     return jobs
 
 
+def get_by_scene(scene_id: str) -> List[Job]:
+    conn = get_connection()
+
+    try:
+        cursor = jobs_db.select_jobs_for_scene(conn, scene_id=scene_id)
+    except DatabaseError as err:
+        err.print_diagnostics()
+        raise err
+
+    jobs = []
+    for row in cursor.fetchmany():
+        jobs.append(Job(
+            algorithm_name=row['algorithm_name'],
+            algorithm_version=row['algorithm_version'],
+            created_by=row['created_by'],
+            created_on=row['created_on'],
+            detections_id=row['detections_id'],
+            geometry=json.loads(row['geometry']),
+            job_id=row['job_id'],
+            name=row['name'],
+            scene_capture_date=row['scene_capture_date'],
+            scene_sensor_name=row['scene_sensor_name'],
+            scene_id=row['scene_id'],
+            status=row['status'],
+        ))
+    return jobs
+
+
 def start_worker(
         server,
         api_key: str = SYSTEM_API_KEY,

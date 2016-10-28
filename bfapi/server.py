@@ -58,6 +58,7 @@ def init(server_: Application):
     router.add_get('/v0/job', routes.v0.list_jobs)
     router.add_get('/v0/job/{job_id}', routes.v0.get_job)
     router.add_delete('/v0/job/{job_id}', routes.v0.forget_job)
+    router.add_get('/v0/job/by_scene/{scene_id}', routes.v0.list_jobs_for_scene)
     router.add_get('/v0/productline', routes.v0.list_productlines)
     router.add_post('/v0/scene/event/harvest', routes.v0.on_harvest_event)
 
