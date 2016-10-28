@@ -26,6 +26,7 @@ def validate(failfast: bool = True):
     if not POSTGRES_DATABASE: _errors.append('POSTGRES_DATABASE cannot be blank')
     if not POSTGRES_USERNAME: _errors.append('POSTGRES_USERNAME cannot be blank')
     if not POSTGRES_PASSWORD: _errors.append('POSTGRES_PASSWORD cannot be blank')
+    if not GEOSERVER_HOST: _errors.append('GEOSERVER_HOST cannot be blank')
 
     if not _errors:
         return
@@ -96,3 +97,5 @@ POSTGRES_PORT = _services.get('pz-postgres.credentials.port')
 POSTGRES_DATABASE = _services.get('pz-postgres.credentials.database')
 POSTGRES_USERNAME = _services.get('pz-postgres.credentials.username')
 POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
+
+GEOSERVER_HOST = _services.get('pz-geoserver-efs.credentials.host')

@@ -17,6 +17,7 @@ from json import JSONDecodeError
 import dateutil.parser
 from aiohttp.web import Request, Response, json_response
 
+from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
 from bfapi.service import (algorithms as algorithms_service, jobs as jobs_service, productlines as productline_service)
 
@@ -212,6 +213,18 @@ async def on_harvest_event(request: Request):
         return Response(status=500, text='A database error prevents job execution')
     return Response(text=disposition)
 
+
+#
+# Service Listing
+#
+
+async def list_supporting_services(request: Request):
+    return json_response({
+        'services': {
+            'catalog': 'https://{}'.format(CATALOG),
+            'wms_server': 'https://{}/geoserver/wms'.format(GEOSERVER_HOST),
+        },
+    })
 
 #
 # Helpers

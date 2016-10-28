@@ -52,6 +52,7 @@ def init(server_: Application):
     router.add_get('/login', routes.login)
 
     # API v0
+    router.add_get('/v0/services', routes.v0.list_supporting_services)
     router.add_get('/v0/algorithm', routes.v0.list_algorithms)
     router.add_get('/v0/algorithm/{service_id}', routes.v0.get_algorithm)
     router.add_post('/v0/job', routes.v0.create_job)
