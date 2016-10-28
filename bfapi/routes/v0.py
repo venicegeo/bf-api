@@ -124,6 +124,13 @@ async def get_job(request: Request):
 # Product Lines
 #
 
+async def list_productlines(request: Request):
+    productlines = productline_service.get_all()
+    return json_response({
+        'product_lines': [p.serialize() for p in productlines],
+    })
+
+
 async def on_harvest_event(request: Request):
     try:
         payload = await request.json()
@@ -158,13 +165,6 @@ async def on_harvest_event(request: Request):
     except DatabaseError:
         return Response(status=500, text='A database error prevents job execution')
     return Response(text=disposition)
-
-
-async def list_productlines(request: Request):
-    productlines = productline_service.get_all()
-    return json_response({
-        'product_lines': [p.serialize() for p in productlines],
-    })
 
 
 #
