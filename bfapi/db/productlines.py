@@ -16,6 +16,22 @@ import psycopg2 as pg
 from bfapi.db import Connection, Cursor, DatabaseError
 
 
+def select_all(conn: Connection):
+    query = """
+        SELECT productline_id, algorithm_id, algorithm_name, category, compute_mask, created_by,
+               created_on, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on,
+               ST_AsGeoJSON(bbox) AS bbox
+          FROM __beachfront__productline
+         ORDER BY created_on ASC
+        """
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query)
+        return cursor
+    except pg.Error as err:
+        raise DatabaseError(err, query)
+
+
 def select_summary_for_scene(
         conn: Connection,
         *,

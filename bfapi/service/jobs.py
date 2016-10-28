@@ -224,20 +224,19 @@ def get(user_id: str, job_id: str) -> Job:
         err.print_diagnostics()
         raise err
 
-    columns = dict(row)
     return Job(
-        algorithm_name=columns['algorithm_name'],
-        algorithm_version=columns['algorithm_version'],
-        created_by=columns['created_by'],
-        created_on=columns['created_on'],
-        detections_id=columns['detections_id'],
-        geometry=json.loads(columns['geometry']),
-        job_id=columns['job_id'],
-        name=columns['name'],
-        scene_capture_date=columns['scene_capture_date'],
-        scene_sensor_name=columns['scene_sensor_name'],
-        scene_id=columns['scene_id'],
-        status=columns['status'],
+        algorithm_name=row['algorithm_name'],
+        algorithm_version=row['algorithm_version'],
+        created_by=row['created_by'],
+        created_on=row['created_on'],
+        detections_id=row['detections_id'],
+        geometry=json.loads(row['geometry']),
+        job_id=row['job_id'],
+        name=row['name'],
+        scene_capture_date=row['scene_capture_date'],
+        scene_sensor_name=row['scene_sensor_name'],
+        scene_id=row['scene_id'],
+        status=row['status'],
     )
 
 
@@ -252,20 +251,19 @@ def get_all(user_id: str) -> List[Job]:
 
     jobs = []
     for row in cursor.fetchall():
-        columns = dict(row)
         feature = Job(
-            algorithm_name=columns['algorithm_name'],
-            algorithm_version=columns['algorithm_version'],
-            created_by=columns['created_by'],
-            created_on=columns['created_on'],
-            detections_id=columns['detections_id'],
-            geometry=json.loads(columns['geometry']),
-            job_id=columns['job_id'],
-            name=columns['name'],
-            scene_capture_date=columns['scene_capture_date'],
-            scene_sensor_name=columns['scene_sensor_name'],
-            scene_id=columns['scene_id'],
-            status=columns['status'],
+            algorithm_name=row['algorithm_name'],
+            algorithm_version=row['algorithm_version'],
+            created_by=row['created_by'],
+            created_on=row['created_on'],
+            detections_id=row['detections_id'],
+            geometry=json.loads(row['geometry']),
+            job_id=row['job_id'],
+            name=row['name'],
+            scene_capture_date=row['scene_capture_date'],
+            scene_sensor_name=row['scene_sensor_name'],
+            scene_id=row['scene_id'],
+            status=row['status'],
         )
         jobs.append(feature)
 
@@ -337,9 +335,8 @@ async def _worker(
         # Enqueue updates
         tasks = []
         for row in cursor.fetchall():
-            columns = dict(row)
-            job_id = columns['job_id']
-            created_on = columns['created_on']
+            job_id = row['job_id']
+            created_on = row['created_on']
             tasks.append(_update_status(api_key, job_id, created_on, job_ttl, len(tasks) + 1))
 
         # Dispatch

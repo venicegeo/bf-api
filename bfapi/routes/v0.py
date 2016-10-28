@@ -151,8 +151,9 @@ async def on_harvest_event(request: Request):
 
 
 async def list_productlines(request: Request):
+    productlines = productline_service.get_all()
     return json_response({
-        'product_lines': [],
+        'product_lines': [p.serialize() for p in productlines],
     })
 
 

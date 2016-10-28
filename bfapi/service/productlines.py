@@ -12,12 +12,100 @@
 # specific language governing permissions and limitations under the License.
 
 import hashlib
+import json
 import logging
 import re
+from datetime import datetime
+from typing import List
 
 from bfapi.config import SYSTEM_API_KEY, PZ_GATEWAY
-from bfapi.db import jobs as jobsdb, productlines as productlinedb, get_connection, DatabaseError
+from bfapi.db import jobs as jobsdb, productlines as productlinesdb, get_connection, DatabaseError
 from bfapi.service import jobs as jobs_service
+
+FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
+
+
+#
+# Types
+#
+
+class ProductLine:
+    def __init__(
+            self,
+            *,
+            productline_id: str,
+            algorithm_name: str,
+            bbox: dict,
+            category: str = None,
+            created_by: str,
+            created_on: datetime,
+            max_cloud_cover: int,
+            name: str,
+            owned_by: str,
+            spatial_filter_id: str = None,
+            start_on: datetime,
+            stop_on: datetime):
+        self.productline_id = productline_id
+        self.algorithm_name = algorithm_name
+        self.bbox = bbox
+        self.category = category
+        self.created_by = created_by
+        self.created_on = created_on
+        self.max_cloud_cover = max_cloud_cover
+        self.name = name
+        self.owned_by = owned_by
+        self.spatial_filter_id = spatial_filter_id
+        self.start_on = start_on
+        self.stop_on = stop_on
+
+    def serialize(self):
+        return {
+            'type': 'Feature',
+            'geometry': self.bbox,
+            'properties': {
+                'productline_id': self.productline_id,
+                'algorithm_name': self.algorithm_name,
+                'category': self.category,
+                'created_by': self.created_by,
+                'created_on': _serialize_dt(self.created_on),
+                'max_cloud_cover': self.max_cloud_cover,
+                'name': self.name,
+                'owned_by': self.owned_by,
+                'spatial_filter_id': self.spatial_filter_id,
+                'start_on': _serialize_dt(self.start_on),
+                'stop_on': _serialize_dt(self.stop_on),
+            },
+        }
+
+
+#
+# Actions
+#
+
+def get_all() -> List[ProductLine]:
+    conn = get_connection()
+    try:
+        cursor = productlinesdb.select_all(conn)
+    except DatabaseError as err:
+        err.print_diagnostics()
+        raise err
+    productlines = []
+    for row in cursor.fetchall():
+        productlines.append(ProductLine(
+            productline_id=row['productline_id'],
+            algorithm_name=row['algorithm_name'],
+            bbox=json.loads(row['bbox']),
+            category=row['category'],
+            created_by=row['created_by'],
+            created_on=row['created_on'],
+            max_cloud_cover=row['max_cloud_cover'],
+            name=row['name'],
+            owned_by=row['owned_by'],
+            spatial_filter_id=row['spatial_filter_id'],
+            start_on=row['start_on'],
+            stop_on=row['stop_on'],
+        ))
+    return productlines
 
 
 def handle_harvest_event(
@@ -38,7 +126,7 @@ def handle_harvest_event(
     # Find all interested productlines
     conn = get_connection()
     try:
-        cursor = productlinedb.select_summary_for_scene(
+        cursor = productlinesdb.select_summary_for_scene(
             conn,
             cloud_cover=cloud_cover,
             min_x=min_x,
@@ -126,7 +214,7 @@ def _link_to_job(productline_id: str, job_id: str):
     log.info('<%s> Linking to job <%s>', productline_id, job_id)
     conn = get_connection()
     try:
-        productlinedb.insert_productline_job(
+        productlinesdb.insert_productline_job(
             conn,
             job_id=job_id,
             productline_id=productline_id,
@@ -136,6 +224,11 @@ def _link_to_job(productline_id: str, job_id: str):
         log.error('Cannot link job and productline')
         err.print_diagnostics()
         raise
+
+
+def _serialize_dt(dt: datetime = None) -> str:
+    if dt is not None:
+        return dt.strftime(FORMAT_ISO8601)
 
 
 #
