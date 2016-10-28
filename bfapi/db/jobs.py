@@ -206,7 +206,6 @@ def select_jobs_for_productline(
         raise DatabaseError(err, query, params)
 
 
-
 def select_jobs_for_scene(
         conn: Connection,
         *,

@@ -127,7 +127,10 @@ async def get_job(request: Request):
 async def list_productlines(request: Request):
     productlines = productline_service.get_all()
     return json_response({
-        'product_lines': [p.serialize() for p in productlines],
+        'product_lines': {
+            'type': 'FeatureCollection',
+            'features': [p.serialize() for p in productlines],
+        },
     })
 
 

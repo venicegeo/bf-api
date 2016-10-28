@@ -61,9 +61,9 @@ class ProductLine:
     def serialize(self):
         return {
             'type': 'Feature',
+            'id': self.productline_id,
             'geometry': self.bbox,
             'properties': {
-                'productline_id': self.productline_id,
                 'algorithm_name': self.algorithm_name,
                 'category': self.category,
                 'created_by': self.created_by,
@@ -140,7 +140,7 @@ def handle_harvest_event(
         raise
 
     rows = cursor.fetchall()
-    log.info('<%s> Found %d applicable product lines', scene_id, len(rows))
+    log.info('<scene:%s> Found %d applicable product lines', scene_id, len(rows))
 
     if not rows:
         return 'Disregard'
@@ -156,7 +156,7 @@ def handle_harvest_event(
             _link_to_job(pl_id, existing_job_id)
             continue
 
-        log.info('<%s> Spawning job in product line <%s>', scene_id, pl_id)
+        log.info('<scene:%s> Spawning job in product line <%s>', scene_id, pl_id)
         new_job = jobs_service.create_job(
             api_key=SYSTEM_API_KEY,
             job_name=_create_job_name(pl_name, scene_id),

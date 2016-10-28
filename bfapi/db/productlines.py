@@ -16,6 +16,28 @@ import psycopg2 as pg
 from bfapi.db import Connection, Cursor, DatabaseError
 
 
+def insert_productline_job(
+        conn: Connection,
+        *,
+        job_id: str,
+        productline_id: str) -> Cursor:
+    query = """
+        INSERT INTO __beachfront__productline_job (job_id, productline_id)
+        VALUES (%(job_id)s, %(productline_id)s)
+        ON CONFLICT DO NOTHING
+        """
+    params = {
+        'job_id': job_id,
+        'productline_id': productline_id,
+    }
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        return cursor
+    except pg.Error as err:
+        raise DatabaseError(err, query, params)
+
+
 def select_all(conn: Connection):
     query = """
         SELECT productline_id, algorithm_id, algorithm_name, category, compute_mask, created_by,
@@ -54,28 +76,6 @@ def select_summary_for_scene(
         'min_y': min_y,
         'max_x': max_x,
         'max_y': max_y,
-    }
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
-
-
-def insert_productline_job(
-        conn: Connection,
-        *,
-        job_id: str,
-        productline_id: str):
-    query = """
-        INSERT INTO __beachfront__productline_job (job_id, productline_id)
-        VALUES (%(job_id)s, %(productline_id)s)
-        ON CONFLICT DO NOTHING
-        """
-    params = {
-        'job_id': job_id,
-        'productline_id': productline_id,
     }
     try:
         cursor = conn.cursor()
