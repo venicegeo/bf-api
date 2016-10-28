@@ -181,6 +181,32 @@ def select_jobs_for_inputs(
         raise DatabaseError(err, query, params)
 
 
+def select_jobs_for_productline(
+        conn: Connection,
+        *,
+        productline_id: str) -> Cursor:
+    query = """
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
+               j.name, j.scene_id, j.status,
+               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
+          FROM __beachfront__productline_job p
+               LEFT OUTER JOIN __beachfront__job j ON (j.job_id = p.job_id)
+               LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
+         WHERE p.productline_id = %(productline_id)s
+        ORDER BY created_on ASC
+        """
+    params = {
+        'productline_id': productline_id,
+    }
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        return cursor
+    except pg.Error as err:
+        raise DatabaseError(err, query, params)
+
+
+
 def select_jobs_for_scene(
         conn: Connection,
         *,
