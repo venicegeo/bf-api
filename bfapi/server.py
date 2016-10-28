@@ -66,7 +66,8 @@ def init(server_: Application):
     router.add_post('/v0/scene/event/harvest', routes.v0.on_harvest_event)
 
     # Misc
-    productlines_service.install_harvest_event_handlers_if_needed('/v0/scene/event/harvest')
+    if not config.SKIP_EVENT_HANDLER_INSTALL:
+        productlines_service.install_harvest_event_handlers_if_needed('/v0/scene/event/harvest')
 
 
 #

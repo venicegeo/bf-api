@@ -90,6 +90,8 @@ SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_TTL = timedelta(seconds=900)
 
+SKIP_EVENT_HANDLER_INSTALL = os.getenv('SKIP_EVENT_HANDLER_INSTALL') == '1'
+
 _services = _getservices()
 
 POSTGRES_HOST = _services.get('pz-postgres.credentials.hostname')
