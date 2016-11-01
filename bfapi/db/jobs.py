@@ -56,6 +56,30 @@ def exists(
         raise DatabaseError(err, query, params)
 
 
+def insert_detection(
+        conn: Connection,
+        *,
+        job_id: str,
+        feature_collection: str):
+    # FIXME -- I know we can do better than this...
+    query = """
+    INSERT INTO __beachfront__detection (job_id, feature_id, geometry)
+    SELECT %(job_id)s AS job_id,
+           row_number() OVER () AS feature_id,
+           ST_GeomFromGeoJSON(fc.features->>'geometry') AS geometry
+    FROM (SELECT json_array_elements(%(feature_collection)s::json->'features') AS features) fc
+    """
+    params = {
+        'job_id': job_id,
+        'feature_collection': feature_collection,
+    }
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+    except pg.Error as err:
+        raise DatabaseError(err, query, params)
+
+
 def insert_job(
         conn: Connection,
         *,

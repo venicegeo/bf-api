@@ -31,12 +31,21 @@ CREATE TABLE __beachfront__job (
     algorithm_version VARCHAR(12)    NOT NULL,
     created_by        VARCHAR(64)    NOT NULL,
     created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-    detections_id     VARCHAR(64),
+    detections_id     VARCHAR(64),  -- TODO -- is this still needed?
     name              VARCHAR(100)   NOT NULL,
     scene_id          VARCHAR(64)    NOT NULL,
     status            VARCHAR(16)    NOT NULL,
 
     FOREIGN KEY (scene_id) REFERENCES __beachfront__scene(scene_id)
+);
+
+CREATE TABLE __beachfront__detection (
+    job_id            VARCHAR(64),
+    feature_id        INT,
+    geometry          GEOMETRY       NOT NULL,
+
+    PRIMARY KEY (job_id, feature_id),
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
 );
 
 CREATE TABLE __beachfront__job_user (
@@ -75,7 +84,7 @@ CREATE TABLE __beachfront__productline (
 
 CREATE TABLE __beachfront__productline_job (
     productline_id    VARCHAR(64),
-    job_id            VARCHAR(64), --
+    job_id            VARCHAR(64),
 
     PRIMARY KEY (productline_id, job_id),
     FOREIGN KEY (productline_id) REFERENCES __beachfront__productline(productline_id),

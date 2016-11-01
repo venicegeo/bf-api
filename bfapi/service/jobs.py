@@ -133,8 +133,7 @@ def create_job(
                         'shoreline',
                         '--image ' + ','.join(geotiff_filenames),
                         '--projection geo-scaled',
-                        '--threshold 0.5',
-                        '--tolerance 0.2',
+                        '--tolerance 0.05',
                         '--prop tideMin24H:{}'.format(tide_min or 'null'),
                         '--prop tideMax24H:{}'.format(tide_max or 'null'),
                         '--prop tideCurrent:{}'.format(tide_current or 'null'),
@@ -422,16 +421,26 @@ async def _update_status(
             _save_execution_error(job_id, 'postprocessing:resolve-detections-data-id', str(err))
             return
 
-        log.info('<%03d/%s> Deploying <%s> to GeoServer via Piazza', index, job_id, detections_data_id)
+        log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
         try:
-            piazza.deploy(api_key, detections_data_id)
+            geojson_as_text = piazza.get_file(api_key, detections_data_id).text
         except piazza.Unauthorized:
-            log.error('<%03d/%s> credentials rejected during deployment!', index, job_id)
+            log.error('<%03d/%s> credentials rejected during file retrieval!', index, job_id)
             return
-        except piazza.DeploymentError as err:
-            log.error('<%03d/%s> could not deploy data ID <%s>: %s', index, job_id, detections_data_id, err)
-            _save_execution_error(job_id, 'postprocessing:deploy', 'Could not deploy to GeoServer via Piazza')
+        except piazza.ServerError as err:
+            log.error('<%03d/%s> could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
+            _save_execution_error(job_id, 'postprocessing:collect-geojson', 'Could not retrieve GeoJSON from Piazza')
             return
+
+        log.info('<%03d/%s> Inserting detections into PostGIS', index, job_id)
+        with get_connection() as conn:
+            try:
+                jobs_db.insert_detection(conn, job_id=job_id, feature_collection=geojson_as_text)
+            except DatabaseError as err:
+                conn.rollback()
+                err.print_diagnostics()
+                _save_execution_error(job_id, 'postprocessing:collect-geojson', 'Could not insert GeoJSON to database')
+                return
 
         _save_execution_success(job_id, detections_data_id)
 
