@@ -85,6 +85,14 @@ class ProductLine:
 # Actions
 #
 
+def create_event_signature():
+    components = [
+        SYSTEM_API_KEY,
+        PZ_GATEWAY,
+    ]
+    return hashlib.sha384(':'.join(components).encode()).hexdigest()
+
+
 def create_productline(
         *,
         api_key: str,
@@ -282,14 +290,6 @@ def handle_harvest_event(
         _link_to_job(pl_id, new_job.job_id)
 
     return 'Accept'
-
-
-def create_event_signature():
-    components = [
-        SYSTEM_API_KEY,
-        PZ_GATEWAY,
-    ]
-    return hashlib.sha384(':'.join(components).encode()).hexdigest()
 
 
 def _is_valid_event_signature(signature: str):
