@@ -88,7 +88,7 @@ TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + DOMAIN)
 SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
 
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
-JOB_TTL = timedelta(seconds=900)
+JOB_TTL = timedelta(hours=2)
 
 SKIP_EVENT_HANDLER_INSTALL = os.getenv('SKIP_EVENT_HANDLER_INSTALL') == '1'
 
