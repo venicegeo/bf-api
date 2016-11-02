@@ -101,3 +101,5 @@ POSTGRES_USERNAME = _services.get('pz-postgres.credentials.username')
 POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
 
 GEOSERVER_HOST = _services.get('pz-geoserver-efs.credentials.host')
+GEOSERVER_USERNAME = _services.get('pz-geoserver-efs.credentials.username')
+GEOSERVER_PASSWORD = _services.get('pz-geoserver-efs.credentials.password')

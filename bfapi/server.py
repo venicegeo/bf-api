@@ -14,7 +14,7 @@
 from aiohttp.web import Application, UrlDispatcher
 
 from bfapi import config, db, middleware, routes, IS_DEBUG_MODE
-from bfapi.service import jobs as jobs_service, productlines as productlines_service
+from bfapi.service import geoserver as geoserver_service, jobs as jobs_service, productlines as productlines_service
 
 def init(server_: Application):
     ################################################################################
@@ -68,6 +68,7 @@ def init(server_: Application):
     # Misc
     if not config.SKIP_EVENT_HANDLER_INSTALL:
         productlines_service.install_harvest_event_handlers_if_needed('/v0/scene/event/harvest')
+    geoserver_service.install_if_needed()
 
 
 #
