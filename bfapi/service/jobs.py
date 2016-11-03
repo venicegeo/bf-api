@@ -342,6 +342,8 @@ def start_worker(
 
 def stop_worker():
     global _worker
+    log = logging.getLogger(__name__)
+    log.info('Stopping worker thread')
     _worker.terminate()
     _worker = None
 
@@ -363,7 +365,12 @@ class Worker(threading.Thread):
 
     def run(self):
         log = logging.getLogger(__name__ + '.worker')
+        next_run = datetime.utcnow()
         while not self._terminated:
+            if next_run > datetime.utcnow():
+                time.sleep(3)  # Allows for timely graceful shutdowns
+                continue
+
             conn = get_connection()
             try:
                 rows = jobs_db.select_summary_for_status(conn, status=piazza.STATUS_RUNNING).fetchall()
@@ -371,18 +378,19 @@ class Worker(threading.Thread):
                 log.error('Could not list running jobs: %s', err)
                 err.print_diagnostics()
                 raise
+            finally:
+                conn.close()
 
-            next_run = (datetime.utcnow() + self._interval).strftime(FORMAT_TIME)
+            # Schedule next cycle
+            next_run = datetime.utcnow() + self._interval
             if not rows:
-                log.info('Nothing to do; next run at %s', next_run)
+                log.info('Nothing to do; next run at %s', next_run.strftime(FORMAT_TIME))
             else:
                 log.info('Begin cycle for %d records', len(rows))
                 for i, row in enumerate(rows):
                     _update_status(self._api_key, row['job_id'], row['created_on'], self._job_ttl, i + 1)
-                log.info('Cycle complete; next run at %s', next_run)
+                log.info('Cycle complete; next run at %s', next_run.strftime(FORMAT_TIME))
 
-            # Pause until next execution
-            time.sleep(self._interval.total_seconds())
         log.info('Stopping')
 
 
