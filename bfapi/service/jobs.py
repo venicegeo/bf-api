@@ -11,9 +11,10 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import asyncio
 import json
 import logging
+import threading
+import time
 from datetime import datetime, timedelta
 from typing import List
 
@@ -28,6 +29,8 @@ FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
 FORMAT_TIME = '%TZ'
 STATUS_TIMED_OUT = 'Timed Out'
+
+_worker = None  # type: Worker
 
 #
 # Types
@@ -327,60 +330,63 @@ def get_by_scene(scene_id: str) -> List[Job]:
 
 
 def start_worker(
-        server,
         api_key: str = SYSTEM_API_KEY,
         job_ttl: timedelta = JOB_TTL,
         interval: timedelta = JOB_WORKER_INTERVAL):
+    global _worker
     log = logging.getLogger(__name__)
+    log.info('Starting worker thread')
+    _worker = Worker(api_key, job_ttl, interval)
+    _worker.start()
 
-    log.info('Starting jobs service worker')
-    loop = server.loop
-    server['jobs_worker'] = loop.create_task(_worker(api_key, job_ttl, interval))
+
+def stop_worker():
+    global _worker
+    _worker.terminate()
+    _worker = None
 
 
 #
 # Worker
 #
 
-async def _worker(
-        api_key: str,
-        job_ttl,
-        interval: timedelta):
-    log = logging.getLogger(__name__)
-    conn = get_connection()
+class Worker(threading.Thread):
+    def __init__(self, api_key: str, job_ttl: timedelta, interval: timedelta):
+        super().__init__()
+        self._api_key = api_key
+        self._job_ttl = job_ttl
+        self._interval = interval
+        self._terminated = False
 
-    while True:
-        try:
-            cursor = jobs_db.select_summary_for_status(
-                conn,
-                status=piazza.STATUS_RUNNING
-            )
-        except DatabaseError as err:
-            log.error('Could not list running jobs: %s', err)
-            err.print_diagnostics()
-            raise err
+    def terminate(self):
+        self._terminated = True
 
-        # Enqueue updates
-        tasks = []
-        for row in cursor.fetchall():
-            job_id = row['job_id']
-            created_on = row['created_on']
-            tasks.append(_update_status(api_key, job_id, created_on, job_ttl, len(tasks) + 1))
+    def run(self):
+        log = logging.getLogger(__name__ + '.worker')
+        while not self._terminated:
+            conn = get_connection()
+            try:
+                rows = jobs_db.select_summary_for_status(conn, status=piazza.STATUS_RUNNING).fetchall()
+            except DatabaseError as err:
+                log.error('Could not list running jobs: %s', err)
+                err.print_diagnostics()
+                raise
 
-        # Dispatch
-        next_run = (datetime.utcnow() + interval).strftime(FORMAT_TIME)
-        if tasks:
-            log.info('begin cycle for %d records', len(tasks))
-            await asyncio.wait(tasks)
-            log.info('cycle complete; next run at %s', next_run)
-        else:
-            log.info('nothing to do; next run at %s', next_run)
+            next_run = (datetime.utcnow() + self._interval).strftime(FORMAT_TIME)
+            if not rows:
+                log.info('Nothing to do; next run at %s', next_run)
+            else:
+                log.info('Begin cycle for %d records', len(rows))
+                for i, row in enumerate(rows):
+                    _update_status(self._api_key, row['job_id'], row['created_on'], self._job_ttl, i + 1)
+                log.info('Cycle complete; next run at %s', next_run)
 
-        # Pause until next execution
-        await asyncio.sleep(interval.seconds)
+            # Pause until next execution
+            time.sleep(self._interval.total_seconds())
+        log.info('Stopping')
 
 
-async def _update_status(
+def _update_status(
         api_key: str,
         job_id: str,
         created_on: datetime,
@@ -433,15 +439,16 @@ async def _update_status(
             _save_execution_error(job_id, 'postprocessing:collect-geojson', 'Could not retrieve GeoJSON from Piazza')
             return
 
-        log.info('<%03d/%s> Inserting detections into PostGIS', index, job_id)
-        with get_connection() as conn:
-            try:
-                jobs_db.insert_detection(conn, job_id=job_id, feature_collection=geojson_as_text)
-            except DatabaseError as err:
-                conn.rollback()
-                err.print_diagnostics()
-                _save_execution_error(job_id, 'postprocessing:collect-geojson', 'Could not insert GeoJSON to database')
-                return
+        log.info('<%03d/%s> Inserting detections into PostGIS (%0.1fMB)', index, job_id, len(geojson_as_text)/1024000)
+        conn = get_connection()
+        try:
+            jobs_db.insert_detection(conn, job_id=job_id, feature_collection=geojson_as_text)
+            conn.commit()
+        except DatabaseError as err:
+            conn.rollback()
+            err.print_diagnostics()
+            _save_execution_error(job_id, 'postprocessing:collect-geojson', 'Could not insert GeoJSON to database')
+            return
 
         _save_execution_success(job_id, detections_data_id)
 

@@ -39,7 +39,6 @@ def init(server_: Application):
     # Start Background Processes
     #
 
-    server_.on_startup.append(jobs_service.start_worker)
 
     #
     # Attach Routing
@@ -71,8 +70,18 @@ def init(server_: Application):
     geoserver_service.install_if_needed()
 
 
+def start_background_tasks(_: Application):
+    jobs_service.start_worker()
+
+
+def stop_background_tasks(_):
+    jobs_service.stop_worker()
+
+
+################################################################################
+
 #
-# Initialize core components
+# Bootstrapping
 #
 
 server = Application(
@@ -81,3 +90,5 @@ server = Application(
 )
 
 server.on_startup.append(init)
+server.on_startup.append(start_background_tasks)
+server.on_shutdown.append(stop_background_tasks)
