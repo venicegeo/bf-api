@@ -125,9 +125,7 @@ def create_productline(
             stop_on=stop_on,
             user_id=user_id,
         )
-        conn.commit()
     except DatabaseError as err:
-        conn.rollback()
         log.error('Could not insert product line record')
         err.print_diagnostics()
         raise
@@ -342,7 +340,6 @@ def _link_to_job(productline_id: str, job_id: str):
             job_id=job_id,
             productline_id=productline_id,
         )
-        conn.commit()
     except DatabaseError as err:
         log.error('Cannot link job and productline')
         err.print_diagnostics()

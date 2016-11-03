@@ -102,9 +102,7 @@ def get(scene_id: str) -> Scene:
             resolution=scene.resolution,
             sensor_name=scene.sensor_name,
         )
-        conn.commit()
     except DatabaseError as err:
-        conn.rollback()
         log.error('Could not save scene to database: %s', err)
         err.print_diagnostics()
         raise err

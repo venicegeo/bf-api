@@ -160,6 +160,7 @@ def create_job(
     # Record the data
     log.debug('Saving job record <%s>', job_id)
     conn = get_connection()
+    transaction = conn.begin()
     try:
         jobs_db.insert_job(
             conn,
@@ -177,9 +178,9 @@ def create_job(
             job_id=job_id,
             user_id=user_id,
         )
-        conn.commit()
+        transaction.commit()
     except DatabaseError as err:
-        conn.rollback()
+        transaction.rollback()
         log.error('Could not save job to database: %s', err)
         err.print_diagnostics()
         raise
@@ -205,9 +206,7 @@ def forget(user_id: str, job_id: str) -> None:
         raise NotFound(job_id)
     try:
         jobs_db.delete_job_user(conn, job_id=job_id, user_id=user_id)
-        conn.commit()
     except DatabaseError as err:
-        conn.rollback()
         err.print_diagnostics()
         raise
 
@@ -221,9 +220,7 @@ def get(user_id: str, job_id: str) -> Job:
     # Add job to user's tracked jobs list
     try:
         jobs_db.insert_job_user(conn, job_id=job_id, user_id=user_id)
-        conn.commit()
     except DatabaseError as err:
-        conn.rollback()
         err.print_diagnostics()
         raise
 
@@ -451,9 +448,7 @@ def _update_status(
         conn = get_connection()
         try:
             jobs_db.insert_detection(conn, job_id=job_id, feature_collection=geojson_as_text)
-            conn.commit()
         except DatabaseError as err:
-            conn.rollback()
             err.print_diagnostics()
             _save_execution_error(job_id, 'postprocessing:collect-geojson', 'Could not insert GeoJSON to database')
             return
@@ -538,6 +533,7 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
     log = logging.getLogger(__name__)
     log.debug('<%s> updating database record', job_id)
     conn = get_connection()
+    transaction = conn.begin()
     try:
         jobs_db.update_status(
             conn,
@@ -550,9 +546,9 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
             execution_step=execution_step,
             error_message=error_message,
         )
-        conn.commit()
+        transaction.commit()
     except DatabaseError as err:
-        conn.rollback()
+        transaction.rollback()
         log.error('<%s> database update failed', job_id)
         err.print_diagnostics()
         raise
@@ -569,9 +565,7 @@ def _save_execution_success(job_id: str, detections_data_id: str):
             status=piazza.STATUS_SUCCESS,
             data_id=detections_data_id,
         )
-        conn.commit()
     except DatabaseError as err:
-        conn.rollback()
         log.error('<%s> database update failed', job_id)
         err.print_diagnostics()
         raise

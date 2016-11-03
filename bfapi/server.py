@@ -73,6 +73,7 @@ def stop_background_tasks(_):
 
 def teardown(_: Application):
     print('  SERVER IS SHUTTING DOWN  '.center(80, '-'))
+    db.cleanup()
 
 
 ################################################################################

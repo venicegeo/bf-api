@@ -14,7 +14,7 @@
 import json
 from datetime import datetime
 
-import psycopg2 as pg
+import sqlalchemy.exc as sae
 
 from bfapi.db import Connection, DatabaseError
 
@@ -44,7 +44,6 @@ def insert(conn: Connection,
         'sensor_name': sensor_name,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)

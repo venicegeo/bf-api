@@ -16,43 +16,50 @@ import os.path
 import pprint
 import signal
 
-import psycopg2 as pg
-from psycopg2.extras import DictCursor as CursorFactory
-from psycopg2.psycopg1 import connection as Connection, cursor as Cursor
+import sqlalchemy as sa
+import sqlalchemy.exc as sae
+from sqlalchemy.engine import Engine, Connection, ResultProxy as Cursor
 
 from bfapi.config import POSTGRES_DATABASE, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USERNAME
 
 CONNECTION_TIMEOUT = 15
 
-_conn = None  # type: Connection
+_engine = None  # type: Engine
+
+
+def cleanup():
+    global _engine
+    log = logging.getLogger(__name__)
+    log.info('Closing database connection')
+    _engine.dispose()
+    _engine = None
+    log.info('Done')
+
 
 def get_connection() -> Connection:
-    global _conn
     log = logging.getLogger(__name__)
     try:
-        if not _conn or _conn.closed:
-            log.debug('Connecting to database <{}:{}/{}>'.format(POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DATABASE))
-            _conn = pg.connect(
-                host=POSTGRES_HOST,
-                port=POSTGRES_PORT,
-                user=POSTGRES_USERNAME,
-                database=POSTGRES_DATABASE,
-                password=POSTGRES_PASSWORD,
-                connect_timeout=CONNECTION_TIMEOUT,
-                cursor_factory=pge.DictCursor,
-            )
-        else:
-            log.debug('Reusing open connection to database <{}:{}/{}>'.format(POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DATABASE))
-        return _conn
-    except pg.OperationalError as err:
+        return _engine.connect()
+    except sae.OperationalError as err:
         log.critical('Database connection failed: %s', err)
         raise ConnectionFailed(err)
 
 
 def init():
+    log = logging.getLogger(__name__)
+    global _engine
     try:
-        install_if_needed()
+        _engine = sa.create_engine(
+            'postgresql://{user}:{password}@{host}:{port}/{database}'.format(
+                host=POSTGRES_HOST,
+                port=POSTGRES_PORT,
+                user=POSTGRES_USERNAME,
+                database=POSTGRES_DATABASE,
+                password=POSTGRES_PASSWORD,
+            ))
+        _install_if_needed()
     except:
+        log.exception('Initialization failed', exc_info=True)
         # Fail fast
         print(
             '-' * 80,
@@ -65,8 +72,11 @@ def init():
         exit(1)
 
 
-def install():
-    conn = get_connection()
+#
+# Helpers
+#
+
+def _install():
     log = logging.getLogger(__name__)
 
     log.info('Installing schema')
@@ -80,22 +90,18 @@ def install():
         raise err
 
     # Execute
-    cursor = conn.cursor()  # type: Cursor
     try:
-        cursor.execute(schema_query)
-    except pg.Error as err:
+        _engine.execute(sa.text(schema_query))
+    except sae.DatabaseError as err:
         log.critical('Installation failed: %s', err)
-        conn.rollback()
-        err = DatabaseError(err, schema_query)
+        err = DatabaseError(err)
         err.print_diagnostics()
         raise InstallationError('schema install failed', err)
 
-    conn.commit()
     log.info('Installation complete!')
 
 
-def install_if_needed():
-    conn = get_connection()
+def _install_if_needed():
     log = logging.getLogger(__name__)
 
     log.info('Checking to see if installation is required')
@@ -109,13 +115,11 @@ def install_if_needed():
         raise err
 
     # Execute
-    cursor = conn.cursor()  # type: Cursor
     try:
-        cursor.execute(query)
-        is_installed, = cursor.fetchone()
-    except pg.Error as err:
+        is_installed, = _engine.execute(sa.text(query)).fetchone()
+    except sae.DatabaseError as err:
         log.critical('Could not test for : %s', err)
-        err = DatabaseError(err, query)
+        err = DatabaseError(err)
         err.print_diagnostics()
         log.critical('Schema verification failed: %s', err)
         raise InstallationError('schema execution failed', err)
@@ -124,12 +128,8 @@ def install_if_needed():
         log.info('Schema exists and will not be reinstalled')
         return
 
-    install()
+    _install()
 
-
-#
-# Helpers
-#
 
 def _read_sql_file(name: str) -> str:
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -142,17 +142,15 @@ def _read_sql_file(name: str) -> str:
 #
 
 class ConnectionFailed(Exception):
-    def __init__(self, err: pg.Error, message: str = 'cannot connect to database'):
+    def __init__(self, err: sae.DatabaseError, message: str = 'cannot connect to database'):
         super().__init__(message)
         self.original_error = err
 
 
 class DatabaseError(Exception):
-    def __init__(self, err: pg.Error, query: str, params: dict = None):
+    def __init__(self, err: sae.StatementError):
         super().__init__('database error: {}'.format(err))
         self.original_error = err
-        self.query = query
-        self.params = params
 
     def print_diagnostics(self):
         print(
@@ -161,11 +159,11 @@ class DatabaseError(Exception):
             'DatabaseError: {}'.format(self.original_error),
             '',
             'QUERY',
-            self.query.rstrip(),
+            self.original_error.statement.rstrip(),
             '',
             'PARAMS',
             '',
-            pprint.pformat(self.params, indent=4),
+            pprint.pformat(self.original_error.params, indent=4),
             '!' * 80,
             sep='\n'
         )

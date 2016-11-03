@@ -13,7 +13,7 @@
 
 from datetime import datetime
 
-import psycopg2 as pg
+import sqlalchemy.exc as sae
 
 from bfapi.db import Connection, Cursor, DatabaseError
 
@@ -54,11 +54,9 @@ def insert_productline(
         'user_id': user_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def insert_productline_job(
@@ -76,11 +74,9 @@ def insert_productline_job(
         'productline_id': productline_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def select_all(conn: Connection):
@@ -92,11 +88,9 @@ def select_all(conn: Connection):
          ORDER BY created_on ASC
         """
     try:
-        cursor = conn.cursor()
-        cursor.execute(query)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query)
+        return conn.execute(query)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def select_summary_for_scene(
@@ -123,8 +117,6 @@ def select_summary_for_scene(
         'max_y': max_y,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)

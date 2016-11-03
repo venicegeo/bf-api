@@ -11,7 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import psycopg2 as pg
+import sqlalchemy.exc as sae
 
 from bfapi.db import Connection, Cursor, DatabaseError
 
@@ -31,11 +31,9 @@ def delete_job_user(
         'user_id': user_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor.rowcount > 0
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params).rowcount > 0
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def exists(
@@ -49,11 +47,9 @@ def exists(
         'job_id': job_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return len(cursor.fetchall()) > 0
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params).rowcount > 0
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def insert_detection(
@@ -74,10 +70,9 @@ def insert_detection(
         'feature_collection': feature_collection,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def insert_job(
@@ -106,10 +101,9 @@ def insert_job(
         'status': status,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def insert_job_failure(
@@ -128,10 +122,9 @@ def insert_job_failure(
         'execution_step': execution_step,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def insert_job_user(
@@ -149,10 +142,9 @@ def insert_job_user(
         'user_id': user_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def select_job(
@@ -173,11 +165,9 @@ def select_job(
         'job_id': job_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def select_jobs_for_inputs(
@@ -198,11 +188,9 @@ def select_jobs_for_inputs(
         'scene_id': scene_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def select_jobs_for_productline(
@@ -223,11 +211,9 @@ def select_jobs_for_productline(
         'productline_id': productline_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def select_jobs_for_scene(
@@ -248,11 +234,9 @@ def select_jobs_for_scene(
         'scene_id': scene_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def select_jobs_for_user(
@@ -275,11 +259,9 @@ def select_jobs_for_user(
         'user_id': user_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def select_summary_for_status(
@@ -295,11 +277,9 @@ def select_summary_for_status(
         'status': status,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return cursor
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        return conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
 
 
 def update_status(
@@ -320,7 +300,6 @@ def update_status(
         'detections_id': data_id,
     }
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-    except pg.Error as err:
-        raise DatabaseError(err, query, params)
+        conn.execute(query, params)
+    except sae.DatabaseError as err:
+        raise DatabaseError(err)
