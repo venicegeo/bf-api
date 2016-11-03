@@ -20,7 +20,7 @@ from datetime import datetime
 from typing import List, Tuple
 
 from bfapi import piazza
-from bfapi.config import DOMAIN, SYSTEM_API_KEY, PZ_GATEWAY
+from bfapi.config import DOMAIN, SYSTEM_API_KEY, PZ_GATEWAY, SKIP_PRODUCTLINE_INSTALL
 from bfapi.db import jobs as jobs_db, productlines as productlines_db, get_connection, DatabaseError
 from bfapi.service import algorithms as algorithms_service, jobs as jobs_service, scenes as scenes_service
 
@@ -148,9 +148,13 @@ def create_productline(
     )
 
 
-def install_harvest_event_handlers_if_needed(handler_endpoint: str):
+def install_if_needed(handler_endpoint: str):
     log = logging.getLogger(__name__)
     api_key = SYSTEM_API_KEY
+
+    if SKIP_PRODUCTLINE_INSTALL:
+        log.info('Skipping installation of Piazza trigger and service')
+        return
 
     log.info('Checking to see if catalog harvest event handlers installation is required')
 

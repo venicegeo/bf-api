@@ -60,4 +60,4 @@ $ cf set-env bf-api SYSTEM_AUTH_TOKEN <valid Piazza auth token>
 | `TIDE_SERVICE`      | Overrides the Tide Prediction service base URL |
 | `SYSTEM_AUTH_TOKEN` | Credentials for accessing Piazza.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
-| `SKIP_EVENT_HANDLER_INSTALL` | Set to `1` to skip installing triggers and services for catalog harvest events (recommended for local development). |
+| `SKIP_PRODUCTLINE_INSTALL` | Set to `1` to skip installing triggers and services for catalog harvest events (recommended for local development). |

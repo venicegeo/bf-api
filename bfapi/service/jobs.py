@@ -182,7 +182,7 @@ def create_job(
         conn.rollback()
         log.error('Could not save job to database: %s', err)
         err.print_diagnostics()
-        raise err
+        raise
 
     return Job(
         algorithm_name=algorithm.name,
@@ -209,7 +209,7 @@ def forget(user_id: str, job_id: str) -> None:
     except DatabaseError as err:
         conn.rollback()
         err.print_diagnostics()
-        raise err
+        raise
 
 
 def get(user_id: str, job_id: str) -> Job:
@@ -225,7 +225,7 @@ def get(user_id: str, job_id: str) -> Job:
     except DatabaseError as err:
         conn.rollback()
         err.print_diagnostics()
-        raise err
+        raise
 
     return Job(
         algorithm_name=row['algorithm_name'],
@@ -250,7 +250,7 @@ def get_all(user_id: str) -> List[Job]:
         cursor = jobs_db.select_jobs_for_user(conn, user_id=user_id)
     except DatabaseError as err:
         err.print_diagnostics()
-        raise err
+        raise
 
     jobs = []
     for row in cursor.fetchall():
@@ -280,7 +280,7 @@ def get_by_productline(productline_id: str) -> List[Job]:
         cursor = jobs_db.select_jobs_for_productline(conn, productline_id=productline_id)
     except DatabaseError as err:
         err.print_diagnostics()
-        raise err
+        raise
 
     jobs = []
     for row in cursor.fetchmany():
@@ -535,7 +535,6 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
             conn,
             job_id=job_id,
             status=status,
-            data_id=None,
         )
         jobs_db.insert_job_failure(
             conn,
@@ -548,6 +547,7 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
         conn.rollback()
         log.error('<%s> database update failed', job_id)
         err.print_diagnostics()
+        raise
 
 
 def _save_execution_success(job_id: str, detections_data_id: str):
@@ -566,7 +566,7 @@ def _save_execution_success(job_id: str, detections_data_id: str):
         conn.rollback()
         log.error('<%s> database update failed', job_id)
         err.print_diagnostics()
-        raise err
+        raise
 
 
 def _serialize_dt(dt: datetime = None) -> str:

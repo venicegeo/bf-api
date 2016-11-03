@@ -12,23 +12,17 @@
 # specific language governing permissions and limitations under the License.
 
 import logging
-import os
+import os.path
+import pprint
 import signal
-from os.path import dirname, join
-from pprint import pformat
 
 import psycopg2 as pg
-import psycopg2.extras as pge
-from psycopg2.psycopg1 import connection as _t_connection, cursor as _t_cursor
+from psycopg2.extras import DictCursor as CursorFactory
+from psycopg2.psycopg1 import connection as Connection, cursor as Cursor
 
 from bfapi.config import POSTGRES_DATABASE, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USERNAME
 
 CONNECTION_TIMEOUT = 15
-
-# Type aliases
-Connection = _t_connection
-Cursor = _t_cursor
-Row = pge.DictRow
 
 _conn = None  # type: Connection
 
@@ -118,7 +112,7 @@ def install_if_needed():
     cursor = conn.cursor()  # type: Cursor
     try:
         cursor.execute(query)
-        (is_installed,) = cursor.fetchone()
+        is_installed, = cursor.fetchone()
     except pg.Error as err:
         log.critical('Could not test for : %s', err)
         err = DatabaseError(err, query)
@@ -128,7 +122,7 @@ def install_if_needed():
 
     if is_installed:
         log.info('Schema exists and will not be reinstalled')
-        return  # Nothing to do
+        return
 
     install()
 
@@ -138,7 +132,8 @@ def install_if_needed():
 #
 
 def _read_sql_file(name: str) -> str:
-    with open(join(dirname(dirname(dirname(__file__))), 'sql', name)) as fp:
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    with open(os.path.join(root_dir, 'sql', name)) as fp:
         return fp.read()
 
 
@@ -170,7 +165,7 @@ class DatabaseError(Exception):
             '',
             'PARAMS',
             '',
-            pformat(self.params, indent=4),
+            pprint.pformat(self.params, indent=4),
             '!' * 80,
             sep='\n'
         )

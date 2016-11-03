@@ -60,7 +60,7 @@ def insert_detection(
         conn: Connection,
         *,
         job_id: str,
-        feature_collection: str):
+        feature_collection: str) -> None:
     # FIXME -- I know we can do better than this...
     query = """
     INSERT INTO __beachfront__detection (job_id, feature_id, geometry)
@@ -90,7 +90,7 @@ def insert_job(
         name: str,
         scene_id: str,
         status: str,
-        user_id: str):
+        user_id: str) -> None:
     query = """
         INSERT INTO __beachfront__job (job_id, algorithm_id, algorithm_name, algorithm_version, created_by, name, scene_id, status)
         VALUES (%(job_id)s, %(algorithm_id)s, %(algorithm_name)s, %(algorithm_version)s, %(created_by)s, %(name)s, %(scene_id)s, %(status)s)
@@ -305,9 +305,9 @@ def select_summary_for_status(
 def update_status(
         conn: Connection,
         *,
-        data_id: str,
         job_id: str,
-        status: str) -> Cursor:
+        status: str,
+        data_id: str = None) -> Cursor:
     query = """
         UPDATE __beachfront__job
            SET detections_id = %(detections_id)s,

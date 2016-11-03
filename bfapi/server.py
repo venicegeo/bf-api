@@ -16,35 +16,9 @@ from aiohttp.web import Application, UrlDispatcher
 from bfapi import config, db, middleware, routes, IS_DEBUG_MODE
 from bfapi.service import geoserver as geoserver_service, jobs as jobs_service, productlines as productlines_service
 
-def init(server_: Application):
-    ################################################################################
-    # Debugging Info
-    print('-' * 80)
-    print()
-    print('bf-api'.center(80))
-    print('~~~~~~'.center(80))
-    print()
-    for key, value in sorted(config.__dict__.items()):
-        if not key.isupper():
-            continue
-        print('{key:>38} : {value}'.format(key=key, value=value))
-    print()
-    print('-' * 80)
-    ################################################################################
 
-    config.validate()
-    db.init()
-
-    #
-    # Start Background Processes
-    #
-
-
-    #
-    # Attach Routing
-    #
-
-    router = server_.router  # type: UrlDispatcher
+def attach_routes(app: Application):
+    router = app.router  # type: UrlDispatcher
 
     # Public Endpoints
     router.add_get('/', routes.health_check)
@@ -64,9 +38,28 @@ def init(server_: Application):
     router.add_post('/v0/productline', routes.v0.create_productline)
     router.add_post('/v0/scene/event/harvest', routes.v0.on_harvest_event)
 
-    # Misc
-    if not config.SKIP_EVENT_HANDLER_INSTALL:
-        productlines_service.install_harvest_event_handlers_if_needed('/v0/scene/event/harvest')
+
+def banner(_: Application):
+    print('-' * 80)
+    print()
+    print('bf-api'.center(80))
+    print('~~~~~~'.center(80))
+    print()
+    for key, value in sorted(config.__dict__.items()):
+        if not key.isupper():
+            continue
+        print('{key:>38} : {value}'.format(key=key, value=value))
+    print()
+    print('-' * 80)
+
+
+def init(_: Application):
+    config.validate()
+    db.init()
+
+
+def install_service_assets(_: Application):
+    productlines_service.install_if_needed('/v0/scene/event/harvest')
     geoserver_service.install_if_needed()
 
 
@@ -76,6 +69,10 @@ def start_background_tasks(_: Application):
 
 def stop_background_tasks(_):
     jobs_service.stop_worker()
+
+
+def teardown(_: Application):
+    print('  SERVER IS SHUTTING DOWN  '.center(80, '-'))
 
 
 ################################################################################
@@ -89,6 +86,12 @@ server = Application(
     debug=IS_DEBUG_MODE,
 )
 
+server.on_startup.append(banner)
 server.on_startup.append(init)
+server.on_startup.append(attach_routes)
+server.on_startup.append(install_service_assets)
 server.on_startup.append(start_background_tasks)
+server.on_shutdown.append(teardown)
 server.on_shutdown.append(stop_background_tasks)
+
+################################################################################
