@@ -10,3 +10,28 @@
 # under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
+
+import logging
+import unittest
+
+import requests_mock as rm
+
+from test import helpers
+
+from bfapi.service import jobs as service
+
+
+@rm.Mocker()
+class __STUBTest(unittest.TestCase):
+    def setUp(self):
+        self._mockdb = helpers.mock_database()
+        self._logger = logging.getLogger('bfapi.service.jobs')
+        self._logger.disabled = True
+
+    def tearDown(self):
+        self._mockdb.destroy()
+        self._logger.disabled = False
+
+    def test_calls_correct_url(self, m: rm.Mocker):
+        print(service)
+        self.fail('Not yet implemented')
