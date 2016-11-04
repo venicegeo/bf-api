@@ -20,9 +20,8 @@ from typing import List
 
 import requests
 
-from bfapi import piazza
+from bfapi import db, piazza
 from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, SYSTEM_API_KEY, TIDE_SERVICE
-from bfapi.db import jobs as jobs_db, get_connection, DatabaseError
 from bfapi.service import algorithms as algorithms_service, scenes as scenes_service
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
@@ -163,10 +162,10 @@ def create_job(
 
     # Record the data
     log.debug('Saving job record <%s>', job_id)
-    conn = get_connection()
+    conn = db.get_connection()
     transaction = conn.begin()
     try:
-        jobs_db.insert_job(
+        db.jobs.insert_job(
             conn,
             algorithm_id=algorithm.service_id,
             algorithm_name=algorithm.name,
@@ -177,13 +176,13 @@ def create_job(
             status=piazza.STATUS_RUNNING,
             user_id=user_id,
         )
-        jobs_db.insert_job_user(
+        db.jobs.insert_job_user(
             conn,
             job_id=job_id,
             user_id=user_id,
         )
         transaction.commit()
-    except DatabaseError as err:
+    except db.DatabaseError as err:
         transaction.rollback()
         log.error('Could not save job to database: %s', err)
         err.print_diagnostics()
@@ -205,26 +204,26 @@ def create_job(
 
 
 def forget(user_id: str, job_id: str) -> None:
-    conn = get_connection()
-    if not jobs_db.exists(conn, job_id=job_id):
+    conn = db.get_connection()
+    if not db.jobs.exists(conn, job_id=job_id):
         raise NotFound(job_id)
     try:
-        jobs_db.delete_job_user(conn, job_id=job_id, user_id=user_id)
-    except DatabaseError as err:
+        db.jobs.delete_job_user(conn, job_id=job_id, user_id=user_id)
+    except db.DatabaseError as err:
         err.print_diagnostics()
         raise
 
 
 def get(user_id: str, job_id: str) -> Job:
-    conn = get_connection()
-    row = jobs_db.select_job(conn, job_id=job_id).fetchone()
+    conn = db.get_connection()
+    row = db.jobs.select_job(conn, job_id=job_id).fetchone()
     if not row:
         return
 
     # Add job to user's tracked jobs list
     try:
-        jobs_db.insert_job_user(conn, job_id=job_id, user_id=user_id)
-    except DatabaseError as err:
+        db.jobs.insert_job_user(conn, job_id=job_id, user_id=user_id)
+    except db.DatabaseError as err:
         err.print_diagnostics()
         raise
 
@@ -245,11 +244,11 @@ def get(user_id: str, job_id: str) -> Job:
 
 
 def get_all(user_id: str) -> List[Job]:
-    conn = get_connection()
+    conn = db.get_connection()
 
     try:
-        cursor = jobs_db.select_jobs_for_user(conn, user_id=user_id)
-    except DatabaseError as err:
+        cursor = db.jobs.select_jobs_for_user(conn, user_id=user_id)
+    except db.DatabaseError as err:
         err.print_diagnostics()
         raise
 
@@ -275,11 +274,11 @@ def get_all(user_id: str) -> List[Job]:
 
 
 def get_by_productline(productline_id: str) -> List[Job]:
-    conn = get_connection()
+    conn = db.get_connection()
 
     try:
-        cursor = jobs_db.select_jobs_for_productline(conn, productline_id=productline_id)
-    except DatabaseError as err:
+        cursor = db.jobs.select_jobs_for_productline(conn, productline_id=productline_id)
+    except db.DatabaseError as err:
         err.print_diagnostics()
         raise
 
@@ -303,11 +302,11 @@ def get_by_productline(productline_id: str) -> List[Job]:
 
 
 def get_by_scene(scene_id: str) -> List[Job]:
-    conn = get_connection()
+    conn = db.get_connection()
 
     try:
-        cursor = jobs_db.select_jobs_for_scene(conn, scene_id=scene_id)
-    except DatabaseError as err:
+        cursor = db.jobs.select_jobs_for_scene(conn, scene_id=scene_id)
+    except db.DatabaseError as err:
         err.print_diagnostics()
         raise err
 
@@ -368,10 +367,10 @@ class Worker(threading.Thread):
                 time.sleep(3)  # Allows for timely graceful shutdowns
                 continue
 
-            conn = get_connection()
+            conn = db.get_connection()
             try:
-                rows = jobs_db.select_summary_for_status(conn, status=piazza.STATUS_RUNNING).fetchall()
-            except DatabaseError as err:
+                rows = db.jobs.select_summary_for_status(conn, status=piazza.STATUS_RUNNING).fetchall()
+            except db.DatabaseError as err:
                 self._log.error('Could not list running jobs: %s', err)
                 err.print_diagnostics()
                 raise
@@ -441,10 +440,10 @@ class Worker(threading.Thread):
                 return
 
             log.info('<%03d/%s> Saving detections to database (%0.1fMB)', index, job_id, len(geojson) / 1024000)
-            conn = get_connection()
+            conn = db.get_connection()
             try:
-                jobs_db.insert_detection(conn, job_id=job_id, feature_collection=geojson)
-            except DatabaseError as err:
+                db.jobs.insert_detection(conn, job_id=job_id, feature_collection=geojson)
+            except db.DatabaseError as err:
                 err.print_diagnostics()
                 _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
                 return
@@ -529,22 +528,22 @@ def _resolve_detections_data_id(api_key: str, output_data_id: str) -> str:
 def _save_execution_error(job_id: str, execution_step: str, error_message: str, status: str = piazza.STATUS_ERROR):
     log = logging.getLogger(__name__)
     log.debug('<%s> updating database record', job_id)
-    conn = get_connection()
+    conn = db.get_connection()
     transaction = conn.begin()
     try:
-        jobs_db.update_status(
+        db.jobs.update_status(
             conn,
             job_id=job_id,
             status=status,
         )
-        jobs_db.insert_job_failure(
+        db.jobs.insert_job_failure(
             conn,
             job_id=job_id,
             execution_step=execution_step,
             error_message=error_message,
         )
         transaction.commit()
-    except DatabaseError as err:
+    except db.DatabaseError as err:
         transaction.rollback()
         log.error('<%s> database update failed', job_id)
         err.print_diagnostics()
@@ -554,15 +553,15 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
 def _save_execution_success(job_id: str, detections_data_id: str):
     log = logging.getLogger(__name__)
     log.debug('<%s> updating database record', job_id)
-    conn = get_connection()
+    conn = db.get_connection()
     try:
-        jobs_db.update_status(
+        db.jobs.update_status(
             conn,
             job_id=job_id,
             status=piazza.STATUS_SUCCESS,
             data_id=detections_data_id,
         )
-    except DatabaseError as err:
+    except db.DatabaseError as err:
         log.error('<%s> database update failed', job_id)
         err.print_diagnostics()
         raise

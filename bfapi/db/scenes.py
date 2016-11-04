@@ -44,7 +44,4 @@ def insert(
         'resolution': resolution,
         'sensor_name': sensor_name,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)

@@ -13,8 +13,7 @@
 
 from aiohttp.web import Application, UrlDispatcher
 
-from bfapi import config, db, middleware, routes, IS_DEBUG_MODE
-from bfapi.service import geoserver as geoserver_service, jobs as jobs_service, productlines as productlines_service
+from bfapi import config, db, middleware, routes, service, IS_DEBUG_MODE
 
 
 def attach_routes(app: Application):
@@ -59,16 +58,16 @@ def init(_: Application):
 
 
 def install_service_assets(_: Application):
-    productlines_service.install_if_needed('/v0/scene/event/harvest')
-    geoserver_service.install_if_needed()
+    service.productlines.install_if_needed('/v0/scene/event/harvest')
+    service.geoserver.install_if_needed()
 
 
 def start_background_tasks(_: Application):
-    jobs_service.start_worker()
+    service.jobs.start_worker()
 
 
 def stop_background_tasks(_):
-    jobs_service.stop_worker()
+    service.jobs.stop_worker()
 
 
 def teardown(_: Application):

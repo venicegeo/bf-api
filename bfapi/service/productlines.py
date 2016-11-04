@@ -19,9 +19,8 @@ import time
 from datetime import datetime
 from typing import List, Tuple
 
-from bfapi import piazza
+from bfapi import db, piazza
 from bfapi.config import DOMAIN, SYSTEM_API_KEY, PZ_GATEWAY, SKIP_PRODUCTLINE_INSTALL
-from bfapi.db import jobs as jobs_db, productlines as productlines_db, get_connection, DatabaseError
 from bfapi.service import algorithms as algorithms_service, jobs as jobs_service, scenes as scenes_service
 
 HARVEST_EVENT_IDENTIFIER = 'beachfront:api:on_harvest_event'
@@ -109,9 +108,9 @@ def create_productline(
     algorithm = algorithms_service.get(api_key, algorithm_id)
     productline_id = _create_id()
     log.info('Creating product line <%s>', productline_id)
-    conn = get_connection()
+    conn = db.get_connection()
     try:
-        productlines_db.insert_productline(
+        db.productlines.insert_productline(
             conn,
             productline_id=productline_id,
             algorithm_id=algorithm_id,
@@ -125,7 +124,7 @@ def create_productline(
             stop_on=stop_on,
             user_id=user_id,
         )
-    except DatabaseError as err:
+    except db.DatabaseError as err:
         log.error('Could not insert product line record')
         err.print_diagnostics()
         raise
@@ -208,10 +207,10 @@ def install_if_needed(handler_endpoint: str):
 
 
 def get_all() -> List[ProductLine]:
-    conn = get_connection()
+    conn = db.get_connection()
     try:
-        cursor = productlines_db.select_all(conn)
-    except DatabaseError as err:
+        cursor = db.productlines.select_all(conn)
+    except db.DatabaseError as err:
         err.print_diagnostics()
         raise err
     productlines = []
@@ -249,9 +248,9 @@ def handle_harvest_event(
         raise UntrustedEventError()
 
     # Find all interested productlines
-    conn = get_connection()
+    conn = db.get_connection()
     try:
-        cursor = productlines_db.select_summary_for_scene(
+        cursor = db.productlines.select_summary_for_scene(
             conn,
             cloud_cover=cloud_cover,
             min_x=min_x,
@@ -259,7 +258,7 @@ def handle_harvest_event(
             max_x=max_x,
             max_y=max_y,
         )
-    except DatabaseError as err:
+    except db.DatabaseError as err:
         log.error('Database search for applicable product lines failed')
         err.print_diagnostics()
         raise
@@ -316,14 +315,14 @@ def _create_job_name(productline_name: str, scene_id: str):
 def _find_existing_job_id_for_scene(scene_id: str, algorithm_id: str) -> str:
     log = logging.getLogger(__name__)
     log.debug('Searching for existing jobs for scene <%s> and algorithm <%s>', scene_id, algorithm_id)
-    conn = get_connection()
+    conn = db.get_connection()
     try:
-        row = jobs_db.select_jobs_for_inputs(
+        row = db.jobs.select_jobs_for_inputs(
             conn,
             scene_id=scene_id,
             algorithm_id=algorithm_id,
         ).fetchone()
-    except DatabaseError as err:
+    except db.DatabaseError as err:
         log.error('Job query failed')
         err.print_diagnostics()
         raise
@@ -333,14 +332,14 @@ def _find_existing_job_id_for_scene(scene_id: str, algorithm_id: str) -> str:
 def _link_to_job(productline_id: str, job_id: str):
     log = logging.getLogger(__name__)
     log.info('<%s> Linking to job <%s>', productline_id, job_id)
-    conn = get_connection()
+    conn = db.get_connection()
     try:
-        productlines_db.insert_productline_job(
+        db.productlines.insert_productline_job(
             conn,
             job_id=job_id,
             productline_id=productline_id,
         )
-    except DatabaseError as err:
+    except db.DatabaseError as err:
         log.error('Cannot link job and productline')
         err.print_diagnostics()
         raise

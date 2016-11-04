@@ -18,9 +18,8 @@ from datetime import datetime
 import dateutil.parser
 import requests
 
-from bfapi import piazza
+from bfapi import piazza, db
 from bfapi.config import CATALOG, PZ_GATEWAY, SYSTEM_API_KEY
-from bfapi.db import get_connection, scenes, DatabaseError
 
 PATTERN_VALID_EVENT_TYPE_ID = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
 
@@ -71,11 +70,6 @@ def get(scene_id: str) -> Scene:
         status_code = err.response.status_code
         if status_code == 404:
             raise NotFound(scene_id)
-        # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-        # TODO -- this can go away once Redmine #9287 is closed
-        if status_code == 400 and '{}: redis: nil even using wildcard search'.format(scene_id) in err.response.text:
-            raise NotFound(scene_id)
-        # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
         raise CatalogError()
 
     geojson = scene_req.json()
@@ -90,9 +84,9 @@ def get(scene_id: str) -> Scene:
         sensor_name=_extract_sensor_name(scene_id, geojson),
     )
 
-    conn = get_connection()
+    conn = db.get_connection()
     try:
-        scenes.insert(
+        db.scenes.insert(
             conn,
             scene_id=scene.id,
             captured_on=scene.capture_date,
@@ -102,10 +96,10 @@ def get(scene_id: str) -> Scene:
             resolution=scene.resolution,
             sensor_name=scene.sensor_name,
         )
-    except DatabaseError as err:
+    except db.DatabaseError as err:
         log.error('Could not save scene to database: %s', err)
-        err.print_diagnostics()
-        raise err
+        db.print_diagnostics(err)
+        raise
 
     return scene
 

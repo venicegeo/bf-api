@@ -17,10 +17,11 @@ import pprint
 import signal
 
 import sqlalchemy as sa
-import sqlalchemy.exc as sae
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.engine import Engine, Connection, ResultProxy
 
 from bfapi.config import POSTGRES_DATABASE, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USERNAME
+from bfapi.db import jobs, productlines, scenes
 
 _engine = None  # type: Engine
 
@@ -38,7 +39,7 @@ def get_connection() -> Connection:
     log = logging.getLogger(__name__)
     try:
         return _engine.connect()
-    except sae.OperationalError as err:
+    except DatabaseError as err:
         log.critical('Database connection failed: %s', err)
         raise ConnectionFailed(err)
 
@@ -70,6 +71,24 @@ def init():
         exit(1)
 
 
+def print_diagnostics(err: DatabaseError):
+    print(
+        '!' * 80,
+        '',
+        'DatabaseError: {}'.format(err.args[0]),
+        '',
+        'QUERY',
+        err.statement.rstrip(),
+        '',
+        'PARAMS',
+        '',
+        pprint.pformat(err.params, indent=4),
+        '',
+        '!' * 80,
+        sep='\n'
+    )
+
+
 #
 # Helpers
 #
@@ -90,10 +109,9 @@ def _install():
     # Execute
     try:
         _engine.execute(sa.text(schema_query))
-    except sae.DatabaseError as err:
+    except DatabaseError as err:
         log.critical('Installation failed: %s', err)
-        err = DatabaseError(err)
-        err.print_diagnostics()
+        print_diagnostics(err)
         raise InstallationError('schema install failed', err)
 
     log.info('Installation complete!')
@@ -115,11 +133,9 @@ def _install_if_needed():
     # Execute
     try:
         is_installed, = _engine.execute(sa.text(query)).fetchone()
-    except sae.DatabaseError as err:
-        log.critical('Could not test for : %s', err)
-        err = DatabaseError(err)
-        err.print_diagnostics()
+    except DatabaseError as err:
         log.critical('Schema verification failed: %s', err)
+        print_diagnostics(err)
         raise InstallationError('schema execution failed', err)
 
     if is_installed:
@@ -140,31 +156,9 @@ def _read_sql_file(name: str) -> str:
 #
 
 class ConnectionFailed(Exception):
-    def __init__(self, err: sae.DatabaseError, message: str = 'cannot connect to database'):
+    def __init__(self, err: DatabaseError, message: str = 'cannot connect to database'):
         super().__init__(message)
         self.original_error = err
-
-
-class DatabaseError(Exception):
-    def __init__(self, err: sae.StatementError):
-        super().__init__('database error: {}'.format(err))
-        self.original_error = err
-
-    def print_diagnostics(self):
-        print(
-            '!' * 80,
-            '',
-            'DatabaseError: {}'.format(self.original_error),
-            '',
-            'QUERY',
-            self.original_error.statement.rstrip(),
-            '',
-            'PARAMS',
-            '',
-            pprint.pformat(self.original_error.params, indent=4),
-            '!' * 80,
-            sep='\n'
-        )
 
 
 class InstallationError(Exception):
