@@ -27,6 +27,8 @@ def validate(failfast: bool = True):
     if not POSTGRES_USERNAME: _errors.append('POSTGRES_USERNAME cannot be blank')
     if not POSTGRES_PASSWORD: _errors.append('POSTGRES_PASSWORD cannot be blank')
     if not GEOSERVER_HOST: _errors.append('GEOSERVER_HOST cannot be blank')
+    if not GEOSERVER_USERNAME: _errors.append('GEOSERVER_USERNAME cannot be blank')
+    if not GEOSERVER_PASSWORD: _errors.append('GEOSERVER_PASSWORD cannot be blank')
 
     if not _errors:
         return

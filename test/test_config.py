@@ -45,6 +45,9 @@ class ConfigurationValidateTest(unittest.TestCase):
         self.override('POSTGRES_DATABASE', 'test-database')
         self.override('POSTGRES_USERNAME', 'test-username')
         self.override('POSTGRES_PASSWORD', 'test-password')
+        self.override('GEOSERVER_HOST', 'test-host')
+        self.override('GEOSERVER_USERNAME', 'test-username')
+        self.override('GEOSERVER_PASSWORD', 'test-password')
 
     def tearDown(self):
         for key, value in self._original_values.items():
@@ -84,6 +87,21 @@ class ConfigurationValidateTest(unittest.TestCase):
 
     def test_throws_if_POSTGRES_PASSWORD_is_blank(self):
         self.override('POSTGRES_PASSWORD', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+    def test_throws_if_GEOSERVER_HOST_is_blank(self):
+        self.override('GEOSERVER_HOST', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+    def test_throws_if_GEOSERVER_USERNAME_is_blank(self):
+        self.override('GEOSERVER_USERNAME', None)
+        with self.assertRaises(Exception):
+            config.validate(failfast=False)
+
+    def test_throws_if_GEOSERVER_PASSWORD_is_blank(self):
+        self.override('GEOSERVER_PASSWORD', None)
         with self.assertRaises(Exception):
             config.validate(failfast=False)
 
