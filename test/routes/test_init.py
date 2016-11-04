@@ -11,4 +11,22 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from bfapi.service import algorithms, geoserver, scenes, jobs, productlines  # Order matters here
+import unittest.mock
+
+from bfapi import db
+
+
+class GetConnectionTest(unittest.TestCase):
+    def setUp(self):
+        self.conn = unittest.mock.Mock()
+
+    def test_does_things(self):
+        self.fail('Not implemented')
+
+
+class InstallTest(unittest.TestCase):
+    def setUp(self):
+        self.conn = unittest.mock.Mock()
+
+    def test_does_things(self):
+        self.fail('Not implemented')

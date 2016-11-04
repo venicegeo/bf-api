@@ -52,5 +52,9 @@ class MockDBConnection(unittest.mock.Mock):
 
     def raise_on_execute(self, err: _sqlalchemyexc.DatabaseError = None):
         if err is None:
-            err = _sqlalchemyexc.DatabaseError('test-query', None, Exception('test-error'))
+            err = create_database_error()
         self.execute.side_effect = err
+
+
+def create_database_error():
+    return _sqlalchemyexc.DatabaseError('test-query', None, Exception('test-error'))

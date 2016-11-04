@@ -13,9 +13,7 @@
 
 from datetime import datetime
 
-import sqlalchemy.exc as sae
-
-from bfapi.db import Connection, DatabaseError, ResultProxy
+from bfapi.db import Connection, ResultProxy
 
 
 def insert_productline(
@@ -53,10 +51,7 @@ def insert_productline(
         'stop_on': stop_on,
         'user_id': user_id,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)
 
 
 def insert_productline_job(
@@ -73,10 +68,7 @@ def insert_productline_job(
         'job_id': job_id,
         'productline_id': productline_id,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)
 
 
 def select_all(conn: Connection):
@@ -87,10 +79,7 @@ def select_all(conn: Connection):
           FROM __beachfront__productline
          ORDER BY created_on ASC
         """
-    try:
-        return conn.execute(query)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query)
 
 
 def select_summary_for_scene(
@@ -116,7 +105,4 @@ def select_summary_for_scene(
         'max_x': max_x,
         'max_y': max_y,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)

@@ -14,8 +14,9 @@
 import hashlib
 import json
 import logging
+import random
 import re
-import time
+
 from datetime import datetime
 from typing import List, Tuple
 
@@ -88,7 +89,7 @@ def create_event_signature():
         SYSTEM_API_KEY,
         PZ_GATEWAY,
     ]
-    return hashlib.sha384(':'.join(components).encode()).hexdigest()
+    return hashlib.sha384(':'.join(map(str, components)).encode()).hexdigest()
 
 
 def create_productline(
@@ -142,67 +143,6 @@ def create_productline(
         start_on=start_on,
         stop_on=stop_on,
     )
-
-
-def install_if_needed(handler_endpoint: str):
-    log = logging.getLogger(__name__)
-    api_key = SYSTEM_API_KEY
-
-    if SKIP_PRODUCTLINE_INSTALL:
-        log.info('Skipping installation of Piazza trigger and service')
-        return
-
-    log.info('Checking to see if catalog harvest event handlers installation is required')
-
-    needs_installation = False
-    try:
-        if not piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER)):
-            needs_installation = True
-            log.info('Registering harvest event handler service with Piazza')
-            piazza.register_service(
-                api_key,
-                url='https://bf-api.{}/{}'.format(DOMAIN, handler_endpoint.lstrip('/')),
-                contract_url='https://{}'.format(DOMAIN),
-                description='Beachfront handler for Scene Harvest Event',
-                name=HARVEST_EVENT_IDENTIFIER,
-            )
-
-        if not piazza.get_triggers(api_key, HARVEST_EVENT_IDENTIFIER):
-            needs_installation = True
-            log.info('Registering harvest event trigger with Piazza')
-            event_type_id = service.scenes.get_event_type_id()
-            signature = create_event_signature()
-            handler_service = piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER))[0]
-            piazza.create_trigger(
-                api_key,
-                event_type_id=event_type_id,
-                name=HARVEST_EVENT_IDENTIFIER,
-                service_id=handler_service.service_id,
-                data_inputs={
-                    "body": {
-                        "content": """{
-                            "__signature__": "%s",
-                            "scene_id": "$imageID",
-                            "captured_on": "$acquiredDate",
-                            "cloud_cover": $cloudCover,
-                            "min_x": $minx,
-                            "min_y": $miny,
-                            "max_x": $maxx,
-                            "max_y": $maxy
-                        }""" % signature,
-                        "type": "body",
-                        "mimeType": "application/json",
-                    },
-                },
-            )
-    except piazza.Error as err:
-        log.error('Piazza call failed: %s', err)
-        raise
-
-    if needs_installation:
-        log.info('Installation complete!')
-    else:
-        log.info('Event handlers exist and will not be reinstalled')
 
 
 def get_all() -> List[ProductLine]:
@@ -292,8 +232,65 @@ def handle_harvest_event(
     return 'Accept'
 
 
-def _is_valid_event_signature(signature: str):
-    return signature == create_event_signature()
+def install_if_needed(handler_endpoint: str):
+    log = logging.getLogger(__name__)
+    api_key = SYSTEM_API_KEY
+
+    if SKIP_PRODUCTLINE_INSTALL:
+        log.info('Skipping installation of Piazza trigger and service')
+        return
+
+    log.info('Checking to see if catalog harvest event handlers installation is required')
+
+    needs_installation = False
+    try:
+        if not piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER)):
+            needs_installation = True
+            log.info('Registering harvest event handler service with Piazza')
+            piazza.register_service(
+                api_key,
+                url='https://bf-api.{}/{}'.format(DOMAIN, handler_endpoint.lstrip('/')),
+                contract_url='https://bf-api.{}'.format(DOMAIN),
+                description='Beachfront handler for Scene Harvest Event',
+                name=HARVEST_EVENT_IDENTIFIER,
+            )
+
+        if not piazza.get_triggers(api_key, HARVEST_EVENT_IDENTIFIER):
+            needs_installation = True
+            log.info('Registering harvest event trigger with Piazza')
+            event_type_id = service.scenes.get_event_type_id()
+            signature = create_event_signature()
+            handler_service = piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER))[0]
+            piazza.create_trigger(
+                api_key,
+                event_type_id=event_type_id,
+                name=HARVEST_EVENT_IDENTIFIER,
+                service_id=handler_service.service_id,
+                data_inputs={
+                    "body": {
+                        "content": """{
+                            "__signature__": "%s",
+                            "scene_id": "$imageID",
+                            "captured_on": "$acquiredDate",
+                            "cloud_cover": $cloudCover,
+                            "min_x": $minx,
+                            "min_y": $miny,
+                            "max_x": $maxx,
+                            "max_y": $maxy
+                        }""" % signature,
+                        "type": "body",
+                        "mimeType": "application/json",
+                    },
+                },
+            )
+    except piazza.Error as err:
+        log.error('Piazza call failed: %s', err)
+        raise
+
+    if needs_installation:
+        log.info('Installation complete!')
+    else:
+        log.info('Event handlers exist and will not be reinstalled')
 
 
 #
@@ -301,7 +298,7 @@ def _is_valid_event_signature(signature: str):
 #
 
 def _create_id() -> str:
-    return hashlib.md5(str(time.time()).encode()).hexdigest()
+    return ''.join([chr(n) for n in random.sample(range(97, 122), 16)])
 
 
 def _create_job_name(productline_name: str, scene_id: str):
@@ -316,16 +313,20 @@ def _find_existing_job_id_for_scene(scene_id: str, algorithm_id: str) -> str:
     log.debug('Searching for existing jobs for scene <%s> and algorithm <%s>', scene_id, algorithm_id)
     conn = db.get_connection()
     try:
-        row = db.jobs.select_jobs_for_inputs(
+        job_id = db.jobs.select_jobs_for_inputs(
             conn,
             scene_id=scene_id,
             algorithm_id=algorithm_id,
-        ).fetchone()
+        ).scalar()
     except db.DatabaseError as err:
         log.error('Job query failed')
         db.print_diagnostics(err)
         raise
-    return row['job_id'] if row else None
+    return job_id
+
+
+def _is_valid_event_signature(signature: str):
+    return signature == create_event_signature()
 
 
 def _link_to_job(productline_id: str, job_id: str):
@@ -361,6 +362,7 @@ def _to_geometry(bbox: Tuple[float, float, float, float]) -> dict:
             [min_x, min_y],
         ]]
     }
+
 
 #
 # Errors
