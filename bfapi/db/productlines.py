@@ -15,7 +15,7 @@ from datetime import datetime
 
 import sqlalchemy.exc as sae
 
-from bfapi.db import Connection, Cursor, DatabaseError
+from bfapi.db import Connection, DatabaseError, ResultProxy
 
 
 def insert_productline(
@@ -31,7 +31,7 @@ def insert_productline(
         spatial_filter_id: str = None,
         start_on: datetime,
         stop_on: datetime = None,
-        user_id: str) -> Cursor:
+        user_id: str) -> ResultProxy:
     query = """
         INSERT INTO __beachfront__productline (productline_id, algorithm_id, algorithm_name, category, created_by, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on, bbox)
         VALUES (%(productline_id)s, %(algorithm_id)s, %(algorithm_name)s, %(category)s, %(user_id)s, %(max_cloud_cover)s, %(name)s, %(user_id)s, %(spatial_filter_id)s, %(start_on)s, %(stop_on)s, ST_MakeEnvelope(%(min_x)s, %(min_y)s, %(max_x)s, %(max_y)s))
@@ -63,7 +63,7 @@ def insert_productline_job(
         conn: Connection,
         *,
         job_id: str,
-        productline_id: str) -> Cursor:
+        productline_id: str) -> ResultProxy:
     query = """
         INSERT INTO __beachfront__productline_job (job_id, productline_id)
         VALUES (%(job_id)s, %(productline_id)s)
@@ -100,7 +100,7 @@ def select_summary_for_scene(
         min_x: float,
         min_y: float,
         max_x: float,
-        max_y: float) -> Cursor:
+        max_y: float) -> ResultProxy:
     query = """
         SELECT productline_id, algorithm_id, name, owned_by
           FROM __beachfront__productline

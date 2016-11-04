@@ -13,7 +13,7 @@
 
 import sqlalchemy.exc as sae
 
-from bfapi.db import Connection, Cursor, DatabaseError
+from bfapi.db import Connection, DatabaseError, ResultProxy
 
 
 def delete_job_user(
@@ -150,7 +150,7 @@ def insert_job_user(
 def select_job(
         conn: Connection,
         *,
-        job_id: str) -> Cursor:
+        job_id: str) -> ResultProxy:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
@@ -174,7 +174,7 @@ def select_jobs_for_inputs(
         conn: Connection,
         *,
         algorithm_id: str,
-        scene_id: str) -> Cursor:
+        scene_id: str) -> ResultProxy:
     query = """
         SELECT job_id
           FROM __beachfront__job
@@ -196,7 +196,7 @@ def select_jobs_for_inputs(
 def select_jobs_for_productline(
         conn: Connection,
         *,
-        productline_id: str) -> Cursor:
+        productline_id: str) -> ResultProxy:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
@@ -219,7 +219,7 @@ def select_jobs_for_productline(
 def select_jobs_for_scene(
         conn: Connection,
         *,
-        scene_id: str) -> Cursor:
+        scene_id: str) -> ResultProxy:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
@@ -242,7 +242,7 @@ def select_jobs_for_scene(
 def select_jobs_for_user(
         conn: Connection,
         *,
-        user_id: str) -> Cursor:
+        user_id: str) -> ResultProxy:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
                j.name, j.scene_id, j.status,
@@ -267,7 +267,7 @@ def select_jobs_for_user(
 def select_summary_for_status(
         conn: Connection,
         *,
-        status: str) -> Cursor:
+        status: str) -> ResultProxy:
     query = """
         SELECT job_id, created_on
           FROM __beachfront__job
@@ -287,7 +287,7 @@ def update_status(
         *,
         job_id: str,
         status: str,
-        data_id: str = None) -> Cursor:
+        data_id: str = None) -> ResultProxy:
     query = """
         UPDATE __beachfront__job
            SET detections_id = %(detections_id)s,

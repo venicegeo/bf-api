@@ -29,6 +29,10 @@ FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
 FORMAT_TIME = '%TZ'
 STATUS_TIMED_OUT = 'Timed Out'
+STEP_ALGORITHM = 'runtime:algorithm'
+STEP_COLLECT_GEOJSON = 'postprocessing:collect_geojson'
+STEP_RESOLVE = 'postprocessing:resolving_detections_data_id'
+STEP_POLLING = 'runtime:polling'
 
 _worker = None  # type: Worker
 
@@ -345,13 +349,10 @@ def stop_worker():
     _worker = None
 
 
-#
-# Worker
-#
-
 class Worker(threading.Thread):
     def __init__(self, api_key: str, job_ttl: timedelta, interval: timedelta):
         super().__init__()
+        self._log = logging.getLogger(__name__ + '.worker')
         self._api_key = api_key
         self._job_ttl = job_ttl
         self._interval = interval
@@ -361,10 +362,9 @@ class Worker(threading.Thread):
         self._terminated = True
 
     def run(self):
-        log = logging.getLogger(__name__ + '.worker')
-        next_run = datetime.utcnow()
+        next_cycle = datetime.utcnow()
         while not self._terminated:
-            if next_run > datetime.utcnow():
+            if next_cycle > datetime.utcnow():
                 time.sleep(3)  # Allows for timely graceful shutdowns
                 continue
 
@@ -372,106 +372,91 @@ class Worker(threading.Thread):
             try:
                 rows = jobs_db.select_summary_for_status(conn, status=piazza.STATUS_RUNNING).fetchall()
             except DatabaseError as err:
-                log.error('Could not list running jobs: %s', err)
+                self._log.error('Could not list running jobs: %s', err)
                 err.print_diagnostics()
                 raise
             finally:
                 conn.close()
 
             # Schedule next cycle
-            next_run = datetime.utcnow() + self._interval
+            next_cycle = datetime.utcnow() + self._interval
             if not rows:
-                log.info('Nothing to do; next run at %s', next_run.strftime(FORMAT_TIME))
+                self._log.info('Nothing to do; next run at %s', next_cycle.strftime(FORMAT_TIME))
             else:
-                log.info('Begin cycle for %d records', len(rows))
+                self._log.info('Begin cycle for %d records', len(rows))
                 for i, row in enumerate(rows):
-                    _update_status(self._api_key, row['job_id'], row['created_on'], self._job_ttl, i + 1)
-                log.info('Cycle complete; next run at %s', next_run.strftime(FORMAT_TIME))
+                    self._update_record(row['job_id'], row['created_on'], i + 1)
+                self._log.info('Cycle complete; next run at %s', next_cycle.strftime(FORMAT_TIME))
 
-        log.info('Stopping')
+        self._log.info('Stopped')
 
+    def _update_record(self, job_id: str, created_on: datetime, index: int):
+        log = self._log
+        api_key = self._api_key
+        job_ttl = self._job_ttl
 
-def _update_status(
-        api_key: str,
-        job_id: str,
-        created_on: datetime,
-        job_ttl: timedelta,
-        index: int):
-    log = logging.getLogger(__name__)
-
-    # Get latest status
-    try:
-        status = piazza.get_status(api_key, job_id)
-    except piazza.Unauthorized:
-        log.error('<%03d/%s> credentials rejected during polling!', index, job_id)
-        return
-    except (piazza.ServerError, piazza.Error) as err:
-        if isinstance(err, piazza.ServerError) and err.status_code == 404:
-            log.warning('<%03d/%s> Job not found', index, job_id)
-            _save_execution_error(job_id, 'runtime:polling-for-status', 'Job not found')
-            return
-        else:
-            log.error('<%03d/%s> call to Piazza failed: %s', index, job_id, err.message)
-            return
-
-    # Emit console feedback
-    log.info('<%03d/%s> polled (%s)', index, job_id, status.status)
-
-    # Determine appropriate action by status
-    if status.status == piazza.STATUS_RUNNING:
-        if datetime.utcnow() - created_on < job_ttl:
-            return
-        log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
-        _save_execution_error(job_id, 'runtime:timed-out', 'Processing time exceeded', status=STATUS_TIMED_OUT)
-
-    elif status.status == piazza.STATUS_SUCCESS:
-        log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
+        # Get latest status
         try:
-            detections_data_id = _resolve_detections_data_id(api_key, status.data_id)
-        except PostprocessingError as err:
-            log.error('<%03d/%s> could not resolve detections data ID %s', index, job_id, err)
-            _save_execution_error(job_id, 'postprocessing:resolve-detections-data-id', str(err))
-            return
-
-        log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
-        try:
-            geojson_as_text = piazza.get_file(api_key, detections_data_id).text
+            status = piazza.get_status(api_key, job_id)
         except piazza.Unauthorized:
-            log.error('<%03d/%s> credentials rejected during file retrieval!', index, job_id)
+            log.error('<%03d/%s> credentials rejected during polling!', index, job_id)
             return
-        except piazza.ServerError as err:
-            log.error('<%03d/%s> could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
-            _save_execution_error(job_id, 'postprocessing:collect-geojson', 'Could not retrieve GeoJSON from Piazza')
-            return
+        except (piazza.ServerError, piazza.Error) as err:
+            if isinstance(err, piazza.ServerError) and err.status_code == 404:
+                log.warning('<%03d/%s> Job not found', index, job_id)
+                _save_execution_error(job_id, 'runtime:polling-for-status', 'Job not found')
+                return
+            else:
+                log.error('<%03d/%s> call to Piazza failed: %s', index, job_id, err.message)
+                return
 
-        log.info('<%03d/%s> Inserting detections into PostGIS (%0.1fMB)', index, job_id, len(geojson_as_text)/1024000)
-        conn = get_connection()
-        try:
-            jobs_db.insert_detection(conn, job_id=job_id, feature_collection=geojson_as_text)
-        except DatabaseError as err:
-            err.print_diagnostics()
-            _save_execution_error(job_id, 'postprocessing:collect-geojson', 'Could not insert GeoJSON to database')
-            return
+        # Emit console feedback
+        log.info('<%03d/%s> polled (%s)', index, job_id, status.status)
 
-        _save_execution_success(job_id, detections_data_id)
+        # Determine appropriate action by status
+        if status.status == piazza.STATUS_RUNNING:
+            if datetime.utcnow() - created_on < job_ttl:
+                return
+            log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
+            _save_execution_error(job_id, STEP_POLLING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
 
-    elif status.status == piazza.STATUS_ERROR:
-        _save_execution_error(job_id, 'runtime:during-algorithm', 'Job failed during algorithm run')  # FIXME -- use heuristics to determine specifics here
+        elif status.status == piazza.STATUS_SUCCESS:
+            log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
+            try:
+                detections_data_id = _resolve_detections_data_id(api_key, status.data_id)
+            except PostprocessingError as err:
+                log.error('<%03d/%s> could not resolve detections data ID: %s', index, job_id, err)
+                _save_execution_error(job_id, STEP_RESOLVE, str(err))
+                return
 
-    elif status.status == piazza.STATUS_CANCELLED:
-        _save_execution_error(job_id, 'runtime:cancelled', 'Job was cancelled', status=piazza.STATUS_CANCELLED)
+            log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
+            try:
+                geojson = piazza.get_file(api_key, detections_data_id).text
+            except piazza.Unauthorized:
+                log.error('<%03d/%s> credentials rejected during file retrieval!', index, job_id)
+                return
+            except piazza.ServerError as err:
+                log.error('<%03d/%s> could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
+                _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not retrieve GeoJSON from Piazza')
+                return
 
+            log.info('<%03d/%s> Saving detections to database (%0.1fMB)', index, job_id, len(geojson) / 1024000)
+            conn = get_connection()
+            try:
+                jobs_db.insert_detection(conn, job_id=job_id, feature_collection=geojson)
+            except DatabaseError as err:
+                err.print_diagnostics()
+                _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
+                return
 
-def _resolve_detections_data_id(api_key, output_data_id) -> str:
-    try:
-        execution_output = piazza.get_file(api_key, output_data_id).json()
-        return str(execution_output['OutFiles']['shoreline.geojson'])
-    except piazza.Error as err:
-        raise PostprocessingError(err, 'could not fetch execution output: {}'.format(err))
-    except json.JSONDecodeError as err:
-        raise PostprocessingError(err, 'malformed execution output: {}'.format(err))
-    except KeyError as err:
-        raise PostprocessingError(err, 'execution output is missing key `{}`'.format(err))
+            _save_execution_success(job_id, detections_data_id)
+
+        elif status.status == piazza.STATUS_ERROR:
+            # FIXME -- use heuristics to generate a more descriptive error message
+            _save_execution_error(job_id, STEP_ALGORITHM, 'Job failed during algorithm execution')
+
+        elif status.status == piazza.STATUS_CANCELLED:
+            _save_execution_error(job_id, STEP_ALGORITHM, 'Job was cancelled', status=piazza.STATUS_CANCELLED)
 
 
 #
@@ -527,6 +512,18 @@ def _get_bbox(polygon: list):
 def _get_centroid(polygon: list):
     min_x, min_y, max_x, max_y = _get_bbox(polygon)
     return (max_x + min_x) / 2, (max_y + min_y) / 2
+
+
+def _resolve_detections_data_id(api_key: str, output_data_id: str) -> str:
+    try:
+        execution_output = piazza.get_file(api_key, output_data_id).json()
+        return str(execution_output['OutFiles']['shoreline.geojson'])
+    except piazza.Error as err:
+        raise PostprocessingError(err, 'could not fetch execution output: {}'.format(err))
+    except json.JSONDecodeError as err:
+        raise PostprocessingError(err, 'malformed execution output: {}'.format(err))
+    except KeyError as err:
+        raise PostprocessingError(err, 'execution output is missing key `{}`'.format(err))
 
 
 def _save_execution_error(job_id: str, execution_step: str, error_message: str, status: str = piazza.STATUS_ERROR):

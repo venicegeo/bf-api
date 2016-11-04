@@ -18,11 +18,9 @@ import signal
 
 import sqlalchemy as sa
 import sqlalchemy.exc as sae
-from sqlalchemy.engine import Engine, Connection, ResultProxy as Cursor
+from sqlalchemy.engine import Engine, Connection, ResultProxy
 
 from bfapi.config import POSTGRES_DATABASE, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USERNAME
-
-CONNECTION_TIMEOUT = 15
 
 _engine = None  # type: Engine
 
