@@ -19,15 +19,16 @@ import sqlalchemy.exc as sae
 from bfapi.db import Connection, DatabaseError
 
 
-def insert(conn: Connection,
-           *,
-           captured_on: datetime,
-           catalog_uri: str,
-           cloud_cover: float,
-           geometry: dict,
-           resolution: int,
-           scene_id: str,
-           sensor_name: str) -> str:
+def insert(
+        conn: Connection,
+        *,
+        captured_on: datetime,
+        catalog_uri: str,
+        cloud_cover: float,
+        geometry: dict,
+        resolution: int,
+        scene_id: str,
+        sensor_name: str) -> str:
     query = """
         INSERT INTO __beachfront__scene (scene_id, captured_on, catalog_uri, cloud_cover, geometry, resolution, sensor_name)
         VALUES (%(scene_id)s, %(captured_on)s, %(catalog_uri)s, %(cloud_cover)s, ST_GeomFromGeoJSON(%(geometry)s),

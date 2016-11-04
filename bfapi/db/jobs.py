@@ -15,7 +15,6 @@ import sqlalchemy.exc as sae
 
 from bfapi.db import Connection, DatabaseError, ResultProxy
 
-
 def delete_job_user(
         conn: Connection,
         *,
