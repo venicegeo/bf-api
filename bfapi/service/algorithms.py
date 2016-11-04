@@ -101,10 +101,10 @@ def get(api_key: str, service_id: str):
         log.error('Service lookup failed: %s', err)
         if err.status_code == 404:
             raise NotFound(service_id)
-        raise err
+        raise
     except piazza.Error as err:
         log.error('Service lookup failed: %s', err)
-        raise err
+        raise
     try:
         return Algorithm(
             bands=_extract_bands(service),
@@ -118,7 +118,7 @@ def get(api_key: str, service_id: str):
         )
     except ValidationError as err:
         log.error('Algorithm conversion failed: %s', err)
-        raise err
+        raise
 
 
 #

@@ -19,9 +19,8 @@ import time
 from datetime import datetime
 from typing import List, Tuple
 
-from bfapi import db, piazza
+from bfapi import db, piazza, service
 from bfapi.config import DOMAIN, SYSTEM_API_KEY, PZ_GATEWAY, SKIP_PRODUCTLINE_INSTALL
-from bfapi.service import algorithms as algorithms_service, jobs as jobs_service, scenes as scenes_service
 
 HARVEST_EVENT_IDENTIFIER = 'beachfront:api:on_harvest_event'
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
@@ -105,7 +104,7 @@ def create_productline(
         stop_on: datetime,
         user_id: str) -> ProductLine:
     log = logging.getLogger(__name__)
-    algorithm = algorithms_service.get(api_key, algorithm_id)
+    algorithm = service.algorithms.get(api_key, algorithm_id)
     productline_id = _create_id()
     log.info('Creating product line <%s>', productline_id)
     conn = db.get_connection()
@@ -126,7 +125,7 @@ def create_productline(
         )
     except db.DatabaseError as err:
         log.error('Could not insert product line record')
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
     return ProductLine(
@@ -171,7 +170,7 @@ def install_if_needed(handler_endpoint: str):
         if not piazza.get_triggers(api_key, HARVEST_EVENT_IDENTIFIER):
             needs_installation = True
             log.info('Registering harvest event trigger with Piazza')
-            event_type_id = scenes_service.get_event_type_id()
+            event_type_id = service.scenes.get_event_type_id()
             signature = create_event_signature()
             handler_service = piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER))[0]
             piazza.create_trigger(
@@ -211,8 +210,8 @@ def get_all() -> List[ProductLine]:
     try:
         cursor = db.productlines.select_all(conn)
     except db.DatabaseError as err:
-        err.print_diagnostics()
-        raise err
+        db.print_diagnostics(err)
+        raise
     productlines = []
     for row in cursor.fetchall():
         productlines.append(ProductLine(
@@ -260,7 +259,7 @@ def handle_harvest_event(
         )
     except db.DatabaseError as err:
         log.error('Database search for applicable product lines failed')
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
     rows = cursor.fetchall()
@@ -281,7 +280,7 @@ def handle_harvest_event(
             continue
 
         log.info('<scene:%s> Spawning job in product line <%s>', scene_id, pl_id)
-        new_job = jobs_service.create_job(
+        new_job = service.jobs.create_job(
             api_key=SYSTEM_API_KEY,
             job_name=_create_job_name(pl_name, scene_id),
             scene_id=scene_id,
@@ -324,7 +323,7 @@ def _find_existing_job_id_for_scene(scene_id: str, algorithm_id: str) -> str:
         ).fetchone()
     except db.DatabaseError as err:
         log.error('Job query failed')
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
     return row['job_id'] if row else None
 
@@ -341,7 +340,7 @@ def _link_to_job(productline_id: str, job_id: str):
         )
     except db.DatabaseError as err:
         log.error('Cannot link job and productline')
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
 

@@ -20,9 +20,8 @@ from typing import List
 
 import requests
 
-from bfapi import db, piazza
+from bfapi import db, piazza, service
 from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, SYSTEM_API_KEY, TIDE_SERVICE
-from bfapi.service import algorithms as algorithms_service, scenes as scenes_service
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
@@ -103,13 +102,13 @@ def create_job(
 
     # Fetch prerequisites
     try:
-        algorithm = algorithms_service.get(api_key, service_id)
-        scene = scenes_service.get(scene_id)
-    except (algorithms_service.NotFound,
-            algorithms_service.ValidationError,
-            scenes_service.CatalogError,
-            scenes_service.NotFound,
-            scenes_service.ValidationError) as err:
+        algorithm = service.algorithms.get(api_key, service_id)
+        scene = service.scenes.get(scene_id)
+    except (service.algorithms.NotFound,
+            service.algorithms.ValidationError,
+            service.scenes.CatalogError,
+            service.scenes.NotFound,
+            service.scenes.ValidationError) as err:
         raise PreprocessingError(err)
 
     # Fetch tide info
@@ -185,7 +184,7 @@ def create_job(
     except db.DatabaseError as err:
         transaction.rollback()
         log.error('Could not save job to database: %s', err)
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
     return Job(
@@ -210,7 +209,7 @@ def forget(user_id: str, job_id: str) -> None:
     try:
         db.jobs.delete_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
 
@@ -224,7 +223,7 @@ def get(user_id: str, job_id: str) -> Job:
     try:
         db.jobs.insert_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
     return Job(
@@ -249,7 +248,7 @@ def get_all(user_id: str) -> List[Job]:
     try:
         cursor = db.jobs.select_jobs_for_user(conn, user_id=user_id)
     except db.DatabaseError as err:
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
     jobs = []
@@ -279,7 +278,7 @@ def get_by_productline(productline_id: str) -> List[Job]:
     try:
         cursor = db.jobs.select_jobs_for_productline(conn, productline_id=productline_id)
     except db.DatabaseError as err:
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
     jobs = []
@@ -307,7 +306,7 @@ def get_by_scene(scene_id: str) -> List[Job]:
     try:
         cursor = db.jobs.select_jobs_for_scene(conn, scene_id=scene_id)
     except db.DatabaseError as err:
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise err
 
     jobs = []
@@ -372,7 +371,7 @@ class Worker(threading.Thread):
                 rows = db.jobs.select_summary_for_status(conn, status=piazza.STATUS_RUNNING).fetchall()
             except db.DatabaseError as err:
                 self._log.error('Could not list running jobs: %s', err)
-                err.print_diagnostics()
+                db.print_diagnostics(err)
                 raise
             finally:
                 conn.close()
@@ -444,7 +443,7 @@ class Worker(threading.Thread):
             try:
                 db.jobs.insert_detection(conn, job_id=job_id, feature_collection=geojson)
             except db.DatabaseError as err:
-                err.print_diagnostics()
+                db.print_diagnostics(err)
                 _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
                 return
 
@@ -462,7 +461,7 @@ class Worker(threading.Thread):
 # Helpers
 #
 
-def _fetch_tide_prediction(scene: scenes_service.Scene) -> (float, float, float):
+def _fetch_tide_prediction(scene: service.scenes.Scene) -> (float, float, float):
     log = logging.getLogger(__name__)
     x, y = _get_centroid(scene.geometry['coordinates'])
     dtg = scene.capture_date.strftime(FORMAT_DTG)
@@ -546,7 +545,7 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
     except db.DatabaseError as err:
         transaction.rollback()
         log.error('<%s> database update failed', job_id)
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
 
@@ -563,7 +562,7 @@ def _save_execution_success(job_id: str, detections_data_id: str):
         )
     except db.DatabaseError as err:
         log.error('<%s> database update failed', job_id)
-        err.print_diagnostics()
+        db.print_diagnostics(err)
         raise
 
 
