@@ -120,16 +120,14 @@ def create_trigger(api_key: str, *, data_inputs: dict, event_type_id: str, name:
                         'data': {
                             'serviceId': service_id,
                             'dataInputs': data_inputs,
-                            'dataOutput': [
-                                {
-                                    'mimeType': 'text/plain',
-                                    'type': 'text'
-                                },
-                            ],
+                            'dataOutput': [{
+                                'mimeType': 'text/plain',
+                                'type': 'text'
+                            }],
                         },
                     },
                 },
-                'enabled': True
+                'enabled': True,
             },
         )
         response.raise_for_status()
@@ -487,9 +485,9 @@ def register_service(
 
     service_id = data.get('serviceId')
     if service_id is None:
-        raise InvalidResponse('missing `serviceId`')
+        raise InvalidResponse('missing `data.serviceId`', response.text)
     elif not isinstance(service_id, str):
-        raise InvalidResponse('`serviceId` is of the wrong type')
+        raise InvalidResponse('`serviceId` is of the wrong type', response.text)
 
     return service_id
 

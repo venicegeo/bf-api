@@ -23,12 +23,6 @@ API_KEY = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
 
 @Mocker()
-class CreateTriggerTest(unittest.TestCase):
-    def test_calls_correct_url(self, m: Mocker):
-        self.fail('Not yet implemented')
-
-
-@Mocker()
 class CreateApiKeyTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/key', text=RESPONSE_AUTH_SUCCESS)
@@ -50,7 +44,7 @@ class CreateApiKeyTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             piazza.create_api_key('Basic Og==')
 
-    def test_throws_when_piazza_is_unreachable(self,_):
+    def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.get') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(piazza.Unreachable):
@@ -71,6 +65,134 @@ class CreateApiKeyTest(unittest.TestCase):
     def test_throws_when_passed_malformed_auth_header(self, m: Mocker):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.create_api_key('lolwut')
+
+
+@Mocker()
+class CreateTriggerTest(unittest.TestCase):
+    maxDiff = 4096
+
+    def test_calls_correct_url(self, m: Mocker):
+        m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
+        piazza.create_trigger(
+            API_KEY,
+            data_inputs={},
+            event_type_id='test-event-type-id',
+            name='test-name',
+            service_id='test-service-id',
+        )
+        self.assertEqual('https://pz-gateway.localhost/trigger', m.request_history[0].url)
+
+    def test_sends_correct_payload(self, m: Mocker):
+        m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
+        piazza.create_trigger(
+            API_KEY,
+            data_inputs={'lorem': 'ipsum dolor'},
+            event_type_id='test-event-type-id',
+            name='test-name',
+            service_id='test-service-id',
+        )
+        self.assertEqual({
+            'name': 'test-name',
+            'eventTypeId': 'test-event-type-id',
+            'condition': {
+                'query': {'query': {'match_all': {}}},
+            },
+            'job': {
+                'jobType': {
+                    'type': 'execute-service',
+                    'data': {
+                        'serviceId': 'test-service-id',
+                        'dataInputs': {'lorem': 'ipsum dolor'},
+                        'dataOutput': [{
+                            'mimeType': 'text/plain',
+                            'type': 'text'
+                        }],
+                    },
+                },
+            },
+            'enabled': True,
+        }, m.request_history[0].json())
+
+    def test_returns_trigger_id(self, m: Mocker):
+        m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
+        trigger_id = piazza.create_trigger(
+            API_KEY,
+            data_inputs={'foo': 'bar'},
+            event_type_id='test-event-type-id',
+            name='test-name',
+            service_id='test-service-id',
+        )
+        self.assertEqual('test-trigger-id', trigger_id)
+
+    def test_gracefully_handles_errors(self, m: Mocker):
+        m.post('/trigger', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.create_trigger(
+                API_KEY,
+                data_inputs={'foo': 'bar'},
+                event_type_id='test-event-type-id',
+                name='test-name',
+                service_id='test-service-id',
+            )
+
+    def test_throws_when_piazza_is_unreachable(self, _):
+        with unittest.mock.patch('requests.post') as mock:
+            mock.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.create_trigger(
+                    API_KEY,
+                    data_inputs={'foo': 'bar'},
+                    event_type_id='test-event-type-id',
+                    name='test-name',
+                    service_id='test-service-id',
+                )
+
+    def test_throws_when_data_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_TRIGGER)
+        mangled_response.pop('data')
+        m.post('/trigger', json=mangled_response, status_code=201)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data`'):
+            piazza.create_trigger(
+                API_KEY,
+                data_inputs={'foo': 'bar'},
+                event_type_id='test-event-type-id',
+                name='test-name',
+                service_id='test-service-id',
+            )
+
+    def test_throws_when_trigger_id_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_TRIGGER)
+        mangled_response['data'].pop('triggerId')
+        m.post('/trigger', json=mangled_response, status_code=201)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data.triggerId`'):
+            piazza.create_trigger(
+                API_KEY,
+                data_inputs={'foo': 'bar'},
+                event_type_id='test-event-type-id',
+                name='test-name',
+                service_id='test-service-id',
+            )
+
+    def test_throws_when_credentials_are_rejected(self, m: Mocker):
+        m.post('/trigger', text=RESPONSE_AUTH_REJECTED, status_code=401)
+        with self.assertRaises(piazza.Unauthorized):
+            piazza.create_trigger(
+                API_KEY,
+                data_inputs={'foo': 'bar'},
+                event_type_id='test-event-type-id',
+                name='test-name',
+                service_id='test-service-id',
+            )
+
+    def test_throws_when_passed_malformed_api_key(self, _):
+        with self.assertRaises(piazza.MalformedCredentials):
+            piazza.create_trigger(
+                'lolwut',
+                data_inputs={'foo': 'bar'},
+                event_type_id='test-event-type-id',
+                name='test-name',
+                service_id='test-service-id',
+            )
 
 
 @Mocker()
@@ -159,6 +281,67 @@ class DeployTest(unittest.TestCase):
     def test_throws_when_passed_malformed_api_key(self, _):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.deploy('lolwut', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
+
+
+@Mocker()
+class ExecuteTest(unittest.TestCase):
+    def test_calls_correct_url(self, m: Mocker):
+        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
+        piazza.execute(API_KEY, 'test-service-id', {})
+        self.assertEqual('https://pz-gateway.localhost/job', m.request_history[0].url)
+
+    def test_sends_correct_service_id(self, m: Mocker):
+        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
+        piazza.execute(API_KEY, 'test-service-id', {})
+        self.assertEqual('test-service-id', m.request_history[0].json()['data']['serviceId'])
+
+    def test_sends_correct_input_parameters(self, m: Mocker):
+        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
+        piazza.execute(API_KEY, 'test-service-id', {'foo': 'bar'})
+        self.assertEqual({'foo': 'bar'}, m.request_history[0].json()['data']['dataInputs'])
+
+    def test_sends_default_output_parameters(self, m: Mocker):
+        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
+        piazza.execute(API_KEY, 'test-service-id', {})
+        self.assertEqual([{'mimeType': 'application/json', 'type': 'text'}],
+                         m.request_history[0].json()['data']['dataOutput'])
+
+    def test_sends_correct_output_parameters_when_explicitly_set(self, m: Mocker):
+        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
+        piazza.execute(API_KEY, 'test-service-id', {}, [{'boo': 'baz'}])
+        self.assertEqual([{'boo': 'baz'}], m.request_history[0].json()['data']['dataOutput'])
+
+    def test_returns_job_id(self, m: Mocker):
+        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
+        job_id = piazza.execute(API_KEY, 'test-service-id', {'foo': 'bar'}, [{'boo': 'baz'}])
+        self.assertEqual('test-job-id', job_id)
+
+    def test_handles_http_errors_gracefully(self, m: Mocker):
+        m.post('/job', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.execute(API_KEY, 'test-service-id', {})
+
+    def test_throws_when_piazza_is_unreachable(self, _):
+        with unittest.mock.patch('requests.post') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.execute(API_KEY, 'test-service-id', {})
+
+    def test_throws_when_credentials_are_rejected(self, m: Mocker):
+        m.post('/job', text=RESPONSE_ERROR_GENERIC, status_code=401)
+        with self.assertRaises(piazza.Unauthorized):
+            piazza.execute(API_KEY, 'test-service-id', {})
+
+    def test_throws_when_job_id_is_missing(self, m: Mocker):
+        truncated_response = json.loads(RESPONSE_JOB_CREATED)
+        truncated_response['data'].pop('jobId')
+        m.post('/job', json=truncated_response, status_code=201)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.execute(API_KEY, 'test-service-id', {})
+
+    def test_throws_when_passed_malformed_api_key(self, _):
+        with self.assertRaises(piazza.MalformedCredentials):
+            piazza.execute('lolwut', 'test-service-id', {})
 
 
 @Mocker()
@@ -398,6 +581,8 @@ class GetServicesTest(unittest.TestCase):
         descriptors = piazza.get_services(API_KEY, pattern='^test-pattern$')
         self.assertIsInstance(descriptors, list)
         self.assertEqual(2, len(descriptors))
+        self.assertIsInstance(descriptors[0], piazza.ServiceDescriptor)
+        self.assertIsInstance(descriptors[1], piazza.ServiceDescriptor)
 
     def test_deserializes_canonical_data(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
@@ -470,13 +655,194 @@ class GetServicesTest(unittest.TestCase):
 @Mocker()
 class GetTriggersTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
-        self.fail('Not yet implemented')
+        m.post('/trigger/query', text=RESPONSE_TRIGGER_LIST)
+        piazza.get_triggers(API_KEY, 'test-name')
+        self.assertEqual('https://pz-gateway.localhost/trigger/query', m.request_history[0].url)
+
+    def test_sends_correct_payload(self, m: Mocker):
+        m.post('/trigger/query', text=RESPONSE_TRIGGER_LIST)
+        piazza.get_triggers(API_KEY, 'test-name')
+        self.assertEqual({
+            'query': {
+                'match': {
+                    'name': 'test-name',
+                },
+            },
+        }, m.request_history[0].json())
+
+    def test_returns_a_list_of_triggers(self, m: Mocker):
+        m.post('/trigger/query', text=RESPONSE_TRIGGER_LIST)
+        triggers = piazza.get_triggers(API_KEY, 'test-name')
+        self.assertIsInstance(triggers, list)
+        self.assertEqual(['test-trigger-id-1', 'test-trigger-id-2'], list(map(lambda d: d['triggerId'], triggers)))
+
+    def test_gracefully_handles_errors(self, m: Mocker):
+        m.post('/trigger/query', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.get_triggers(API_KEY, 'test-name')
+
+    def test_throws_when_data_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_TRIGGER_LIST)
+        mangled_response.pop('data')
+        m.post('/trigger/query', json=mangled_response)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data`'):
+            piazza.get_triggers(API_KEY, 'test-name')
+
+    def test_throws_when_response_is_malformed(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_TRIGGER_LIST)
+        mangled_response['data'] = 'lolwut'
+        m.post('/trigger/query', json=mangled_response)
+        with self.assertRaisesRegex(piazza.InvalidResponse, '`data` is of the wrong type'):
+            piazza.get_triggers(API_KEY, 'test-name')
+
+    def test_throws_when_piazza_is_unreachable(self, _):
+        with unittest.mock.patch('requests.post') as mock:
+            mock.side_effect = piazza.Unreachable()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.get_triggers(API_KEY, 'test-name')
+
+    def test_throws_when_credentials_are_rejected(self, m: Mocker):
+        m.post('/trigger/query', text=RESPONSE_TRIGGER_LIST, status_code=401)
+        with self.assertRaises(piazza.Unauthorized):
+            piazza.get_triggers(API_KEY, 'test-name')
+
+    def test_throws_when_passed_malformed_api_key(self, _):
+        with self.assertRaises(piazza.MalformedCredentials):
+            piazza.get_triggers('lolwut', 'test-name')
 
 
 @Mocker()
 class RegisterServiceTest(unittest.TestCase):
+    maxDiff = 4096
+
     def test_calls_correct_url(self, m: Mocker):
-        self.fail('Not yet implemented')
+        m.post('/service', text=RESPONSE_SERVICE_REGISTERED, status_code=201)
+        piazza.register_service(
+            API_KEY,
+            contract_url='test-contract-url',
+            description='test-description',
+            name='test-name',
+            url='test-url',
+        )
+        self.assertEqual('https://pz-gateway.localhost/service', m.request_history[0].url)
+
+    def test_sends_correct_payload(self, m: Mocker):
+        m.post('/service', text=RESPONSE_SERVICE_REGISTERED, status_code=201)
+        piazza.register_service(
+            API_KEY,
+            contract_url='test-contract-url',
+            description='test-description',
+            name='test-name',
+            url='test-url',
+        )
+        self.assertEqual({
+            'url': 'test-url',
+            'contractUrl': 'test-contract-url',
+            'method': 'POST',
+            'timeout': 60,
+            'resourceMetadata': {
+                'name': 'test-name',
+                'description': 'test-description',
+                'version': '0.0',
+                'classType': {
+                    'classification': 'Unclassified',
+                },
+            },
+        }, m.request_history[0].json())
+
+    def test_returns_service_id(self, m: Mocker):
+        m.post('/service', text=RESPONSE_SERVICE_REGISTERED, status_code=201)
+        service_id = piazza.register_service(
+            API_KEY,
+            contract_url='test-contract-url',
+            description='test-description',
+            name='test-name',
+            url='test-url',
+        )
+        self.assertEqual('test-service-id', service_id)
+
+    def test_gracefully_handles_errors(self, m: Mocker):
+        m.post('/service', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        with self.assertRaises(piazza.ServerError):
+            piazza.register_service(
+                API_KEY,
+                contract_url='test-contract-url',
+                description='test-description',
+                name='test-name',
+                url='test-url',
+            )
+
+    def test_throws_when_data_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_SERVICE_REGISTERED)
+        mangled_response.pop('data')
+        m.post('/service', json=mangled_response, status_code=201)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data`'):
+            piazza.register_service(
+                API_KEY,
+                contract_url='test-contract-url',
+                description='test-description',
+                name='test-name',
+                url='test-url',
+            )
+
+    def test_throws_when_service_id_is_missing(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_SERVICE_REGISTERED)
+        mangled_response['data'].pop('serviceId')
+        m.post('/service', json=mangled_response, status_code=201)
+        with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data.serviceId`'):
+            piazza.register_service(
+                API_KEY,
+                contract_url='test-contract-url',
+                description='test-description',
+                name='test-name',
+                url='test-url',
+            )
+
+    def test_throws_when_response_is_malformed(self, m: Mocker):
+        mangled_response = json.loads(RESPONSE_SERVICE_REGISTERED)
+        mangled_response['data'] = 'lolwut'
+        m.post('/service', json=mangled_response, status_code=201)
+        with self.assertRaisesRegex(piazza.InvalidResponse, '`data` is of the wrong type'):
+            piazza.register_service(
+                API_KEY,
+                contract_url='test-contract-url',
+                description='test-description',
+                name='test-name',
+                url='test-url',
+            )
+
+    def test_throws_when_piazza_is_unreachable(self, _):
+        with unittest.mock.patch('requests.post') as mock:
+            mock.side_effect = ConnectionError()
+            with self.assertRaises(piazza.Unreachable):
+                piazza.register_service(
+                    API_KEY,
+                    contract_url='test-contract-url',
+                    description='test-description',
+                    name='test-name',
+                    url='test-url',
+                )
+
+    def test_throws_when_credentials_are_rejected(self, m: Mocker):
+        m.post('/service', text=RESPONSE_AUTH_REJECTED, status_code=401)
+        with self.assertRaises(piazza.Unauthorized):
+            piazza.register_service(
+                API_KEY,
+                contract_url='test-contract-url',
+                description='test-description',
+                name='test-name',
+                url='test-url',
+            )
+
+    def test_throws_when_passed_malformed_api_key(self, _):
+        with self.assertRaises(piazza.MalformedCredentials):
+            piazza.register_service(
+                'lolwut',
+                contract_url='test-contract-url',
+                description='test-description',
+                name='test-name',
+                url='test-url',
+            )
 
 
 @Mocker()
@@ -523,67 +889,6 @@ class VerifyApiKeyTest(unittest.TestCase):
         m.post('/v2/verification', text='{}')
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.verify_api_key('lolwut')
-
-
-@Mocker()
-class ExecuteTest(unittest.TestCase):
-    def test_calls_correct_url(self, m: Mocker):
-        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute(API_KEY, 'test-service-id', {})
-        self.assertEqual('https://pz-gateway.localhost/job', m.request_history[0].url)
-
-    def test_sends_correct_service_id(self, m: Mocker):
-        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute(API_KEY, 'test-service-id', {})
-        self.assertEqual('test-service-id', m.request_history[0].json()['data']['serviceId'])
-
-    def test_sends_correct_input_parameters(self, m: Mocker):
-        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute(API_KEY, 'test-service-id', {'foo': 'bar'})
-        self.assertEqual({'foo': 'bar'}, m.request_history[0].json()['data']['dataInputs'])
-
-    def test_sends_default_output_parameters(self, m: Mocker):
-        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute(API_KEY, 'test-service-id', {})
-        self.assertEqual([{'mimeType': 'application/json', 'type': 'text'}],
-                         m.request_history[0].json()['data']['dataOutput'])
-
-    def test_sends_correct_output_parameters_when_explicitly_set(self, m: Mocker):
-        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        piazza.execute(API_KEY, 'test-service-id', {}, [{'boo': 'baz'}])
-        self.assertEqual([{'boo': 'baz'}], m.request_history[0].json()['data']['dataOutput'])
-
-    def test_returns_job_id(self, m: Mocker):
-        m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
-        job_id = piazza.execute(API_KEY, 'test-service-id', {'foo': 'bar'}, [{'boo': 'baz'}])
-        self.assertEqual('test-job-id', job_id)
-
-    def test_handles_http_errors_gracefully(self, m: Mocker):
-        m.post('/job', text=RESPONSE_ERROR_GENERIC, status_code=500)
-        with self.assertRaises(piazza.ServerError):
-            piazza.execute(API_KEY, 'test-service-id', {})
-
-    def test_throws_when_piazza_is_unreachable(self, _):
-        with unittest.mock.patch('requests.post') as stub:
-            stub.side_effect = ConnectionError()
-            with self.assertRaises(piazza.Unreachable):
-                piazza.execute(API_KEY, 'test-service-id', {})
-
-    def test_throws_when_credentials_are_rejected(self, m: Mocker):
-        m.post('/job', text=RESPONSE_ERROR_GENERIC, status_code=401)
-        with self.assertRaises(piazza.Unauthorized):
-            piazza.execute(API_KEY, 'test-service-id', {})
-
-    def test_throws_when_job_id_is_missing(self, m: Mocker):
-        truncated_response = json.loads(RESPONSE_JOB_CREATED)
-        truncated_response['data'].pop('jobId')
-        m.post('/job', json=truncated_response, status_code=201)
-        with self.assertRaises(piazza.InvalidResponse):
-            piazza.execute(API_KEY, 'test-service-id', {})
-
-    def test_throws_when_passed_malformed_api_key(self, _):
-        with self.assertRaises(piazza.MalformedCredentials):
-            piazza.execute('lolwut', 'test-service-id', {})
 
 
 #
@@ -777,4 +1082,152 @@ RESPONSE_SERVICE_NOT_FOUND = """{
   "type": "error",
   "message": "Service not found: test-id",
   "origin": "Service Controller"
+}"""
+
+RESPONSE_SERVICE_REGISTERED = """{
+  "type": "service-id",
+  "data": {
+    "serviceId": "test-service-id"
+  }
+}"""
+
+RESPONSE_SERVICE_UNREGISTERED = """{
+  "type": "success",
+  "data": {
+    "message": "Service was deleted successfully.",
+    "origin": "ServiceController"
+  }
+}"""
+
+RESPONSE_TRIGGER_ERROR = """{
+  "type": "error",
+  "message": "TriggerDB.PostData failed: serviceID test-service-id does not exist",
+  "origin": "pz-workflow"
+}"""
+
+RESPONSE_TRIGGER = r"""{
+  "type": "trigger",
+  "data": {
+    "triggerId": "test-trigger-id",
+    "name": "test-trigger-name",
+    "eventTypeId": "test-event-type-id",
+    "condition": {
+      "query": {
+        "query": {
+          "match_all": {}
+        }
+      }
+    },
+    "job": {
+      "createdBy": "test-created-by",
+      "jobType": {
+        "data": {
+          "dataInputs": {
+            "foo": {
+              "content": null,
+              "type": "text",
+              "mimeType": "text/plain"
+            }
+          },
+          "dataOutput": [
+            {
+              "content": null,
+              "mimeType": "text/plain",
+              "type": "text"
+            }
+          ],
+          "serviceId": "test-service-id"
+        },
+        "type": "execute-service"
+      }
+    },
+    "percolationId": "",
+    "createdBy": "test-created-by",
+    "createdOn": "2016-11-05T23:29:54.189286813Z",
+    "enabled": true
+  }
+}"""
+
+RESPONSE_TRIGGER_LIST = """{
+  "type": "trigger-list",
+  "data": [
+    {
+      "triggerId": "test-trigger-id-1",
+      "name": "test-trigger-name",
+      "condition": {
+        "query": {
+          "bool": {
+            "filter": null
+          }
+        }
+      },
+      "eventTypeId": "test-event-type-id",
+      "job": {
+        "createdBy": "test-created-by",
+        "jobType": {
+          "type": "execute-service",
+          "data": {
+            "serviceId": "test-service-id",
+            "dataInputs": {
+              "foo": {
+                "type": "text",
+                "content": null,
+                "mimeType": "text/plain"
+              }
+            },
+            "dataOutput": [
+              {
+                "type": "text",
+                "content": null,
+                "mimeType": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "percolationId": "",
+      "createdBy": "test-created-by",
+      "enabled": true,
+      "createdOn": "2016-10-17T13:25:29.246Z"
+    },
+    {
+      "triggerId": "test-trigger-id-2",
+      "name": "test-trigger-name",
+      "condition": {
+        "query": {
+          "bool": {
+            "filter": null
+          }
+        }
+      },
+      "eventTypeId": "test-event-type-id",
+      "job": {
+        "createdBy": "test-created-by",
+        "jobType": {
+          "type": "execute-service",
+          "data": {
+            "serviceId": "test-service-id",
+            "dataInputs": {
+              "foo": {
+                "type": "text",
+                "content": null,
+                "mimeType": "text/plain"
+              }
+            },
+            "dataOutput": [
+              {
+                "type": "text",
+                "content": null,
+                "mimeType": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "percolationId": "",
+      "createdBy": "test-created-by",
+      "enabled": true,
+      "createdOn": "2016-10-17T13:25:29.246Z"
+    }
+  ]
 }"""
