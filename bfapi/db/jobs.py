@@ -11,9 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import sqlalchemy.exc as sae
-
-from bfapi.db import Connection, DatabaseError, ResultProxy
+from bfapi.db import Connection, ResultProxy
 
 def delete_job_user(
         conn: Connection,
@@ -29,10 +27,7 @@ def delete_job_user(
         'job_id': job_id,
         'user_id': user_id,
     }
-    try:
-        return conn.execute(query, params).rowcount > 0
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params).rowcount > 0
 
 
 def exists(
@@ -45,10 +40,7 @@ def exists(
     params = {
         'job_id': job_id,
     }
-    try:
-        return conn.execute(query, params).rowcount > 0
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params).rowcount > 0
 
 
 def insert_detection(
@@ -68,10 +60,7 @@ def insert_detection(
         'job_id': job_id,
         'feature_collection': feature_collection,
     }
-    try:
-        conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    conn.execute(query, params)
 
 
 def insert_job(
@@ -99,10 +88,7 @@ def insert_job(
         'scene_id': scene_id,
         'status': status,
     }
-    try:
-        conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    conn.execute(query, params)
 
 
 def insert_job_failure(
@@ -120,10 +106,7 @@ def insert_job_failure(
         'error_message': error_message or None,
         'execution_step': execution_step,
     }
-    try:
-        conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    conn.execute(query, params)
 
 
 def insert_job_user(
@@ -140,10 +123,7 @@ def insert_job_user(
         'job_id': job_id,
         'user_id': user_id,
     }
-    try:
-        conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    conn.execute(query, params)
 
 
 def select_job(
@@ -163,10 +143,7 @@ def select_job(
     params = {
         'job_id': job_id,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)
 
 
 def select_jobs_for_inputs(
@@ -186,10 +163,7 @@ def select_jobs_for_inputs(
         'algorithm_id': algorithm_id,
         'scene_id': scene_id,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)
 
 
 def select_jobs_for_productline(
@@ -209,10 +183,7 @@ def select_jobs_for_productline(
     params = {
         'productline_id': productline_id,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)
 
 
 def select_jobs_for_scene(
@@ -232,10 +203,7 @@ def select_jobs_for_scene(
     params = {
         'scene_id': scene_id,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)
 
 
 def select_jobs_for_user(
@@ -257,10 +225,7 @@ def select_jobs_for_user(
     params = {
         'user_id': user_id,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)
 
 
 def select_summary_for_status(
@@ -275,10 +240,7 @@ def select_summary_for_status(
     params = {
         'status': status,
     }
-    try:
-        return conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    return conn.execute(query, params)
 
 
 def update_status(
@@ -298,7 +260,4 @@ def update_status(
         'status': status,
         'detections_id': data_id,
     }
-    try:
-        conn.execute(query, params)
-    except sae.DatabaseError as err:
-        raise DatabaseError(err)
+    conn.execute(query, params)
