@@ -132,7 +132,7 @@ def _install_if_needed():
 
     # Execute
     try:
-        is_installed, = _engine.execute(sa.text(query)).fetchone()
+        is_installed = _engine.execute(sa.text(query)).scalar()
     except DatabaseError as err:
         log.critical('Schema verification failed: %s', err)
         print_diagnostics(err)

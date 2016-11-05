@@ -30,7 +30,7 @@ class DeleteJobUserTest(unittest.TestCase):
         self.fail('Not implemented')
 
 
-class Exists(unittest.TestCase):
+class ExistsTest(unittest.TestCase):
     def setUp(self):
         self.conn = unittest.mock.Mock()
 

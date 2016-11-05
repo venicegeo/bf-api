@@ -13,10 +13,10 @@
 
 import unittest.mock
 
-from bfapi import db
+from bfapi import routes
 
 
-class GetConnectionTest(unittest.TestCase):
+class HealthCheckTest(unittest.TestCase):
     def setUp(self):
         self.conn = unittest.mock.Mock()
 
@@ -24,7 +24,7 @@ class GetConnectionTest(unittest.TestCase):
         self.fail('Not implemented')
 
 
-class InstallTest(unittest.TestCase):
+class LoginTest(unittest.TestCase):
     def setUp(self):
         self.conn = unittest.mock.Mock()
 

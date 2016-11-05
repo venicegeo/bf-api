@@ -13,186 +13,20 @@
 
 import unittest.mock
 
-from bfapi.db import jobs as jobsdb
+from bfapi import db
 
 
-class DeleteJobUserTest(unittest.TestCase):
+class GetConnectionTest(unittest.TestCase):
     def setUp(self):
         self.conn = unittest.mock.Mock()
 
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
+    def test_does_things(self):
         self.fail('Not implemented')
 
 
-class Exists(unittest.TestCase):
+class InstallTest(unittest.TestCase):
     def setUp(self):
         self.conn = unittest.mock.Mock()
 
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class InsertDetectionTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class InsertJobTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class InsertJobFailureTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class InsertJobUserTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class SelectJobTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class SelectJobsForInputsTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class SelectJobsForProductlineTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class SelectJobsForSceneTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class SelectJobsForUserTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class SelectSummaryForStatusTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.fail('Not implemented')
-
-
-class UpdateStatusTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.fail('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
-
-    def test_throws_when_connection_throws(self):
+    def test_does_things(self):
         self.fail('Not implemented')

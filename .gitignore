@@ -5,3 +5,5 @@ bf-api.zip
 .idea
 .env
 .environment-vars.dev.sh
+.coverage
+report

@@ -23,13 +23,13 @@ _api_key = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
 
 @Mocker()
-class PiazzaCreateTriggerTest(unittest.TestCase):
+class CreateTriggerTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         self.fail('Not yet implemented')
 
 
 @Mocker()
-class PiazzaCreateApiKeyTest(unittest.TestCase):
+class CreateApiKeyTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/key', text=RESPONSE_AUTH_SUCCESS)
         piazza.create_api_key('Basic Og==')
@@ -50,7 +50,7 @@ class PiazzaCreateApiKeyTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             piazza.create_api_key('Basic Og==')
 
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+    def test_throws_when_piazza_is_unreachable(self,_):
         with unittest.mock.patch('requests.get') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(piazza.Unreachable):
@@ -74,7 +74,7 @@ class PiazzaCreateApiKeyTest(unittest.TestCase):
 
 
 @Mocker()
-class PiazzaDeployTest(unittest.TestCase):
+class DeployTest(unittest.TestCase):
     def test_calls_correct_urls(self, m: Mocker):
         m.post('/deployment', text=RESPONSE_JOB_CREATED, status_code=201)
         m.get('/job/test-job-id', [
@@ -125,7 +125,7 @@ class PiazzaDeployTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             piazza.deploy(_api_key, data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
 
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+    def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.post') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(piazza.Unreachable):
@@ -156,13 +156,13 @@ class PiazzaDeployTest(unittest.TestCase):
         with self.assertRaisesRegex(piazza.DeploymentError, 'job failed'):
             piazza.deploy(_api_key, data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
 
-    def test_throws_when_passed_malformed_api_key(self, m: Mocker):
+    def test_throws_when_passed_malformed_api_key(self, _):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.deploy('lolwut', data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
 
 
 @Mocker()
-class PiazzaGetFileTest(unittest.TestCase):
+class GetFileTest(unittest.TestCase):
     def test_calls_correct_urls(self, m: Mocker):
         m.get('/file/test-data-id', text=RESPONSE_FILE)
         piazza.get_file(_api_key, 'test-data-id')
@@ -183,7 +183,7 @@ class PiazzaGetFileTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             piazza.get_file(_api_key, 'test-data-id')
 
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+    def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.get') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(piazza.Unreachable):
@@ -194,13 +194,13 @@ class PiazzaGetFileTest(unittest.TestCase):
         with self.assertRaises(piazza.Unauthorized):
             piazza.get_file(_api_key, 'test-data-id')
 
-    def test_throws_when_passed_malformed_api_key(self, m: Mocker):
+    def test_throws_when_passed_malformed_api_key(self, _):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.get_file('lolwut', 'test-data-id')
 
 
 @Mocker()
-class PiazzaGetStatusTest(unittest.TestCase):
+class GetStatusTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING)
         piazza.get_status(_api_key, 'test-job-id')
@@ -297,13 +297,13 @@ class PiazzaGetStatusTest(unittest.TestCase):
         with self.assertRaisesRegex(piazza.InvalidResponse, 'missing `data.result`'):
             piazza.get_status(_api_key, 'test-job-id')
 
-    def test_throws_when_passed_malformed_api_key(self, m: Mocker):
+    def test_throws_when_passed_malformed_api_key(self, _):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.get_status('lolwut', 'test-job-id')
 
 
 @Mocker()
-class PiazzaGetServiceTest(unittest.TestCase):
+class GetServiceTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
         piazza.get_service(_api_key, service_id='test-id')
@@ -333,7 +333,7 @@ class PiazzaGetServiceTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             piazza.get_service(_api_key, service_id='test-id')
 
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+    def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.get') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(piazza.Unreachable):
@@ -379,13 +379,13 @@ class PiazzaGetServiceTest(unittest.TestCase):
         with self.assertRaises(piazza.InvalidResponse):
             piazza.get_service(_api_key, service_id='test-id')
 
-    def test_throws_when_passed_malformed_api_key(self, m: Mocker):
+    def test_throws_when_passed_malformed_api_key(self, _):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.get_service('lolwut', service_id='test-id')
 
 
 @Mocker()
-class PiazzaGetServicesTest(unittest.TestCase):
+class GetServicesTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
         piazza.get_services(_api_key, pattern='^test-pattern$')
@@ -418,7 +418,7 @@ class PiazzaGetServicesTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             piazza.get_services(_api_key, pattern='^test-pattern$')
 
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+    def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.get') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(piazza.Unreachable):
@@ -462,25 +462,25 @@ class PiazzaGetServicesTest(unittest.TestCase):
         with self.assertRaises(piazza.InvalidResponse):
             piazza.get_services(_api_key, pattern='^test-pattern$')
 
-    def test_throws_when_passed_malformed_api_key(self, m: Mocker):
+    def test_throws_when_passed_malformed_api_key(self, _):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.get_services('lolwut', pattern='^test-pattern$')
 
 
 @Mocker()
-class PiazzaGetTriggersTest(unittest.TestCase):
+class GetTriggersTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         self.fail('Not yet implemented')
 
 
 @Mocker()
-class PiazzaRegisterServiceTest(unittest.TestCase):
+class RegisterServiceTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         self.fail('Not yet implemented')
 
 
 @Mocker()
-class PiazzaVerifyApiKeyTest(unittest.TestCase):
+class VerifyApiKeyTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
         piazza.verify_api_key(_api_key)
@@ -513,7 +513,7 @@ class PiazzaVerifyApiKeyTest(unittest.TestCase):
         with self.assertRaises(piazza.InvalidResponse):
             piazza.verify_api_key(_api_key)
 
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+    def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.post') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(piazza.Unreachable):
@@ -526,7 +526,7 @@ class PiazzaVerifyApiKeyTest(unittest.TestCase):
 
 
 @Mocker()
-class PiazzaExecuteTest(unittest.TestCase):
+class ExecuteTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
         piazza.execute(_api_key, 'test-service-id', {})
@@ -563,7 +563,7 @@ class PiazzaExecuteTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             piazza.execute(_api_key, 'test-service-id', {})
 
-    def test_throws_when_piazza_is_unreachable(self, m: Mocker):
+    def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.post') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(piazza.Unreachable):
@@ -581,7 +581,7 @@ class PiazzaExecuteTest(unittest.TestCase):
         with self.assertRaises(piazza.InvalidResponse):
             piazza.execute(_api_key, 'test-service-id', {})
 
-    def test_throws_when_passed_malformed_api_key(self, m: Mocker):
+    def test_throws_when_passed_malformed_api_key(self, _):
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.execute('lolwut', 'test-service-id', {})
 
