@@ -54,7 +54,7 @@ async def create_verify_api_key_filter(_: Application, handler):
             return Response(status=500, text='A Piazza error prevents API key verification')
         except piazza.MalformedCredentials as err:
             log.error('Client passed malformed API key: %s', err)
-            return Response(status=500, text='Cannot verify malformed API key')
+            return Response(status=400, text='Cannot verify malformed API key')
         except Exception as err:
             log.exception('Cannot verify API key: %s', err)
             return Response(status=500, text='An internal error prevents API key verification')
