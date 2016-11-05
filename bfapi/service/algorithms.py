@@ -66,16 +66,15 @@ def list_all(api_key: str) -> List[Algorithm]:
         services = piazza.get_services(api_key, '^BF_Algo_')
     except piazza.Error as err:
         log.error('Service discovery failed: %s', err)
-        raise err
+        raise
 
     algorithms = []
     for service in services:
-        metadata = service.metadata.get('metadata')
-        if not metadata:
+        if 'metadata' not in service.metadata:
             log.warning('Algorithm <%s> missing `metadata` hash', service.service_id)
             continue
         try:
-            algorithm = Algorithm(
+            algorithms.append(Algorithm(
                 bands=_extract_bands(service),
                 interface=_extract_interface(service),
                 description=_extract_description(service),
@@ -84,8 +83,7 @@ def list_all(api_key: str) -> List[Algorithm]:
                 service_id=service.service_id,
                 url=_extract_url(service),
                 version=_extract_version(service),
-            )
-            algorithms.append(algorithm)
+            ))
         except ValidationError as err:
             log.error('Algorithm conversion failed: %s', err)
             continue
@@ -105,6 +103,8 @@ def get(api_key: str, service_id: str):
     except piazza.Error as err:
         log.error('Service lookup failed: %s', err)
         raise
+    if 'metadata' not in service.metadata:
+        raise ValidationError('missing `metadata` hash')
     try:
         return Algorithm(
             bands=_extract_bands(service),
