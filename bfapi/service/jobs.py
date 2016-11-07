@@ -92,7 +92,7 @@ class Job:
 # Actions
 #
 
-def create_job(
+def create(
         api_key: str,
         user_id: str,
         scene_id: str,
@@ -109,12 +109,7 @@ def create_job(
             service.scenes.CatalogError,
             service.scenes.NotFound,
             service.scenes.ValidationError) as err:
-        raise PreprocessingError(err)
-
-    # Fetch tide info
-    try:
-        tide_current, tide_min, tide_max = _fetch_tide_prediction(scene)
-    except TidePredictionError as err:
+        log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
 
     # Determine GeoTIFF URLs
@@ -127,9 +122,16 @@ def create_job(
         geotiff_urls.append(geotiff_url)
         geotiff_filenames.append(key + '.TIF')
 
+    # Fetch tide info
+    try:
+        tide_current, tide_min, tide_max = _fetch_tide_prediction(scene)
+    except TidePredictionError as err:
+        log.error('Preprocessing error: %s', err)
+        raise PreprocessingError(err)
+
     # Dispatch to Piazza
     try:
-        log.info('<scene:%s> dispatched to algorithm via Piazza', scene_id)
+        log.info('<scene:%s> dispatching to <algo:%s>', scene_id, algorithm.name)
         job_id = piazza.execute(api_key, algorithm.service_id, {
             'body': {
                 'content': json.dumps({
@@ -148,7 +150,7 @@ def create_job(
                         'shoreline.geojson',
                     ]),
                     'inExtFiles': geotiff_urls,
-                    'inExtNames': ['coastal.TIF', 'swir1.TIF'],
+                    'inExtNames': geotiff_filenames,
                     'outGeoJson': ['shoreline.geojson'],
                 }),
                 'type': 'body',
@@ -157,7 +159,7 @@ def create_job(
         })
     except piazza.Error as err:
         log.error('Could not execute via Piazza: %s', err)
-        raise err
+        raise
 
     # Record the data
     log.debug('Saving job record <%s>', job_id)
@@ -282,7 +284,7 @@ def get_by_productline(productline_id: str) -> List[Job]:
         raise
 
     jobs = []
-    for row in cursor.fetchmany():
+    for row in cursor.fetchall():
         jobs.append(Job(
             algorithm_name=row['algorithm_name'],
             algorithm_version=row['algorithm_version'],
@@ -310,7 +312,7 @@ def get_by_scene(scene_id: str) -> List[Job]:
         raise err
 
     jobs = []
-    for row in cursor.fetchmany():
+    for row in cursor.fetchall():
         jobs.append(Job(
             algorithm_name=row['algorithm_name'],
             algorithm_version=row['algorithm_version'],
@@ -333,6 +335,10 @@ def start_worker(
         job_ttl: timedelta = JOB_TTL,
         interval: timedelta = JOB_WORKER_INTERVAL):
     global _worker
+
+    if _worker is not None:
+        raise Error('worker already started')
+
     log = logging.getLogger(__name__)
     log.info('Starting worker thread')
     _worker = Worker(api_key, job_ttl, interval)
@@ -341,6 +347,8 @@ def start_worker(
 
 def stop_worker():
     global _worker
+    if not _worker:
+        return
     log = logging.getLogger(__name__)
     log.info('Stopping worker thread')
     _worker.terminate()
@@ -355,14 +363,17 @@ class Worker(threading.Thread):
         self._job_ttl = job_ttl
         self._interval = interval
         self._terminated = False
+        self._next_cycle = datetime.utcnow()
+
+    def is_terminated(self):
+        return self._terminated
 
     def terminate(self):
         self._terminated = True
 
     def run(self):
-        next_cycle = datetime.utcnow()
-        while not self._terminated:
-            if next_cycle > datetime.utcnow():
+        while not self.is_terminated():
+            if self._should_sleep():
                 time.sleep(3)  # Allows for timely graceful shutdowns
                 continue
 
@@ -376,19 +387,27 @@ class Worker(threading.Thread):
             finally:
                 conn.close()
 
-            # Schedule next cycle
-            next_cycle = datetime.utcnow() + self._interval
+            self._schedule_next_cycle()
             if not rows:
-                self._log.info('Nothing to do; next run at %s', next_cycle.strftime(FORMAT_TIME))
+                self._log.info('Nothing to do; next run at %s', self._get_next_cycle())
             else:
                 self._log.info('Begin cycle for %d records', len(rows))
                 for i, row in enumerate(rows):
-                    self._update_record(row['job_id'], row['created_on'], i + 1)
-                self._log.info('Cycle complete; next run at %s', next_cycle.strftime(FORMAT_TIME))
+                    self._updater(row['job_id'], row['created_on'], i + 1)
+                self._log.info('Cycle complete; next run at %s', self._get_next_cycle())
 
         self._log.info('Stopped')
 
-    def _update_record(self, job_id: str, created_on: datetime, index: int):
+    def _get_next_cycle(self):
+        return self._next_cycle.strftime(FORMAT_TIME)
+
+    def _schedule_next_cycle(self):
+        self._next_cycle = datetime.utcnow() + self._interval
+
+    def _should_sleep(self):
+        return self._next_cycle > datetime.utcnow()
+
+    def _updater(self, job_id: str, created_on: datetime, index: int):
         log = self._log
         api_key = self._api_key
         job_ttl = self._job_ttl
@@ -430,9 +449,6 @@ class Worker(threading.Thread):
             log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
             try:
                 geojson = piazza.get_file(api_key, detections_data_id).text
-            except piazza.Unauthorized:
-                log.error('<%03d/%s> credentials rejected during file retrieval!', index, job_id)
-                return
             except piazza.ServerError as err:
                 log.error('<%03d/%s> could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
                 _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not retrieve GeoJSON from Piazza')
@@ -440,14 +456,19 @@ class Worker(threading.Thread):
 
             log.info('<%03d/%s> Saving detections to database (%0.1fMB)', index, job_id, len(geojson) / 1024000)
             conn = db.get_connection()
+            transaction = conn.begin()
             try:
                 db.jobs.insert_detection(conn, job_id=job_id, feature_collection=geojson)
             except db.DatabaseError as err:
+                transaction.rollback()
+                transaction.close()
+                log.error('<%03d/%s> Could not insert detections into database', index, job_id)
                 db.print_diagnostics(err)
                 _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
                 return
-
             _save_execution_success(job_id, detections_data_id)
+            transaction.commit()
+            conn.close()
 
         elif status.status == piazza.STATUS_ERROR:
             # FIXME -- use heuristics to generate a more descriptive error message

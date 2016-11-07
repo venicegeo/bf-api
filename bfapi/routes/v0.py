@@ -63,7 +63,7 @@ async def create_job(request: Request):
         return Response(status=400, text='Invalid input: {}'.format(err))
 
     try:
-        record = jobs_service.create_job(
+        record = jobs_service.create(
             api_key=request['api_key'],
             user_id=request['username'],
             service_id=service_id,

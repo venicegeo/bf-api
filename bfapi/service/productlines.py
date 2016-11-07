@@ -220,7 +220,7 @@ def handle_harvest_event(
             continue
 
         log.info('<scene:%s> Spawning job in product line <%s>', scene_id, pl_id)
-        new_job = service.jobs.create_job(
+        new_job = service.jobs.create(
             api_key=SYSTEM_API_KEY,
             job_name=_create_job_name(pl_name, scene_id),
             scene_id=scene_id,

@@ -11,6 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import typing
 import unittest.mock
 
 import sqlalchemy.engine as _sqlalchemyengine
@@ -29,10 +30,16 @@ class MockDBConnection(unittest.mock.Mock):
     def __init__(self, *args, **kwargs):
         super().__init__(spec=_sqlalchemyengine.Connection, *args, **kwargs)
         self._original_get_connection = None
+        self.transactions = []  # type: typing.List[unittest.mock.Mock]
 
     #
     # Lifecycle
     #
+
+    def begin(self):
+        transaction = unittest.mock.Mock(spec=_sqlalchemyengine.Transaction)
+        self.transactions.append(transaction)
+        return transaction
 
     def install(self):
         self._original_get_connection = bfapi.db.get_connection
