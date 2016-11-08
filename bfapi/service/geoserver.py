@@ -75,9 +75,11 @@ def install_layer(layer_id: str):
                                 <name>{layer_id}</name>
                                 <sql>
                                     SELECT * FROM __beachfront__geoserver
-                                    WHERE ('%sceneid%' = '' AND '%jobid%' = '')
-                                       OR (job_id = '%jobid%')
-                                       OR (scene_id = '%sceneid%')</sql>
+                                     WHERE ('%jobid%' = '' AND '%productlineid%' = '' AND '%sceneid%' = '')
+                                        OR (job_id = '%jobid%')
+                                        OR (productline_id = '%productlineid%')
+                                        OR (scene_id = '%sceneid%')
+                                </sql>
                                 <escapeSql>false</escapeSql>
                                 <keyColumn>job_id</keyColumn>
                                 <geometry>
@@ -88,6 +90,10 @@ def install_layer(layer_id: str):
                                 <parameter>
                                     <name>jobid</name>
                                     <regexpValidator>^(%|[a-f0-9]{{8}}-[a-f0-9]{{4}}-[a-f0-9]{{4}}-[a-f0-9]{{4}}-[a-f0-9]{{12}})$</regexpValidator>
+                                </parameter>
+                                <parameter>
+                                    <name>productlineid</name>
+                                    <regexpValidator>^[a-z]+$</regexpValidator>
                                 </parameter>
                                 <parameter>
                                     <name>sceneid</name>

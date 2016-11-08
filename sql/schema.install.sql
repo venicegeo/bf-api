@@ -97,7 +97,9 @@ CREATE VIEW __beachfront__geoserver AS
 SELECT d.job_id, d.feature_id, d.geometry,
        s.captured_on, s.scene_id,
        j.tide, j.tide_min_24h, j.tide_max_24h,
+       p.productline_id
   FROM __beachfront__detection d
        JOIN __beachfront__job j ON (j.job_id = d.job_id)
        JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
+       LEFT OUTER JOIN __beachfront__productline_job p ON (p.job_id = d.job_id)
 ;
