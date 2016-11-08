@@ -108,7 +108,7 @@ def _install():
 
     # Execute
     try:
-        _engine.execute(sa.text(schema_query))
+        _engine.execution_options(autocommit=True).execute(sa.text(schema_query))
     except DatabaseError as err:
         log.critical('Installation failed: %s', err)
         print_diagnostics(err)
