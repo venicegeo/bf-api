@@ -40,7 +40,7 @@ class ListAllTest(unittest.TestCase):
 
     def test_can_handle_empty_result_set(self, mock: MagicMock):
         mock.return_value = []
-        self.assertEquals([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all('test-api-key'))
 
     def test_can_handle_multiple_results(self, mock: MagicMock):
         mock.return_value = [
@@ -49,7 +49,7 @@ class ListAllTest(unittest.TestCase):
             create_service('test-algo-3'),
         ]
         items = algorithms.list_all('test-api-key')
-        self.assertEquals(['test-algo-1', 'test-algo-2', 'test-algo-3'], list(map(lambda a: a.service_id, items)))
+        self.assertEqual(['test-algo-1', 'test-algo-2', 'test-algo-3'], list(map(lambda a: a.service_id, items)))
 
     def test_extracts_correct_bands(self, mock: MagicMock):
         mock.return_value = [create_service()]
@@ -95,43 +95,43 @@ class ListAllTest(unittest.TestCase):
         service = create_service()
         service.metadata['metadata'].pop('ImgReq - bands')
         mock.return_value = [service]
-        self.assertEquals([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all('test-api-key'))
 
     def test_discards_services_missing_interface(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata'].pop('Interface')
         mock.return_value = [service]
-        self.assertEquals([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all('test-api-key'))
 
     def test_discards_services_missing_max_cloud_cover(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata'].pop('ImgReq - cloudCover')
         mock.return_value = [service]
-        self.assertEquals([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all('test-api-key'))
 
     def test_discards_services_missing_metadata(self, mock: MagicMock):
         service = create_service()
         service.metadata.pop('metadata')
         mock.return_value = [service]
-        self.assertEquals([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all('test-api-key'))
 
     def test_discards_services_missing_version(self, mock: MagicMock):
         service = create_service()
         service.metadata.pop('version')
         mock.return_value = [service]
-        self.assertEquals([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all('test-api-key'))
 
     def test_discards_services_not_using_https(self, mock: MagicMock):
         service = create_service()
         service.url = 'http://not.very.secure'
         mock.return_value = [service]
-        self.assertEquals([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all('test-api-key'))
 
     def test_discards_services_with_invalid_max_cloud_cover(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata']['ImgReq - cloudCover'] = 'lolwut'
         mock.return_value = [service]
-        self.assertEquals([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all('test-api-key'))
 
     def test_throws_when_piazza_throws(self, mock: MagicMock):
         mock.side_effect = piazza.Unauthorized()
