@@ -20,7 +20,4 @@ fi
 gunicorn bfapi.server:server \
   -b localhost:${PORT} \
   --reload \
-  --worker-class aiohttp.worker.GunicornWebWorker \
-  --access-logfile /dev/stdout \
-  --error-logfile /dev/stderr \
-  --access-logformat '%a %l %t "%r" %s %b'
+  --worker-class aiohttp.worker.GunicornWebWorker
