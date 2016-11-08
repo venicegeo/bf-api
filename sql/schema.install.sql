@@ -31,10 +31,12 @@ CREATE TABLE __beachfront__job (
     algorithm_version VARCHAR(12)    NOT NULL,
     created_by        VARCHAR(64)    NOT NULL,
     created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-    detections_id     VARCHAR(64),  -- TODO -- is this still needed?
     name              VARCHAR(100)   NOT NULL,
     scene_id          VARCHAR(64)    NOT NULL,
     status            VARCHAR(16)    NOT NULL,
+    tide              FLOAT,
+    tide_min_24h      FLOAT,
+    tide_max_24h      FLOAT,
 
     FOREIGN KEY (scene_id) REFERENCES __beachfront__scene(scene_id)
 );
@@ -93,7 +95,8 @@ CREATE TABLE __beachfront__productline_job (
 
 CREATE VIEW __beachfront__geoserver AS
 SELECT d.job_id, d.feature_id, d.geometry,
-       s.captured_on, s.scene_id
+       s.captured_on, s.scene_id,
+       j.tide, j.tide_min_24h, j.tide_max_24h,
   FROM __beachfront__detection d
        JOIN __beachfront__job j ON (j.job_id = d.job_id)
        JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)

@@ -73,10 +73,15 @@ def insert_job(
         name: str,
         scene_id: str,
         status: str,
+        tide: float,
+        tide_min_24h: float,
+        tide_max_24h: float,
         user_id: str) -> None:
     query = """
-        INSERT INTO __beachfront__job (job_id, algorithm_id, algorithm_name, algorithm_version, created_by, name, scene_id, status)
-        VALUES (%(job_id)s, %(algorithm_id)s, %(algorithm_name)s, %(algorithm_version)s, %(created_by)s, %(name)s, %(scene_id)s, %(status)s)
+        INSERT INTO __beachfront__job (job_id, algorithm_id, algorithm_name, algorithm_version, created_by, name,
+                                       scene_id, status, tide, tide_min_24h, tide_max_24h)
+        VALUES (%(job_id)s, %(algorithm_id)s, %(algorithm_name)s, %(algorithm_version)s, %(created_by)s, %(name)s,
+                %(scene_id)s, %(status)s, %(tide)s, %(tide_min_24h)s, %(tide_max_24h)s)
         """
     params = {
         'job_id': job_id,
@@ -87,6 +92,9 @@ def insert_job(
         'name': name,
         'scene_id': scene_id,
         'status': status,
+        'tide': tide,
+        'tide_min_24h': tide_min_24h,
+        'tide_max_24h': tide_max_24h,
     }
     conn.execute(query, params)
 
@@ -131,8 +139,7 @@ def select_job(
         *,
         job_id: str) -> ResultProxy:
     query = """
-        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
-               j.name, j.scene_id, j.status,
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                e.error_message, e.execution_step,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
           FROM __beachfront__job j
@@ -171,8 +178,7 @@ def select_jobs_for_productline(
         *,
         productline_id: str) -> ResultProxy:
     query = """
-        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
-               j.name, j.scene_id, j.status,
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
           FROM __beachfront__productline_job p
                LEFT OUTER JOIN __beachfront__job j ON (j.job_id = p.job_id)
@@ -191,8 +197,7 @@ def select_jobs_for_scene(
         *,
         scene_id: str) -> ResultProxy:
     query = """
-        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
-               j.name, j.scene_id, j.status,
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
@@ -211,8 +216,7 @@ def select_jobs_for_user(
         *,
         user_id: str) -> ResultProxy:
     query = """
-        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.detections_id,
-               j.name, j.scene_id, j.status,
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                e.error_message, e.execution_step,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
           FROM __beachfront__job j
@@ -247,17 +251,14 @@ def update_status(
         conn: Connection,
         *,
         job_id: str,
-        status: str,
-        data_id: str = None) -> ResultProxy:
+        status: str) -> ResultProxy:
     query = """
         UPDATE __beachfront__job
-           SET detections_id = %(detections_id)s,
-               status = %(status)s
+           SET status = %(status)s
          WHERE job_id = %(job_id)s
         """
     params = {
         'job_id': job_id,
         'status': status,
-        'detections_id': data_id,
     }
     conn.execute(query, params)

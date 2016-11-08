@@ -46,19 +46,20 @@ class Job:
             algorithm_version: str,
             created_by: str,
             created_on: datetime,
-            detections_id: str = None,
             geometry: dict,
             job_id: str,
             name: str,
             scene_capture_date: datetime,
             scene_sensor_name: str,
             scene_id: str,
-            status: str):
+            status: str,
+            tide: float,
+            tide_min_24h: float,
+            tide_max_24h: float):
         self.algorithm_name = algorithm_name
         self.algorithm_version = algorithm_version
         self.created_by = created_by
         self.created_on = created_on
-        self.detections_id = detections_id
         self.geometry = geometry
         self.job_id = job_id
         self.name = name
@@ -66,6 +67,9 @@ class Job:
         self.scene_sensor_name = scene_sensor_name
         self.scene_id = scene_id
         self.status = status
+        self.tide = tide
+        self.tide_min_24h = tide_min_24h
+        self.tide_max_24h = tide_max_24h
 
     def serialize(self):
         return {
@@ -77,12 +81,14 @@ class Job:
                 'algorithm_version': self.algorithm_version,
                 'created_by': self.created_by,
                 'created_on': _serialize_dt(self.created_on),
-                'detections_data_id': self.detections_id,
                 'name': self.name,
                 'scene_capture_date': _serialize_dt(self.scene_capture_date),
                 'scene_id': self.scene_id,
                 'scene_sensor_name': self.scene_sensor_name,
                 'status': self.status,
+                'tide': self.tide,
+                'tide_min_24h': self.tide_min_24h,
+                'tide_max_24h': self.tide_max_24h,
                 'type': 'JOB',
             }
         }
@@ -124,7 +130,7 @@ def create(
 
     # Fetch tide info
     try:
-        tide_current, tide_min, tide_max = _fetch_tide_prediction(scene)
+        tide, tide_min, tide_max = _fetch_tide_prediction(scene)
     except TidePredictionError as err:
         log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
@@ -142,11 +148,11 @@ def create(
                         '--projection geo-scaled',
                         '--threshold 0.5',
                         '--tolerance 0.075',
-                        '--prop tideMin24H:{}'.format(tide_min or 'null'),
-                        '--prop tideMax24H:{}'.format(tide_max or 'null'),
-                        '--prop tideCurrent:{}'.format(tide_current or 'null'),
+                        '--prop tide:{}'.format(tide or 'nil'),
+                        '--prop tide_min_24h:{}'.format(tide_min or 'nil'),
+                        '--prop tide_max_24h:{}'.format(tide_max or 'nil'),
                         '--prop classification:Unclassified',
-                        '--prop dataUsage:Not_to_be_used_for_navigational_or_targeting_purposes.',
+                        '--prop data_usage:NOT_TO_BE_USED_FOR_NAVIGATIONAL_OR_TARGETING_PURPOSES',
                         'shoreline.geojson',
                     ]),
                     'inExtFiles': geotiff_urls,
@@ -176,6 +182,9 @@ def create(
             scene_id=scene_id,
             status=piazza.STATUS_RUNNING,
             user_id=user_id,
+            tide=tide,
+            tide_min_24h=tide_min,
+            tide_max_24h=tide_max,
         )
         db.jobs.insert_job_user(
             conn,
@@ -201,6 +210,9 @@ def create(
         scene_sensor_name=scene.sensor_name,
         scene_id=scene_id,
         status=piazza.STATUS_RUNNING,
+        tide=tide,
+        tide_min_24h=tide_min,
+        tide_max_24h=tide_max,
     )
 
 
@@ -233,7 +245,6 @@ def get(user_id: str, job_id: str) -> Job:
         algorithm_version=row['algorithm_version'],
         created_by=row['created_by'],
         created_on=row['created_on'],
-        detections_id=row['detections_id'],
         geometry=json.loads(row['geometry']),
         job_id=row['job_id'],
         name=row['name'],
@@ -241,6 +252,9 @@ def get(user_id: str, job_id: str) -> Job:
         scene_sensor_name=row['scene_sensor_name'],
         scene_id=row['scene_id'],
         status=row['status'],
+        tide=row['tide'],
+        tide_min_24h=row['tide_min_24h'],
+        tide_max_24h=row['tide_max_24h'],
     )
 
 
@@ -260,7 +274,6 @@ def get_all(user_id: str) -> List[Job]:
             algorithm_version=row['algorithm_version'],
             created_by=row['created_by'],
             created_on=row['created_on'],
-            detections_id=row['detections_id'],
             geometry=json.loads(row['geometry']),
             job_id=row['job_id'],
             name=row['name'],
@@ -268,6 +281,9 @@ def get_all(user_id: str) -> List[Job]:
             scene_sensor_name=row['scene_sensor_name'],
             scene_id=row['scene_id'],
             status=row['status'],
+            tide=row['tide'],
+            tide_min_24h=row['tide_min_24h'],
+            tide_max_24h=row['tide_max_24h'],
         )
         jobs.append(feature)
 
@@ -290,7 +306,6 @@ def get_by_productline(productline_id: str) -> List[Job]:
             algorithm_version=row['algorithm_version'],
             created_by=row['created_by'],
             created_on=row['created_on'],
-            detections_id=row['detections_id'],
             geometry=json.loads(row['geometry']),
             job_id=row['job_id'],
             name=row['name'],
@@ -298,6 +313,9 @@ def get_by_productline(productline_id: str) -> List[Job]:
             scene_sensor_name=row['scene_sensor_name'],
             scene_id=row['scene_id'],
             status=row['status'],
+            tide=row['tide'],
+            tide_min_24h=row['tide_min_24h'],
+            tide_max_24h=row['tide_max_24h'],
         ))
     return jobs
 
@@ -318,7 +336,6 @@ def get_by_scene(scene_id: str) -> List[Job]:
             algorithm_version=row['algorithm_version'],
             created_by=row['created_by'],
             created_on=row['created_on'],
-            detections_id=row['detections_id'],
             geometry=json.loads(row['geometry']),
             job_id=row['job_id'],
             name=row['name'],
@@ -326,6 +343,9 @@ def get_by_scene(scene_id: str) -> List[Job]:
             scene_sensor_name=row['scene_sensor_name'],
             scene_id=row['scene_id'],
             status=row['status'],
+            tide=row['tide'],
+            tide_min_24h=row['tide_min_24h'],
+            tide_max_24h=row['tide_max_24h'],
         ))
     return jobs
 
@@ -450,7 +470,7 @@ class Worker(threading.Thread):
             try:
                 geojson = piazza.get_file(api_key, detections_data_id).text
             except piazza.ServerError as err:
-                log.error('<%03d/%s> could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
+                log.error('<%03d/%s> Could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
                 _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not retrieve GeoJSON from Piazza')
                 return
 
@@ -459,15 +479,19 @@ class Worker(threading.Thread):
             transaction = conn.begin()
             try:
                 db.jobs.insert_detection(conn, job_id=job_id, feature_collection=geojson)
+                db.jobs.update_status(
+                    conn,
+                    job_id=job_id,
+                    status=piazza.STATUS_SUCCESS,
+                )
+                transaction.commit()
             except db.DatabaseError as err:
                 transaction.rollback()
                 transaction.close()
-                log.error('<%03d/%s> Could not insert detections into database', index, job_id)
+                log.error('<%03d/%s> Could not save status and detections to database', index, job_id)
                 db.print_diagnostics(err)
                 _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
                 return
-            _save_execution_success(job_id, detections_data_id)
-            transaction.commit()
             conn.close()
 
         elif status.status == piazza.STATUS_ERROR:
@@ -505,10 +529,10 @@ def _fetch_tide_prediction(scene: service.scenes.Scene) -> (float, float, float)
     # Validate and extract the response
     try:
         (prediction,) = response.json()['locations']
-        current_tide = round(float(prediction['results']['currentTide']), 12)
+        tide = round(float(prediction['results']['currentTide']), 12)
         min_tide = round(float(prediction['results']['maximumTide24Hours']), 12)
         max_tide = round(float(prediction['results']['minimumTide24Hours']), 12)
-        return current_tide, min_tide, max_tide
+        return tide, min_tide, max_tide
     except (ValueError, TypeError):
         log.error('Malformed tide prediction response:')
         print('!' * 80)
@@ -565,23 +589,6 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
         transaction.commit()
     except db.DatabaseError as err:
         transaction.rollback()
-        log.error('<%s> database update failed', job_id)
-        db.print_diagnostics(err)
-        raise
-
-
-def _save_execution_success(job_id: str, detections_data_id: str):
-    log = logging.getLogger(__name__)
-    log.debug('<%s> updating database record', job_id)
-    conn = db.get_connection()
-    try:
-        db.jobs.update_status(
-            conn,
-            job_id=job_id,
-            status=piazza.STATUS_SUCCESS,
-            data_id=detections_data_id,
-        )
-    except db.DatabaseError as err:
         log.error('<%s> database update failed', job_id)
         db.print_diagnostics(err)
         raise

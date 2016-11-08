@@ -204,11 +204,11 @@ class CreateJobTest(unittest.TestCase):
                    ' --projection geo-scaled' +
                    ' --threshold 0.5' +
                    ' --tolerance 0.075' +
-                   ' --prop tideMin24H:2.6171416114' +
-                   ' --prop tideMax24H:2.512895346998' +
-                   ' --prop tideCurrent:2.6171416114' +
+                   ' --prop tide:2.6171416114' +
+                   ' --prop tide_min_24h:2.6171416114' +
+                   ' --prop tide_max_24h:2.512895346998' +
                    ' --prop classification:Unclassified' +
-                   ' --prop dataUsage:Not_to_be_used_for_navigational_or_targeting_purposes.' +
+                   ' --prop data_usage:NOT_TO_BE_USED_FOR_NAVIGATIONAL_OR_TARGETING_PURPOSES' +
                    ' shoreline.geojson',
             'inExtFiles': ['lorem', 'ipsum'],
             'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
@@ -225,11 +225,11 @@ class CreateJobTest(unittest.TestCase):
                          ' --projection geo-scaled' +
                          ' --threshold 0.5' +
                          ' --tolerance 0.075' +
-                         ' --prop tideMin24H:null' +
-                         ' --prop tideMax24H:null' +
-                         ' --prop tideCurrent:null' +
+                         ' --prop tide:nil' +
+                         ' --prop tide_min_24h:nil' +
+                         ' --prop tide_max_24h:nil' +
                          ' --prop classification:Unclassified' +
-                         ' --prop dataUsage:Not_to_be_used_for_navigational_or_targeting_purposes.' +
+                         ' --prop data_usage:NOT_TO_BE_USED_FOR_NAVIGATIONAL_OR_TARGETING_PURPOSES' +
                          ' shoreline.geojson',
                          json.loads(self.mock_execute.call_args[0][2]['body']['content'])['cmd'])
 
@@ -252,7 +252,7 @@ class CreateJobTest(unittest.TestCase):
         logstream = self.create_logstream()
         jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertEqual([
-            'INFO - <scene:test-scene-id> dispatching to <algo:test-algo-name>',
+            'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
         ], logstream.getvalue().splitlines())
 
     def test_logs_creation_failure_during_algorithm_retrieval(self):
@@ -295,7 +295,7 @@ class CreateJobTest(unittest.TestCase):
         jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'ERROR - Malformed tide prediction response:',
-            'INFO - <scene:test-scene-id> dispatching to <algo:test-algo-name>',
+            'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
         ], logstream.getvalue().splitlines())
 
     def test_logs_creation_failure_during_execution(self):
@@ -307,7 +307,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
-            'INFO - <scene:test-scene-id> dispatching to <algo:test-algo-name>',
+            'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             'ERROR - Could not execute via Piazza: Piazza server error (HTTP 400)'
         ], logstream.getvalue().splitlines())
 
@@ -320,7 +320,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
-            'INFO - <scene:test-scene-id> dispatching to <algo:test-algo-name>',
+            'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             "ERROR - Could not save job to database: (builtins.Exception) test-error [SQL: 'test-query']",
         ], logstream.getvalue().splitlines())
 
@@ -463,11 +463,6 @@ class GetAllJobsTest(unittest.TestCase):
         job = jobs.get_all('test-user-id').pop()
         self.assertEqual(datetime.utcnow().date(), job.created_on.date())
 
-    def test_assigns_correct_detections_id(self, mock: Mock):
-        mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_all('test-user-id').pop()
-        self.assertEqual('test-detections-id', job.detections_id)
-
     def test_assigns_correct_geometry(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_all('test-user-id').pop()
@@ -503,6 +498,21 @@ class GetAllJobsTest(unittest.TestCase):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_all('test-user-id').pop()
         self.assertEqual('test-status', job.status)
+
+    def test_assigns_correct_tide(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_all('test-user-id').pop()
+        self.assertEqual(5.4321, job.tide)
+
+    def test_assigns_correct_tide_min_24h(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_all('test-user-id').pop()
+        self.assertEqual(-10.0, job.tide_min_24h)
+
+    def test_assigns_correct_tide_max_24h(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_all('test-user-id').pop()
+        self.assertEqual(10.0, job.tide_max_24h)
 
     def test_handles_database_errors_gracefully(self, mock: Mock):
         mock.side_effect = helpers.create_database_error()
@@ -555,11 +565,6 @@ class GetJobTest(unittest.TestCase):
         job = jobs.get('test-user-id', 'test-job-id')
         self.assertEqual(datetime.utcnow().date(), job.created_on.date())
 
-    def test_assigns_correct_detections_id(self, mock_select: Mock, _):
-        mock_select.return_value.fetchone.return_value = create_job_db_record()
-        job = jobs.get('test-user-id', 'test-job-id')
-        self.assertEqual('test-detections-id', job.detections_id)
-
     def test_assigns_correct_geometry(self, mock_select: Mock, _):
         mock_select.return_value.fetchone.return_value = create_job_db_record()
         job = jobs.get('test-user-id', 'test-job-id')
@@ -595,6 +600,21 @@ class GetJobTest(unittest.TestCase):
         mock_select.return_value.fetchone.return_value = create_job_db_record()
         job = jobs.get('test-user-id', 'test-job-id')
         self.assertEqual('test-status', job.status)
+
+    def test_assigns_correct_tide(self, mock_select: Mock, _):
+        mock_select.return_value.fetchone.return_value = create_job_db_record()
+        job = jobs.get('test-user-id', 'test-job-id')
+        self.assertEqual(5.4321, job.tide)
+
+    def test_assigns_correct_tide_min_24h(self, mock_select: Mock, _):
+        mock_select.return_value.fetchone.return_value = create_job_db_record()
+        job = jobs.get('test-user-id', 'test-job-id')
+        self.assertEqual(-10.0, job.tide_min_24h)
+
+    def test_assigns_correct_tide_max_24h(self, mock_select: Mock, _):
+        mock_select.return_value.fetchone.return_value = create_job_db_record()
+        job = jobs.get('test-user-id', 'test-job-id')
+        self.assertEqual(10.0, job.tide_max_24h)
 
     def test_adds_job_to_user_tracker(self, mock_select: Mock, mock_insert: Mock):
         mock_select.return_value.fetchone.return_value = create_job_db_record()
@@ -659,11 +679,6 @@ class GetByProductlineTest(unittest.TestCase):
         job = jobs.get_by_productline('test-productline-id').pop()
         self.assertEqual(datetime.utcnow().date(), job.created_on.date())
 
-    def test_assigns_correct_detections_id(self, mock: Mock):
-        mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
-        self.assertEqual('test-detections-id', job.detections_id)
-
     def test_assigns_correct_geometry(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_by_productline('test-productline-id').pop()
@@ -699,6 +714,21 @@ class GetByProductlineTest(unittest.TestCase):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_by_productline('test-productline-id').pop()
         self.assertEqual('test-status', job.status)
+
+    def test_assigns_correct_tide(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_by_productline('test-productline-id').pop()
+        self.assertEqual(5.4321, job.tide)
+
+    def test_assigns_correct_tide_min_24h(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_by_productline('test-productline-id').pop()
+        self.assertEqual(-10.0, job.tide_min_24h)
+
+    def test_assigns_correct_tide_max_24h(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_by_productline('test-productline-id').pop()
+        self.assertEqual(10.0, job.tide_max_24h)
 
     def test_handles_database_errors_gracefully(self, mock: Mock):
         mock.side_effect = helpers.create_database_error()
@@ -763,11 +793,6 @@ class GetBySceneTest(unittest.TestCase):
         job = jobs.get_by_scene('test-scene-id').pop()
         self.assertEqual(datetime.utcnow().date(), job.created_on.date())
 
-    def test_assigns_correct_detections_id(self, mock: Mock):
-        mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_scene('test-scene-id').pop()
-        self.assertEqual('test-detections-id', job.detections_id)
-
     def test_assigns_correct_geometry(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_by_scene('test-scene-id').pop()
@@ -803,6 +828,21 @@ class GetBySceneTest(unittest.TestCase):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_by_scene('test-scene-id').pop()
         self.assertEqual('test-status', job.status)
+
+    def test_assigns_correct_tide(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_by_scene('test-scene-id').pop()
+        self.assertEqual(5.4321, job.tide)
+
+    def test_assigns_correct_tide_min_24h(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_by_scene('test-scene-id').pop()
+        self.assertEqual(-10.0, job.tide_min_24h)
+
+    def test_assigns_correct_tide_max_24h(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        job = jobs.get_by_scene('test-scene-id').pop()
+        self.assertEqual(10.0, job.tide_max_24h)
 
     def test_handles_database_errors_gracefully(self, mock: Mock):
         mock.side_effect = helpers.create_database_error()
@@ -1008,7 +1048,7 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> polled (Success)',
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'INFO - <001/test-job-id> Fetching detections from Piazza',
-            'ERROR - <001/test-job-id> could not fetch data ID <test-detections-id>: Piazza server error (HTTP 404)',
+            'ERROR - <001/test-job-id> Could not fetch data ID <test-detections-id>: Piazza server error (HTTP 404)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
@@ -1029,7 +1069,7 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'INFO - <001/test-job-id> Fetching detections from Piazza',
             'INFO - <001/test-job-id> Saving detections to database (0.0MB)',
-            'ERROR - <001/test-job-id> Could not insert detections into database',
+            'ERROR - <001/test-job-id> Could not save status and detections to database',
             'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
@@ -1210,7 +1250,7 @@ class WorkerRunTest(unittest.TestCase):
         worker.run()
         self.assertEqual([call(self._mockdb, job_id='test-job-id', feature_collection='test-feature-collection')],
                          self.mock_insert_detections.call_args_list)
-        self.assertEqual([call(self._mockdb, job_id='test-job-id', status='Success', data_id='test-detections-id')],
+        self.assertEqual([call(self._mockdb, job_id='test-job-id', status='Success')],
                          self.mock_update_status.call_args_list)
 
     def test_can_handle_multi_record_cycles(self):
@@ -1280,6 +1320,9 @@ def create_job_db_record(job_id: str = 'test-job-id'):
         'scene_sensor_name': 'test-scene-sensor-name',
         'scene_id': 'test-scene-id',
         'status': 'test-status',
+        'tide': 5.4321,
+        'tide_min_24h': -10.0,
+        'tide_max_24h': 10.0,
     }
 
 

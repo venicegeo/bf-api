@@ -771,6 +771,9 @@ def create_job(job_id: str = 'test-job-id'):
         scene_sensor_name='test-scene-sensor-name',
         scene_id='test-scene-id',
         status='test-status',
+        tide=5.4321,
+        tide_min_24h=-10.0,
+        tide_max_24h=10.0,
     )
 
 
