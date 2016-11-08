@@ -18,59 +18,59 @@ from bfapi.routes import v0 as routes
 
 class GetAlgorithmTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class ListAlgorithmsTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class CreateJobTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class ForgetJobTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class ListJobsTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class ListJobsForProductlineTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class ListJobsForSceneTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class GetJobTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class CreateProductlineTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class ListProductlinesTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class OnHarvestEventTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class ListSupportingServicesTest(unittest.TestCase):
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not yet implemented')

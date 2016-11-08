@@ -21,7 +21,7 @@ class GetConnectionTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not implemented')
 
 
 class InstallTest(unittest.TestCase):
@@ -29,4 +29,4 @@ class InstallTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_does_things(self):
-        self.fail('Not implemented')
+        self.skipTest('Not implemented')

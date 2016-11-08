@@ -20,19 +20,19 @@ class InsertProductLineTest(unittest.TestCase):
     def setUp(self):
         self.conn = unittest.mock.Mock()
     def test_sends_correct_query(self):
-        self.fail('Not implemented')
+        self.skipTest('Not implemented')
     def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
+        self.skipTest('Not implemented')
     def test_throws_when_execution_fails(self):
-        self.fail('Not implemented')
+        self.skipTest('Not implemented')
 
 
 class InsertProductLineJobTest(unittest.TestCase):
     def setUp(self):
         self.conn = unittest.mock.Mock()
     def test_sends_correct_query(self):
-        self.fail('Not implemented')
+        self.skipTest('Not implemented')
     def test_sends_correct_parameters(self):
-        self.fail('Not implemented')
+        self.skipTest('Not implemented')
     def test_throws_when_execution_fails(self):
-        self.fail('Not implemented')
+        self.skipTest('Not implemented')
