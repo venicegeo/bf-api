@@ -131,7 +131,7 @@ def create(
 
     # Dispatch to Piazza
     try:
-        log.info('<scene:%s> dispatching to <algo:%s>', scene_id, algorithm.name)
+        log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
         job_id = piazza.execute(api_key, algorithm.service_id, {
             'body': {
                 'content': json.dumps({
