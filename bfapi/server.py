@@ -39,17 +39,23 @@ def attach_routes(app: Application):
 
 
 def banner(_: Application):
-    print('-' * 80)
-    print()
-    print('bf-api'.center(80))
-    print('~~~~~~'.center(80))
-    print()
+    configurations = []
     for key, value in sorted(config.__dict__.items()):
         if not key.isupper():
             continue
-        print('{key:>38} : {value}'.format(key=key, value=value))
-    print()
-    print('-' * 80)
+        configurations.append('{key:>38} : {value}'.format(key=key, value=value))
+    print(
+        '-' * 80,
+        '',
+        'bf-api'.center(80),
+        '~~~~~~'.center(80),
+        '',
+        *configurations,
+        '',
+        '-' * 80,
+        sep='\n',
+        flush=True
+    )
 
 
 def init(_: Application):

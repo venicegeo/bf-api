@@ -35,7 +35,7 @@ def validate(failfast: bool = True):
 
     error_message = 'Configuration error:\n{}'.format('\n'.join(['\t* ' + s for s in _errors]))
     if failfast:
-        print('!' * 80, error_message, '!' * 80, sep='\n\n', file=sys.stderr)
+        print('!' * 80, error_message, '!' * 80, sep='\n\n', file=sys.stderr, flush=True)
         os.kill(os.getppid(), signal.SIGQUIT)
         signal.pause()
         exit(1)
