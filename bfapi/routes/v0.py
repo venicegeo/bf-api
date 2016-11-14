@@ -97,18 +97,22 @@ async def list_jobs(request: Request):
 
 
 async def list_jobs_for_productline(request: Request):
-    jobs = jobs_service.get_by_productline(request.match_info['productline_id'])
+    productline_id = request.match_info['productline_id']
+    jobs = jobs_service.get_by_productline(productline_id)
     return json_response({
+        'productline_id': productline_id,
         'jobs': {
             'type': 'FeatureCollection',
             'features': [j.serialize() for j in jobs],
-        }
+        },
     })
 
 
 async def list_jobs_for_scene(request: Request):
-    jobs = jobs_service.get_by_scene(request.match_info['scene_id'])
+    scene_id = request.match_info['scene_id']
+    jobs = jobs_service.get_by_scene(scene_id)
     return json_response({
+        'scene_id': scene_id,
         'jobs': {
             'type': 'FeatureCollection',
             'features': [j.serialize() for j in jobs],
