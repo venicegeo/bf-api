@@ -112,6 +112,7 @@ def create(
         scene = service.scenes.get(scene_id)
     except (service.algorithms.NotFound,
             service.algorithms.ValidationError,
+            service.scenes.MalformedSceneID,
             service.scenes.CatalogError,
             service.scenes.NotFound,
             service.scenes.ValidationError) as err:
