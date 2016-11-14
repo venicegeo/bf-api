@@ -1025,7 +1025,7 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - Begin cycle for 1 records',
             'INFO - <001/test-job-id> polled (Success)',
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
-            'ERROR - <001/test-job-id> could not resolve detections data ID: during postprocessing, could not fetch execution output: Piazza server error (HTTP 404)',
+            'ERROR - <001/test-job-id> Could not resolve detections data ID: during postprocessing, could not fetch execution output: Piazza server error (HTTP 404)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
