@@ -1,4 +1,4 @@
-# bf-api-python
+# bf-api
 
 API service for the Beachfront project.
 

@@ -463,7 +463,7 @@ class Worker(threading.Thread):
             try:
                 detections_data_id = _resolve_detections_data_id(api_key, status.data_id)
             except PostprocessingError as err:
-                log.error('<%03d/%s> could not resolve detections data ID: %s', index, job_id, err)
+                log.error('<%03d/%s> Could not resolve detections data ID: %s', index, job_id, err)
                 _save_execution_error(job_id, STEP_RESOLVE, str(err))
                 return
 
