@@ -41,7 +41,7 @@ def attach_routes(app: Application):
 def banner(_: Application):
     configurations = []
     for key, value in sorted(config.__dict__.items()):
-        if not key.isupper():
+        if not key.isupper() or 'PASSWORD' in key:
             continue
         configurations.append('{key:>38} : {value}'.format(key=key, value=value))
     print(
