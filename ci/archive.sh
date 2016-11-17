@@ -10,7 +10,7 @@ source $root/ci/vars.sh
 
 # Create or enter virtual environment
 if [ ! -f .env/bin/activate ]; then
-  virtualenv --python=python2.7 .env
+  virtualenv --python=python3.4 .env
 fi
 . .env/bin/activate
 
