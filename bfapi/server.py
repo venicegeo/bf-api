@@ -11,34 +11,34 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from aiohttp.web import Application, UrlDispatcher
+import flask
 
 from bfapi import config, db, middleware, routes, service, IS_DEBUG_MODE
 
 
-def attach_routes(app: Application):
-    router = app.router  # type: UrlDispatcher
+def attach_routes(app: flask.Flask):
+    app.before_request(middleware.verify_api_key)
 
     # Public Endpoints
-    router.add_get('/', routes.health_check)
-    router.add_get('/login', routes.login)
+    app.add_url_rule('/', view_func=routes.health_check, methods=['GET'])
+    app.add_url_rule('/login', view_func=routes.login, methods=['GET'])
 
     # API v0
-    router.add_get('/v0/services', routes.v0.list_supporting_services)
-    router.add_get('/v0/algorithm', routes.v0.list_algorithms)
-    router.add_get('/v0/algorithm/{service_id}', routes.v0.get_algorithm)
-    router.add_post('/v0/job', routes.v0.create_job)
-    router.add_get('/v0/job', routes.v0.list_jobs)
-    router.add_get('/v0/job/{job_id}', routes.v0.get_job)
-    router.add_delete('/v0/job/{job_id}', routes.v0.forget_job)
-    router.add_get('/v0/job/by_scene/{scene_id}', routes.v0.list_jobs_for_scene)
-    router.add_get('/v0/job/by_productline/{productline_id}', routes.v0.list_jobs_for_productline)
-    router.add_get('/v0/productline', routes.v0.list_productlines)
-    router.add_post('/v0/productline', routes.v0.create_productline)
-    router.add_post('/v0/scene/event/harvest', routes.v0.on_harvest_event)
+    app.add_url_rule('/v0/services', view_func=routes.v0.list_supporting_services, methods=['GET'])
+    app.add_url_rule('/v0/algorithm', view_func=routes.v0.list_algorithms, methods=['GET'])
+    app.add_url_rule('/v0/algorithm/<service_id>', view_func=routes.v0.get_algorithm, methods=['GET'])
+    app.add_url_rule('/v0/job', view_func=routes.v0.create_job, methods=['POST'])
+    app.add_url_rule('/v0/job', view_func=routes.v0.list_jobs, methods=['GET'])
+    app.add_url_rule('/v0/job/<job_id>', view_func=routes.v0.get_job, methods=['GET'])
+    app.add_url_rule('/v0/job/<job_id>', view_func=routes.v0.forget_job, methods=['DELETE'])
+    app.add_url_rule('/v0/job/by_scene/<scene_id>', view_func=routes.v0.list_jobs_for_scene, methods=['GET'])
+    app.add_url_rule('/v0/job/by_productline/<productline_id>', view_func=routes.v0.list_jobs_for_productline, methods=['GET'])
+    app.add_url_rule('/v0/productline', view_func=routes.v0.list_productlines, methods=['GET'])
+    app.add_url_rule('/v0/productline', view_func=routes.v0.create_productline, methods=['POST'])
+    app.add_url_rule('/v0/scene/event/harvest', view_func=routes.v0.on_harvest_event, methods=['POST'])
 
 
-def banner(_: Application):
+def banner():
     configurations = []
     for key, value in sorted(config.__dict__.items()):
         if not key.isupper() or 'PASSWORD' in key:
@@ -58,27 +58,23 @@ def banner(_: Application):
     )
 
 
-def init(_: Application):
+def init(app):
+    banner()
     config.validate()
     db.init()
 
+    install_service_assets()
+    attach_routes(app)
+    start_background_tasks()
 
-def install_service_assets(_: Application):
+
+def install_service_assets():
     service.productlines.install_if_needed('/v0/scene/event/harvest')
     service.geoserver.install_if_needed()
 
 
-def start_background_tasks(_: Application):
+def start_background_tasks():
     service.jobs.start_worker()
-
-
-def stop_background_tasks(_):
-    service.jobs.stop_worker()
-
-
-def teardown(_: Application):
-    print('  SERVER IS SHUTTING DOWN  '.center(80, '-'))
-    db.cleanup()
 
 
 ################################################################################
@@ -87,17 +83,7 @@ def teardown(_: Application):
 # Bootstrapping
 #
 
-server = Application(
-    middlewares=[middleware.create_verify_api_key_filter],
-    debug=IS_DEBUG_MODE,
-)
-
-server.on_startup.append(banner)
-server.on_startup.append(init)
-server.on_startup.append(attach_routes)
-server.on_startup.append(install_service_assets)
-server.on_startup.append(start_background_tasks)
-server.on_shutdown.append(teardown)
-server.on_shutdown.append(stop_background_tasks)
+server = flask.Flask(__name__)
+init(server)
 
 ################################################################################

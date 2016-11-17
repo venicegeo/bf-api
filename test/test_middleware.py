@@ -11,25 +11,17 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import asyncio
 import logging
 import unittest
 from unittest.mock import patch, Mock, MagicMock
 
-from aiohttp.web import Application, Response, Request
+import flask
 
 from bfapi import piazza
-from bfapi.middleware import create_verify_api_key_filter
+from bfapi.middleware import verify_api_key
 
 API_KEY = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 AUTH_HEADER = 'Basic YWFhYWFhYWEtYmJiYi1jY2NjLWRkZGQtZWVlZWVlZWVlZWVlOg=='
-
-
-class CreateVerifyApiKeyFilterTest(unittest.TestCase):
-    def test_returns_api_key_filter(self):
-        handler = resolve(create_verify_api_key_filter(create_app(), None))
-        self.assertTrue(callable(handler))
-        self.assertEqual('verify_api_key', handler.__name__)
 
 
 @patch('bfapi.piazza.verify_api_key', return_value='test-username')
@@ -41,7 +33,7 @@ class VerifyApiKeyFilterTest(unittest.TestCase):
     def tearDown(self):
         self._logger.disabled = False
 
-    def test_validates_api_key_on_every_request(self, mock: Mock):
+    def test_validates_api_key_on_every_request(self, mock: MagicMock):
         endpoints = (
             '/v0/services',
             '/v0/algorithm',
@@ -54,104 +46,73 @@ class VerifyApiKeyFilterTest(unittest.TestCase):
             '/some/random/unmapped/path',
         )
         for endpoint in endpoints:
-            simulate_request(create_request(endpoint, headers={'Authorization': AUTH_HEADER}))
+            with create_request(endpoint, headers={'Authorization': AUTH_HEADER}):
+                verify_api_key()
         self.assertEqual(len(endpoints), mock.call_count)
 
-    def test_allows_public_endpoints_to_pass_through(self, mock: Mock):
+    def test_allows_public_endpoints_to_pass_through(self, mock: MagicMock):
         endpoints = (
             '/',
             '/login',
             '/v0/scene/event/harvest',
         )
         for endpoint in endpoints:
-            simulate_request(create_request(endpoint))
+            with patch('flask.request', path=endpoint, headers={'Authorization': AUTH_HEADER}):
+                verify_api_key()
         self.assertEqual(0, mock.call_count)
 
     def test_attaches_username_to_request(self, _):
-        request = create_request('/protected', headers={'Authorization': AUTH_HEADER})
-        simulate_request(request)
-        self.assertTrue(request.__setitem__.called_with('username', 'test-username'))
+        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
+            self.assertFalse(hasattr(request, 'username'))
+            verify_api_key()
+            self.assertEqual(request.username, 'test-username')
 
     def test_attaches_api_key_to_request(self, _):
-        request = create_request('/protected', headers={'Authorization': AUTH_HEADER})
-        simulate_request(request)
-        self.assertTrue(request.__setitem__.called_with('api_key', API_KEY))
+        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
+            self.assertFalse(hasattr(request, 'api_key'))
+            verify_api_key()
+            self.assertEqual(request.api_key, API_KEY)
 
     def test_rejects_if_api_key_is_malformed(self, _):
-        response = simulate_request(create_request('/protected', headers={'Authorization': 'lolwut'}))
-        self.assertEqual(400, response.status)
-        self.assertEqual('Cannot verify malformed API key', response.text)
+        with create_request('/protected', headers={'Authorization': 'lolwut'}) as request:
+            response = verify_api_key()
+            self.assertEqual(('Cannot verify malformed API key', 400), response)
 
     def test_rejects_if_auth_header_is_missing(self, _):
-        response = simulate_request(create_request('/protected'))
-        self.assertEqual(400, response.status)
-        self.assertEqual('Missing authorization header', response.text)
+        with create_request('/protected') as request:
+            response = verify_api_key()
+            self.assertEqual(('Missing authorization header', 400), response)
 
-    def test_rejects_if_api_key_is_expired(self, mock: Mock):
+    def test_rejects_if_api_key_is_expired(self, mock: MagicMock):
         mock.side_effect = piazza.ApiKeyExpired()
-        response = simulate_request(create_request('/protected', headers={'Authorization': AUTH_HEADER}))
-        self.assertEqual(401, response.status)
-        self.assertEqual('Your Piazza API key has expired', response.text)
+        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
+            response = verify_api_key()
+            self.assertEqual(('Your Piazza API key has expired', 401), response)
 
-    def test_rejects_when_piazza_throws(self, mock: Mock):
+    def test_rejects_when_piazza_throws(self, mock: MagicMock):
         mock.side_effect = piazza.ServerError(500)
-        response = simulate_request(create_request('/protected', headers={'Authorization': AUTH_HEADER}))
-        self.assertEqual(500, response.status)
-        self.assertEqual('A Piazza error prevents API key verification', response.text)
+        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
+            response = verify_api_key()
+            self.assertEqual(('A Piazza error prevents API key verification', 500), response)
 
-    def test_rejects_when_encountering_unexpected_verification_error(self, mock: Mock):
+    def test_rejects_when_encountering_unexpected_verification_error(self, mock: MagicMock):
         mock.side_effect = FloatingPointError()
-        response = simulate_request(create_request('/protected', headers={'Authorization': AUTH_HEADER}))
-        self.assertEqual(500, response.status)
-        self.assertEqual('An internal error prevents API key verification', response.text)
-
-    def test_does_not_hijack_next_handlers_errors_in_protected_path(self, _):
-        async def next_handler(_):
-            raise ZeroDivisionError()
-
-        with self.assertRaises(ZeroDivisionError):
-            simulate_request(create_request('/protected', headers={'Authorization': AUTH_HEADER}), next_handler)
-
-    def test_does_not_hijack_next_handlers_errors_in_public_path(self, _):
-        async def next_handler(_):
-            raise ZeroDivisionError()
-
-        with self.assertRaises(ZeroDivisionError):
-            simulate_request(create_request('/'), next_handler)
+        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
+            response = verify_api_key()
+            self.assertEqual(('An internal error prevents API key verification', 500), response)
 
 
 #
 # Helpers
 #
 
-def create_app():
-    return Mock(spec=Application)
-
-
-def create_next_handler():
-    async def handler(_):
-        return Response(text=RESPONSE_SUCCESS)
-
-    return handler
-
-
 def create_request(path: str = '/', *, headers: dict = None):
-    return MagicMock(
-        spec=Request,
+    return patch(
+        'flask.request',
+        spec=flask.Request,
         path=path,
         headers=headers if headers else {},
     )
-
-
-def resolve(future):
-    return asyncio.get_event_loop().run_until_complete(future)
-
-
-def simulate_request(request: Request, next_handler=None) -> Response:
-    app = create_app()
-    next_handler = next_handler if next_handler else create_next_handler()
-    actual_middleware = resolve(create_verify_api_key_filter(app, next_handler))
-    return resolve(actual_middleware(request))
 
 
 #

@@ -15,7 +15,7 @@ from datetime import datetime
 from json import JSONDecodeError
 
 import dateutil.parser
-from aiohttp.web import Request, Response, json_response
+import flask
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
@@ -26,24 +26,23 @@ from bfapi.service import (algorithms as algorithms_service, jobs as jobs_servic
 # Algorithms
 #
 
-async def get_algorithm(request: Request):
-    service_id = request.match_info['service_id']
+def get_algorithm(service_id: str):
     try:
         algorithm = algorithms_service.get(
-            api_key=request['api_key'],
+            api_key=flask.request.api_key,
             service_id=service_id,
         )
     except algorithms_service.NotFound:
-        return Response(status=404, text='Algorithm not found')
-    return json_response({
+        return 'Algorithm not found', 404
+    return flask.jsonify({
         'algorithm': algorithm.serialize(),
     })
 
 
-async def list_algorithms(request: Request):
-    algorithms = algorithms_service.list_all(api_key=request['api_key'])
-    return json_response({
-        'algorithms': [algorithm.serialize() for algorithm in algorithms]
+def list_algorithms():
+    algorithms = algorithms_service.list_all(api_key=flask.request.api_key)
+    return flask.jsonify({
+        'algorithms': [a.serialize() for a in algorithms],
     })
 
 
@@ -51,44 +50,43 @@ async def list_algorithms(request: Request):
 # Jobs
 #
 
-async def create_job(request: Request):
+def create_job():
     try:
-        payload = await request.json()
+        payload = flask.request.get_json()
         job_name = _get_string(payload, 'name', max_length=100)
         service_id = _get_string(payload, 'algorithm_id', max_length=64)
         scene_id = _get_string(payload, 'scene_id', max_length=64)
     except JSONDecodeError:
-        return Response(status=400, text='Invalid input: request body must be a JSON object')
+        return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
-        return Response(status=400, text='Invalid input: {}'.format(err))
+        return 'Invalid input: {}'.format(err), 400
 
     try:
         record = jobs_service.create(
-            api_key=request['api_key'],
-            user_id=request['username'],
+            api_key=flask.request.api_key,
+            user_id=flask.request.username,
             service_id=service_id,
             scene_id=scene_id,
             job_name=job_name.strip(),
         )
     except jobs_service.PreprocessingError as err:
-        return Response(status=500, text='Cannot execute: {}'.format(err))
+        return 'Cannot execute: {}'.format(err), 500
     except DatabaseError:
-        return Response(status=500, text='A database error prevents job execution')
-    return json_response(status=201, data=record.serialize())
+        return 'A database error prevents job execution', 500
+    return flask.jsonify(record.serialize()), 201
 
 
-async def forget_job(request: Request):
-    job_id = request.match_info['job_id']
+def forget_job(job_id: str):
     try:
-        jobs_service.forget(request['username'], job_id)
+        jobs_service.forget(flask.request.username, job_id)
     except jobs_service.NotFound:
-        return Response(status=404, text='Job not found')
-    return Response(text='Forgot {}'.format(job_id))
+        return 'Job not found', 404
+    return 'Forgot {}'.format(job_id), 200
 
 
-async def list_jobs(request: Request):
-    jobs = jobs_service.get_all(request['username'])
-    return json_response({
+def list_jobs():
+    jobs = jobs_service.get_all(flask.request.username)
+    return flask.jsonify({
         'jobs': {
             'type': 'FeatureCollection',
             'features': [j.serialize() for j in jobs],
@@ -96,10 +94,9 @@ async def list_jobs(request: Request):
     })
 
 
-async def list_jobs_for_productline(request: Request):
-    productline_id = request.match_info['productline_id']
+def list_jobs_for_productline(productline_id: str):
     jobs = jobs_service.get_by_productline(productline_id)
-    return json_response({
+    return flask.jsonify({
         'productline_id': productline_id,
         'jobs': {
             'type': 'FeatureCollection',
@@ -108,10 +105,9 @@ async def list_jobs_for_productline(request: Request):
     })
 
 
-async def list_jobs_for_scene(request: Request):
-    scene_id = request.match_info['scene_id']
+def list_jobs_for_scene(scene_id: str):
     jobs = jobs_service.get_by_scene(scene_id)
-    return json_response({
+    return flask.jsonify({
         'scene_id': scene_id,
         'jobs': {
             'type': 'FeatureCollection',
@@ -120,20 +116,20 @@ async def list_jobs_for_scene(request: Request):
     })
 
 
-async def get_job(request: Request):
-    record = jobs_service.get(request['username'], request.match_info['job_id'])
+def get_job(job_id: str):
+    record = jobs_service.get(flask.request.username, job_id)
     if not record:
-        return Response(status=404, text='Job not found')
-    return json_response(record.serialize())
+        return 'Job not found', 404
+    return flask.jsonify(record.serialize())
 
 
 #
 # Product Lines
 #
 
-async def create_productline(request: Request):
+def create_productline():
     try:
-        payload = await request.json()
+        payload = flask.request.get_json()
         algorithm_id = _get_string(payload, 'algorithm_id', max_length=100)
         category = _get_string(payload, 'category', nullable=True, max_length=64)
         min_x = _get_number(payload, 'min_x', min_value=-180, max_value=180)
@@ -146,13 +142,13 @@ async def create_productline(request: Request):
         start_on = _get_datetime(payload, 'start_on')
         stop_on = _get_datetime(payload, 'stop_on', nullable=True)
     except JSONDecodeError:
-        return Response(status=400, text='Invalid input: request body must be a JSON object')
+        return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
-        return Response(status=400, text='Invalid input: {}'.format(err))
+        return 'Invalid input: {}'.format(err), 400
 
     try:
         productline = productline_service.create_productline(
-            api_key=request['api_key'],
+            api_key=flask.request.api_key,
             algorithm_id=algorithm_id,
             bbox=(min_x, min_y, max_x, max_y),
             category=category,
@@ -161,20 +157,20 @@ async def create_productline(request: Request):
             spatial_filter_id=spatial_filter_id,
             start_on=start_on,
             stop_on=stop_on,
-            user_id=request['username'],
+            user_id=flask.request.username,
         )
     except algorithms_service.NotFound as err:
-        return Response(status=500, text='Algorithm {} does not exist'.format(err.service_id))
+        return 'Algorithm {} does not exist'.format(err.service_id), 500
     except DatabaseError:
-        return Response(status=500, text='A database error prevents product line creation')
-    return json_response({
+        return 'A database error prevents product line creation', 500
+    return flask.jsonify({
         'product_line': productline.serialize(),
     })
 
 
-async def list_productlines(request: Request):
+def list_productlines():
     productlines = productline_service.get_all()
-    return json_response({
+    return flask.jsonify({
         'product_lines': {
             'type': 'FeatureCollection',
             'features': [p.serialize() for p in productlines],
@@ -182,9 +178,9 @@ async def list_productlines(request: Request):
     })
 
 
-async def on_harvest_event(request: Request):
+def on_harvest_event():
     try:
-        payload = await request.json()
+        payload = flask.request.get_json()
         signature = _get_string(payload, '__signature__')
         scene_id = _get_string(payload, 'scene_id', max_length=64)
         cloud_cover = _get_number(payload, 'cloud_cover', min_value=0, max_value=100)
@@ -193,9 +189,9 @@ async def on_harvest_event(request: Request):
         max_x = _get_number(payload, 'max_x', min_value=-180, max_value=180)
         max_y = _get_number(payload, 'max_y', min_value=-90, max_value=90)
     except JSONDecodeError:
-        return Response(status=400, text='Invalid input: request body must be a JSON object')
+        return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
-        return Response(status=400, text='Invalid input: {}'.format(err))
+        return 'Invalid input: {}'.format(err), 400
 
     try:
         disposition = productline_service.handle_harvest_event(
@@ -208,22 +204,22 @@ async def on_harvest_event(request: Request):
             max_y=max_y,
         )
     except productline_service.UntrustedEventError:
-        return Response(status=401, text='Error: Invalid event signature')
+        return 'Error: Invalid event signature', 401
     except productline_service.EventValidationError as err:
-        return Response(status=400, text='Error: Invalid scene event: {}'.format(err))
+        return 'Error: Invalid scene event: {}'.format(err), 400
     except jobs_service.PreprocessingError as err:
-        return Response(status=500, text='Error: Cannot spawn job: {}'.format(err))
+        return 'Error: Cannot spawn job: {}'.format(err), 500
     except DatabaseError:
-        return Response(status=500, text='A database error prevents job execution')
-    return Response(text=disposition)
+        return 'A database error prevents job execution', 500
+    return disposition
 
 
 #
 # Service Listing
 #
 
-async def list_supporting_services(request: Request):
-    return json_response({
+def list_supporting_services():
+    return flask.jsonify({
         'services': {
             'catalog': 'https://{}'.format(CATALOG),
             'wms_server': 'https://{}/geoserver/wms'.format(GEOSERVER_HOST),

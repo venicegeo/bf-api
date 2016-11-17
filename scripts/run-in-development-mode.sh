@@ -19,5 +19,5 @@ fi
 
 gunicorn bfapi.server:server \
   -b localhost:${PORT} \
-  --reload \
-  --worker-class aiohttp.worker.GunicornWebWorker
+  --threads 5 \
+  --reload
