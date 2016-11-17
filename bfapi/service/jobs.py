@@ -379,6 +379,7 @@ def stop_worker():
 class Worker(threading.Thread):
     def __init__(self, api_key: str, job_ttl: timedelta, interval: timedelta):
         super().__init__()
+        self.daemon = True
         self._log = logging.getLogger(__name__ + '.worker')
         self._api_key = api_key
         self._job_ttl = job_ttl
@@ -394,10 +395,6 @@ class Worker(threading.Thread):
 
     def run(self):
         while not self.is_terminated():
-            if self._should_sleep():
-                time.sleep(3)  # Allows for timely graceful shutdowns
-                continue
-
             conn = db.get_connection()
             try:
                 rows = db.jobs.select_summary_for_status(conn, status=piazza.STATUS_RUNNING).fetchall()
@@ -408,25 +405,18 @@ class Worker(threading.Thread):
             finally:
                 conn.close()
 
-            self._schedule_next_cycle()
+            next_cycle = (datetime.utcnow() + self._interval).strftime(FORMAT_TIME)
             if not rows:
-                self._log.info('Nothing to do; next run at %s', self._get_next_cycle())
+                self._log.info('Nothing to do; next run at %s', next_cycle)
             else:
                 self._log.info('Begin cycle for %d records', len(rows))
                 for i, row in enumerate(rows):
                     self._updater(row['job_id'], row['created_on'], i + 1)
-                self._log.info('Cycle complete; next run at %s', self._get_next_cycle())
+                self._log.info('Cycle complete; next run at %s', next_cycle)
+
+            time.sleep(self._interval.total_seconds())
 
         self._log.info('Stopped')
-
-    def _get_next_cycle(self):
-        return self._next_cycle.strftime(FORMAT_TIME)
-
-    def _schedule_next_cycle(self):
-        self._next_cycle = datetime.utcnow() + self._interval
-
-    def _should_sleep(self):
-        return self._next_cycle > datetime.utcnow()
 
     def _updater(self, job_id: str, created_on: datetime, index: int):
         log = self._log

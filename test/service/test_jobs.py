@@ -955,8 +955,7 @@ class WorkerRunTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
-    @staticmethod
-    def create_worker(*, max_cycles=2, interval=timedelta(1)):
+    def create_worker(self, *, max_cycles=1, interval=timedelta(1)):
         worker = jobs.Worker('test-api-key', job_ttl=timedelta(1), interval=interval)
         values = (v for v in [*[False] * max_cycles, True])
         worker.is_terminated = lambda: next(values)
@@ -968,28 +967,21 @@ class WorkerRunTest(unittest.TestCase):
         self.assertEqual(1, self.mock_select_jobs.call_count)
 
     def test_runs_first_cycle_immediately(self):
-        worker = self.create_worker(max_cycles=1)
+        worker = self.create_worker()
         worker.run()
         self.assertEqual(1, self.mock_select_jobs.call_count)
-        self.assertEqual(0, self.mock_sleep.call_count)
+        self.assertEqual(1, self.mock_sleep.call_count)
 
     def test_does_not_hammer_database_between_cycles(self):
         worker = self.create_worker(max_cycles=5)
         worker.run()
-        self.assertEqual(1, self.mock_select_jobs.call_count)
-        self.assertEqual(4, self.mock_sleep.call_count)
+        self.assertEqual(5, self.mock_select_jobs.call_count)
+        self.assertEqual(5, self.mock_sleep.call_count)
 
-    def test_uses_reasonable_control_interval(self):
-        worker = self.create_worker()
+    def test_honors_interval(self):
+        worker = self.create_worker(interval=timedelta(seconds=1234))
         worker.run()
-        self.assertEqual((3,), self.mock_sleep.call_args[0])
-
-    def test_schedules_next_cycle(self):
-        worker = self.create_worker()
-        spy = Mock(wraps=worker._schedule_next_cycle)
-        worker._schedule_next_cycle = spy
-        worker.run()
-        self.assertEqual(1, spy.call_count)
+        self.assertEqual(call(1234), self.mock_sleep.call_args)
 
     def test_logs_empty_cycles(self):
         logstream = self.create_logstream()
