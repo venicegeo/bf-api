@@ -736,7 +736,7 @@ class InstallIfNeededTest(unittest.TestCase):
         self.assertEqual('test-service-id', self.mock_create_trigger.call_args[1]['service_id'])
 
     def test_throws_when_piazza_throws(self):
-        self.mock_get_services.side_effect = piazza.Unauthorized('test-error')
+        self.mock_get_services.side_effect = piazza.Unauthorized()
         with self.assertRaises(piazza.Unauthorized):
             productlines.install_if_needed('/test/endpoint')
 

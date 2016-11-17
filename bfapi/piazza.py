@@ -630,8 +630,8 @@ class ApiKeyExpired(Error):
 
 
 class Unauthorized(Error):
-    def __init__(self, message: str = 'Credentials rejected'):
-        super().__init__('unauthorized to access Piazza: ' + message)
+    def __init__(self):
+        super().__init__('credentials rejected by Piazza')
 
 
 class Unreachable(Error):
