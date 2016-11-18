@@ -8,7 +8,7 @@ API service for the Beachfront project.
 From project root:
 
 ```
-$ virtualenv --python python3.4 .env
+$ virtualenv --python=python3.5 .env
 $ . .env/bin/activate
 $ pip install -r requirements.txt
 ```
