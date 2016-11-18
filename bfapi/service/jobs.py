@@ -410,8 +410,8 @@ class Worker(threading.Thread):
                 self._log.info('Nothing to do; next run at %s', next_cycle)
             else:
                 self._log.info('Begin cycle for %d records', len(rows))
-                for i, row in enumerate(rows):
-                    self._updater(row['job_id'], row['created_on'], i + 1)
+                for i, row in enumerate(rows, start=1):
+                    self._updater(row['job_id'], row['created_on'], i)
                 self._log.info('Cycle complete; next run at %s', next_cycle)
 
             time.sleep(self._interval.total_seconds())
