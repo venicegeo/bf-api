@@ -21,7 +21,7 @@ def attach_routes(app: flask.Flask):
 
     # Public Endpoints
     app.add_url_rule('/', view_func=routes.health_check, methods=['GET'])
-    app.add_url_rule('/login', view_func=routes.login, methods=['GET'])
+    app.add_url_rule('/login', view_func=routes.login, methods=['POST'])
 
     # API v0
     app.add_url_rule('/v0/services', view_func=routes.v0.list_supporting_services, methods=['GET'])
