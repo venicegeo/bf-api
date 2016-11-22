@@ -73,7 +73,7 @@ def create_job():
         return 'Cannot execute: {}'.format(err), 500
     except DatabaseError:
         return 'A database error prevents job execution', 500
-    return flask.jsonify(record.serialize()), 201
+    return flask.jsonify({'job': record.serialize()}), 201
 
 
 def forget_job(job_id: str):
@@ -163,9 +163,7 @@ def create_productline():
         return 'Algorithm {} does not exist'.format(err.service_id), 500
     except DatabaseError:
         return 'A database error prevents product line creation', 500
-    return flask.jsonify({
-        'product_line': productline.serialize(),
-    })
+    return flask.jsonify({'product_line': productline.serialize()}), 201
 
 
 def list_productlines():
