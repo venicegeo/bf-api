@@ -25,6 +25,8 @@ from bfapi.config import DOMAIN, SYSTEM_API_KEY, PZ_GATEWAY, SKIP_PRODUCTLINE_IN
 
 HARVEST_EVENT_IDENTIFIER = 'beachfront:api:on_harvest_event'
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
+STATUS_ACTIVE = 'Active'
+STATUS_INACTIVE = 'Inactive'
 
 
 #
@@ -60,6 +62,12 @@ class ProductLine:
         self.start_on = start_on
         self.stop_on = stop_on
 
+    @property
+    def status(self):
+        if not self.stop_on or datetime.utcnow() > self.stop_on:
+            return STATUS_ACTIVE
+        return STATUS_INACTIVE
+
     def serialize(self):
         return {
             'type': 'Feature',
@@ -75,7 +83,9 @@ class ProductLine:
                 'owned_by': self.owned_by,
                 'spatial_filter_id': self.spatial_filter_id,
                 'start_on': _serialize_dt(self.start_on),
+                'status': self.status,
                 'stop_on': _serialize_dt(self.stop_on),
+                'type': 'PRODUCT_LINE'
             },
         }
 
