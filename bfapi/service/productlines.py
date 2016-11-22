@@ -17,7 +17,7 @@ import logging
 import random
 import re
 
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Tuple
 
 from bfapi import db, piazza, service
@@ -64,7 +64,7 @@ class ProductLine:
 
     @property
     def status(self):
-        if not self.stop_on or datetime.utcnow() > self.stop_on:
+        if not self.stop_on or date.today() <= self.stop_on:
             return STATUS_ACTIVE
         return STATUS_INACTIVE
 
