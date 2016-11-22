@@ -29,7 +29,11 @@ def verify_api_key():
     request = flask.request  # type: flask.Request
 
     if request.path in PUBLIC_ENDPOINTS:
-        log.debug('Allowing access to public endpoint')
+        log.debug('Allowing access to public endpoint `%s`', request.path)
+        return
+
+    if request.method == 'OPTIONS':
+        log.debug('Allowing preflight request to endpoint `%s`', request.path)
         return
 
     log.debug('Verifying auth header')
