@@ -24,7 +24,7 @@ def attach_routes(app: flask.Flask):
 
     CORS(app, max_age=1200, origins=[
         re.compile(r'^https://.*\.geointservices\.io$'),
-        'http://localhost:8080',
+        re.compile(r'^https?://localhost:8080$'),
     ])
 
     # Public Endpoints
