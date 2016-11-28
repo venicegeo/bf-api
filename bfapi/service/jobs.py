@@ -362,8 +362,7 @@ def get_detections(job_id: str) -> str:
 
     log.info('Packaging detections for <job:%s>', job_id)
     try:
-        job_row = db.jobs.select_job(conn, job_id=job_id).scalar()
-        if not job_row:
+        if not db.jobs.exists(conn, job_id=job_id):
             raise NotFound(job_id)
         geojson = db.jobs.select_detections(conn, job_id=job_id).scalar()
     except db.DatabaseError as err:

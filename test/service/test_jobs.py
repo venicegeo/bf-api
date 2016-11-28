@@ -520,6 +520,50 @@ class GetAllJobsTest(unittest.TestCase):
             jobs.get_all('test-user-id')
 
 
+@patch('bfapi.db.jobs.select_detections')
+@patch('bfapi.db.jobs.exists', return_value=True)
+class GetDetectionsTest(unittest.TestCase):
+    def setUp(self):
+        self._mockdb = helpers.mock_database()
+        self._logger = logging.getLogger('bfapi.service.jobs')
+        self._logger.disabled = True
+
+    def tearDown(self):
+        self._mockdb.destroy()
+        self._logger.disabled = False
+
+    def test_returns_a_stringified_feature_collection(self, _, mock_select_detections: Mock):
+        mock_select_detections.return_value.scalar.return_value = '{"type":"FeatureCollection","features":[]}'
+        detections = jobs.get_detections('test-job-id')
+        self.assertEqual('{"type":"FeatureCollection","features":[]}', detections)
+
+    def test_queries_on_correct_jobid(self, mock_exists: Mock, mock_select_detections: Mock):
+        mock_select_detections.return_value.scalar.return_value = '{"type":"FeatureCollection","features":[]}'
+        jobs.get_detections('test-job-id')
+        self.assertEqual({'job_id': 'test-job-id'}, mock_exists.call_args[1])
+
+    def test_can_handle_big_feature_collections(self, _, mock_select_detections: Mock):
+        some_huge_number = 1024 * 100000
+        mock_select_detections.return_value.scalar.return_value = 'x' * some_huge_number
+        detections = jobs.get_detections('test-job-id')
+        self.assertEqual(some_huge_number, len(detections))
+
+    def test_handles_database_errors_gracefully(self, _, mock_select_detections: Mock):
+        mock_select_detections.side_effect = helpers.create_database_error()
+        with self.assertRaises(DatabaseError):
+            jobs.get_detections('test-job-id')
+
+    def test_handles_database_errors_gracefully_during_existence_check(self, mock_exists: Mock, _):
+        mock_exists.side_effect = helpers.create_database_error()
+        with self.assertRaises(DatabaseError):
+            jobs.get_detections('test-job-id')
+
+    def test_throws_if_job_not_found(self, mock_exists: Mock, _):
+        mock_exists.return_value = False
+        with self.assertRaises(jobs.NotFound):
+            jobs.get_detections('test-job-id')
+
+
 @patch('bfapi.db.jobs.insert_job_user')
 @patch('bfapi.db.jobs.select_job')
 class GetJobTest(unittest.TestCase):
