@@ -11,7 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from datetime import datetime
+from datetime import date
 
 from bfapi.db import Connection, ResultProxy
 
@@ -27,8 +27,8 @@ def insert_productline(
         max_cloud_cover: int,
         name: str,
         spatial_filter_id: str = None,
-        start_on: datetime,
-        stop_on: datetime = None,
+        start_on: date,
+        stop_on: date = None,
         user_id: str) -> ResultProxy:
     query = """
         INSERT INTO __beachfront__productline (productline_id, algorithm_id, algorithm_name, category, created_by, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on, bbox)

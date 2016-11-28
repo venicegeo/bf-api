@@ -155,8 +155,8 @@ def create_productline():
             max_cloud_cover=max_cloud_cover,
             name=name,
             spatial_filter_id=spatial_filter_id,
-            start_on=start_on,
-            stop_on=stop_on,
+            start_on=start_on.date(),
+            stop_on=stop_on.date() if stop_on else None,
             user_id=flask.request.username,
         )
     except algorithms_service.NotFound as err:

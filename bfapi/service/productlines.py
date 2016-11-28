@@ -47,8 +47,8 @@ class ProductLine:
             name: str,
             owned_by: str,
             spatial_filter_id: str = None,
-            start_on: datetime,
-            stop_on: datetime):
+            start_on: date,
+            stop_on: date):
         self.productline_id = productline_id
         self.algorithm_name = algorithm_name
         self.bbox = bbox
@@ -111,8 +111,8 @@ def create_productline(
         max_cloud_cover: int,
         name: str,
         spatial_filter_id: str,
-        start_on: datetime,
-        stop_on: datetime,
+        start_on: date,
+        stop_on: date,
         user_id: str) -> ProductLine:
     log = logging.getLogger(__name__)
     algorithm = service.algorithms.get(api_key, algorithm_id)
@@ -355,7 +355,7 @@ def _link_to_job(productline_id: str, job_id: str):
         raise
 
 
-def _serialize_dt(dt: datetime = None) -> str:
+def _serialize_dt(dt: date = None) -> str:
     if dt is not None:
         return dt.strftime(FORMAT_ISO8601)
 
