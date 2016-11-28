@@ -396,6 +396,13 @@ class GetStatusTest(unittest.TestCase):
         self.assertIsNone(status.data_id)
         self.assertIsNone(status.error_message)
 
+    def test_returns_correct_status_for_submitted_job(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_SUBMITTED)
+        status = piazza.get_status(API_KEY, 'test-job-id')
+        self.assertEqual('Submitted', status.status)
+        self.assertIsNone(status.data_id)
+        self.assertIsNone(status.error_message)
+
     def test_returns_correct_status_for_successful_execution_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_SUCCESS)
         status = piazza.get_status(API_KEY, 'test-job-id')
@@ -998,6 +1005,18 @@ RESPONSE_JOB_RUNNING = """{
   "data": {
     "result": null,
     "status": "Running",
+    "jobType": "ExecuteServiceJob",
+    "createdBy": "test-username",
+    "progress": {},
+    "jobId": "test-job-id"
+  }
+}"""
+
+RESPONSE_JOB_SUBMITTED = """{
+  "type": "status",
+  "data": {
+    "result": null,
+    "status": "Submitted",
     "jobType": "ExecuteServiceJob",
     "createdBy": "test-username",
     "progress": {},

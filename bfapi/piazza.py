@@ -25,6 +25,7 @@ PATTERN_VALID_AUTH_HEADER = re.compile('^Basic \S+$')
 STATUS_CANCELLED = 'Cancelled'
 STATUS_SUCCESS = 'Success'
 STATUS_RUNNING = 'Running'
+STATUS_SUBMITTED = 'Submitted'
 STATUS_ERROR = 'Error'
 TYPE_DATA = 'data'
 TYPE_DEPLOYMENT = 'deployment'
@@ -356,6 +357,9 @@ def get_status(api_key: str, job_id: str) -> Status:
 
     # Status wrangling
     if status == STATUS_RUNNING:
+        return Status(status)
+
+    if status == STATUS_SUBMITTED:
         return Status(status)
 
     elif status == STATUS_SUCCESS:
