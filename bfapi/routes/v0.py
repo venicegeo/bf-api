@@ -76,6 +76,20 @@ def create_job():
     return flask.jsonify({'job': record.serialize()}), 201
 
 
+def download_geojson(job_id: str):
+    try:
+        detections = jobs_service.get_detections(job_id)
+    except jobs_service.NotFound:
+        return 'Job not found', 404
+    except jobs_service.Error as err:
+        return 'Cannot download: {}'.format(err), 500
+    except DatabaseError:
+        return 'A database error prevents detection download', 500
+    return detections, 200, {
+        'Content-Type': 'application/vnd.geo+json',
+    }
+
+
 def forget_job(job_id: str):
     try:
         jobs_service.forget(flask.request.username, job_id)

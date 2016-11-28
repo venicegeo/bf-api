@@ -42,6 +42,7 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule('/v0/job', view_func=routes.v0.list_jobs, methods=['GET'])
     app.add_url_rule('/v0/job/<job_id>', view_func=routes.v0.get_job, methods=['GET'])
     app.add_url_rule('/v0/job/<job_id>', view_func=routes.v0.forget_job, methods=['DELETE'])
+    app.add_url_rule('/v0/job/<job_id>.geojson', view_func=routes.v0.download_geojson, methods=['GET'])
     app.add_url_rule('/v0/job/by_scene/<scene_id>', view_func=routes.v0.list_jobs_for_scene, methods=['GET'])
     app.add_url_rule('/v0/job/by_productline/<productline_id>', view_func=routes.v0.list_jobs_for_productline, methods=['GET'])
     app.add_url_rule('/v0/productline', view_func=routes.v0.list_productlines, methods=['GET'])

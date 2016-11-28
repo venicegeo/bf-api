@@ -134,6 +134,30 @@ def insert_job_user(
     conn.execute(query, params)
 
 
+def select_detections(
+        conn: Connection,
+        *,
+        job_id: str) -> ResultProxy:
+    # Construct the GeoJSON directly where the data lives
+    query = """
+        SELECT to_json(fc)::text AS "feature_collection"
+          FROM (SELECT 'FeatureCollection' AS "type",
+                       array_agg(f) AS "features"
+                  FROM (SELECT concat_ws('#', d.job_id, d.feature_id) AS "id",
+                               to_json(j) AS "properties",
+                               ST_AsGeoJSON(d.geometry)::json AS "geometry"
+                          FROM __beachfront__detection d
+                               INNER JOIN __beachfront__job AS j ON (j.job_id = d.job_id)
+                         WHERE d.job_id = %(job_id)s
+                       ) AS f
+               ) AS fc
+        """
+    params = {
+        'job_id': job_id,
+    }
+    return conn.execute(query, params)
+
+
 def select_job(
         conn: Connection,
         *,

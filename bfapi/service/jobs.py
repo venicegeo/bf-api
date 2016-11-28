@@ -351,6 +351,29 @@ def get_by_scene(scene_id: str) -> List[Job]:
     return jobs
 
 
+def get_detections(job_id: str) -> str:
+    """
+    Returns a potentially massive stringified GeoJSON feature collection containing all detections
+    for a given job.
+    """
+
+    log = logging.getLogger(__name__)
+    conn = db.get_connection()
+
+    log.info('Packaging detections for <job:%s>', job_id)
+    try:
+        job_row = db.jobs.select_job(conn, job_id=job_id).scalar()
+        if not job_row:
+            raise NotFound(job_id)
+        geojson = db.jobs.select_detections(conn, job_id=job_id).scalar()
+    except db.DatabaseError as err:
+        db.print_diagnostics(err)
+        raise
+
+    log.debug('Packaging complete: %d bytes for <job:%s>', len(geojson), job_id)
+    return geojson
+
+
 def start_worker(
         api_key: str = SYSTEM_API_KEY,
         job_ttl: timedelta = JOB_TTL,
