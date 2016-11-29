@@ -147,7 +147,10 @@ def select_detections(
                                to_json(j) AS "properties",
                                ST_AsGeoJSON(d.geometry)::json AS "geometry"
                           FROM __beachfront__detection d
-                               INNER JOIN __beachfront__job AS j ON (j.job_id = d.job_id)
+                               INNER JOIN (SELECT *,
+                                                  'NOT FOR TARGETING OR NAVIGATION PURPOSES' AS data_usage,
+                                                  'UNCLASSIFIED' AS classification
+                                             FROM __beachfront__job) AS j ON (j.job_id = d.job_id)
                          WHERE d.job_id = %(job_id)s
                        ) AS f
                ) AS fc
