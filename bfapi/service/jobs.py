@@ -198,6 +198,8 @@ def create(
         log.error('Could not save job to database: %s', err)
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
     return Job(
         algorithm_name=algorithm.name,
@@ -226,6 +228,8 @@ def forget(user_id: str, job_id: str) -> None:
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
 
 def get(user_id: str, job_id: str) -> Job:
@@ -240,6 +244,8 @@ def get(user_id: str, job_id: str) -> Job:
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
     return Job(
         algorithm_name=row['algorithm_name'],
@@ -267,6 +273,8 @@ def get_all(user_id: str) -> List[Job]:
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
     jobs = []
     for row in cursor.fetchall():
@@ -299,6 +307,8 @@ def get_by_productline(productline_id: str) -> List[Job]:
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
     jobs = []
     for row in cursor.fetchall():
@@ -329,6 +339,8 @@ def get_by_scene(scene_id: str) -> List[Job]:
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise err
+    finally:
+        conn.close()
 
     jobs = []
     for row in cursor.fetchall():
@@ -368,6 +380,8 @@ def get_detections(job_id: str) -> str:
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
     log.debug('Packaging complete: %d bytes for <job:%s>', len(geojson), job_id)
     return geojson
@@ -505,7 +519,8 @@ class Worker(threading.Thread):
                 db.print_diagnostics(err)
                 _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
                 return
-            conn.close()
+            finally:
+                conn.close()
 
         elif status.status == piazza.STATUS_ERROR:
             # FIXME -- use heuristics to generate a more descriptive error message
@@ -605,6 +620,8 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
         log.error('<%s> database update failed', job_id)
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
 
 def _serialize_dt(dt: datetime = None) -> str:

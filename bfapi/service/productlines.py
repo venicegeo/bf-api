@@ -138,6 +138,8 @@ def create_productline(
         log.error('Could not insert product line record')
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
     return ProductLine(
         productline_id=productline_id,
@@ -162,6 +164,8 @@ def get_all() -> List[ProductLine]:
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
     productlines = []
     for row in cursor.fetchall():
         productlines.append(ProductLine(
@@ -211,6 +215,8 @@ def handle_harvest_event(
         log.error('Database search for applicable product lines failed')
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
     rows = cursor.fetchall()
     log.info('<scene:%s> Found %d applicable product lines', scene_id, len(rows))
@@ -332,6 +338,8 @@ def _find_existing_job_id_for_scene(scene_id: str, algorithm_id: str) -> str:
         log.error('Job query failed')
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
     return job_id
 
 
@@ -353,6 +361,8 @@ def _link_to_job(productline_id: str, job_id: str):
         log.error('Cannot link job and productline')
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
 
 def _serialize_dt(dt: date = None) -> str:

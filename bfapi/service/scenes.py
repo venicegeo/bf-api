@@ -100,6 +100,8 @@ def get(scene_id: str) -> Scene:
         log.error('Could not save scene to database: %s', err)
         db.print_diagnostics(err)
         raise
+    finally:
+        conn.close()
 
     return scene
 
