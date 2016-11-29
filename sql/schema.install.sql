@@ -38,7 +38,7 @@ CREATE TABLE __beachfront__job (
     tide_min_24h      FLOAT,
     tide_max_24h      FLOAT,
 
-    FOREIGN KEY (scene_id) REFERENCES __beachfront__scene(scene_id)
+    FOREIGN KEY (scene_id) REFERENCES __beachfront__scene(scene_id) ON DELETE CASCADE
 );
 
 CREATE TABLE __beachfront__detection (
@@ -47,7 +47,7 @@ CREATE TABLE __beachfront__detection (
     geometry          GEOMETRY       NOT NULL,
 
     PRIMARY KEY (job_id, feature_id),
-    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
 );
 
 CREATE TABLE __beachfront__job_user (
@@ -55,7 +55,7 @@ CREATE TABLE __beachfront__job_user (
     user_id           VARCHAR(64),
 
     PRIMARY KEY (job_id, user_id),
-    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
 );
 
 CREATE TABLE __beachfront__job_error (
@@ -63,7 +63,7 @@ CREATE TABLE __beachfront__job_error (
     error_message     VARCHAR(64)    NOT NULL,
     execution_step    VARCHAR(64)    NOT NULL,  -- e.g., 'fetch', 'compute', 'deployment', 'async'
 
-    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
 );
 
 CREATE TABLE __beachfront__productline (
@@ -89,8 +89,8 @@ CREATE TABLE __beachfront__productline_job (
     job_id            VARCHAR(64),
 
     PRIMARY KEY (productline_id, job_id),
-    FOREIGN KEY (productline_id) REFERENCES __beachfront__productline(productline_id),
-    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id)
+    FOREIGN KEY (productline_id) REFERENCES __beachfront__productline(productline_id) ON DELETE CASCADE,
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
 );
 
 CREATE VIEW __beachfront__geoserver AS
