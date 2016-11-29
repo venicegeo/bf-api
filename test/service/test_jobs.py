@@ -167,7 +167,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
-        self.assertEqual('Running', job.status)
+        self.assertEqual('Submitted', job.status)
 
     def test_requests_tide_prediction(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -972,7 +972,7 @@ class WorkerRunTest(unittest.TestCase):
         self.mock_getfile = self.create_mock('bfapi.piazza.get_file')
         self.mock_getstatus = self.create_mock('bfapi.piazza.get_status')
         self.mock_insert_detections = self.create_mock('bfapi.db.jobs.insert_detection')
-        self.mock_select_jobs = self.create_mock('bfapi.db.jobs.select_summary_for_status')
+        self.mock_select_jobs = self.create_mock('bfapi.db.jobs.select_outstanding_jobs')
         self.mock_select_jobs.return_value.fetchall.return_value = []
         self.mock_update_status = self.create_mock('bfapi.db.jobs.update_status')
         self.mock_insert_job_failure = self.create_mock('bfapi.db.jobs.insert_job_failure')
@@ -1005,10 +1005,15 @@ class WorkerRunTest(unittest.TestCase):
         worker.is_terminated = lambda: next(values)
         return worker
 
-    def test_requests_list_of_running_jobs(self):
+    def test_requests_list_of_outstanding_jobs(self):
         worker = self.create_worker()
         worker.run()
         self.assertEqual(1, self.mock_select_jobs.call_count)
+
+    def test_closes_database_connection_after_each_cycle(self):
+        worker = self.create_worker(max_cycles=13)
+        worker.run()
+        self.assertEqual(13, self._mockdb.close.call_count)
 
     def test_runs_first_cycle_immediately(self):
         worker = self.create_worker()
@@ -1219,14 +1224,25 @@ class WorkerRunTest(unittest.TestCase):
                                error_message='Job failed during algorithm execution')],
                          self.mock_insert_job_failure.call_args_list)
 
-    def test_updates_status_for_job_timing_out(self):
+    def test_updates_status_for_job_timing_out_while_queued(self):
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_SUBMITTED)
+        worker = self.create_worker()
+        worker.run()
+        self.assertEqual([call(self._mockdb, job_id='test-job-id', status='Timed Out')],
+                         self.mock_update_status.call_args_list)
+        self.assertEqual([call(self._mockdb, job_id='test-job-id', execution_step=jobs.STEP_QUEUED,
+                               error_message='Submission wait time exceeded')],
+                         self.mock_insert_job_failure.call_args_list)
+
+    def test_updates_status_for_job_timing_out_while_processing(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_RUNNING)
         worker = self.create_worker()
         worker.run()
         self.assertEqual([call(self._mockdb, job_id='test-job-id', status='Timed Out')],
                          self.mock_update_status.call_args_list)
-        self.assertEqual([call(self._mockdb, job_id='test-job-id', execution_step=jobs.STEP_POLLING,
+        self.assertEqual([call(self._mockdb, job_id='test-job-id', execution_step=jobs.STEP_PROCESSING,
                                error_message='Processing time exceeded')],
                          self.mock_insert_job_failure.call_args_list)
 

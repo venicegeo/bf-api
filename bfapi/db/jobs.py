@@ -259,19 +259,14 @@ def select_jobs_for_user(
     return conn.execute(query, params)
 
 
-def select_summary_for_status(
-        conn: Connection,
-        *,
-        status: str) -> ResultProxy:
+def select_outstanding_jobs(conn: Connection) -> ResultProxy:
     query = """
         SELECT job_id, created_on
           FROM __beachfront__job
-         WHERE status = %(status)s
+         WHERE status IN ('Running', 'Submitted')
+        ORDER BY created_on ASC
         """
-    params = {
-        'status': status,
-    }
-    return conn.execute(query, params)
+    return conn.execute(query)
 
 
 def update_status(

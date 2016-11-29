@@ -29,8 +29,9 @@ FORMAT_TIME = '%TZ'
 STATUS_TIMED_OUT = 'Timed Out'
 STEP_ALGORITHM = 'runtime:algorithm'
 STEP_COLLECT_GEOJSON = 'postprocessing:collect_geojson'
+STEP_PROCESSING = 'runtime:processing'
+STEP_QUEUED = 'runtime:queued'
 STEP_RESOLVE = 'postprocessing:resolving_detections_data_id'
-STEP_POLLING = 'runtime:polling'
 
 _worker = None  # type: Worker
 
@@ -181,7 +182,7 @@ def create(
             job_id=job_id,
             name=job_name,
             scene_id=scene_id,
-            status=piazza.STATUS_RUNNING,
+            status=piazza.STATUS_SUBMITTED,
             user_id=user_id,
             tide=tide,
             tide_min_24h=tide_min,
@@ -212,7 +213,7 @@ def create(
         scene_capture_date=scene.capture_date,
         scene_sensor_name=scene.sensor_name,
         scene_id=scene_id,
-        status=piazza.STATUS_RUNNING,
+        status=piazza.STATUS_SUBMITTED,
         tide=tide,
         tide_min_24h=tide_min,
         tide_max_24h=tide_max,
@@ -433,7 +434,7 @@ class Worker(threading.Thread):
         while not self.is_terminated():
             conn = db.get_connection()
             try:
-                rows = db.jobs.select_summary_for_status(conn, status=piazza.STATUS_RUNNING).fetchall()
+                rows = db.jobs.select_outstanding_jobs(conn).fetchall()
             except db.DatabaseError as err:
                 self._log.error('Could not list running jobs: %s', err)
                 db.print_diagnostics(err)
@@ -478,11 +479,37 @@ class Worker(threading.Thread):
         log.info('<%03d/%s> polled (%s)', index, job_id, status.status)
 
         # Determine appropriate action by status
-        if status.status == piazza.STATUS_RUNNING:
-            if datetime.utcnow() - created_on < job_ttl:
+        if status.status == piazza.STATUS_SUBMITTED:
+            if datetime.utcnow() - created_on > job_ttl:
+                log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
+                _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)
                 return
-            log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
-            _save_execution_error(job_id, STEP_POLLING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
+
+            conn = db.get_connection()
+            try:
+                db.jobs.update_status(conn, job_id=job_id, status=status.status)
+            except db.DatabaseError as err:
+                log.error('<%03d/%s> Could not save status to database', index, job_id)
+                db.print_diagnostics(err)
+                return
+            finally:
+                conn.close()
+
+        elif status.status == piazza.STATUS_RUNNING:
+            if datetime.utcnow() - created_on > job_ttl:
+                log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
+                _save_execution_error(job_id, STEP_PROCESSING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
+                return
+
+            conn = db.get_connection()
+            try:
+                db.jobs.update_status(conn, job_id=job_id, status=status.status)
+            except db.DatabaseError as err:
+                log.error('<%03d/%s> Could not save status to database', index, job_id)
+                db.print_diagnostics(err)
+                return
+            finally:
+                conn.close()
 
         elif status.status == piazza.STATUS_SUCCESS:
             log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
