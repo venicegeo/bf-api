@@ -879,9 +879,16 @@ class VerifyApiKeyTest(unittest.TestCase):
         with self.assertRaises(piazza.ApiKeyExpired):
             piazza.verify_api_key(API_KEY)
 
+    def test_throws_when_profile_is_missing(self, m: Mocker):
+        truncated_response = json.loads(RESPONSE_AUTH_ACTIVE)
+        truncated_response.pop('profile')
+        m.post('/v2/verification', json=truncated_response)
+        with self.assertRaises(piazza.InvalidResponse):
+            piazza.verify_api_key(API_KEY)
+
     def test_throws_when_username_is_missing(self, m: Mocker):
         truncated_response = json.loads(RESPONSE_AUTH_ACTIVE)
-        truncated_response.pop('username')
+        truncated_response['profile'].pop('username')
         m.post('/v2/verification', json=truncated_response)
         with self.assertRaises(piazza.InvalidResponse):
             piazza.verify_api_key(API_KEY)
@@ -904,8 +911,10 @@ class VerifyApiKeyTest(unittest.TestCase):
 
 RESPONSE_AUTH_ACTIVE = """{
     "type": "auth",
-    "username": "test-username",
-    "authenticated": true
+    "authenticated": true,
+    "profile": {
+        "username": "test-username"
+    }
 }"""
 
 RESPONSE_AUTH_EXPIRED = """{
@@ -915,7 +924,7 @@ RESPONSE_AUTH_EXPIRED = """{
 
 RESPONSE_AUTH_REJECTED = """{
     "type": "error",
-    "message": "Authentication failed for user pztestpass09",
+    "message": "Authentication failed for user test-username",
     "origin": "IDAM"
 }"""
 

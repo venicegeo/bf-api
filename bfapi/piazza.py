@@ -540,16 +540,15 @@ def verify_api_key(api_key: str) -> str:
     if not auth.get('authenticated'):
         raise ApiKeyExpired()
 
-    username = auth.get('username')
+    profile = auth.get('profile')
+    if not profile:
+        raise InvalidResponse('missing `profile` property', response.text)
+
+    username = profile.get('username')
     if not username:
         raise InvalidResponse('missing `username`', response.text)
 
     return username
-
-
-def verify_user_credentials(auth_header: str) -> bool:
-    # This needs implementation on Piazza's end
-    raise Exception('not yet implemented')
 
 
 #
