@@ -235,12 +235,13 @@ def forget(user_id: str, job_id: str) -> None:
 
 def get(user_id: str, job_id: str) -> Job:
     conn = db.get_connection()
-    row = db.jobs.select_job(conn, job_id=job_id).fetchone()
-    if not row:
-        return
 
-    # Add job to user's tracked jobs list
     try:
+        row = db.jobs.select_job(conn, job_id=job_id).fetchone()
+        if not row:
+            raise NotFound(job_id)
+
+        # Add job to user's tracked jobs list
         db.jobs.insert_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
         db.print_diagnostics(err)

@@ -131,8 +131,9 @@ def list_jobs_for_scene(scene_id: str):
 
 
 def get_job(job_id: str):
-    record = jobs_service.get(flask.request.username, job_id)
-    if not record:
+    try:
+        record = jobs_service.get(flask.request.username, job_id)
+    except jobs_service.NotFound:
         return 'Job not found', 404
     return flask.jsonify(record.serialize())
 

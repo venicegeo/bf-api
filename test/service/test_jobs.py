@@ -580,9 +580,10 @@ class GetJobTest(unittest.TestCase):
         mock_select.return_value.fetchone.return_value = create_job_db_record()
         self.assertIsInstance(jobs.get('test-user-id', 'test-job-id'), jobs.Job)
 
-    def test_returns_null_if_job_not_found(self, mock_select: Mock, _):
-        mock_select.return_value.fetchone.return_value = None
-        self.assertIsNone(jobs.get('test-user-id', 'test-job-id'))
+    def test_throws_if_job_not_found(self, mock_select: Mock, _):
+        with self.assertRaises(jobs.NotFound):
+            mock_select.return_value.fetchone.return_value = None
+            jobs.get('test-user-id', 'test-job-id')
 
     def test_queries_on_correct_ids(self, mock_select: Mock, _):
         mock_select.return_value.fetchone.return_value = create_job_db_record()
