@@ -423,7 +423,6 @@ class Worker(threading.Thread):
         self._job_ttl = job_ttl
         self._interval = interval
         self._terminated = False
-        self._next_cycle = datetime.utcnow()
 
     def is_terminated(self):
         return self._terminated
@@ -443,14 +442,13 @@ class Worker(threading.Thread):
             finally:
                 conn.close()
 
-            next_cycle = (datetime.utcnow() + self._interval).strftime(FORMAT_TIME)
             if not rows:
-                self._log.info('Nothing to do; next run at %s', next_cycle)
+                self._log.info('Nothing to do; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
             else:
                 self._log.info('Begin cycle for %d records', len(rows))
                 for i, row in enumerate(rows, start=1):
                     self._updater(row['job_id'], row['created_on'], i)
-                self._log.info('Cycle complete; next run at %s', next_cycle)
+                self._log.info('Cycle complete; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
 
             time.sleep(self._interval.total_seconds())
 
