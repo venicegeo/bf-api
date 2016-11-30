@@ -186,12 +186,17 @@ def select_jobs_for_inputs(
         algorithm_id: str,
         scene_id: str) -> ResultProxy:
     query = """
-        SELECT job_id
+        SELECT job_id,
+               CASE status
+                    WHEN 'Success' THEN 0
+                    WHEN 'Submitted' THEN 1
+                    WHEN 'Running' THEN 2
+               END AS _sort_precedence
           FROM __beachfront__job
          WHERE algorithm_id = %(algorithm_id)s
            AND scene_id = %(scene_id)s
-           AND status IN ('Running', 'Success')
-         ORDER BY status DESC  -- Success first
+           AND status IN ('Submitted', 'Running', 'Success')
+         ORDER BY _sort_precedence ASC
         """
     params = {
         'algorithm_id': algorithm_id,
@@ -229,7 +234,7 @@ def select_jobs_for_scene(
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE j.scene_id = %(scene_id)s
-           AND j.status IN ('Success', 'Running')
+           AND j.status IN ('Submitted', 'Running', 'Success')
         ORDER BY created_on ASC
         """
     params = {
@@ -263,7 +268,7 @@ def select_outstanding_jobs(conn: Connection) -> ResultProxy:
     query = """
         SELECT job_id, created_on
           FROM __beachfront__job
-         WHERE status IN ('Running', 'Submitted')
+         WHERE status IN ('Submitted', 'Running')
         ORDER BY created_on ASC
         """
     return conn.execute(query)
