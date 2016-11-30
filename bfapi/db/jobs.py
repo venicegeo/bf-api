@@ -11,6 +11,8 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+from datetime import datetime
+
 from bfapi.db import Connection, ResultProxy
 
 def delete_job_user(
@@ -208,7 +210,8 @@ def select_jobs_for_inputs(
 def select_jobs_for_productline(
         conn: Connection,
         *,
-        productline_id: str) -> ResultProxy:
+        productline_id: str,
+        since: datetime) -> ResultProxy:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
@@ -216,10 +219,12 @@ def select_jobs_for_productline(
                LEFT OUTER JOIN __beachfront__job j ON (j.job_id = p.job_id)
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE p.productline_id = %(productline_id)s
+           AND (j.created_on >= %(since)s)
         ORDER BY created_on ASC
         """
     params = {
         'productline_id': productline_id,
+        'since': since,
     }
     return conn.execute(query, params)
 

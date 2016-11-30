@@ -15,6 +15,7 @@ from datetime import datetime
 from json import JSONDecodeError
 
 import dateutil.parser
+import dateutil.tz
 import flask
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
@@ -109,9 +110,16 @@ def list_jobs():
 
 
 def list_jobs_for_productline(productline_id: str):
-    jobs = jobs_service.get_by_productline(productline_id)
+    try:
+        since = dateutil.parser.parse(
+            flask.request.args.get('since', '1970-01-01', type=str),
+        ).replace(tzinfo=dateutil.tz.tzutc())  # type: datetime
+    except ValueError:
+        return 'Invalid input: `since` value cannot be parsed as a valid date', 400
+    jobs = jobs_service.get_by_productline(productline_id, since)
     return flask.jsonify({
         'productline_id': productline_id,
+        'since': since.isoformat(),
         'jobs': {
             'type': 'FeatureCollection',
             'features': [j.serialize() for j in jobs],

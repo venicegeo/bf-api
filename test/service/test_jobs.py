@@ -680,19 +680,24 @@ class GetByProductlineTest(unittest.TestCase):
 
     def test_returns_a_list_of_jobs(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        records = jobs.get_by_productline('test-productline-id')
+        records = jobs.get_by_productline('test-productline-id', LAST_WEEK)
         self.assertIsInstance(records, list)
         self.assertEqual(1, len(records))
         self.assertIsInstance(records[0], jobs.Job)
 
     def test_queries_on_correct_plid(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        jobs.get_by_productline('test-productline-id')
-        self.assertEqual({'productline_id': 'test-productline-id'}, mock.call_args[1])
+        jobs.get_by_productline('test-productline-id', LAST_WEEK)
+        self.assertEqual('test-productline-id', mock.call_args[1]['productline_id'])
+
+    def test_queries_on_correct_since_timestamp(self, mock: Mock):
+        mock.return_value.fetchall.return_value = [create_job_db_record()]
+        jobs.get_by_productline('test-productline-id', datetime.utcfromtimestamp(1234567890))
+        self.assertEqual(datetime.utcfromtimestamp(1234567890), mock.call_args[1]['since'])
 
     def test_can_handle_empty_recordset(self, mock: Mock):
         mock.return_value.fetchall.return_value = []
-        records = jobs.get_by_productline('test-productline-id')
+        records = jobs.get_by_productline('test-productline-id', LAST_WEEK)
         self.assertEqual([], records)
 
     def test_can_handle_multiple_records(self, mock: Mock):
@@ -701,84 +706,84 @@ class GetByProductlineTest(unittest.TestCase):
             create_job_db_record('test-job-2'),
             create_job_db_record('test-job-3'),
         ]
-        records = jobs.get_by_productline('test-productline-id')
+        records = jobs.get_by_productline('test-productline-id', LAST_WEEK)
         self.assertEqual(['test-job-1', 'test-job-2', 'test-job-3'], list(map(lambda r: r.job_id, records)))
 
     def test_assigns_correct_algorithm_name(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-algo-name', job.algorithm_name)
 
     def test_assigns_correct_algorithm_version(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-algo-version', job.algorithm_version)
 
     def test_assigns_correct_created_by(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-creator', job.created_by)
 
     def test_assigns_correct_created_on(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual(datetime.utcnow().date(), job.created_on.date())
 
     def test_assigns_correct_geometry(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual({"type": "Polygon", "coordinates": [[[0, 0], [0, 30], [30, 30], [30, 0], [0, 0]]]},
                          job.geometry)
 
     def test_assigns_correct_job_id(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-job-id', job.job_id)
 
     def test_assigns_correct_name(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-name', job.name)
 
     def test_assigns_correct_scene_capture_date(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual(datetime.utcnow().date(), job.scene_capture_date.date())
 
     def test_assigns_correct_scene_sensor_name(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-scene-sensor-name', job.scene_sensor_name)
 
     def test_assigns_correct_scene_id(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-scene-id', job.scene_id)
 
     def test_assigns_correct_status(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-status', job.status)
 
     def test_assigns_correct_tide(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual(5.4321, job.tide)
 
     def test_assigns_correct_tide_min_24h(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual(-10.0, job.tide_min_24h)
 
     def test_assigns_correct_tide_max_24h(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
-        job = jobs.get_by_productline('test-productline-id').pop()
+        job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual(10.0, job.tide_max_24h)
 
     def test_handles_database_errors_gracefully(self, mock: Mock):
         mock.side_effect = helpers.create_database_error()
         with self.assertRaises(DatabaseError):
-            jobs.get_by_productline('test-productline-id')
+            jobs.get_by_productline('test-productline-id', LAST_WEEK)
 
 
 @patch('bfapi.db.jobs.select_jobs_for_scene')

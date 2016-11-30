@@ -301,11 +301,11 @@ def get_all(user_id: str) -> List[Job]:
     return jobs
 
 
-def get_by_productline(productline_id: str) -> List[Job]:
+def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     conn = db.get_connection()
 
     try:
-        cursor = db.jobs.select_jobs_for_productline(conn, productline_id=productline_id)
+        cursor = db.jobs.select_jobs_for_productline(conn, productline_id=productline_id, since=since)
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise
