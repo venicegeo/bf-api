@@ -1043,7 +1043,7 @@ class WorkerRunTest(unittest.TestCase):
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
-            'INFO - Nothing to do; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Nothing to do; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1056,7 +1056,7 @@ class WorkerRunTest(unittest.TestCase):
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
             'INFO - <001/test-job-id> polled (Error)',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1073,7 +1073,7 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> polled (Success)',
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'ERROR - <001/test-job-id> Could not resolve detections data ID: during postprocessing, could not fetch execution output: Piazza server error (HTTP 404)',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1096,7 +1096,7 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'INFO - <001/test-job-id> Fetching detections from Piazza',
             'ERROR - <001/test-job-id> Could not fetch data ID <test-detections-id>: Piazza server error (HTTP 404)',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1117,7 +1117,7 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> Fetching detections from Piazza',
             'INFO - <001/test-job-id> Saving detections to database (0.0MB)',
             'ERROR - <001/test-job-id> Could not save status and detections to database',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1130,7 +1130,7 @@ class WorkerRunTest(unittest.TestCase):
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
             'INFO - <001/test-job-id> polled (Running)',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1148,7 +1148,7 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'INFO - <001/test-job-id> Fetching detections from Piazza',
             'INFO - <001/test-job-id> Saving detections to database (2.0MB)',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1162,7 +1162,7 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - Begin cycle for 1 records',
             'INFO - <001/test-job-id> polled (Running)',
             'WARNING - <001/test-job-id> appears to have stalled and will no longer be tracked',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1175,7 +1175,7 @@ class WorkerRunTest(unittest.TestCase):
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
             'ERROR - <001/test-job-id> call to Piazza failed: Piazza server error (HTTP 500)',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1188,7 +1188,7 @@ class WorkerRunTest(unittest.TestCase):
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
             'ERROR - <001/test-job-id> call to Piazza failed: invalid Piazza response: test-error',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
@@ -1201,7 +1201,7 @@ class WorkerRunTest(unittest.TestCase):
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
             'ERROR - <001/test-job-id> credentials rejected during polling!',
-            'INFO - Cycle complete; next run at {:%TZ}'.format(worker._next_cycle),
+            'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
