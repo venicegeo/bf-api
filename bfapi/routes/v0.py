@@ -189,6 +189,19 @@ def create_productline():
     return flask.jsonify({'product_line': productline.serialize()}), 201
 
 
+def delete_productline(productline_id: str):
+    user_id = flask.request.username
+    try:
+        productline_service.delete_productline(user_id, productline_id)
+        return 'Deleted product line {}'.format(productline_id), 200
+    except DatabaseError:
+        return 'A database error prevents deletion of this product line', 404
+    except productline_service.NotFound:
+        return 'Product Line not found', 404
+    except PermissionError:
+        return 'User `{}` does not have permission to delete this product line'.format(user_id), 403
+
+
 def list_productlines():
     productlines = productline_service.get_all()
     return flask.jsonify({
