@@ -21,3 +21,4 @@ pip install -r requirements.txt
 coverage run --source=bfapi -m unittest discover
 coverage xml -o report/coverage/coverage.xml
 coverage html -d report/coverage/html
+coverage report
