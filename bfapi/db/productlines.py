@@ -16,6 +16,21 @@ from datetime import date
 from bfapi.db import Connection, ResultProxy
 
 
+def delete_productline(
+        conn: Connection,
+        *,
+        productline_id: str) -> ResultProxy:
+    query = """
+        UPDATE __beachfront__productline
+           SET deleted = TRUE
+         WHERE productline_id = %(productline_id)s
+    """
+    params = {
+        'productline_id': productline_id,
+    }
+    return conn.execute(query, params)
+
+
 def insert_productline(
         conn: Connection,
         *,
@@ -77,9 +92,28 @@ def select_all(conn: Connection):
                created_on, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on,
                ST_AsGeoJSON(bbox) AS bbox
           FROM __beachfront__productline
+         WHERE NOT deleted
          ORDER BY created_on ASC
         """
     return conn.execute(query)
+
+
+def select_productline(
+        conn: Connection,
+        *,
+        productline_id: str) -> ResultProxy:
+    query = """
+        SELECT productline_id, algorithm_id, algorithm_name, category, compute_mask, created_by,
+               created_on, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on,
+               ST_AsGeoJSON(bbox) AS bbox
+          FROM __beachfront__productline
+         WHERE NOT deleted
+           AND productline_id = %(productline_id)s
+    """
+    params = {
+        'productline_id': productline_id,
+    }
+    return conn.execute(query, params)
 
 
 def select_summary_for_scene(
@@ -93,7 +127,8 @@ def select_summary_for_scene(
     query = """
         SELECT productline_id, algorithm_id, name, owned_by
           FROM __beachfront__productline
-         WHERE bbox && ST_MakeEnvelope(%(min_x)s, %(min_y)s, %(max_x)s, %(max_y)s)
+         WHERE NOT deleted
+           AND bbox && ST_MakeEnvelope(%(min_x)s, %(min_y)s, %(max_x)s, %(max_y)s)
            AND max_cloud_cover >= %(cloud_cover)s
            AND start_on <= CURRENT_DATE
            AND (stop_on >= CURRENT_DATE OR stop_on IS NULL)

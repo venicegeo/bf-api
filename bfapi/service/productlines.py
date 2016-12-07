@@ -157,6 +157,27 @@ def create_productline(
     )
 
 
+def delete_productline(user_id: str, productline_id: str) -> None:
+    log = logging.getLogger(__name__)
+
+    conn = db.get_connection()
+    try:
+        productline = db.productlines.select_productline(conn, productline_id=productline_id).fetchone()
+        if not productline:
+            raise NotFound(productline_id)
+
+        if user_id != productline['owned_by']:
+            raise PermissionError('only the owner can delete this productline')
+
+        db.productlines.delete_productline(conn, productline_id=productline_id)
+    except db.DatabaseError as err:
+        log.error('Could not delete productline <%s>', productline_id)
+        db.print_diagnostics(err)
+        raise
+    finally:
+        conn.close()
+
+
 def get_all() -> List[ProductLine]:
     conn = db.get_connection()
     try:
@@ -396,6 +417,12 @@ class Error(Exception):
 class EventValidationError(Error):
     def __init__(self, err: Exception = None, message: str = 'invalid event: {}'):
         super().__init__(message.format(err))
+
+
+class NotFound(Error):
+    def __init__(self, productline_id: str):
+        super().__init__('productline <{}> not found'.format(productline_id))
+        self.productline_id = productline_id
 
 
 class UntrustedEventError(Error):

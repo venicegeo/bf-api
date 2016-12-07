@@ -47,6 +47,7 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule('/v0/job/by_productline/<productline_id>', view_func=routes.v0.list_jobs_for_productline, methods=['GET'])
     app.add_url_rule('/v0/productline', view_func=routes.v0.list_productlines, methods=['GET'])
     app.add_url_rule('/v0/productline', view_func=routes.v0.create_productline, methods=['POST'])
+    app.add_url_rule('/v0/productline/<productline_id>', view_func=routes.v0.delete_productline, methods=['DELETE'])
     app.add_url_rule('/v0/scene/event/harvest', view_func=routes.v0.on_harvest_event, methods=['POST'])
 
 
