@@ -295,6 +295,19 @@ class CreateJobTest(unittest.TestCase):
         jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'ERROR - Malformed tide prediction response:',
+            '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+            '',
+            'INPUTS',
+            '',
+            '    dtg: 2014-05-13-12-53',
+            '    lat: 15.0',
+            '    lon: 15.0',
+            '',
+            'RESPONSE',
+            '',
+            'lolwut',
+            '',
+            '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
         ], logstream.getvalue().splitlines())
 
@@ -972,6 +985,8 @@ class WorkerRunTest(unittest.TestCase):
         self._mockdb = helpers.mock_database()
         self._logger = logging.getLogger('bfapi.service.jobs.worker')
         self._logger.disabled = True
+        self._logger_for_module = logging.getLogger('bfapi.service.jobs')
+        self._logger_for_module.disabled = True
 
         self.mock_sleep = self.create_mock('time.sleep')
         self.mock_thread = self.create_mock('threading.Thread')
@@ -986,6 +1001,7 @@ class WorkerRunTest(unittest.TestCase):
     def tearDown(self):
         self._mockdb.destroy()
         self._logger.disabled = False
+        self._logger_for_module.disabled = False
 
     def create_logstream(self) -> io.StringIO:
         def cleanup():

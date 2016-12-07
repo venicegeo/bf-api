@@ -30,6 +30,7 @@ class MockDBConnection(unittest.mock.Mock):
     def __init__(self, *args, **kwargs):
         super().__init__(spec=_sqlalchemyengine.Connection, *args, **kwargs)
         self._original_get_connection = None
+        self._original_print_diagnostics = None
         self.transactions = []  # type: typing.List[unittest.mock.Mock]
 
     #
@@ -43,11 +44,14 @@ class MockDBConnection(unittest.mock.Mock):
 
     def install(self):
         self._original_get_connection = bfapi.db.get_connection
+        self._original_print_diagnostics = bfapi.db.print_diagnostics
         bfapi.db.get_connection = lambda: self
+        bfapi.db.print_diagnostics = lambda _: self
 
     def destroy(self):
         if self._original_get_connection:
             bfapi.db.get_connection = self._original_get_connection
+            bfapi.db.print_diagnostics = self._original_print_diagnostics
 
     #
     # Assertion Helpers
