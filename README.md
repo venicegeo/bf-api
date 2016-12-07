@@ -25,7 +25,7 @@ Even if you intend to point at a remote database, [`psycopg2` has a runtime depe
 > [Postgres.app](http://postgresql.org/download/macosx/) which includes both PostgreSQL and the PostGIS extensions.
 
 
-#### 2. Create `.environment-vars.dev.sh` with the contents:
+#### 2. Create `.environment-vars.dev.sh` in root directory with contents:
 
 ```
 export DOMAIN=<some target domain>
