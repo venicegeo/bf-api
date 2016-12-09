@@ -11,4 +11,4 @@ applications:
     - pz-postgres
     - pz-geoserver-efs
   env:
-    BEACHFRONT: 1
+    SYSTEM_API_KEY: __SYSTEM_API_KEY__
