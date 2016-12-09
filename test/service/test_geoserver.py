@@ -123,30 +123,67 @@ class InstallStyleTest(unittest.TestCase):
         self._config.destroy()
         self._logger.disabled = False
 
-    def test_calls_correct_url(self, m: rm.Mocker):
+    def test_calls_correct_url_when_creating_sld(self, m: rm.Mocker):
         m.post('/geoserver/rest/styles')
+        m.put('/geoserver/rest/layers/bfdetections')
         geoserver.install_style('test-style-id')
         self.assertEqual('http://geoserver.localhost/geoserver/rest/styles?name=test-style-id',
                          m.request_history[0].url)
 
-    def test_sends_correct_credentials(self, m: rm.Mocker):
+    def test_calls_correct_url_when_setting_default_style(self, m: rm.Mocker):
         m.post('/geoserver/rest/styles')
+        m.put('/geoserver/rest/layers/bfdetections')
+        geoserver.install_style('test-style-id')
+        self.assertEqual('http://geoserver.localhost/geoserver/rest/layers/bfdetections',
+                         m.request_history[1].url)
+
+    def test_sends_correct_credentials_when_creating_sld(self, m: rm.Mocker):
+        m.post('/geoserver/rest/styles')
+        m.put('/geoserver/rest/layers/bfdetections')
         geoserver.install_style('test-style-id')
         self.assertEqual('Basic dGVzdC11c2VybmFtZTp0ZXN0LXBhc3N3b3Jk', m.request_history[0].headers['Authorization'])
 
-    def test_sends_correct_payload(self, m: rm.Mocker):
+    def test_sends_correct_credentials_when_setting_default_style(self, m: rm.Mocker):
         m.post('/geoserver/rest/styles')
+        m.put('/geoserver/rest/layers/bfdetections')
+        geoserver.install_style('test-style-id')
+        self.assertEqual('Basic dGVzdC11c2VybmFtZTp0ZXN0LXBhc3N3b3Jk', m.request_history[1].headers['Authorization'])
+
+    def test_sends_correct_payload_when_creating_sld(self, m: rm.Mocker):
+        m.post('/geoserver/rest/styles')
+        m.put('/geoserver/rest/layers/bfdetections')
         geoserver.install_style('test-style-id')
         xml = et.fromstring(m.request_history[0].text)  # type: et.ElementTree
         self.assertEqual('#FF00FF', xml.findtext('.//sld:CssParameter', namespaces=XMLNS))
 
-    def test_throws_on_http_error(self, m: rm.Mocker):
+    def test_sends_correct_payload_when_setting_default_style(self, m: rm.Mocker):
+        m.post('/geoserver/rest/styles')
+        m.put('/geoserver/rest/layers/bfdetections')
+        geoserver.install_style('test-style-id')
+        xml = et.fromstring(m.request_history[1].text)  # type: et.ElementTree
+        self.assertEqual('bfdetections', xml.findtext('defaultStyle/name'))
+
+    def test_throws_on_http_error_when_creating_sld(self, m: rm.Mocker):
         m.post('/geoserver/rest/styles', status_code=500)
+        m.put('/geoserver/rest/layers/bfdetections')
         with self.assertRaises(geoserver.GeoServerError):
             geoserver.install_style('test-style-id')
 
-    def test_throws_if_geoserver_is_unreachable(self, _):
+    def test_throws_on_http_error_when_setting_default_style(self, m: rm.Mocker):
+        m.post('/geoserver/rest/styles')
+        m.put('/geoserver/rest/layers/bfdetections', status_code=500)
+        with self.assertRaises(geoserver.GeoServerError):
+            geoserver.install_style('test-style-id')
+
+    def test_throws_if_geoserver_is_unreachable_when_creating_sld(self, _):
         with patch('requests.post') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(geoserver.GeoServerError):
+                geoserver.install_style('test-style-id')
+
+    def test_throws_if_geoserver_is_unreachable_when_setting_default_style(self, m: rm.Mocker):
+        m.post('/geoserver/rest/styles')
+        with patch('requests.put') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(geoserver.GeoServerError):
                 geoserver.install_style('test-style-id')

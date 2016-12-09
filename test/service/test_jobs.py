@@ -30,7 +30,7 @@ from bfapi.db import DatabaseError
 from bfapi.service import jobs
 
 API_KEY = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-LAST_WEEK = datetime.utcnow() - timedelta(7.0)
+LAST_WEEK = datetime.now() - timedelta(7.0)
 
 
 class CreateJobTest(unittest.TestCase):
