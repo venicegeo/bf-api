@@ -8,9 +8,15 @@ source $root/ci/vars.sh
 
 ## Install Dependencies ########################################################
 
-# Enter virtual environment
+# Create or enter virtual environment
 if [ ! -f .env/bin/activate ]; then
-  virtualenv --python=python3.5 .env
+    if [ $(uname) == "Darwin" ]; then
+        virtualenv --python=python3.5 .env
+    else
+        # HACK -- workaround for Python 3.5 in Jenkins
+        . /opt/rh/rh-python35/enable
+        virtualenv --python=python35 .env
+    fi
 fi
 . .env/bin/activate
 
