@@ -10,3 +10,5 @@ applications:
   services:
     - pz-postgres
     - pz-geoserver-efs
+  env:
+    BEACHFRONT_VERSION: 1
