@@ -3,43 +3,92 @@
 API service for the Beachfront project.
 
 
-## Installing
+## Running locally for development
 
-From project root:
+### Requires:
 
-```
-$ virtualenv --python=python3.5 .env
-$ . .env/bin/activate
-$ pip install -r requirements.txt
-```
-
-
-## Running in development mode
-
-#### 1. Install PostgreSQL + PostGIS on your machine
-
-Even if you intend to point at a remote database, [`psycopg2` has a runtime dependency on
-`libpq`](http://initd.org/psycopg/docs/install.html), which is bundled with most PostgreSQL distributions.
-
-> **Tip:** If you're running MacOS, the simplest setup/configuration route is to just use
-> [Postgres.app](http://postgresql.org/download/macosx/) which includes both PostgreSQL and the PostGIS extensions.
+- [Python 3.5](https://www.python.org/downloads/) (with `virtualenv` installed)
+- [GeoServer](http://geoserver.org/release/stable/) (requires [JRE
+8](http://www.oracle.com/technetwork/java/javase/downloads/index.html))
+- [PostgreSQL](https://www.postgresql.org/download/)
+- [PostGIS](http://postgis.net/install/)
 
 
-#### 2. Create `.environment-vars.dev.sh` in root directory with contents:
+#### 1. Create development environment
+
+From the terminal, execute:
 
 ```
-export DOMAIN=<some target domain>
-export SYSTEM_API_KEY=<valid Piazza API key>
-export PORT=5000
-export VCAP_SERVICES='{valid json blob}'
+$ ./scripts/create-development-environment.sh
 ```
 
-> **Tip:** You can get `VCAP_SERVICES` by running `cf env bf-api` or checking
-> the environment variables from the PCF web management portal.
->
-> [More about `VCAP_SERVICES`](https://docs.run.pivotal.io/devguide/deploy-apps/environment-variable.html#VCAP-SERVICES)
+This will create a virtualenv and the dev environment artifacts.  After the
+script finishes, edit `.dev/environment-vars.sh` to fill in the empty values.
 
-#### 3. From the terminal, execute:
+
+#### 2. Install PostgreSQL + PostGIS on your machine
+
+Even if you intend to point at a remote database, [`psycopg2` has a runtime
+dependency on `libpq`](http://initd.org/psycopg/docs/install.html), which is
+bundled with most PostgreSQL distributions.
+
+> **Tip:** If you're running MacOS, the simplest setup/configuration route is to
+>          just use [Postgres.app](http://postgresql.org/download/macosx/) which
+>          includes both PostgreSQL and the PostGIS extensions.
+
+After you finish installing, start Postgres.  Then, from the terminal execute:
+
+```
+$ psql -c "CREATE ROLE beachfront WITH LOGIN PASSWORD 'secret'"
+$ psql -c "CREATE DATABASE beachfront WITH OWNER beachfront"
+$ psql beachfront -c "CREATE EXTENSION postgis"
+```
+
+
+#### 3. Install GeoServer on your machine
+
+> **Warning:** This part is a hot mess, but the alternative is installing and
+>              configuring Apache Tomcat or some other JEE servlet container.
+>              **Do not** use these instructions to configure a production
+>              instance of GeoServer.
+
+First, [follow the official instructions to install
+GeoServer](http://docs.geoserver.org/latest/en/user/installation/osx_binary.html),
+then make sure the server is not running.
+
+Next, we're going to restore the platform-independent binary's built-in servlet
+container's ability to listen on HTTPS.  From a new terminal window/tab, execute:
+
+```
+$ cd $GEOSERVER_HOME
+$ curl "https://raw.githubusercontent.com/eclipse/jetty.project/jetty-$(ls lib/jetty-server-*.jar | sed -E 's_^lib/jetty-server-(.*)\.jar$_\1_')/jetty-server/src/main/config/modules/ssl.mod" -o modules/ssl.mod
+$ keytool -importkeystore \
+    -srcstoretype PKCS12 \
+    -srckeystore /path/to/bf-api/.dev/ssl-certificate.pkcs12 \
+    -destkeystore beachfront.jks \
+    -srcstorepass secret \
+    -deststorepass secret \
+    -noprompt
+$ cat <<'EOT' >> start.ini
+##########################################
+# Enable HTTPS
+--module=https
+jetty.truststore=beachfront.keystore
+jetty.keystore=beachfront.keystore
+jetty.keymanager.password=secret
+jetty.truststore.password=secret
+jetty.keystore.password=secret
+##########################################
+EOT
+$ ./bin/startup.sh
+```
+
+Finally, visit [https://localhost:8443/geoserver/web/](https://localhost:8443/geoserver/web/) in your browser.
+
+
+#### 4. Start bf-api
+
+From the terminal, execute:
 
 ```
 $ ./scripts/run-in-development-mode.sh
@@ -58,8 +107,8 @@ $ ./scripts/test.sh
 ## Deploying
 
 1. Either `cf push` or use the normal CI build pipeline to deploy to PCF.
-2. Provide credentials to the running instance by `cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>` or
-via the PCF web management portal.
+2. Provide credentials to the running instance via the PCF web management
+portal, or from the terminal, ala:
 
 ```
 $ cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>
