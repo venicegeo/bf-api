@@ -165,6 +165,25 @@ def install_style(style_id: str):
             },
         )
         response.raise_for_status()
+        response = requests.put(
+            'http://{}/geoserver/rest/layers/{}'.format(  # FIXME -- https please?
+                GEOSERVER_HOST,
+                DETECTIONS_LAYER_ID,
+            ),
+            data="""
+                <layer>
+                  <defaultStyle>
+                    <name>{}</name>
+                  </defaultStyle>
+                </layer>
+            """.strip().format(DETECTIONS_STYLE_ID),
+            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
+            timeout=TIMEOUT,
+            headers={
+                'Content-Type': 'application/xml',
+            },
+        )
+        response.raise_for_status()
     except requests.ConnectionError as err:
         log.error('Cannot communicate with GeoServer: %s', err)
         raise GeoServerError()
