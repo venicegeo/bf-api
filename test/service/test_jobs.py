@@ -30,7 +30,7 @@ from bfapi.db import DatabaseError
 from bfapi.service import jobs
 
 API_KEY = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-LAST_WEEK = datetime.now() - timedelta(7.0)
+LAST_WEEK = datetime.utcnow() - timedelta(7.0)
 
 
 class CreateJobTest(unittest.TestCase):
@@ -143,7 +143,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
-        self.assertEqual('2014-05-13T12:53:20', job.scene_capture_date.isoformat())
+        self.assertEqual('2014-05-13T16:53:20', job.scene_capture_date.isoformat())
 
     def test_assigns_correct_scene_sensor_name(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -179,7 +179,7 @@ class CreateJobTest(unittest.TestCase):
             'locations': [{
                 'lat': 15.0,
                 'lon': 15.0,
-                'dtg': '2014-05-13-12-53',
+                'dtg': '2014-05-13-16-53',
             }]
         }, self.mock_requests.request_history[0].json())
 
@@ -299,7 +299,7 @@ class CreateJobTest(unittest.TestCase):
             '',
             'INPUTS',
             '',
-            '    dtg: 2014-05-13-12-53',
+            '    dtg: 2014-05-13-16-53',
             '    lat: 15.0',
             '    lon: 15.0',
             '',
@@ -1413,7 +1413,7 @@ def create_scene():
             'test-algo-band-1': 'lorem',
             'test-algo-band-2': 'ipsum',
         },
-        capture_date=datetime.fromtimestamp(1400000000),
+        capture_date=datetime.utcfromtimestamp(1400000000),
         cloud_cover=33,
         geometry={"type": "Polygon", "coordinates": [[[0, 0], [0, 30], [30, 30], [30, 0], [0, 0]]]},
         resolution=15,
