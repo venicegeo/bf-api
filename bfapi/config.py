@@ -47,7 +47,7 @@ def _getdomain() -> str:
     if not value:
         _errors.append('DOMAIN cannot be blank')
         return 'localhost'
-    return value.strip().replace('int.', 'stage.')
+    return value.strip()
 
 def _getservices() -> dict:
     def collect(node: dict):
