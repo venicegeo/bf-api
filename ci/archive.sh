@@ -21,7 +21,7 @@ fi
 
 # Fetch libraries
 mkdir -p vendor
-pip download -d vendor -r requirements.txt
+pip install -d vendor -r requirements.txt
 
 
 ## Build #######################################################################
