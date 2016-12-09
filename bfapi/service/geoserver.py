@@ -48,14 +48,14 @@ def install_layer(layer_id: str):
     log.info('Installing `%s`', layer_id)
     try:
         response = requests.post(
-            'http://{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(  # FIXME -- http please
+            'http://{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(  # FIXME -- https please?
                 host=GEOSERVER_HOST,
                 ws='piazza',  # FIXME -- autodetect?
                 ds='piazza',  # FIXME -- autodetect?
             ),
+            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
             timeout=TIMEOUT,
             headers={
-                'Authorization': _generate_auth_header(),
                 'Content-Type': 'application/xml',
             },
             data=r"""
@@ -155,9 +155,9 @@ def install_style(style_id: str):
                   </NamedLayer>
                 </StyledLayerDescriptor>
             """.strip(),
+            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
             timeout=TIMEOUT,
             headers={
-                'Authorization': _generate_auth_header(),
                 'Content-Type': 'application/vnd.ogc.sld+xml',
             },
             params={
@@ -204,10 +204,8 @@ def layer_exists(layer_id: str) -> bool:
                 GEOSERVER_HOST,
                 layer_id,
             ),
+            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
             timeout=TIMEOUT,
-            headers={
-                'Authorization': _generate_auth_header(),
-            },
         )
     except requests.ConnectionError as err:
         log.error('Cannot communicate with GeoServer: %s', err)
@@ -223,23 +221,13 @@ def style_exists(style_id: str) -> bool:
                 GEOSERVER_HOST,
                 style_id,
             ),
+            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
             timeout=TIMEOUT,
-            headers={
-                'Authorization': _generate_auth_header(),
-            },
         )
     except requests.ConnectionError as err:
         log.error('Cannot communicate with GeoServer: %s', err)
         raise GeoServerError()
     return response.status_code == 200
-
-
-#
-# Internals
-#
-
-def _generate_auth_header():
-    return 'Basic ' + base64.b64encode('{}:{}'.format(GEOSERVER_USERNAME, GEOSERVER_PASSWORD).encode()).decode()
 
 
 #
