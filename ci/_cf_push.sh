@@ -15,7 +15,8 @@ fi
 
 echo ###########################################################################
 
-piazza_url=https://piazza.$PCF_DOMAIN/key
+pcf_domain=$(echo $PCF_DOMAIN|sed -E 's/^int\./stage./')
+piazza_url=https://piazza.$pcf_domain/key
 echo "Requesting new Piazza API key via $piazza_url"
 response=$(curl -s $piazza_url -u "$BEACHFRONT_PIAZZA_AUTH")
 echo
