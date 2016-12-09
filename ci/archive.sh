@@ -10,7 +10,11 @@ source $root/ci/vars.sh
 
 # Create or enter virtual environment
 if [ ! -f .env/bin/activate ]; then
-  virtualenv --python=python3.5 .env
+    # HACK -- workaround for Python 3.5 in Jenkins
+    if [ $JENKINS_HOME ]; then
+        . /opt/rh/rh-python35/enable
+    fi
+    virtualenv --python=python3.5 .env
 fi
 . .env/bin/activate
 
