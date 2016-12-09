@@ -855,41 +855,41 @@ class RegisterServiceTest(unittest.TestCase):
 @Mocker()
 class VerifyApiKeyTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
-        m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
+        m.post('/authn', text=RESPONSE_AUTH_ACTIVE)
         piazza.verify_api_key(API_KEY)
-        self.assertEqual('https://pz-idam.localhost/v2/verification', m.request_history[0].url)
+        self.assertEqual('https://pz-idam.localhost/authn', m.request_history[0].url)
 
     def test_sends_correct_payload(self, m: Mocker):
-        m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
+        m.post('/authn', text=RESPONSE_AUTH_ACTIVE)
         piazza.verify_api_key(API_KEY)
         self.assertEqual({'uuid': API_KEY}, m.request_history[0].json())
 
     def test_returns_correct_username(self, m: Mocker):
-        m.post('/v2/verification', text=RESPONSE_AUTH_ACTIVE)
+        m.post('/authn', text=RESPONSE_AUTH_ACTIVE)
         username = piazza.verify_api_key(API_KEY)
         self.assertEqual('test-username', username)
 
     def test_handles_http_errors_gracefully(self, m: Mocker):
-        m.post('/v2/verification', text=RESPONSE_ERROR_GENERIC, status_code=500)
+        m.post('/authn', text=RESPONSE_ERROR_GENERIC, status_code=500)
         with self.assertRaises(piazza.ServerError):
             piazza.verify_api_key(API_KEY)
 
     def test_throws_when_api_key_is_expired(self, m: Mocker):
-        m.post('/v2/verification', text=RESPONSE_AUTH_EXPIRED)
+        m.post('/authn', text=RESPONSE_AUTH_EXPIRED)
         with self.assertRaises(piazza.ApiKeyExpired):
             piazza.verify_api_key(API_KEY)
 
     def test_throws_when_profile_is_missing(self, m: Mocker):
         truncated_response = json.loads(RESPONSE_AUTH_ACTIVE)
-        truncated_response.pop('profile')
-        m.post('/v2/verification', json=truncated_response)
+        truncated_response.pop('userProfile')
+        m.post('/authn', json=truncated_response)
         with self.assertRaises(piazza.InvalidResponse):
             piazza.verify_api_key(API_KEY)
 
     def test_throws_when_username_is_missing(self, m: Mocker):
         truncated_response = json.loads(RESPONSE_AUTH_ACTIVE)
-        truncated_response['profile'].pop('username')
-        m.post('/v2/verification', json=truncated_response)
+        truncated_response['userProfile'].pop('username')
+        m.post('/authn', json=truncated_response)
         with self.assertRaises(piazza.InvalidResponse):
             piazza.verify_api_key(API_KEY)
 
@@ -900,7 +900,7 @@ class VerifyApiKeyTest(unittest.TestCase):
                 piazza.verify_api_key(API_KEY)
 
     def test_throws_when_passed_malformed_api_key(self, m: Mocker):
-        m.post('/v2/verification', text='{}')
+        m.post('/authn', text='{}')
         with self.assertRaises(piazza.MalformedCredentials):
             piazza.verify_api_key('lolwut')
 
@@ -911,15 +911,15 @@ class VerifyApiKeyTest(unittest.TestCase):
 
 RESPONSE_AUTH_ACTIVE = """{
     "type": "auth",
-    "authenticated": true,
-    "profile": {
+    "isAuthSuccess": true,
+    "userProfile": {
         "username": "test-username"
     }
 }"""
 
 RESPONSE_AUTH_EXPIRED = """{
     "type": "auth",
-    "authenticated": false
+    "isAuthSuccess": false
 }"""
 
 RESPONSE_AUTH_REJECTED = """{

@@ -523,7 +523,7 @@ def verify_api_key(api_key: str) -> str:
     # Verify with Piazza IDAM
     try:
         response = requests.post(
-            'https://{}/v2/verification'.format(PZ_GATEWAY.replace('pz-gateway.', 'pz-idam.')),
+            'https://{}/authn'.format(PZ_GATEWAY.replace('pz-gateway.', 'pz-idam.')),
             timeout=TIMEOUT_SHORT,
             json={
                 'uuid': api_key,
@@ -537,10 +537,10 @@ def verify_api_key(api_key: str) -> str:
 
     # Validate the response
     auth = response.json()
-    if not auth.get('authenticated'):
+    if not auth.get('isAuthSuccess'):
         raise ApiKeyExpired()
 
-    profile = auth.get('profile')
+    profile = auth.get('userProfile')
     if not profile:
         raise InvalidResponse('missing `profile` property', response.text)
 
