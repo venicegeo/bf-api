@@ -25,7 +25,7 @@ from test import helpers
 
 import bfapi.service.algorithms
 import bfapi.service.scenes
-from bfapi import piazza, service
+from bfapi import piazza
 from bfapi.db import DatabaseError
 from bfapi.service import jobs
 
