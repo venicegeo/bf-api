@@ -76,6 +76,7 @@ CREATE TABLE __beachfront__productline (
     compute_mask      GEOMETRY,
     created_by        VARCHAR(64)    NOT NULL,
     created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    deleted           BOOL           NOT NULL    DEFAULT FALSE,
     max_cloud_cover   INTEGER        NOT NULL,
     name              VARCHAR(100)   NOT NULL,
     owned_by          VARCHAR(64)    NOT NULL,

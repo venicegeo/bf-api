@@ -342,6 +342,56 @@ class CreateProductlineTest(unittest.TestCase):
             )
 
 
+class DeleteProductLineTest(unittest.TestCase):
+    def setUp(self):
+        self._mockdb = helpers.mock_database()
+        self._logger = logging.getLogger('bfapi.service.productlines')
+        self._logger.disabled = True
+
+        self.mock_delete = self.create_mock('bfapi.db.productlines.delete_productline')
+        self.mock_select = self.create_mock('bfapi.db.productlines.select_productline')
+
+    def tearDown(self):
+        self._mockdb.destroy()
+        self._logger.disabled = False
+
+    def create_mock(self, target_name):
+        patcher = patch(target_name)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def test_deletes_productline_from_database(self):
+        self.mock_select.return_value.fetchone.return_value = {'owned_by': 'test-user-id'}
+        productlines.delete_productline('test-user-id', 'test-productline-id')
+        self.assertEqual(1, self.mock_delete.call_count)
+
+    def test_closes_connection_after_operation(self):
+        self.mock_select.return_value.fetchone.return_value = {'owned_by': 'test-user-id'}
+        productlines.delete_productline('test-user-id', 'test-productline-id')
+        self.assertEqual(1, self._mockdb.close.call_count)
+
+    def test_throws_when_productline_not_found(self):
+        self.mock_select.return_value.fetchone.return_value = None
+        with self.assertRaises(productlines.NotFound):
+            productlines.delete_productline('test-user-id', 'test-productline-id')
+
+    def test_throws_when_not_owned_by_requesting_user(self):
+        self.mock_select.return_value.fetchone.return_value = {'owned_by': 'Rumplestiltzkin'}
+        with self.assertRaises(PermissionError):
+            productlines.delete_productline('person who is not Rumplestiltzkin', 'test-productline-id')
+
+    def test_throws_on_database_error_during_select(self):
+        self.mock_select.side_effect = helpers.create_database_error()
+        with self.assertRaises(DatabaseError):
+            productlines.delete_productline('test-user-id', 'test-productline-id')
+
+    def test_throws_on_database_error_during_delete(self):
+        self.mock_select.return_value.fetchone.return_value = {'owned_by': 'test-user-id'}
+        self.mock_delete.side_effect = helpers.create_database_error()
+        with self.assertRaises(DatabaseError):
+            productlines.delete_productline('test-user-id', 'test-productline-id')
+
+
 @patch('bfapi.db.productlines.select_all')
 class GetAllTest(unittest.TestCase):
     def setUp(self):

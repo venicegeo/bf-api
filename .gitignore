@@ -4,6 +4,6 @@ __pycache__
 bf-api.zip
 .idea
 .env
-.environment-vars.dev.sh
+.dev
 .coverage
 report

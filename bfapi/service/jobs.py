@@ -597,11 +597,18 @@ def _fetch_tide_prediction(scene: service.scenes.Scene) -> (float, float, float)
         max_tide = round(float(prediction['results']['minimumTide24Hours']), 12)
         return tide, min_tide, max_tide
     except (ValueError, TypeError):
-        log.error('Malformed tide prediction response:')
-        print('!' * 80)
-        print('\nRAW RESPONSE\n')
-        print(response.text)
-        print('!' * 80)
+        log.error('Malformed tide prediction response:\n%s',
+                  '\n'.join([
+                      '!' * 80,
+                      '\nINPUTS\n',
+                      '    dtg: {}'.format(dtg),
+                      '    lat: {:0.12}'.format(y),
+                      '    lon: {:0.12}'.format(x),
+                      '\nRESPONSE\n',
+                      response.text,
+                      '',
+                      '!' * 80,
+                  ]))
     return None, None, None
 
 
