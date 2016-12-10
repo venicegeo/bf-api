@@ -18,8 +18,8 @@ API service for the Beachfront project.
 
 From the terminal, execute:
 
-```
-$ ./scripts/create-development-environment.sh
+```bash
+./scripts/create-development-environment.sh
 ```
 
 This will create a virtualenv and the dev environment artifacts.  After the
@@ -38,10 +38,10 @@ bundled with most PostgreSQL distributions.
 
 After you finish installing, start Postgres.  Then, from the terminal execute:
 
-```
-$ psql -c "CREATE ROLE beachfront WITH LOGIN PASSWORD 'secret'"
-$ psql -c "CREATE DATABASE beachfront WITH OWNER beachfront"
-$ psql beachfront -c "CREATE EXTENSION postgis"
+```bash
+psql -c "CREATE ROLE beachfront WITH LOGIN PASSWORD 'secret'"
+psql -c "CREATE DATABASE beachfront WITH OWNER beachfront"
+psql beachfront -c "CREATE EXTENSION postgis"
 ```
 
 
@@ -59,17 +59,20 @@ then make sure the server is not running.
 Next, we're going to restore the platform-independent binary's built-in servlet
 container's ability to listen on HTTPS.  From a new terminal window/tab, execute:
 
-```
-$ cd $GEOSERVER_HOME
-$ curl "https://raw.githubusercontent.com/eclipse/jetty.project/jetty-$(ls lib/jetty-server-*.jar | sed -E 's_^lib/jetty-server-(.*)\.jar$_\1_')/jetty-server/src/main/config/modules/ssl.mod" -o modules/ssl.mod
-$ keytool -importkeystore \
+```bash
+cd $GEOSERVER_HOME
+
+curl "https://raw.githubusercontent.com/eclipse/jetty.project/jetty-$(ls lib/jetty-server-*.jar | sed -E 's_^lib/jetty-server-(.*)\.jar$_\1_')/jetty-server/src/main/config/modules/ssl.mod" -o modules/ssl.mod
+
+keytool -importkeystore \
     -srcstoretype PKCS12 \
     -srckeystore /path/to/bf-api/.dev/ssl-certificate.pkcs12 \
     -destkeystore beachfront.jks \
     -srcstorepass secret \
     -deststorepass secret \
     -noprompt
-$ cat <<'EOT' >> start.ini
+
+cat <<'EOT' >> start.ini
 ##########################################
 # Enable HTTPS
 --module=https
@@ -80,7 +83,8 @@ jetty.truststore.password=secret
 jetty.keystore.password=secret
 ##########################################
 EOT
-$ ./bin/startup.sh
+
+./bin/startup.sh
 ```
 
 Finally, visit [https://localhost:8443/geoserver/web/](https://localhost:8443/geoserver/web/) in your browser.
@@ -90,8 +94,8 @@ Finally, visit [https://localhost:8443/geoserver/web/](https://localhost:8443/ge
 
 From the terminal, execute:
 
-```
-$ ./scripts/run-in-development-mode.sh
+```bash
+./scripts/run-in-development-mode.sh
 ```
 
 
@@ -99,8 +103,8 @@ $ ./scripts/run-in-development-mode.sh
 
 From the terminal, execute:
 
-```
-$ ./scripts/test.sh
+```bash
+./scripts/test.sh
 ```
 
 
@@ -110,8 +114,8 @@ $ ./scripts/test.sh
 2. Provide credentials to the running instance via the PCF web management
 portal, or from the terminal, ala:
 
-```
-$ cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>
+```bash
+cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>
 ```
 
 
