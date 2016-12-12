@@ -208,13 +208,10 @@ def create(
         tide_max_24h=tide_max,
     )
 
-# The services descended from pzsvc-exec all connect to a CLI (command-line interface) program.
-# This function generates an appropriate command for each variety of CLI, as determined by the
-# service format.
-
 def __make_cli_cmd(
         algo_interface: str,
         geotiff_filenames: []) -> str:
+        
     log = logging.getLogger(__name__)
     if algo_interface == "pzsvc-ossim":
         return ' '.join([
@@ -228,9 +225,9 @@ def __make_cli_cmd(
     elif algo_interface == "pzsvc-ndwi-py":
         return ' '.join(["--b1", geotiff_filenames[0], "--b2", geotiff_filenames[1], "--fout ./shoreline.json"])
     else:
-        error_string = 'CLI cmd string requested for unknown algorithm interface "' + algo_interface + '".'
-        log.error(error_string)
-        raise PreprocessingError(message=error_string)
+        error_message = 'unknown algorithm interface "' + algo_interface + '".'
+        log.error(error_message)
+        raise PreprocessingError(message=error_message)
 
 def forget(user_id: str, job_id: str) -> None:
     conn = db.get_connection()
