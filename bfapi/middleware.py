@@ -23,6 +23,15 @@ PUBLIC_ENDPOINTS = (
     '/v0/scene/event/harvest',
 )
 
+
+def force_https():
+    log = logging.getLogger(__name__)
+    request = flask.request  # type: flask.Request
+    log.debug('Enforcing HTTPS on endpoint `%s`', request.path)
+    if not request.is_secure:
+        return 'HTTPS is required', 400
+
+
 def verify_api_key():
     log = logging.getLogger(__name__)
 

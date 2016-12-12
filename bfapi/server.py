@@ -20,6 +20,7 @@ from bfapi import config, db, middleware, routes, service, IS_DEBUG_MODE
 
 
 def attach_routes(app: flask.Flask):
+    app.before_request(middleware.force_https)
     app.before_request(middleware.verify_api_key)
 
     CORS(app, max_age=1200, origins=[

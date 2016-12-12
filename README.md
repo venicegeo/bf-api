@@ -25,6 +25,10 @@ From the terminal, execute:
 This will create a virtualenv and the dev environment artifacts.  After the
 script finishes, edit `.dev/environment-vars.sh` to fill in the empty values.
 
+Lastly, add the Beachfront certificate (i.e., `.dev/ssl-certificate.pem`) to
+your machine and/or browser's SSL store and authorize its use for identifying
+websites via SSL/HTTPS.
+
 
 #### 2. Install PostgreSQL + PostGIS on your machine
 
