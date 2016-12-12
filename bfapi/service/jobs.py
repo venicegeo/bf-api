@@ -140,7 +140,7 @@ def create(
     # Dispatch to Piazza
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
-        cli_cmd = __make_algorithm_cli_cmd(algorithm.interface, geotiff_filenames)
+        cli_cmd = _make_algorithm_cli_cmd(algorithm.interface, geotiff_filenames)
         job_id = piazza.execute(api_key, algorithm.service_id, {
             'body': {
                 'content': json.dumps({
@@ -208,7 +208,7 @@ def create(
         tide_max_24h=tide_max,
     )
 
-def __make_algorithm_cli_cmd(
+def _make_algorithm_cli_cmd(
         algo_interface: str,
         geotiff_filenames: []) -> str:
         
