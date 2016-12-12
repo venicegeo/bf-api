@@ -76,8 +76,8 @@ cat <<'EOT' >> start.ini
 ##########################################
 # Enable HTTPS
 --module=https
-jetty.truststore=beachfront.keystore
-jetty.keystore=beachfront.keystore
+jetty.truststore=beachfront.jks
+jetty.keystore=beachfront.jks
 jetty.keymanager.password=secret
 jetty.truststore.password=secret
 jetty.keystore.password=secret
