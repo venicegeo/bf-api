@@ -140,12 +140,12 @@ def create(
     # Dispatch to Piazza
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
-        newCmd = __genCmd(algorithm.interface, geotiff_filenames)
+        cli_cmd = __make_cli_cmd(algorithm.interface, geotiff_filenames)
         job_id = piazza.execute(api_key, algorithm.service_id, {
             'body': {
                 'content': json.dumps({
                     'pzAuthKey': piazza.to_auth_header(api_key),
-                    'cmd': newCmd,
+                    'cmd': cli_cmd,
                     'inExtFiles': geotiff_urls,
                     'inExtNames': geotiff_filenames,
                     'outGeoJson': ['shoreline.geojson'],
@@ -208,11 +208,15 @@ def create(
         tide_max_24h=tide_max,
     )
 
-def __genCmd(
-        svc_format: str,
+# The services descended from pzsvc-exec all connect to a CLI (command-line interface) program.
+# This function generates an appropriate command for each variety of CLI, as determined by the
+# service format.
+
+def __make_cli_cmd(
+        algo_interface: str,
         geotiff_filenames: []) -> str:
     log = logging.getLogger(__name__)
-    if svc_format == "pzsvc-ossim":
+    if algo_interface == "pzsvc-ossim":
         return ' '.join([
                     'shoreline',
                     '--image ' + ','.join(geotiff_filenames),
@@ -221,13 +225,12 @@ def __genCmd(
                     '--tolerance 0.075',
                     'shoreline.geojson',
                 ])
-    elif svc_format == "pzsvc-ndwi-py":
+    elif algo_interface == "pzsvc-ndwi-py":
         return ' '.join(["--b1", geotiff_filenames[0], "--b2", geotiff_filenames[1], "--fout ./shoreline.json"])
-    elif svc_format == "test-algo-interface":
-        return "algo-test-command"
     else:
-        log.error('cmd string requested for unknown service type')
-        raise Exception()
+        error_string = 'CLI cmd string requested for unknown algorithm interface "' + algo_interface + '".'
+        log.error(error_string)
+        raise PreprocessingError(message=error_string)
 
 def forget(user_id: str, job_id: str) -> None:
     conn = db.get_connection()

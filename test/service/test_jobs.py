@@ -73,14 +73,14 @@ class CreateJobTest(unittest.TestCase):
         return patcher.start()
 
     def test_returns_job(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
 
     def test_assigns_correct_algorithm_name(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -88,7 +88,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-algo-name', job.algorithm_name)
 
     def test_assigns_correct_algorithm_version(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -96,7 +96,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-algo-version', job.algorithm_version)
 
     def test_assigns_correct_created_by(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -104,7 +104,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-user-id', job.created_by)
 
     def test_assigns_correct_created_on(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -112,7 +112,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual(datetime.utcnow().date(), job.created_on.date())
 
     def test_assigns_correct_geometry(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -121,7 +121,7 @@ class CreateJobTest(unittest.TestCase):
                          job.geometry)
 
     def test_assigns_correct_job_id(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         self.mock_execute.return_value = 'test-new-job-id'
@@ -130,7 +130,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-new-job-id', job.job_id)
 
     def test_assigns_correct_name(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -138,7 +138,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-name', job.name)
 
     def test_assigns_correct_scene_capture_date(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -146,7 +146,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('2014-05-13T16:53:20', job.scene_capture_date.isoformat())
 
     def test_assigns_correct_scene_sensor_name(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -154,7 +154,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-sensor-name', job.scene_sensor_name)
 
     def test_assigns_correct_scene_id(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -162,7 +162,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-scene-id', job.scene_id)
 
     def test_assigns_correct_status(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -170,7 +170,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('Submitted', job.status)
 
     def test_requests_tide_prediction(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -184,7 +184,7 @@ class CreateJobTest(unittest.TestCase):
         }, self.mock_requests.request_history[0].json())
 
     def test_fetches_correct_scene(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -226,7 +226,7 @@ class CreateJobTest(unittest.TestCase):
         }, json.loads(self.mock_execute.call_args[0][2]['body']['content']))
 
     def test_does_not_create_database_record_if_cannot_start(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE_NIL)
         self.mock_execute.side_effect = piazza.ServerError(500)
@@ -238,7 +238,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual(0, self.mock_insert_job_user.call_count)
 
     def test_logs_creation_success(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         logstream = self.create_logstream()
@@ -258,7 +258,7 @@ class CreateJobTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_creation_failure_during_scene_retrieval(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.side_effect = bfapi.service.scenes.NotFound('test-scene-id')
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         logstream = self.create_logstream()
@@ -269,7 +269,7 @@ class CreateJobTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_creation_failure_during_tide_prediction(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text='oh noes', status_code=502)
         logstream = self.create_logstream()
@@ -280,7 +280,7 @@ class CreateJobTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_discards_malformed_tide_service_response(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text='lolwut')
         logstream = self.create_logstream()
@@ -304,7 +304,7 @@ class CreateJobTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_creation_failure_during_execution(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         self.mock_execute.side_effect = piazza.ServerError(400)
@@ -317,7 +317,7 @@ class CreateJobTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_creation_failure_during_database_insert(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         self.mock_insert_job.side_effect = helpers.create_database_error()
@@ -330,7 +330,7 @@ class CreateJobTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_throws_when_piazza_throws(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         self.mock_execute.side_effect = piazza.ServerError(500)
@@ -338,7 +338,7 @@ class CreateJobTest(unittest.TestCase):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_database_insertion_fails(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         self.mock_insert_job.side_effect = helpers.create_database_error()
@@ -347,17 +347,19 @@ class CreateJobTest(unittest.TestCase):
 
     def test_throws_when_algorithm_not_found(self):
         self.mock_get_algo.side_effect = bfapi.service.algorithms.NotFound('test-algo-id')
+        self.mock_get_scene.return_value = create_scene()
+        self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_scene_not_found(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.side_effect = bfapi.service.scenes.NotFound('test-scene-id')
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_scene_is_missing_required_bands(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         scene = create_scene()
         scene.bands.pop('test-algo-band-1')
         self.mock_get_scene.return_value = scene
@@ -366,13 +368,20 @@ class CreateJobTest(unittest.TestCase):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_catalog_is_unreachable(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.side_effect = bfapi.service.scenes.CatalogError()
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
+    def test_throws_when_algorithm_is_unknown(self):
+        self.mock_get_algo.return_value = create_algorithm('unknown-algorithm')
+        self.mock_get_scene.return_value = create_scene()
+        self.mock_requests.post('/tides', text=RESPONSE_TIDE)
+        with self.assertRaises(jobs.PreprocessingError):
+            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            
     def test_throws_when_tide_service_is_unreachable(self):
-        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ndwi-py')
         self.mock_get_scene.return_value = create_scene()
         with patch('requests.post') as mock:
             mock.side_effect = requests.ConnectionError()
@@ -1351,11 +1360,11 @@ class WorkerRunTest(unittest.TestCase):
 # Helpers
 #
 
-def create_algorithm(algo_type='test-algo-interface'):
+def create_algorithm(algo_interface='pzsvc-ndwi-py'):
     return bfapi.service.algorithms.Algorithm(
         bands=('test-algo-band-1', 'test-algo-band-2'),
         description='test-algo-description',
-        interface=algo_type,
+        interface=algo_interface,
         max_cloud_cover=42,
         name='test-algo-name',
         service_id='test-algo-id',
