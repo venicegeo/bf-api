@@ -91,7 +91,12 @@ EOT
 ./bin/startup.sh
 ```
 
-Finally, visit [https://localhost:8443/geoserver/web/](https://localhost:8443/geoserver/web/) in your browser.
+Lastly, visit [https://localhost:8443/geoserver/web/](https://localhost:8443/geoserver/web/)
+in your browser.  Log in using the default geoserver admin credentials and
+create a `beachfront` user with password `secret` as described in the above
+instructions.
+
+> TODO: Add instructions about creating workspace and PostGIS datastore.
 
 
 #### 4. Start bf-api
