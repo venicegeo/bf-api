@@ -219,8 +219,9 @@ def select_jobs_for_productline(
                LEFT OUTER JOIN __beachfront__job j ON (j.job_id = p.job_id)
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE p.productline_id = %(productline_id)s
-           AND (j.created_on >= %(since)s)
-        ORDER BY created_on ASC
+           AND (j.status IN ('Submitted', 'Running', 'Success'))
+           AND (s.captured_on >= %(since)s)
+        ORDER BY scene_capture_date DESC
         """
     params = {
         'productline_id': productline_id,
@@ -240,7 +241,7 @@ def select_jobs_for_scene(
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE j.scene_id = %(scene_id)s
            AND j.status IN ('Submitted', 'Running', 'Success')
-        ORDER BY created_on ASC
+        ORDER BY created_on DESC
         """
     params = {
         'scene_id': scene_id,
