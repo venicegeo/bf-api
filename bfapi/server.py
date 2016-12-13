@@ -36,7 +36,7 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule('/login/heartbeat', view_func=routes.is_login_active, methods=['GET'])
 
     # API v0
-    app.add_url_rule('/v0/services', view_func=routes.v0.list_supporting_services, methods=['GET'])
+    app.add_url_rule('/v0/user', view_func=routes.v0.get_user_data, methods=['GET'])
     app.add_url_rule('/v0/algorithm', view_func=routes.v0.list_algorithms, methods=['GET'])
     app.add_url_rule('/v0/algorithm/<service_id>', view_func=routes.v0.get_algorithm, methods=['GET'])
     app.add_url_rule('/v0/job', view_func=routes.v0.create_job, methods=['POST'])

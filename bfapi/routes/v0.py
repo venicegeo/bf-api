@@ -74,7 +74,9 @@ def create_job():
         return 'Cannot execute: {}'.format(err), 500
     except DatabaseError:
         return 'A database error prevents job execution', 500
-    return flask.jsonify({'job': record.serialize()}), 201
+    return flask.jsonify({
+        'job': record.serialize(),
+    }), 201
 
 
 def download_geojson(job_id: str):
@@ -143,7 +145,9 @@ def get_job(job_id: str):
         record = jobs_service.get(flask.request.username, job_id)
     except jobs_service.NotFound:
         return 'Job not found', 404
-    return flask.jsonify(record.serialize())
+    return flask.jsonify({
+        'job': record.serialize(),
+    })
 
 
 #
@@ -186,26 +190,28 @@ def create_productline():
         return 'Algorithm {} does not exist'.format(err.service_id), 500
     except DatabaseError:
         return 'A database error prevents product line creation', 500
-    return flask.jsonify({'product_line': productline.serialize()}), 201
+    return flask.jsonify({
+        'productline': productline.serialize(),
+    }), 201
 
 
 def delete_productline(productline_id: str):
     user_id = flask.request.username
     try:
         productline_service.delete_productline(user_id, productline_id)
-        return 'Deleted product line {}'.format(productline_id), 200
     except DatabaseError:
         return 'A database error prevents deletion of this product line', 404
     except productline_service.NotFound:
         return 'Product Line not found', 404
     except PermissionError:
         return 'User `{}` does not have permission to delete this product line'.format(user_id), 403
+    return 'Deleted product line {}'.format(productline_id), 200
 
 
 def list_productlines():
     productlines = productline_service.get_all()
     return flask.jsonify({
-        'product_lines': {
+        'productlines': {
             'type': 'FeatureCollection',
             'features': [p.serialize() for p in productlines],
         },
@@ -249,11 +255,14 @@ def on_harvest_event():
 
 
 #
-# Service Listing
+# Profile
 #
 
-def list_supporting_services():
+def get_user_data():
     return flask.jsonify({
+        'profile': {
+            'username': flask.request.username,
+        },
         'services': {
             'catalog': 'https://{}'.format(CATALOG),
             'wms_server': 'https://{}/geoserver/wms'.format(GEOSERVER_HOST),
