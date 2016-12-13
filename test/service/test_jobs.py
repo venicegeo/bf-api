@@ -219,7 +219,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][1])
         self.assertEqual({
             'pzAuthKey': 'Basic YWFhYWFhYWEtYmJiYi1jY2NjLWRkZGQtZWVlZWVlZWVlZWVlOg==',
-            'cmd': "--b1 test-algo-band-1.TIF --b2 test-algo-band-2.TIF --fout ./shoreline.json",
+            'cmd': '--b1 test-algo-band-1.TIF --b2 test-algo-band-2.TIF --fout ./shoreline.geojson',
             'inExtFiles': ['lorem', 'ipsum'],
             'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
             'outGeoJson': ['shoreline.geojson'],
@@ -379,7 +379,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
-            
+
     def test_throws_when_tide_service_is_unreachable(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()

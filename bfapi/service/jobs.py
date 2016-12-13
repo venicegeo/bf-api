@@ -223,7 +223,13 @@ def _make_algorithm_cli_cmd(
                     'shoreline.geojson',
                 ])
     elif algo_interface == "pzsvc-ndwi-py":
-        return ' '.join(["--b1", geotiff_filenames[0], "--b2", geotiff_filenames[1], "--fout ./shoreline.json"])
+        return ' '.join([
+            '--b1',
+            geotiff_filenames[0],
+            '--b2',
+            geotiff_filenames[1],
+            '--fout ./shoreline.geojson',
+        ])
     else:
         error_message = 'unknown algorithm interface "' + algo_interface + '".'
         log.error(error_message)
