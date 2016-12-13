@@ -533,6 +533,8 @@ def verify_api_key(api_key: str) -> str:
     except requests.ConnectionError:
         raise Unreachable()
     except requests.HTTPError as err:
+        if err.response.status_code == 401:
+            raise ApiKeyExpired()
         raise ServerError(err.response.status_code)
 
     # Validate the response
