@@ -208,33 +208,6 @@ def create(
         tide_max_24h=tide_max,
     )
 
-def _make_algorithm_cli_cmd(
-        algo_interface: str,
-        geotiff_filenames: []) -> str:
-        
-    log = logging.getLogger(__name__)
-    if algo_interface == "pzsvc-ossim":
-        return ' '.join([
-                    'shoreline',
-                    '--image ' + ','.join(geotiff_filenames),
-                    '--projection geo-scaled',
-                    '--threshold 0.5',
-                    '--tolerance 0.075',
-                    'shoreline.geojson',
-                ])
-    elif algo_interface == "pzsvc-ndwi-py":
-        return ' '.join([
-            '--b1',
-            geotiff_filenames[0],
-            '--b2',
-            geotiff_filenames[1],
-            '--fout ./shoreline.geojson',
-        ])
-    else:
-        error_message = 'unknown algorithm interface "' + algo_interface + '".'
-        log.error(error_message)
-        raise PreprocessingError(message=error_message)
-
 def forget(user_id: str, job_id: str) -> None:
     conn = db.get_connection()
     if not db.jobs.exists(conn, job_id=job_id):
@@ -631,6 +604,33 @@ def _get_bbox(polygon: list):
 def _get_centroid(polygon: list):
     min_x, min_y, max_x, max_y = _get_bbox(polygon)
     return (max_x + min_x) / 2, (max_y + min_y) / 2
+
+
+def _make_algorithm_cli_cmd(
+        algo_interface: str,
+        geotiff_filenames: list) -> str:
+    log = logging.getLogger(__name__)
+    if algo_interface == 'pzsvc-ossim':
+        return ' '.join([
+            'shoreline',
+            '--image ' + ','.join(geotiff_filenames),
+            '--projection geo-scaled',
+            '--threshold 0.5',
+            '--tolerance 0.075',
+            'shoreline.geojson',
+        ])
+    elif algo_interface == 'pzsvc-ndwi-py':
+        return ' '.join([
+            '--b1',
+            geotiff_filenames[0],
+            '--b2',
+            geotiff_filenames[1],
+            '--fout ./shoreline.geojson',
+        ])
+    else:
+        error_message = 'unknown algorithm interface "' + algo_interface + '".'
+        log.error(error_message)
+        raise PreprocessingError(message=error_message)
 
 
 def _resolve_detections_data_id(api_key: str, output_data_id: str) -> str:
