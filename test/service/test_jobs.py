@@ -190,8 +190,8 @@ class CreateJobTest(unittest.TestCase):
         jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertEqual(call('test-scene-id'), self.mock_get_scene.call_args)
 
-    def test_sends_correct_payload_to_piazza(self):
-        self.mock_get_algo.return_value = create_algorithm()
+    def test_sends_correct_payload_to_piazza_pzsvc_ossim(self):
+        self.mock_get_algo.return_value = create_algorithm("pzsvc-ossim")
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
@@ -204,34 +204,26 @@ class CreateJobTest(unittest.TestCase):
                    ' --projection geo-scaled' +
                    ' --threshold 0.5' +
                    ' --tolerance 0.075' +
-                   ' --prop tide:2.6171416114' +
-                   ' --prop tide_min_24h:2.6171416114' +
-                   ' --prop tide_max_24h:2.512895346998' +
-                   ' --prop classification:Unclassified' +
-                   ' --prop data_usage:NOT_TO_BE_USED_FOR_NAVIGATIONAL_OR_TARGETING_PURPOSES' +
                    ' shoreline.geojson',
             'inExtFiles': ['lorem', 'ipsum'],
             'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
             'outGeoJson': ['shoreline.geojson'],
         }, json.loads(self.mock_execute.call_args[0][2]['body']['content']))
 
-    def test_discards_invalid_tide_predictions(self):
+    def test_sends_correct_payload_to_piazza_pzsvc_ndwi_py(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
-        self.mock_requests.post('/tides', text=RESPONSE_TIDE_NIL)
+        self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
-        self.assertEqual('shoreline' +
-                         ' --image test-algo-band-1.TIF,test-algo-band-2.TIF' +
-                         ' --projection geo-scaled' +
-                         ' --threshold 0.5' +
-                         ' --tolerance 0.075' +
-                         ' --prop tide:nil' +
-                         ' --prop tide_min_24h:nil' +
-                         ' --prop tide_max_24h:nil' +
-                         ' --prop classification:Unclassified' +
-                         ' --prop data_usage:NOT_TO_BE_USED_FOR_NAVIGATIONAL_OR_TARGETING_PURPOSES' +
-                         ' shoreline.geojson',
-                         json.loads(self.mock_execute.call_args[0][2]['body']['content'])['cmd'])
+        self.assertEqual(API_KEY, self.mock_execute.call_args[0][0])
+        self.assertEqual('test-algo-id', self.mock_execute.call_args[0][1])
+        self.assertEqual({
+            'pzAuthKey': 'Basic YWFhYWFhYWEtYmJiYi1jY2NjLWRkZGQtZWVlZWVlZWVlZWVlOg==',
+            'cmd': "--b1 test-algo-band-1.TIF --b2 test-algo-band-2.TIF --fout ./shoreline.json",
+            'inExtFiles': ['lorem', 'ipsum'],
+            'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
+            'outGeoJson': ['shoreline.geojson'],
+        }, json.loads(self.mock_execute.call_args[0][2]['body']['content']))
 
     def test_does_not_create_database_record_if_cannot_start(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -355,6 +347,8 @@ class CreateJobTest(unittest.TestCase):
 
     def test_throws_when_algorithm_not_found(self):
         self.mock_get_algo.side_effect = bfapi.service.algorithms.NotFound('test-algo-id')
+        self.mock_get_scene.return_value = create_scene()
+        self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
@@ -379,6 +373,13 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
+    def test_throws_when_algorithm_is_unknown(self):
+        self.mock_get_algo.return_value = create_algorithm('unknown-algorithm')
+        self.mock_get_scene.return_value = create_scene()
+        self.mock_requests.post('/tides', text=RESPONSE_TIDE)
+        with self.assertRaises(jobs.PreprocessingError):
+            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            
     def test_throws_when_tide_service_is_unreachable(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
@@ -1359,11 +1360,11 @@ class WorkerRunTest(unittest.TestCase):
 # Helpers
 #
 
-def create_algorithm():
+def create_algorithm(algo_interface='pzsvc-ndwi-py'):
     return bfapi.service.algorithms.Algorithm(
         bands=('test-algo-band-1', 'test-algo-band-2'),
         description='test-algo-description',
-        interface='test-algo-interface',
+        interface=algo_interface,
         max_cloud_cover=42,
         name='test-algo-name',
         service_id='test-algo-id',

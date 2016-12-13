@@ -140,23 +140,12 @@ def create(
     # Dispatch to Piazza
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
+        cli_cmd = _make_algorithm_cli_cmd(algorithm.interface, geotiff_filenames)
         job_id = piazza.execute(api_key, algorithm.service_id, {
             'body': {
                 'content': json.dumps({
                     'pzAuthKey': piazza.to_auth_header(api_key),
-                    'cmd': ' '.join([
-                        'shoreline',
-                        '--image ' + ','.join(geotiff_filenames),
-                        '--projection geo-scaled',
-                        '--threshold 0.5',
-                        '--tolerance 0.075',
-                        '--prop tide:{}'.format(tide or 'nil'),
-                        '--prop tide_min_24h:{}'.format(tide_min or 'nil'),
-                        '--prop tide_max_24h:{}'.format(tide_max or 'nil'),
-                        '--prop classification:Unclassified',
-                        '--prop data_usage:NOT_TO_BE_USED_FOR_NAVIGATIONAL_OR_TARGETING_PURPOSES',
-                        'shoreline.geojson',
-                    ]),
+                    'cmd': cli_cmd,
                     'inExtFiles': geotiff_urls,
                     'inExtNames': geotiff_filenames,
                     'outGeoJson': ['shoreline.geojson'],
@@ -219,6 +208,26 @@ def create(
         tide_max_24h=tide_max,
     )
 
+def _make_algorithm_cli_cmd(
+        algo_interface: str,
+        geotiff_filenames: []) -> str:
+        
+    log = logging.getLogger(__name__)
+    if algo_interface == "pzsvc-ossim":
+        return ' '.join([
+                    'shoreline',
+                    '--image ' + ','.join(geotiff_filenames),
+                    '--projection geo-scaled',
+                    '--threshold 0.5',
+                    '--tolerance 0.075',
+                    'shoreline.geojson',
+                ])
+    elif algo_interface == "pzsvc-ndwi-py":
+        return ' '.join(["--b1", geotiff_filenames[0], "--b2", geotiff_filenames[1], "--fout ./shoreline.json"])
+    else:
+        error_message = 'unknown algorithm interface "' + algo_interface + '".'
+        log.error(error_message)
+        raise PreprocessingError(message=error_message)
 
 def forget(user_id: str, job_id: str) -> None:
     conn = db.get_connection()
