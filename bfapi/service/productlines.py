@@ -210,6 +210,7 @@ def handle_harvest_event(
         *,
         scene_id: str,
         signature,
+        captured_on,
         cloud_cover,
         min_x,
         min_y,
@@ -226,6 +227,7 @@ def handle_harvest_event(
     try:
         cursor = db.productlines.select_summary_for_scene(
             conn,
+            captured_on=captured_on,
             cloud_cover=cloud_cover,
             min_x=min_x,
             min_y=min_y,

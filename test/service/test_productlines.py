@@ -24,8 +24,8 @@ from bfapi.service import productlines
 from bfapi.service.algorithms import Algorithm, NotFound, ValidationError
 from bfapi.service.jobs import Job
 
-DATE_START = datetime.fromtimestamp(1400000000)
-DATE_STOP = datetime.fromtimestamp(1500000000)
+DATE_START = datetime.utcfromtimestamp(1400000000)
+DATE_STOP = datetime.utcfromtimestamp(1500000000)
 SIGNATURE = '723d038b797360ef90f5a848a910aea4f5b2d8b680d443745cb2e6667faee2ea4581040d2639f0ff35c8dbc1c8ac8188'
 
 
@@ -508,11 +508,26 @@ class HandleHarvestEventTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
+    def test_passes_correct_capture_date_to_productline_query(self):
+        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
+        productlines.handle_harvest_event(
+            scene_id='test-scene-id',
+            signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
+            cloud_cover=40,
+            min_x=0,
+            min_y=0,
+            max_x=30,
+            max_y=30,
+        )
+        self.assertEqual(datetime.utcfromtimestamp(1450000000), self.mock_select_pls.call_args[1]['captured_on'])
+
     def test_passes_correct_cloudcover_to_productline_query(self):
         self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
         productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -526,6 +541,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -542,6 +558,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         self.assertEqual('Accept', productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -554,6 +571,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         self.assertEqual('Disregard', productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -570,6 +588,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         self.assertEqual('Accept', productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -582,6 +601,7 @@ class HandleHarvestEventTest(unittest.TestCase):
             productlines.handle_harvest_event(
                 scene_id='test-scene-id',
                 signature='0123456789abcdef' * 6,
+                captured_on=datetime.utcfromtimestamp(1450000000),
                 cloud_cover=40,
                 min_x=0,
                 min_y=0,
@@ -595,6 +615,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -609,6 +630,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -623,6 +645,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -644,6 +667,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
@@ -661,6 +685,7 @@ class HandleHarvestEventTest(unittest.TestCase):
         productlines.handle_harvest_event(
             scene_id='test-scene-id',
             signature=SIGNATURE,
+            captured_on=datetime.utcfromtimestamp(1450000000),
             cloud_cover=40,
             min_x=0,
             min_y=0,
