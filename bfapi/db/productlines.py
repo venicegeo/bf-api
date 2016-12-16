@@ -119,6 +119,7 @@ def select_productline(
 def select_summary_for_scene(
         conn: Connection,
         *,
+        captured_on: date,
         cloud_cover: int,
         min_x: float,
         min_y: float,
@@ -130,10 +131,11 @@ def select_summary_for_scene(
          WHERE NOT deleted
            AND bbox && ST_MakeEnvelope(%(min_x)s, %(min_y)s, %(max_x)s, %(max_y)s)
            AND max_cloud_cover >= %(cloud_cover)s
-           AND start_on <= CURRENT_DATE
-           AND (stop_on >= CURRENT_DATE OR stop_on IS NULL)
+           AND start_on <= %(captured_on)s
+           AND (stop_on >= %(captured_on)s OR stop_on IS NULL)
         """
     params = {
+        'captured_on': captured_on,
         'cloud_cover': cloud_cover,
         'min_x': min_x,
         'min_y': min_y,

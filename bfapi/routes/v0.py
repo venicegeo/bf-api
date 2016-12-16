@@ -223,6 +223,7 @@ def on_harvest_event():
         payload = flask.request.get_json()
         signature = _get_string(payload, '__signature__')
         scene_id = _get_string(payload, 'scene_id', max_length=64)
+        captured_on = _get_datetime(payload, 'captured_on')
         cloud_cover = _get_number(payload, 'cloud_cover', min_value=0, max_value=100)
         min_x = _get_number(payload, 'min_x', min_value=-180, max_value=180)
         min_y = _get_number(payload, 'min_y', min_value=-90, max_value=90)
@@ -237,6 +238,7 @@ def on_harvest_event():
         disposition = productline_service.handle_harvest_event(
             signature=signature,
             scene_id=scene_id,
+            captured_on=captured_on.date(),
             cloud_cover=cloud_cover,
             min_x=min_x,
             min_y=min_y,
