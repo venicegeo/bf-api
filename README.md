@@ -5,29 +5,23 @@ API service for the Beachfront project.
 
 ## Running locally for development
 
-### Requires:
+### Requirement Overview
 
-- [Python 3.5](https://www.python.org/downloads/) (with `virtualenv` installed)
-- [GeoServer](http://geoserver.org/release/stable/) (requires [JRE
-8](http://www.oracle.com/technetwork/java/javase/downloads/index.html))
-- [PostgreSQL](https://www.postgresql.org/download/)
-- [PostGIS](http://postgis.net/install/)
+- Python 3.5 (with `virtualenv`)
+- GeoServer
+- PostgreSQL
+- PostGIS
 
 
-#### 1. Create development environment
+#### 1. Install Python 3.5 on your machine
 
-From the terminal, execute:
+Install [Python 3.5](https://www.python.org/downloads/) as normal.  Then from
+the terminal, execute:
 
-```bash
-./scripts/create-development-environment.sh
 ```
-
-This will create a virtualenv and the dev environment artifacts.  After the
-script finishes, edit `.dev/environment-vars.sh` to fill in the empty values.
-
-Lastly, add the Beachfront certificate (i.e., `.dev/ssl-certificate.pem`) to
-your machine and/or browser's SSL store and authorize its use for identifying
-websites via SSL/HTTPS.
+pip3 install virtualenv
+python3 -m virtualenv --version
+```
 
 
 #### 2. Install PostgreSQL + PostGIS on your machine
@@ -46,6 +40,14 @@ After you finish installing, start Postgres.  Then, from the terminal execute:
 psql -c "CREATE ROLE beachfront WITH LOGIN PASSWORD 'secret'"
 psql -c "CREATE DATABASE beachfront WITH OWNER beachfront"
 psql beachfront -c "CREATE EXTENSION postgis"
+```
+
+Lastly, you need to add Postgres' `bin/` directory to your system `PATH` (this
+will depend on which Postgres distribution you use and where you installed it).
+From the terminal, execute:
+
+```
+echo 'export PATH="/Applications/Postgres.app/Contents/Versions/9.6/bin:${PATH}"' >> ~/.profile
 ```
 
 
@@ -99,7 +101,23 @@ instructions.
 > TODO: Add instructions about creating workspace and PostGIS datastore.
 
 
-#### 4. Start bf-api
+#### 4. Create development environment
+
+From the terminal, execute:
+
+```bash
+./scripts/create-development-environment.sh
+```
+
+This will create a virtualenv and the dev environment artifacts.  After the
+script finishes, edit `.dev/environment-vars.sh` to fill in the empty values.
+
+Lastly, add the Beachfront certificate (i.e., `.dev/ssl-certificate.pem`) to
+your machine and/or browser's SSL store and authorize its use for identifying
+websites via SSL/HTTPS.
+
+
+#### 5. Start bf-api
 
 From the terminal, execute:
 
