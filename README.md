@@ -5,7 +5,7 @@ API service for the Beachfront project.
 
 ## Running locally for development
 
-### Requirement Overview
+Follow the instructions below to install and configure the following items:
 
 - Python 3.5 (with `virtualenv`)
 - GeoServer
