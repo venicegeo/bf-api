@@ -18,14 +18,14 @@ from bfapi.db import Connection, ResultProxy
 def select_user(
         conn: Connection,
         *,
-        user_id: str) -> ResultProxy:
+        geoaxis_uid: str) -> ResultProxy:
     query = """
-        SELECT u.user_id, u.user_name, u.api_key, u.created_on
+        SELECT u.geoaxis_uid, u.user_name, u.api_key, u.created_on
           FROM __beachfront__user u
-        WHERE u.user_id = %(user_id)s
+        WHERE u.geoaxis_uid = %(geoaxis_uid)s
         """
     params = {
-        'user_id': user_id,
+        'geoaxis_uid': geoaxis_uid,
     }
     return conn.execute(query, params)
 
@@ -34,7 +34,7 @@ def select_user_by_api_key(
         *,
         api_key: str) -> ResultProxy:
     query = """
-        SELECT u.user_id, u.user_name, u.api_key, u.created_on 
+        SELECT u.geoaxis_uid, u.user_name, u.api_key, u.created_on 
           FROM __beachfront__user u
          WHERE u.api_key = %(api_key)s
         """
@@ -46,15 +46,15 @@ def select_user_by_api_key(
 def insert_user(
         conn: Connection,
         *,
-        user_id: str,
+        geoaxis_uid: str,
         user_name: str,
         api_key: str) -> None:
     query = """
-        INSERT INTO __beachfront__user (user_id, user_name, api_key)
-        VALUES (%(user_id)s, %(user_name)s, %(api_key)s)
+        INSERT INTO __beachfront__user (geoaxis_uid, user_name, api_key)
+        VALUES (%(geoaxis_uid)s, %(user_name)s, %(api_key)s)
         """
     params = {
-        'user_id': user_id,
+        'geoaxis_uid': geoaxis_uid,
         'user_name': user_name,
         'api_key': api_key,
     }
@@ -63,16 +63,16 @@ def insert_user(
 def update_user(
         conn: Connection,
         *,
-        user_id: str,
+        geoaxis_uid: str,
         user_name: str,
         api_key: str) -> ResultProxy:
     query = """
         UPDATE __beachfront__user
             SET user_name = %(user_name)s, api_key = %(api_key)s,
-        WHERE user_id = %(user_id)s
+        WHERE geoaxis_uid = %(geoaxis_uid)s
         """
     params = {
-        'user_id': user_id,
+        'geoaxis_uid': geoaxis_uid,
         'user_name': user_name,
         'api_key': api_key,
     }

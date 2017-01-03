@@ -116,7 +116,7 @@ class LoginByApiKeyTest(unittest.TestCase):
         self.mock_get_user_by_api_key.return_value.fetchone.return_value = create_user_db_record(api_key='test-api_key')
         new_user = user.login_by_api_key('test-api_key')
         self.assertIsInstance(new_user, user.User)
-        self.assertEqual('test-user-id', new_user.uid)
+        self.assertEqual('test-user-id', new_user.geoaxis_uid)
         self.assertEqual('test-user-name', new_user.user_name)
         self.assertEqual('test-api_key', new_user.bf_api_key)
 
@@ -150,7 +150,7 @@ class GetByIdTest(unittest.TestCase):
         self.mock_get_user.return_value.fetchone.return_value = create_user_db_record()
         new_user = user.get_by_id('test-user-id')
         self.assertIsInstance(new_user, user.User)
-        self.assertEqual('test-user-id', new_user.uid)
+        self.assertEqual('test-user-id', new_user.geoaxis_uid)
         self.assertEqual('test-user-name', new_user.user_name)
         self.assertEqual('test-key', new_user.bf_api_key)
         
@@ -180,7 +180,7 @@ class DbHarmonizeTest(unittest.TestCase):
         self.mock_get_user.return_value.fetchone.return_value = None
         self.mock_insert_user.side_effect = helpers.create_database_error()
         with self.assertRaises(DatabaseError):
-            user._db_harmonize(user.User(uid='testId', user_name='test_name'))
+            user._db_harmonize(user.User(geoaxis_uid='testId', user_name='test_name'))
         
     def test_new_user_successful_submit(self):
         self.mock_get_user.return_value.fetchone.return_value = None
@@ -190,7 +190,7 @@ class DbHarmonizeTest(unittest.TestCase):
         self.mock_get_user.return_value.fetchone.return_value = create_user_db_record()
         self.mock_update_user.side_effect = helpers.create_database_error()
         with self.assertRaises(DatabaseError):
-            user._db_harmonize(user.User(uid='testId', user_name='test_name'))
+            user._db_harmonize(user.User(geoaxis_uid='testId', user_name='test_name'))
         
     def test_repeat_user_successful_update(self):
         self.mock_get_user.return_value.fetchone.return_value = create_user_db_record()
@@ -199,9 +199,9 @@ class DbHarmonizeTest(unittest.TestCase):
 #
 # Helpers
 #
-def create_user_db_record(uid: str = 'test-user-id', api_key: str = 'test-key'):
+def create_user_db_record(geoaxis_uid: str = 'test-user-id', api_key: str = 'test-key'):
     return {
-        'user_id': uid,
+        'geoaxis_uid': geoaxis_uid,
         'user_name': 'test-user-name',
         'api_key': api_key,
         'created_on': datetime.utcnow(),
