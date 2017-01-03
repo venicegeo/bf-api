@@ -13,7 +13,7 @@ Follow the instructions below to install and configure the following items:
 - PostGIS
 
 
-#### 1. Install Python 3.5 on your machine
+### 1. Install Python 3.5 on your machine
 
 Install [Python 3.5](https://www.python.org/downloads/) as normal.  Then from
 the terminal, execute:
@@ -24,7 +24,7 @@ python3 -m virtualenv --version
 ```
 
 
-#### 2. Install PostgreSQL + PostGIS on your machine
+### 2. Install PostgreSQL + PostGIS on your machine
 
 Even if you intend to point at a remote database, [`psycopg2` has a runtime
 dependency on `libpq`](http://initd.org/psycopg/docs/install.html), which is
@@ -51,7 +51,7 @@ echo 'export PATH="/Applications/Postgres.app/Contents/Versions/9.6/bin:${PATH}"
 ```
 
 
-#### 3. Install GeoServer on your machine
+### 3. Install GeoServer on your machine
 
 > **Warning:** This part is a hot mess, but the alternative is installing and
 >              configuring Apache Tomcat or some other JEE servlet container.
@@ -101,7 +101,7 @@ instructions.
 > TODO: Add instructions about creating workspace and PostGIS datastore.
 
 
-#### 4. Create development environment
+### 4. Create development environment
 
 From the terminal, execute:
 
@@ -117,7 +117,7 @@ your machine and/or browser's SSL store and authorize its use for identifying
 websites via SSL/HTTPS.
 
 
-#### 5. Start bf-api
+### 5. Start bf-api
 
 From the terminal, execute:
 
