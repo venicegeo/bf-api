@@ -17,6 +17,9 @@ import uuid
 
 from datetime import datetime
 from bfapi import db
+from bfapi.config import GEOAXIS_ADDR
+
+TIMEOUT = 24
 
 # TO-DO:
 #   ** add in audit logging
@@ -28,10 +31,6 @@ from bfapi import db
 #       build function to call geoaxis with oauth auth code and derive auth token
 #       as above, except endpoint receives auth code
 #   plug the user from this in with the user from the user/jobs connection
-#   probably worthwhile to invert db_harmonize.  In particular, the bits of user info associated with the
-#       geoaxis return are effectively static.  The ones not associated with the geoaxis return could wind
-#       up being *highly* dynamic.  Pulling that bit out of harmonize reduces by 1 the places where we might
-#       shoot ourselves in the foot
 
 class User:
     def __init__(
@@ -47,27 +46,29 @@ class User:
         self.created_on = created_on
 
 def geoaxis_token_login(geo_auth_token: str) -> User:
+    userprofile_addr = 'https://{}/ms_oauth/resources/userprofile/me'.format(GEOAXIS_ADDR)
     try:
         response = requests.get(
-            'https://{}/ms_oauth/resources/userprofile/me'.format(GEOAXIS_ADDR),
-            timeout=TIMEOUT_LONG,
+            userprofile_addr,
+            timeout=TIMEOUT,
             headers={'Authorization': geo_auth_token},
         )
         response.raise_for_status()
+        print(geo_auth_token, response)
     except requests.ConnectionError:
-        raise Unreachable()
+        raise CouldNotReachError(userprofile_addr)
     except requests.HTTPError as err:
         status_code = err.response.status_code
         if status_code == 401:
-            raise Unauthorized()
-        raise ServerError(status_code)
+            raise UnauthorizedError(userprofile_addr)
+        raise HttpCodeError(status_code, userprofile_addr)
 
     uid = response.json().get('uid')
     if not uid:
-        raise InvalidResponse('missing `uid`', response.text)
+        raise ResponseError('missing `uid`', response.text, userprofile_addr)
     user_name = response.json().get('username')
     if not user_name:
-        raise InvalidResponse('missing `username`', response.text)
+        raise ResponseError('missing `username`', response.text, userprofile_addr)
     
     geoax_user = User(
         geoaxis_uid = uid,
@@ -91,7 +92,7 @@ def login_by_api_key(bf_api_key: str) -> User:
     if not row:
         return None
     if row['api_key'] != bf_api_key:
-        err = Exception("Database return error: select_user_by_api_key returned entry with incorrect api key.")
+        err = DatabaseResultError("select_user_by_api_key", "api_key")
         db.print_diagnostics(err)
         raise err
     return User(
@@ -112,6 +113,10 @@ def get_by_id(geoaxis_uid: str) -> User:
         conn.close()
     if not row:
         return None
+    if row['geoaxis_uid'] != geoaxis_uid:
+        err = DatabaseResultError("select_user", "geoaxis_uid")
+        db.print_diagnostics(err)
+        raise err
     return User(
         geoaxis_uid=row['geoaxis_uid'],
         bf_api_key=row['api_key'],
@@ -125,7 +130,7 @@ def _db_harmonize(inp_user: User) -> User:
         raise Exception("_db_harmonize called on empty User object")
     db_user = get_by_id(inp_user.geoaxis_uid)
     if db_user is None:
-        if inp_user.bf_api_key == "":
+        if not inp_user.bf_api_key:
             inp_user.bf_api_key = uuid.uuid4()
             
         conn = db.get_connection()
@@ -149,7 +154,7 @@ def _db_harmonize(inp_user: User) -> User:
     else:
         if inp_user.user_name != "":
             db_user.user_name = inp_user.user_name
-        if inp_user.bf_api_key != "":
+        if inp_user.bf_api_key:
             db_user.bf_api_key = inp_user.bf_api_key
         conn = db.get_connection()
         transaction = conn.begin()
@@ -169,3 +174,38 @@ def _db_harmonize(inp_user: User) -> User:
         finally:
             conn.close()
         return db_user
+
+# Note: BMB: This shoudl probably be integrated with the Error objects currently in service/jobs.py,
+# but if we do that, it probably shouldn't be in jobs.py.  I wasnt' sure where to put it, and
+# I wasn't confident about refactoring things that weren't my stuff unnecessarily.
+
+#
+# Errors
+#
+
+
+class Error(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class DatabaseResultError(Error):
+    def __init__(self, func_name: str, db_entry: str):
+        super().__init__("Database result error: {} returned entry with incorrect {}.".format(func_name, db_entry))
+
+class CouldNotReachError(Error):
+    def __init__(self, targ_addr: str):
+        super().__init__('{} is unreachable'.format(targ_addr))
+
+class UnauthorizedError(Error):
+    def __init__(self, targ_addr: str):
+        super().__init__('Not authorized to access {}'.format(targ_addr))
+
+class HttpCodeError(Error):
+    def __init__(self, status_code: int, targ_addr: str):
+        super().__init__('Http Code error (HTTP {}) at {}'.format(status_code, targ_addr))
+        self.status_code = status_code
+
+class ResponseError(Error):
+    def __init__(self, message: str, response_text: str, targ_addr: str):
+        super().__init__('invalid http response from {}: ' + message)
+        self.response_text = response_text
