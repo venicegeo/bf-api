@@ -29,22 +29,16 @@ from bfapi.config import GEOAXIS_ADDR
 
 class GeoaxisTokenLoginTest(unittest.TestCase):
     def setUp(self):
-        self._mockdb = helpers.mock_database()
         self._logger = logging.getLogger('bfapi.service.user')
         self._logger.disabled = True
 
         self.mock_requests = rm.Mocker()  # type: rm.Mocker
         self.mock_requests.start()
         self.addCleanup(self.mock_requests.stop)
-        self.mock_get_user = self.create_mock('bfapi.db.user.select_user')
-        self.mock_insert_user = self.create_mock('bfapi.db.user.insert_user')
-        self.mock_update_user = self.create_mock('bfapi.db.user.update_user')
-        self.mock_new_uuid = self.create_mock('uuid.uuid4')
         
         self.userprofile_addr = 'https://{}/ms_oauth/resources/userprofile/me'.format(GEOAXIS_ADDR)
 
     def tearDown(self):
-        self._mockdb.destroy()
         self._logger.disabled = False
         
     def create_mock(self, target_name):
@@ -79,12 +73,10 @@ class GeoaxisTokenLoginTest(unittest.TestCase):
             user.geoaxis_token_login('test-token')
         
     def test_successful_run(self):
+        self.mock_requests.get(self.userprofile_addr, text='{"uid":"test-id","username":"test-name"}', status_code=201)
         self.mock_request_db_harmonize = self.create_mock('bfapi.service.user._db_harmonize')
         inp_user = user.User(geoaxis_uid = "test-uid", user_name = "test-user_name")
         self.mock_request_db_harmonize.return_value = inp_user
-        self.mock_requests.get(self.userprofile_addr, text='{"uid":"test-id","username":"test-name"}', status_code=201)
-        self.mock_get_user.return_value.fetchone.return_value = None
-        self.mock_new_uuid.return_value = 'mock-api-key'
         outp_user = user.geoaxis_token_login('test-token')
         self.assertIsInstance(outp_user, user.User)
         self.assertEqual(inp_user, outp_user)

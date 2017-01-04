@@ -22,14 +22,12 @@ from bfapi.config import GEOAXIS_ADDR
 TIMEOUT = 24
 
 # TO-DO:
-#   ** add in audit logging
-#   ** add in unit tests
-#   ** somehow test the thing
+#   add in audit logging
 #   if receiving auth token directly from ui:
-#       build rest endpoint to receive it that calls geoaxis_token_login and returns user_name + api_key
+#       build rest endpoint to receive auth token from ui, then calls geoaxis_token_login and returns user_name + api_key
 #   else
 #       build function to call geoaxis with oauth auth code and derive auth token
-#       as above, except endpoint receives auth code
+#       build rest endpoint to receive auth code from ui, then calls the above, then calls geoaxis_token_login and returns
 #   plug the user from this in with the user from the user/jobs connection
 
 class User:
@@ -175,14 +173,9 @@ def _db_harmonize(inp_user: User) -> User:
             conn.close()
         return db_user
 
-# Note: BMB: This shoudl probably be integrated with the Error objects currently in service/jobs.py,
-# but if we do that, it probably shouldn't be in jobs.py.  I wasnt' sure where to put it, and
-# I wasn't confident about refactoring things that weren't my stuff unnecessarily.
-
 #
 # Errors
 #
-
 
 class Error(Exception):
     def __init__(self, message: str):
