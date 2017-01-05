@@ -15,6 +15,8 @@ from datetime import datetime
 
 from bfapi.db import Connection, ResultProxy
 
+import uuid
+
 def select_user(
         conn: Connection,
         *,
@@ -43,15 +45,23 @@ def select_user_by_api_key(
     }
     return conn.execute(query, params)
 
-def insert_user(
+def insert_or_update_user(
         conn: Connection,
         *,
         geoaxis_uid: str,
         user_name: str,
-        api_key: str) -> None:
+        api_key: str,
+        should_force_api_key: bool) -> None:
     query = """
         INSERT INTO __beachfront__user (geoaxis_uid, user_name, api_key)
         VALUES (%(geoaxis_uid)s, %(user_name)s, %(api_key)s)
+        ON CONFLICT (geoaxis_uid) DO UPDATE SET
+            user_name = excluded.user_name
+        """
+    if should_force_api_key:
+        query = query + """,
+            api_key = excluded.api_key"""
+    query = query + """
         """
     params = {
         'geoaxis_uid': geoaxis_uid,
@@ -59,22 +69,3 @@ def insert_user(
         'api_key': api_key,
     }
     conn.execute(query, params)
-
-def update_user(
-        conn: Connection,
-        *,
-        geoaxis_uid: str,
-        user_name: str,
-        api_key: str) -> ResultProxy:
-    query = """
-        UPDATE __beachfront__user
-            SET user_name = %(user_name)s, api_key = %(api_key)s,
-        WHERE geoaxis_uid = %(geoaxis_uid)s
-        """
-    params = {
-        'geoaxis_uid': geoaxis_uid,
-        'user_name': user_name,
-        'api_key': api_key,
-    }
-    conn.execute(query, params)
-

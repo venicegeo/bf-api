@@ -51,7 +51,7 @@ CREATE TABLE __beachfront__detection (
 );
 
 CREATE TABLE __beachfront__user (
-    geoaxis_uid       VARCHAR(64)    PRIMARY KEY,
+    geoaxis_uid       VARCHAR(64)    PRIMARY KEY, -- effectively equivalent to user_id
     user_name         VARCHAR(64)    NOT NULL,
     api_key           VARCHAR(255)   NOT NULL    UNIQUE,
     created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP

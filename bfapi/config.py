@@ -86,7 +86,7 @@ DOMAIN = _getdomain()
 PZ_GATEWAY   = os.getenv('PZ_GATEWAY', 'pz-gateway.' + DOMAIN)
 CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + DOMAIN)
 TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + DOMAIN)
-GEOAXIS_ADDR = os.getenv('GEOAXIS', 'gxisaccess.gxaccess.com')
+GEOAXIS      = os.getenv('GEOAXIS', 'gxisaccess.gxaccess.com')
 
 SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
 

@@ -13,7 +13,7 @@
 
 import unittest.mock
 
-from bfapi.db import user as userdb
+from bfapi.db import users as usersdb
 
 
 class SelectUserTest(unittest.TestCase):
@@ -44,21 +44,7 @@ class SelectUserByApiKeyTest(unittest.TestCase):
         self.skipTest('Not implemented')
 
 
-class InsertUserTest(unittest.TestCase):
-    def setUp(self):
-        self.conn = unittest.mock.Mock()
-
-    def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
-
-    def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
-
-    def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
-
-
-class UpdateUserTest(unittest.TestCase):
+class InsertOrUpdateUserTest(unittest.TestCase):
     def setUp(self):
         self.conn = unittest.mock.Mock()
 
