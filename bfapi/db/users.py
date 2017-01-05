@@ -20,14 +20,14 @@ import uuid
 def select_user(
         conn: Connection,
         *,
-        geoaxis_uid: str) -> ResultProxy:
+        user_id: str) -> ResultProxy:
     query = """
-        SELECT u.geoaxis_uid, u.user_name, u.api_key, u.created_on
+        SELECT u.user_id, u.user_name, u.api_key, u.created_on
           FROM __beachfront__user u
-        WHERE u.geoaxis_uid = %(geoaxis_uid)s
+        WHERE u.user_id = %(user_id)s
         """
     params = {
-        'geoaxis_uid': geoaxis_uid,
+        'user_id': user_id,
     }
     return conn.execute(query, params)
 
@@ -36,7 +36,7 @@ def select_user_by_api_key(
         *,
         api_key: str) -> ResultProxy:
     query = """
-        SELECT u.geoaxis_uid, u.user_name, u.api_key, u.created_on 
+        SELECT u.user_id, u.user_name, u.api_key, u.created_on 
           FROM __beachfront__user u
          WHERE u.api_key = %(api_key)s
         """
@@ -48,14 +48,14 @@ def select_user_by_api_key(
 def insert_or_update_user(
         conn: Connection,
         *,
-        geoaxis_uid: str,
+        user_id: str,
         user_name: str,
         api_key: str,
         should_force_api_key: bool) -> None:
     query = """
-        INSERT INTO __beachfront__user (geoaxis_uid, user_name, api_key)
-        VALUES (%(geoaxis_uid)s, %(user_name)s, %(api_key)s)
-        ON CONFLICT (geoaxis_uid) DO UPDATE SET
+        INSERT INTO __beachfront__user (user_id, user_name, api_key)
+        VALUES (%(user_id)s, %(user_name)s, %(api_key)s)
+        ON CONFLICT (user_id) DO UPDATE SET
             user_name = excluded.user_name
         """
     if should_force_api_key:
@@ -64,7 +64,7 @@ def insert_or_update_user(
     query = query + """
         """
     params = {
-        'geoaxis_uid': geoaxis_uid,
+        'user_id': user_id,
         'user_name': user_name,
         'api_key': api_key,
     }

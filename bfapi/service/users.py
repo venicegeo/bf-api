@@ -34,11 +34,11 @@ class User:
     def __init__(
             self,
             *,
-            geoaxis_uid: str,
+            user_id: str,
             user_name: str,
             bf_api_key: str = None,
             created_on: datetime = None ): 
-        self.geoaxis_uid = geoaxis_uid
+        self.user_id = user_id
         self.user_name = user_name
         self.bf_api_key = bf_api_key
         self.created_on = created_on
@@ -64,8 +64,8 @@ def authenticate_via_geoaxis(geoaxis_token: str) -> User:
         raise GeoaxisError(status_code)
 
     jsonOut = response.json()
-    geoaxis_uid = jsonOut.get('uid')
-    if not geoaxis_uid:
+    user_id = jsonOut.get('uid')
+    if not user_id:
         log.error('Geoaxis responded to userprofile call without uid.  Response Text: '.format(response.text))
         raise InvalidGeoaxisResponse('missing `uid`', response.text)
     user_name = jsonOut.get('username')
@@ -77,9 +77,9 @@ def authenticate_via_geoaxis(geoaxis_token: str) -> User:
     try:
         db.users.insert_or_update_user(
             conn,
-            geoaxis_uid=geoaxis_uid,
+            user_id=user_id,
             user_name=user_name,
-            api_key=uuid.uuid4(),
+            api_key=str(uuid.uuid4()),
             should_force_api_key=False
         )
     except db.DatabaseError as err:
@@ -88,7 +88,7 @@ def authenticate_via_geoaxis(geoaxis_token: str) -> User:
         raise
     finally:
         conn.close()
-    return get_by_id(geoaxis_uid)
+    return get_by_id(user_id)
 
 def authenticate_via_api_key(api_key: str) -> User:
     log = logging.getLogger(__name__)
@@ -96,6 +96,7 @@ def authenticate_via_api_key(api_key: str) -> User:
     try:
         row = db.users.select_user_by_api_key(conn, api_key=api_key).fetchone()
     except db.DatabaseError as err:
+        log.error("Attempt to find user by api key failed in database: %s", err)
         db.print_diagnostics(err)
         raise
     finally:
@@ -107,30 +108,31 @@ def authenticate_via_api_key(api_key: str) -> User:
         log.error('Database returned wrong information: %s', err)
         raise err
     return User(
-        geoaxis_uid=row['geoaxis_uid'],
+        user_id=row['user_id'],
         bf_api_key=row['api_key'],
         user_name=row['user_name'],
         created_on=row['created_on'],
     )
 
-def get_by_id(geoaxis_uid: str) -> User:
+def get_by_id(user_id: str) -> User:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
     try:
-        row = db.users.select_user(conn, geoaxis_uid=geoaxis_uid).fetchone()
+        row = db.users.select_user(conn, user_id=user_id).fetchone()
     except db.DatabaseError as err:
+        log.error("Attempt to find user by user_id failed in database: %s", err)
         db.print_diagnostics(err)
         raise
     finally:
         conn.close()
     if not row:
         return None
-    if row['geoaxis_uid'] != geoaxis_uid:
-        err = DatabaseMismatchError("select_user", "geoaxis_uid")
+    if row['user_id'] != user_id:
+        err = DatabaseMismatchError("select_user", "user_id")
         log.error('Database returned wrong information: %s', err)
         raise err
     return User(
-        geoaxis_uid=row['geoaxis_uid'],
+        user_id=row['user_id'],
         bf_api_key=row['api_key'],
         user_name=row['user_name'],
         created_on=row['created_on'],
@@ -146,7 +148,7 @@ class Error(Exception):
 
 class BeachfrontUnauthorized(Error):
     def __init__(self):
-        super().__init__('Beachfront API Key was not correct.  Authorization rejected')
+        super().__init__('Beachfront authorization rejected.')
 
 class DatabaseMismatchError(Error):
     def __init__(self, func_name: str, db_entry: str):
