@@ -155,8 +155,8 @@ cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>
 | `PORT`              | Overrides the default listening port (automatically injected by Pivotal CloudFoundry) |
 | `VCAP_SERVICES`     | A JSON object that adheres to the [PCF `VCAP_SERVICES` interface](https://docs.run.pivotal.io/devguide/deploy-apps/environment-variable.html#VCAP-SERVICES) (automatically injected by A Pivotal CloudFoundry) |
 | `PZ_GATEWAY`        | Overrides the Piazza gateway autodetection/configuration |
-| `CATALOG`           | Overrides the Image Catalog base URL |
-| `TIDE_SERVICE`      | Overrides the Tide Prediction service base URL |
-| `GEOAXIS`           | Overrides the GEOAxIS base URL |
+| `CATALOG`           | Overrides the Image Catalog hostname |
+| `TIDE_SERVICE`      | Overrides the Tide Prediction service hostname |
+| `GEOAXIS`           | Overrides the GEOAxIS hostname |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
 | `SKIP_PRODUCTLINE_INSTALL` | Set to `1` to skip installing triggers and services for catalog harvest events (recommended for local development). |
