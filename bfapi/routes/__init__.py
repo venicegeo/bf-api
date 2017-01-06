@@ -11,12 +11,11 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import logging
 import time
 
 import flask
 
-from bfapi import piazza
+from bfapi.service import users
 from bfapi.routes import v0
 
 _time_started = time.time()
@@ -35,22 +34,22 @@ def is_login_active():
 
 
 def login():
-    log = logging.getLogger(__name__)
-
-    auth_header = flask.request.headers.get('Authorization')
-    if not auth_header:
-        return 'Authorization header is missing', 401
+    query_params = flask.request.args
 
     try:
-        api_key = piazza.create_api_key(auth_header)
-    except piazza.MalformedCredentials as err:
-        return err.message, 400
-    except piazza.Unauthorized as err:
-        return err.message, 401
-    except piazza.Error as err:
-        log.error('Cannot log in: %s', err)
-        return 'A Piazza error prevents login', 500
+        auth_code = query_params['code'].strip()
+    except:
+        return 'Cannot log in: invalid "code" query parameter', 400
+
+    try:
+        user = users.authenticate_via_geoaxis(auth_code)
+    except users.Unauthorized as err:
+        return str(err), 401
+    except users.GeoaxisUnreachable as err:
+        return str(err), 503
+    except users.Error:
+        return 'Cannot log in: an internal error prevents authentication', 500
 
     return flask.jsonify({
-        'api_key': api_key,
+        'api_key': user.api_key,
     })

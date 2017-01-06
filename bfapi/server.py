@@ -30,7 +30,7 @@ def attach_routes(app: flask.Flask):
 
     # Public Endpoints
     app.add_url_rule('/', view_func=routes.health_check, methods=['GET'])
-    app.add_url_rule('/login', view_func=routes.login, methods=['POST'])
+    app.add_url_rule('/login', view_func=routes.login, methods=['GET'])
 
     # Session heartbeat
     app.add_url_rule('/login/heartbeat', view_func=routes.is_login_active, methods=['GET'])
