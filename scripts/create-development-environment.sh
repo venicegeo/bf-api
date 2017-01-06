@@ -25,6 +25,9 @@ create_environment_vars() {
     local _filepath=$DEV_ROOT/environment-vars.sh
     echo "Creating ${_filepath}"
     sed <<'EOT' | sed -E 's/^        //' > $_filepath
+        export GEOAXIS=
+        export GEOAXIS_CLIENT_ID=
+        export GEOAXIS_SECRET=
         export DOMAIN=
         export SYSTEM_API_KEY=
         export PORT=5000

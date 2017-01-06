@@ -151,6 +151,8 @@ cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>
 | Variable            | Description |
 |---------------------|-------------|
 | `SYSTEM_API_KEY`    | Credentials for accessing Piazza.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
+| `GEOAXIS_CLIENT_ID` | Overrides the GEOAxIS OAuth client ID.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
+| `GEOAXIS_SECRET`    | Sets the GEOAxIS OAuth secret.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
 | `DOMAIN`            | Overrides the domain where the other services can be found (automatically injected by Pivotal CloudFoundry) |
 | `PORT`              | Overrides the default listening port (automatically injected by Pivotal CloudFoundry) |
 | `VCAP_SERVICES`     | A JSON object that adheres to the [PCF `VCAP_SERVICES` interface](https://docs.run.pivotal.io/devguide/deploy-apps/environment-variable.html#VCAP-SERVICES) (automatically injected by A Pivotal CloudFoundry) |
