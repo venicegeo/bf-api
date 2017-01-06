@@ -13,19 +13,16 @@
 
 import logging
 import unittest
-import uuid
-from unittest.mock import patch, MagicMock, Mock
 from datetime import datetime
-
+from unittest.mock import patch
 
 import requests
 import requests_mock as rm
-from test import helpers
-from bfapi import piazza
-from bfapi.service import users
-from bfapi.db import DatabaseError
 
 from bfapi.config import GEOAXIS
+from bfapi.db import DatabaseError
+from bfapi.service import users
+from test import helpers
 
 GEOAXIS_USERPROFILE_URL = 'https://{}/ms_oauth/resources/userprofile/me'.format(GEOAXIS)
 

@@ -21,7 +21,7 @@ from sqlalchemy.exc import DatabaseError
 from sqlalchemy.engine import Engine, Connection, ResultProxy
 
 from bfapi.config import POSTGRES_DATABASE, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USERNAME
-from bfapi.db import jobs, productlines, scenes
+from bfapi.db import jobs, productlines, scenes, users
 
 _engine = None  # type: Engine
 
