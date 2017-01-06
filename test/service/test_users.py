@@ -11,6 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import io
 import logging
 import unittest
 from datetime import datetime
@@ -47,6 +48,19 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         patcher = patch(target_name)
         self.addCleanup(patcher.stop)
         return patcher.start()
+
+    def create_logstream(self) -> io.StringIO:
+        def cleanup():
+            self._logger.propagate = True
+
+        self._logger.propagate = False
+        self._logger.disabled = False
+        stream = io.StringIO()
+        handler = logging.StreamHandler(stream)
+        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+        self._logger.addHandler(handler)
+        self.addCleanup(cleanup)
+        return stream
 
     def test_creates_new_user_if_not_already_in_database(self):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}')
@@ -138,6 +152,56 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             users.authenticate_via_geoaxis('test-token')
 
+    def test_logs_success_for_new_user(self):
+        self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}')
+        self.mock_get_by_id.return_value = None
+        logstream = self.create_logstream()
+        users.authenticate_via_geoaxis('test-token')
+        self.assertEqual([
+            'INFO - Creating user account for "test-id"',
+            'INFO - User "test-id" has logged in successfully',
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_success_for_existing_user(self):
+        self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}')
+        self.mock_get_by_id.return_value = None
+        logstream = self.create_logstream()
+        users.authenticate_via_geoaxis('test-token')
+        self.assertEqual([
+            'INFO - Creating user account for "test-id"',
+            'INFO - User "test-id" has logged in successfully',
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_failure_from_geoaxis_rejection(self):
+        self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='negative ghost rider', status_code=401)
+        logstream = self.create_logstream()
+        with self.assertRaises(users.GeoaxisUnauthorized):
+            users.authenticate_via_geoaxis('test-token')
+        self.assertEqual([
+            'ERROR - GeoAxis rejected user auth token "test-token"',
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_failure_from_geoaxis_errors(self):
+        self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='something is broken', status_code=500)
+        logstream = self.create_logstream()
+        with self.assertRaises(users.GeoaxisError):
+            users.authenticate_via_geoaxis('test-token')
+        self.assertEqual([
+            'ERROR - GeoAxis responded with HTTP 500.  Response Text:',
+            'something is broken',
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_failure_from_database_insert(self):
+        self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}')
+        self.mock_get_by_id.return_value = None
+        self.mock_insert_user.side_effect = helpers.create_database_error()
+        logstream = self.create_logstream()
+        with self.assertRaises(DatabaseError):
+            users.authenticate_via_geoaxis('test-token')
+        self.assertEqual([
+            'INFO - Creating user account for "test-id"',
+            "ERROR - Could not insert user record to database: (builtins.Exception) test-error [SQL: 'test-query']",
+        ], logstream.getvalue().splitlines())
 
 
 class AuthenticateViaApiKeyTest(unittest.TestCase):
@@ -156,6 +220,18 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
+    def create_logstream(self) -> io.StringIO:
+        def cleanup():
+            self._logger.propagate = True
+
+        self._logger.propagate = False
+        self._logger.disabled = False
+        stream = io.StringIO()
+        handler = logging.StreamHandler(stream)
+        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+        self._logger.addHandler(handler)
+        self.addCleanup(cleanup)
+        return stream
 
     def test_returns_a_user(self):
         self.mock_select_user_by_api_key.return_value.fetchone.return_value = create_user_db_record()
@@ -187,6 +263,32 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         with self.assertRaises(users.BeachfrontUnauthorized):
             users.authenticate_via_api_key('test-api-key')
 
+    def test_logs_success(self):
+        self.mock_select_user_by_api_key.return_value.fetchone.return_value = create_user_db_record()
+        logstream = self.create_logstream()
+        users.authenticate_via_api_key('test-api-key')
+        self.assertEqual([
+            # Intentionally blank
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_failure_from_invalid_api_key(self):
+        self.mock_select_user_by_api_key.return_value.fetchone.return_value = None
+        logstream = self.create_logstream()
+        with self.assertRaises(users.BeachfrontUnauthorized):
+            users.authenticate_via_api_key('test-api-key')
+        self.assertEqual([
+            'ERROR - Authentication failed for API key "test-api-key"'
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_failure_from_database_select(self):
+        self.mock_select_user_by_api_key.side_effect = helpers.create_database_error()
+        logstream = self.create_logstream()
+        with self.assertRaises(DatabaseError):
+            users.authenticate_via_api_key('test-api-key')
+        self.assertEqual([
+            "ERROR - Database query for user by API key failed: (builtins.Exception) test-error [SQL: 'test-query']",
+        ], logstream.getvalue().splitlines())
+
 
 class GetByIdTest(unittest.TestCase):
     def setUp(self):
@@ -203,6 +305,19 @@ class GetByIdTest(unittest.TestCase):
         patcher = patch(target_name)
         self.addCleanup(patcher.stop)
         return patcher.start()
+
+    def create_logstream(self) -> io.StringIO:
+        def cleanup():
+            self._logger.propagate = True
+
+        self._logger.propagate = False
+        self._logger.disabled = False
+        stream = io.StringIO()
+        handler = logging.StreamHandler(stream)
+        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+        self._logger.addHandler(handler)
+        self.addCleanup(cleanup)
+        return stream
 
     def test_throws_when_database_query_fails(self):
         self.mock_select_user.side_effect = helpers.create_database_error()
@@ -233,6 +348,15 @@ class GetByIdTest(unittest.TestCase):
         self.mock_select_user.return_value.fetchone.return_value = create_user_db_record()
         user = users.get_by_id('test-user-id')
         self.assertEqual('test-api-key', user.api_key)
+
+    def test_logs_database_failure_during_select(self):
+        self.mock_select_user.side_effect = helpers.create_database_error()
+        logstream = self.create_logstream()
+        with self.assertRaises(DatabaseError):
+            users.get_by_id('test-user-id')
+        self.assertEqual([
+            "ERROR - Database query for user by ID failed: (builtins.Exception) test-error [SQL: 'test-query']",
+        ], logstream.getvalue().splitlines())
 
 
 #
