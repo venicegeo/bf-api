@@ -7,3 +7,7 @@ bf-api.zip
 .dev
 .coverage
 report
+
+.project
+
+.pydevproject

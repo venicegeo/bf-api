@@ -89,6 +89,7 @@ TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + DOMAIN)
 GEOAXIS      = os.getenv('GEOAXIS', 'gxisaccess.gxaccess.com')
 
 SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
+JWT_SECRET=os.getenv('JWT_SECRET')
 
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_TTL = timedelta(hours=2)

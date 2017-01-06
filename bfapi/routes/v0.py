@@ -17,10 +17,12 @@ from json import JSONDecodeError
 import dateutil.parser
 import dateutil.tz
 import flask
+import json
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
 from bfapi.service import (algorithms as algorithms_service, jobs as jobs_service, productlines as productline_service)
+from bfapi import JWT_Transcipher as JWT_service
 
 
 #
@@ -46,6 +48,32 @@ def list_algorithms():
         'algorithms': [a.serialize() for a in algorithms],
     })
 
+#
+# JWT
+#
+def encrypt_JWT():
+    try:
+        payload = flask.request.get_json()
+    except JSONDecodeError:
+        return 'Invalid input: request body must be a JSON object', 400
+    except ValidationError as err:
+        return 'Invalid input: {}'.format(err), 400
+    try:
+        encryptedJWT = JWT_service.encrypt(payload)
+    except ValidationError as err:
+        return 'Unable to encrypt'.format(err), 400
+    return encryptedJWT, 201
+
+def decrypt_JWT():
+    try:
+        bodyJSON = flask.request.get_json()
+        JWT = _get_string(bodyJSON, 'JWT')
+        decryptedJWT=JWT_service.decrypt(JWT)
+    except JSONDecodeError:
+        return 'Invalid input: request body must be a JSON object', 400
+    except ValidationError as err:
+        return 'Invalid input: {}'.format(err), 400
+    return flask.jsonify(decryptedJWT), 201
 
 #
 # Jobs

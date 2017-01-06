@@ -50,6 +50,8 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule('/v0/productline', view_func=routes.v0.create_productline, methods=['POST'])
     app.add_url_rule('/v0/productline/<productline_id>', view_func=routes.v0.delete_productline, methods=['DELETE'])
     app.add_url_rule('/v0/scene/event/harvest', view_func=routes.v0.on_harvest_event, methods=['POST'])
+    app.add_url_rule('/v0/JWT/encrypt', view_func=routes.v0.encrypt_JWT, methods=['POST'])
+    app.add_url_rule('/v0/JWT/decrypt', view_func=routes.v0.decrypt_JWT, methods=['POST'])
 
 
 def banner():

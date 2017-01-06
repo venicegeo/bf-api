@@ -113,3 +113,7 @@ SELECT d.job_id, d.feature_id, d.geometry,
        JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
        LEFT OUTER JOIN __beachfront__productline_job p ON (p.job_id = d.job_id)
 ;
+CREATE TABLE __beachfront__secret (
+    key          VARCHAR(64)    PRIMARY KEY,
+    used_on       TIMESTAMP      NOT NULL
+);
