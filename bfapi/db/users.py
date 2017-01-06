@@ -36,7 +36,7 @@ def select_user_by_api_key(
         *,
         api_key: str) -> ResultProxy:
     query = """
-        SELECT u.user_id, u.user_name, u.api_key, u.created_on 
+        SELECT u.user_id, u.user_name, u.api_key, u.created_on
           FROM __beachfront__user u
          WHERE u.api_key = %(api_key)s
         """

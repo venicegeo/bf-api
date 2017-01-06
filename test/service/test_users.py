@@ -24,9 +24,11 @@ from test import helpers
 from bfapi import piazza
 from bfapi.service import users
 from bfapi.db import DatabaseError
+
 from bfapi.config import GEOAXIS
 
 GEOAXIS_USERPROFILE_URL = 'https://{}/ms_oauth/resources/userprofile/me'.format(GEOAXIS)
+
 
 class AuthenticateViaGeoaxisTest(unittest.TestCase):
     def setUp(self):
@@ -37,17 +39,16 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_requests = rm.Mocker()  # type: rm.Mocker
         self.mock_requests.start()
         self.addCleanup(self.mock_requests.stop)
-        
 
     def tearDown(self):
         self._mockdb.destroy()
         self._logger.disabled = False
-        
+
     def create_mock(self, target_name):
         patcher = patch(target_name)
         self.addCleanup(patcher.stop)
         return patcher.start()
-        
+
     def test_throws_on_connection_error(self):
         mock_request_get = self.create_mock('requests.get')
         mock_request_get.side_effect = requests.ConnectionError()
@@ -63,29 +64,29 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='resp', status_code=405)
         with self.assertRaises(users.GeoaxisError):
             users.authenticate_via_geoaxis('test-token')
-        
+
     def test_throws_on_no_uid(self):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"username":"test-name"}', status_code=200)
         with self.assertRaises(users.InvalidGeoaxisResponse):
             users.authenticate_via_geoaxis('test-token')
-        
+
     def test_throws_on_no_user_name(self):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id"}', status_code=200)
         with self.assertRaises(users.InvalidGeoaxisResponse):
             users.authenticate_via_geoaxis('test-token')
-        
+
     def test_throws_on_dbase_error(self):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}', status_code=200)
         mock_insert_update = self.create_mock('bfapi.db.users.insert_or_update_user')
         mock_insert_update.side_effect = helpers.create_database_error()
         with self.assertRaises(DatabaseError):
             users.authenticate_via_geoaxis('test-token')
-        
+
     def test_returns_user(self):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}', status_code=200)
         mock_insert_update = self.create_mock('bfapi.db.users.insert_or_update_user')
         mock_get_by_id = self.create_mock('bfapi.service.users.get_by_id')
-        inp_user = users.User(user_id = "test-uid", user_name = "test-user_name")
+        inp_user = users.User(user_id='test-uid', user_name='test-user_name')
         mock_get_by_id.return_value = inp_user
         outp_user = users.authenticate_via_geoaxis('test-token')
         self.assertIsInstance(outp_user, users.User)
@@ -104,7 +105,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}', status_code=200)
         mock_insert_update = self.create_mock('bfapi.db.users.insert_or_update_user')
         mock_get_by_id = self.create_mock('bfapi.service.users.get_by_id')
-        inp_user = users.User(user_id = "test-uid", user_name = "test-user_name")
+        inp_user = users.User(user_id='test-uid', user_name='test-user_name')
         mock_get_by_id.return_value = inp_user
         outp_user = users.authenticate_via_geoaxis('test-token')
         self.assertEqual("test-name",  mock_insert_update.call_args[1]["user_name"])
@@ -129,27 +130,27 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
     def tearDown(self):
         self._mockdb.destroy()
         self._logger.disabled = False
-        
+
     def create_mock(self, target_name):
         patcher = patch(target_name)
         self.addCleanup(patcher.stop)
         return patcher.start()
-        
+
     def test_throws_on_db_error(self):
         self.mock_select_user_by_api_key.side_effect = helpers.create_database_error()
         with self.assertRaises(DatabaseError):
             users.authenticate_via_api_key('test-api_key')
-        
+
     def test_throws_on_failed_auth(self):
         self.mock_select_user_by_api_key.return_value.fetchone.return_value = None
         with self.assertRaises(users.BeachfrontUnauthorized):
             users.authenticate_via_api_key('test-api_key')
-        
+
     def test_verifies_api_key(self):
         self.mock_select_user_by_api_key.return_value.fetchone.return_value = create_user_db_record()
         with self.assertRaises(users.DatabaseMismatchError):
             users.authenticate_via_api_key('not-the-returned-api_key')
-        
+
     def test_assigns_correct_user_id(self):
         self.mock_select_user_by_api_key.return_value.fetchone.return_value = create_user_db_record(api_key='test-api_key')
         new_user = users.authenticate_via_api_key('test-api_key')
@@ -168,6 +169,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         self.assertIsInstance(new_user, users.User)
         self.assertEqual('test-api_key', new_user.bf_api_key)
 
+
 class GetByIdTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
@@ -183,17 +185,17 @@ class GetByIdTest(unittest.TestCase):
         patcher = patch(target_name)
         self.addCleanup(patcher.stop)
         return patcher.start()
-        
+
     def test_throws_on_db_error(self):
         self.mock_select_user.side_effect = helpers.create_database_error()
         with self.assertRaises(DatabaseError):
             users.get_by_id('test-user-id')
-        
+
     def test_returns_nothing_if_record_not_found(self):
         self.mock_select_user.return_value.fetchone.return_value = None
         new_user = users.get_by_id('test-user-id')
         self.assertEqual(None, new_user)
-        
+
     def test_throws_on_wrong_id(self):
         self.mock_select_user.return_value.fetchone.return_value = create_user_db_record()
         with self.assertRaises(users.DatabaseMismatchError):
@@ -216,6 +218,7 @@ class GetByIdTest(unittest.TestCase):
         new_user = users.get_by_id('test-user-id')
         self.assertIsInstance(new_user, users.User)
         self.assertEqual('test-key', new_user.bf_api_key)
+
 
 #
 # Helpers
