@@ -28,6 +28,7 @@ def select_user(
     }
     return conn.execute(query, params)
 
+
 def select_user_by_api_key(
         conn: Connection,
         *,
@@ -42,23 +43,16 @@ def select_user_by_api_key(
     }
     return conn.execute(query, params)
 
-def insert_or_update_user(
+
+def insert_user(
         conn: Connection,
         *,
         user_id: str,
         user_name: str,
-        api_key: str,
-        should_force_api_key: bool) -> None:
+        api_key: str) -> None:
     query = """
         INSERT INTO __beachfront__user (user_id, user_name, api_key)
         VALUES (%(user_id)s, %(user_name)s, %(api_key)s)
-        ON CONFLICT (user_id) DO UPDATE SET
-            user_name = excluded.user_name
-        """
-    if should_force_api_key:
-        query = query + """,
-            api_key = excluded.api_key"""
-    query = query + """
         """
     params = {
         'user_id': user_id,
