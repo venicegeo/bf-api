@@ -157,5 +157,6 @@ cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>
 | `PZ_GATEWAY`        | Overrides the Piazza gateway autodetection/configuration |
 | `CATALOG`           | Overrides the Image Catalog base URL |
 | `TIDE_SERVICE`      | Overrides the Tide Prediction service base URL |
+| `GEOAXIS`           | Overrides the GEOAxIS base URL |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
 | `SKIP_PRODUCTLINE_INSTALL` | Set to `1` to skip installing triggers and services for catalog harvest events (recommended for local development). |

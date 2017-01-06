@@ -21,4 +21,5 @@ DROP TABLE IF EXISTS __beachfront__job_error;
 DROP TABLE IF EXISTS __beachfront__job_user;
 DROP TABLE IF EXISTS __beachfront__job;
 DROP TABLE IF EXISTS __beachfront__scene;
+DROP TABLE IF EXISTS __beachfront__user
 DROP VIEW IF EXISTS __beachfront__geoserver;

@@ -50,12 +50,21 @@ CREATE TABLE __beachfront__detection (
     FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
 );
 
+CREATE TABLE __beachfront__user (
+    user_id           VARCHAR(64)    PRIMARY KEY,
+    user_name         VARCHAR(64)    NOT NULL,
+    api_key           VARCHAR(255)   NOT NULL    UNIQUE,
+    created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE __beachfront__job_user (
     job_id            VARCHAR(64),
     user_id           VARCHAR(64),
 
     PRIMARY KEY (job_id, user_id),
     FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
+--    FOREIGN KEY (user_id) REFERENCES __beachfront__user(user_id) ON DELETE CASCADE
+--       FIXME: above line can be enabled when end-to-end GeoAxis flow is complete
 );
 
 CREATE TABLE __beachfront__job_error (
