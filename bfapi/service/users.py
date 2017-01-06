@@ -137,7 +137,7 @@ def get_by_id(user_id: str) -> User:
 
 def _create_user(user_id, user_name) -> User:
     log = logging.getLogger(__name__)
-    api_key = str(uuid.uuid4())
+    api_key = uuid.uuid4().hex
 
     log.info('Creating user account for "%s"', user_id)
     conn = db.get_connection()

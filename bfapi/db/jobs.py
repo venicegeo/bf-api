@@ -52,12 +52,12 @@ def insert_detection(
         feature_collection: str) -> None:
     # FIXME -- I know we can do better than this...
     query = """
-    INSERT INTO __beachfront__detection (job_id, feature_id, geometry)
-    SELECT %(job_id)s AS job_id,
-           row_number() OVER () AS feature_id,
-           ST_GeomFromGeoJSON(fc.features->>'geometry') AS geometry
-    FROM (SELECT json_array_elements(%(feature_collection)s::json->'features') AS features) fc
-    """
+        INSERT INTO __beachfront__detection (job_id, feature_id, geometry)
+        SELECT %(job_id)s AS job_id,
+               row_number() OVER () AS feature_id,
+               ST_GeomFromGeoJSON(fc.features->>'geometry') AS geometry
+        FROM (SELECT json_array_elements(%(feature_collection)s::json->'features') AS features) fc
+        """
     params = {
         'job_id': job_id,
         'feature_collection': feature_collection,

@@ -77,7 +77,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
     def test_assigns_correct_api_key_to_new_users(self):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}')
         self.mock_get_by_id.return_value = None
-        self.create_mock('uuid.uuid4').return_value = 'lorem ipsum dolor'
+        self.create_mock('uuid.uuid4').return_value.hex = 'lorem ipsum dolor'
         user = users.authenticate_via_geoaxis('test-token')
         self.assertEqual('lorem ipsum dolor', user.api_key)
 
@@ -96,7 +96,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
     def test_sends_correct_api_key_to_database(self):
         self.mock_requests.get(GEOAXIS_USERPROFILE_URL, text='{"uid":"test-id","username":"test-name"}')
         self.mock_get_by_id.return_value = None
-        self.create_mock('uuid.uuid4').return_value = 'lorem ipsum dolor'
+        self.create_mock('uuid.uuid4').return_value.hex = 'lorem ipsum dolor'
         users.authenticate_via_geoaxis('test-token')
         self.assertEqual('lorem ipsum dolor', self.mock_insert_user.call_args[1]['api_key'])
 
