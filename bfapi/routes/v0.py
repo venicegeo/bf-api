@@ -193,7 +193,7 @@ def create_productline():
 def delete_productline(productline_id: str):
     user_id = flask.request.user.user_id
     try:
-        productline_service.delete_productline(flask.request.user.user_id, productline_id)
+        productline_service.delete_productline(user_id, productline_id)
     except DatabaseError:
         return 'A database error prevents deletion of this product line', 404
     except productline_service.NotFound:

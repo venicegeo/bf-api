@@ -39,21 +39,6 @@ class User:
         self.created_on = created_on
 
 
-def authenticate_via_geoaxis(auth_code: str) -> User:
-    log = logging.getLogger(__name__)
-
-    access_token = _request_geoaxis_access_token(auth_code)
-    user_id, user_name = _fetch_geoaxis_profile(access_token)
-
-    user = get_by_id(user_id)
-    if not user:
-        user = _create_user(user_id, user_name)
-
-    log.info('User "%s" has logged in successfully', user_id)
-
-    return user
-
-
 def authenticate_via_api_key(api_key: str) -> User:
     log = logging.getLogger(__name__)
 
@@ -82,6 +67,21 @@ def authenticate_via_api_key(api_key: str) -> User:
         name=row['user_name'],
         created_on=row['created_on'],
     )
+
+
+def authenticate_via_geoaxis(auth_code: str) -> User:
+    log = logging.getLogger(__name__)
+
+    access_token = _request_geoaxis_access_token(auth_code)
+    user_id, user_name = _fetch_geoaxis_profile(access_token)
+
+    user = get_by_id(user_id)
+    if not user:
+        user = _create_user(user_id, user_name)
+
+    log.info('User "%s" has logged in successfully', user_id)
+
+    return user
 
 
 def get_by_id(user_id: str) -> User:
