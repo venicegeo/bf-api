@@ -29,7 +29,6 @@ from bfapi import piazza
 from bfapi.db import DatabaseError
 from bfapi.service import jobs
 
-API_KEY = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 LAST_WEEK = datetime.utcnow() - timedelta(7.0)
 
 
@@ -76,14 +75,14 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
 
     def test_assigns_correct_algorithm_name(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('test-algo-name', job.algorithm_name)
 
@@ -91,7 +90,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('test-algo-version', job.algorithm_version)
 
@@ -99,7 +98,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('test-user-id', job.created_by)
 
@@ -107,7 +106,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual(datetime.utcnow().date(), job.created_on.date())
 
@@ -115,7 +114,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual({"type": "Polygon", "coordinates": [[[0, 0], [0, 30], [30, 30], [30, 0], [0, 0]]]},
                          job.geometry)
@@ -125,7 +124,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         self.mock_execute.return_value = 'test-new-job-id'
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('test-new-job-id', job.job_id)
 
@@ -133,7 +132,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('test-name', job.name)
 
@@ -141,7 +140,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('2014-05-13T16:53:20', job.scene_capture_date.isoformat())
 
@@ -149,7 +148,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('test-sensor-name', job.scene_sensor_name)
 
@@ -157,7 +156,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('test-scene-id', job.scene_id)
 
@@ -165,7 +164,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        job = jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('Submitted', job.status)
 
@@ -173,7 +172,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertEqual('https://bf-tideprediction.localhost/tides', self.mock_requests.request_history[0].url)
         self.assertEqual({
             'locations': [{
@@ -187,18 +186,17 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertEqual(call('test-scene-id'), self.mock_get_scene.call_args)
 
     def test_sends_correct_payload_to_piazza_pzsvc_ossim(self):
-        self.mock_get_algo.return_value = create_algorithm("pzsvc-ossim")
+        self.mock_get_algo.return_value = create_algorithm('pzsvc-ossim')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
-        self.assertEqual(API_KEY, self.mock_execute.call_args[0][0])
-        self.assertEqual('test-algo-id', self.mock_execute.call_args[0][1])
+        jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
-            'pzAuthKey': 'Basic YWFhYWFhYWEtYmJiYi1jY2NjLWRkZGQtZWVlZWVlZWVlZWVlOg==',
+            'pzAuthKey': None,  # FIXME: remove when pzsvc-exec removes external passing of PZ API keys
             'cmd': 'shoreline' +
                    ' --image test-algo-band-1.TIF,test-algo-band-2.TIF' +
                    ' --projection geo-scaled' +
@@ -208,22 +206,21 @@ class CreateJobTest(unittest.TestCase):
             'inExtFiles': ['lorem', 'ipsum'],
             'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
             'outGeoJson': ['shoreline.geojson'],
-        }, json.loads(self.mock_execute.call_args[0][2]['body']['content']))
+        }, json.loads(self.mock_execute.call_args[0][1]['body']['content']))
 
     def test_sends_correct_payload_to_piazza_pzsvc_ndwi_py(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
-        jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
-        self.assertEqual(API_KEY, self.mock_execute.call_args[0][0])
-        self.assertEqual('test-algo-id', self.mock_execute.call_args[0][1])
+        jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
-            'pzAuthKey': 'Basic YWFhYWFhYWEtYmJiYi1jY2NjLWRkZGQtZWVlZWVlZWVlZWVlOg==',
+            'pzAuthKey': None,  # FIXME: remove when pzsvc-exec removes external passing of PZ API keys
             'cmd': '--b1 test-algo-band-1.TIF --b2 test-algo-band-2.TIF --fout ./shoreline.geojson',
             'inExtFiles': ['lorem', 'ipsum'],
             'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
             'outGeoJson': ['shoreline.geojson'],
-        }, json.loads(self.mock_execute.call_args[0][2]['body']['content']))
+        }, json.loads(self.mock_execute.call_args[0][1]['body']['content']))
 
     def test_does_not_create_database_record_if_cannot_start(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -231,7 +228,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text=RESPONSE_TIDE_NIL)
         self.mock_execute.side_effect = piazza.ServerError(500)
         try:
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         except:
             pass
         self.assertEqual(0, self.mock_insert_job.call_count)
@@ -242,7 +239,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         logstream = self.create_logstream()
-        jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
+        jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertEqual([
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
         ], logstream.getvalue().splitlines())
@@ -252,7 +249,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         logstream = self.create_logstream()
         with self.assertRaises(jobs.PreprocessingError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'ERROR - Preprocessing error: algorithm `test-algo-id` does not exist',
         ], logstream.getvalue().splitlines())
@@ -263,7 +260,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         logstream = self.create_logstream()
         with self.assertRaises(jobs.PreprocessingError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'ERROR - Preprocessing error: scene `test-scene-id` not found in catalog',
         ], logstream.getvalue().splitlines())
@@ -274,7 +271,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text='oh noes', status_code=502)
         logstream = self.create_logstream()
         with self.assertRaises(jobs.PreprocessingError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'ERROR - Preprocessing error: tide prediction failed: HTTP 502',
         ], logstream.getvalue().splitlines())
@@ -284,7 +281,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text='lolwut')
         logstream = self.create_logstream()
-        jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+        jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'ERROR - Malformed tide prediction response:',
             '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
@@ -310,7 +307,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_execute.side_effect = piazza.ServerError(400)
         logstream = self.create_logstream()
         with self.assertRaises(piazza.ServerError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             'ERROR - Could not execute via Piazza: Piazza server error (HTTP 400)'
@@ -323,7 +320,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_insert_job.side_effect = helpers.create_database_error()
         logstream = self.create_logstream()
         with self.assertRaises(DatabaseError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             "ERROR - Could not save job to database: (builtins.Exception) test-error [SQL: 'test-query']",
@@ -335,7 +332,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         self.mock_execute.side_effect = piazza.ServerError(500)
         with self.assertRaises(piazza.ServerError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_database_insertion_fails(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -343,20 +340,20 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         self.mock_insert_job.side_effect = helpers.create_database_error()
         with self.assertRaises(DatabaseError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_algorithm_not_found(self):
         self.mock_get_algo.side_effect = bfapi.service.algorithms.NotFound('test-algo-id')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         with self.assertRaises(jobs.PreprocessingError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_scene_not_found(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.side_effect = bfapi.service.scenes.NotFound('test-scene-id')
         with self.assertRaises(jobs.PreprocessingError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_scene_is_missing_required_bands(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -365,20 +362,20 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_scene.return_value = scene
         # self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         with self.assertRaises(jobs.PreprocessingError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_catalog_is_unreachable(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.side_effect = bfapi.service.scenes.CatalogError()
         with self.assertRaises(jobs.PreprocessingError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_algorithm_is_unknown(self):
         self.mock_get_algo.return_value = create_algorithm('unknown-algorithm')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         with self.assertRaises(jobs.PreprocessingError):
-            jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+            jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_tide_service_is_unreachable(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -386,7 +383,7 @@ class CreateJobTest(unittest.TestCase):
         with patch('requests.post') as mock:
             mock.side_effect = requests.ConnectionError()
             with self.assertRaises(jobs.PreprocessingError):
-                jobs.create(API_KEY, 'test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
+                jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
 
 @patch('bfapi.db.jobs.delete_job_user')
@@ -939,11 +936,10 @@ class StartWorkerTest(unittest.TestCase):
 
     def test_passes_correct_params_to_worker(self, mock: Mock):
         jobs.start_worker(
-            api_key='test-api-key',
             job_ttl=timedelta(12),
             interval=timedelta(34),
         )
-        self.assertEqual(('test-api-key', timedelta(12), timedelta(34)), mock.call_args[0])
+        self.assertEqual((timedelta(12), timedelta(34)), mock.call_args[0])
 
     def test_throws_if_worker_already_exists(self, _):
         jobs.start_worker()
@@ -1023,7 +1019,7 @@ class WorkerRunTest(unittest.TestCase):
         return patcher.start()
 
     def create_worker(self, *, max_cycles=1, interval=timedelta(1)):
-        worker = jobs.Worker('test-api-key', job_ttl=timedelta(1), interval=interval)
+        worker = jobs.Worker(job_ttl=timedelta(1), interval=interval)
         values = (v for v in [*[False] * max_cycles, True])
         worker.is_terminated = lambda: next(values)
         return worker
@@ -1095,7 +1091,7 @@ class WorkerRunTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_jobs_failing_during_geometry_retrieval(self):
-        def getfile(_, id_):
+        def getfile(id_):
             if id_ == 'test-execution-output-id':
                 return Mock(json=lambda: create_execution_output())
             raise piazza.ServerError(404)
@@ -1283,7 +1279,7 @@ class WorkerRunTest(unittest.TestCase):
                          self.mock_insert_job_failure.call_args_list)
 
     def test_updates_status_for_job_failing_during_geometry_retrieval(self):
-        def getfile(_, id_):
+        def getfile(id_):
             if id_ == 'test-execution-output-id':
                 return Mock(json=lambda: create_execution_output())
             raise piazza.ServerError(404)

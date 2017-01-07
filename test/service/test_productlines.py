@@ -26,17 +26,6 @@ from bfapi.service.jobs import Job
 
 DATE_START = datetime.utcfromtimestamp(1400000000)
 DATE_STOP = datetime.utcfromtimestamp(1500000000)
-SIGNATURE = '723d038b797360ef90f5a848a910aea4f5b2d8b680d443745cb2e6667faee2ea4581040d2639f0ff35c8dbc1c8ac8188'
-
-
-class CreateEventSignatureTest(unittest.TestCase):
-    def test_returns_correct_fingerprint(self):
-        self.assertEqual(productlines.create_event_signature(), SIGNATURE)
-
-    @patch('hashlib.sha384')
-    def test_uses_hashing_to_generate(self, mock: MagicMock):
-        productlines.create_event_signature()
-        mock.assert_called_once_with('None:pz-gateway.localhost'.encode())
 
 
 @patch('bfapi.service.algorithms.get')
@@ -54,7 +43,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_returns_productline(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -69,7 +57,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_auto_generated_id(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -85,7 +72,6 @@ class CreateProductlineTest(unittest.TestCase):
     def test_assigns_correct_algorithm_name(self, mock: MagicMock):
         mock.return_value = create_algorithm()
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -100,7 +86,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_bbox(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -116,7 +101,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_category(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -131,7 +115,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_creator(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -146,7 +129,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_creation_date(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -161,7 +143,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_max_cloud_cover(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -176,7 +157,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_name(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -191,7 +171,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_owner(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -206,7 +185,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_spatial_filter_id(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -221,7 +199,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_start_date(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -236,7 +213,6 @@ class CreateProductlineTest(unittest.TestCase):
 
     def test_assigns_correct_stop_date(self, _):
         record = productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -253,7 +229,6 @@ class CreateProductlineTest(unittest.TestCase):
     def test_saves_correct_data_to_database(self, mock_insert: MagicMock, mock_get_algo: MagicMock):
         mock_get_algo.return_value = create_algorithm()
         productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -280,7 +255,6 @@ class CreateProductlineTest(unittest.TestCase):
     def test_requests_correct_algorithm(self, mock: MagicMock):
         mock.return_value = create_algorithm()
         productlines.create_productline(
-            api_key='test-api-key',
             algorithm_id='test-algo-id',
             bbox=(0, 0, 30, 30),
             category='test-category',
@@ -291,14 +265,13 @@ class CreateProductlineTest(unittest.TestCase):
             stop_on=DATE_STOP,
             user_id='test-user-id',
         )
-        mock.assert_called_with('test-api-key', 'test-algo-id')
+        mock.assert_called_with('test-algo-id')
 
     def test_gracefully_handles_algorithm_not_found(self, mock: MagicMock):
         mock.side_effect = NotFound('test-algo-id')
         with self.assertRaisesRegex(NotFound, 'algorithm `test-algo-id` does not exist'):
             productlines.create_productline(
-                api_key='test-api-key',
-                algorithm_id='test-algo-id',
+                    algorithm_id='test-algo-id',
                 bbox=(0, 0, 30, 30),
                 category='test-category',
                 max_cloud_cover=42,
@@ -313,8 +286,7 @@ class CreateProductlineTest(unittest.TestCase):
         mock.side_effect = ValidationError('test-error-message')
         with self.assertRaises(ValidationError):
             productlines.create_productline(
-                api_key='test-api-key',
-                algorithm_id='test-algo-id',
+                    algorithm_id='test-algo-id',
                 bbox=(0, 0, 30, 30),
                 category='test-category',
                 max_cloud_cover=42,
@@ -329,8 +301,7 @@ class CreateProductlineTest(unittest.TestCase):
         self._mockdb.raise_on_execute()
         with self.assertRaises(DatabaseError):
             productlines.create_productline(
-                api_key='test-api-key',
-                algorithm_id='test-algo-id',
+                    algorithm_id='test-algo-id',
                 bbox=(0, 0, 30, 30),
                 category='test-category',
                 max_cloud_cover=42,
@@ -486,334 +457,6 @@ class GetAllTest(unittest.TestCase):
         mock.side_effect = helpers.create_database_error()
         with self.assertRaises(DatabaseError):
             productlines.get_all()
-
-
-class HandleHarvestEventTest(unittest.TestCase):
-    def setUp(self):
-        self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.productlines')
-        self._logger.disabled = True
-
-        self.mock_create_job = self.create_mock('bfapi.service.jobs.create')
-        self.mock_insert_pljob = self.create_mock('bfapi.db.productlines.insert_productline_job')
-        self.mock_select_jobs = self.create_mock('bfapi.db.jobs.select_jobs_for_inputs')
-        self.mock_select_pls = self.create_mock('bfapi.db.productlines.select_summary_for_scene')
-
-    def tearDown(self):
-        self._mockdb.destroy()
-        self._logger.disabled = False
-
-    def create_mock(self, target_name):
-        patcher = patch(target_name)
-        self.addCleanup(patcher.stop)
-        return patcher.start()
-
-    def test_passes_correct_capture_date_to_productline_query(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        )
-        self.assertEqual(datetime.utcfromtimestamp(1450000000), self.mock_select_pls.call_args[1]['captured_on'])
-
-    def test_passes_correct_cloudcover_to_productline_query(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        )
-        self.assertEqual(40, self.mock_select_pls.call_args[1]['cloud_cover'])
-
-    def test_passes_correct_bbox_to_productline_query(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        )
-        self.assertEqual(0, self.mock_select_pls.call_args[1]['min_x'])
-        self.assertEqual(0, self.mock_select_pls.call_args[1]['min_y'])
-        self.assertEqual(30, self.mock_select_pls.call_args[1]['max_x'])
-        self.assertEqual(30, self.mock_select_pls.call_args[1]['max_y'])
-
-    def test_returns_correct_disposition_when_productline_found(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        self.assertEqual('Accept', productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        ))
-
-    def test_returns_correct_disposition_when_productline_is_not_found(self):
-        self.mock_select_pls.return_value.fetchall.return_value = []
-        self.assertEqual('Disregard', productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        ))
-
-    def test_can_handle_multiple_applicable_productlines(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [
-            create_productline_db_summary(),
-            create_productline_db_summary(),
-            create_productline_db_summary(),
-        ]
-        self.assertEqual('Accept', productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        ))
-
-    def test_throws_if_signature_is_invalid(self):
-        with self.assertRaises(productlines.UntrustedEventError):
-            productlines.handle_harvest_event(
-                scene_id='test-scene-id',
-                signature='0123456789abcdef' * 6,
-                captured_on=datetime.utcfromtimestamp(1450000000),
-                cloud_cover=40,
-                min_x=0,
-                min_y=0,
-                max_x=30,
-                max_y=30,
-            )
-
-    def test_creates_job_if_scene_not_already_processed(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        self.mock_select_jobs.return_value.scalar.return_value = None
-        productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        )
-        self.assertTrue(self.mock_create_job.called)
-
-    def test_does_not_create_job_if_scene_already_processed(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        self.mock_select_jobs.return_value.scalar.return_value = 'test-existing-job-id'
-        productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        )
-        self.assertFalse(self.mock_create_job.called)
-
-    def test_calls_create_job_with_correct_inputs(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        self.mock_select_jobs.return_value.scalar.return_value = None
-        productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        )
-        self.assertEqual({
-            'api_key': None,
-            'user_id': 'test-productline-owner',
-            'scene_id': 'test-scene-id',
-            'service_id': 'test-algo-id',
-            'job_name': 'TEST_NAME/TEST-SCENE-ID',
-        }, self.mock_create_job.call_args[1])
-
-    def test_links_spawned_jobs_to_productline(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        self.mock_select_jobs.return_value.scalar.return_value = None
-        self.mock_create_job.return_value = create_job(job_id='test-new-job-id')
-        productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        )
-        self.assertEqual({
-            'job_id': 'test-new-job-id',
-            'productline_id': 'test-productline-id',
-        }, self.mock_insert_pljob.call_args[1])
-
-    def test_links_existing_jobs_to_productline(self):
-        self.mock_select_pls.return_value.fetchall.return_value = [create_productline_db_summary()]
-        self.mock_select_jobs.return_value.scalar.return_value = 'test-existing-job-id'
-        productlines.handle_harvest_event(
-            scene_id='test-scene-id',
-            signature=SIGNATURE,
-            captured_on=datetime.utcfromtimestamp(1450000000),
-            cloud_cover=40,
-            min_x=0,
-            min_y=0,
-            max_x=30,
-            max_y=30,
-        )
-        self.assertEqual({
-            'job_id': 'test-existing-job-id',
-            'productline_id': 'test-productline-id',
-        }, self.mock_insert_pljob.call_args[1])
-
-
-class InstallIfNeededTest(unittest.TestCase):
-    def setUp(self):
-        self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.productlines')
-        self._logger.disabled = True
-
-        self.mock_get_etid = self.create_mock('bfapi.service.scenes.get_event_type_id')
-        self.mock_get_etid.return_value = 'test-event-type-id'
-        self.mock_create_trigger = self.create_mock('bfapi.piazza.create_trigger')
-        self.mock_get_triggers = self.create_mock('bfapi.piazza.get_triggers')
-        self.mock_register_service = self.create_mock('bfapi.piazza.register_service')
-        self.mock_get_services = self.create_mock('bfapi.piazza.get_services')
-
-    def tearDown(self):
-        self._mockdb.destroy()
-        self._logger.disabled = False
-
-    def create_mock(self, target_name):
-        patcher = patch(target_name)
-        self.addCleanup(patcher.stop)
-        return patcher.start()
-
-    def test_searches_piazza_for_harvest_event_handler(self):
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual({'pattern': '^beachfront:api:on_harvest_event$'}, self.mock_get_services.call_args[1])
-
-    def test_does_not_register_new_handler_if_one_exists(self):
-        self.mock_get_services.return_value = [{}]
-        productlines.install_if_needed('/test/endpoint')
-        self.assertFalse(self.mock_register_service.called)
-
-    def test_registers_handler_if_not_found(self):
-        self.mock_get_services.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertTrue(self.mock_register_service.called)
-
-    def test_registers_handler_with_correct_contract_url(self):
-        self.mock_get_services.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual('https://bf-api.localhost', self.mock_register_service.call_args[1]['contract_url'])
-
-    def test_registers_handler_with_correct_description(self):
-        self.mock_get_services.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual('Beachfront handler for Scene Harvest Event', self.mock_register_service.call_args[1]['description'])
-
-    def test_registers_handler_with_correct_name(self):
-        self.mock_get_services.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual('beachfront:api:on_harvest_event', self.mock_register_service.call_args[1]['name'])
-
-    def test_registers_handler_with_correct_url(self):
-        self.mock_get_services.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual('https://bf-api.localhost/test/endpoint', self.mock_register_service.call_args[1]['url'])
-
-    def test_searches_piazza_for_harvest_event_trigger(self):
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual('beachfront:api:on_harvest_event', self.mock_get_triggers.call_args[0][1])
-
-    def test_does_not_register_new_trigger_if_one_exists(self):
-        self.mock_get_triggers.return_value = [create_service()]
-        productlines.install_if_needed('/test/endpoint')
-        self.assertFalse(self.mock_create_trigger.called)
-
-    def test_creates_trigger_if_not_found(self):
-        self.mock_get_triggers.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertTrue(self.mock_create_trigger.called)
-
-    def test_requests_event_type_id_from_catalog(self):
-        self.mock_get_triggers.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertTrue(self.mock_get_etid.called)
-
-    def test_creates_trigger_with_correct_data_inputs(self):
-        self.mock_get_triggers.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual({
-            "body": {
-                "content": """{
-                            "__signature__": "%s",
-                            "scene_id": "$imageID",
-                            "captured_on": "$acquiredDate",
-                            "cloud_cover": $cloudCover,
-                            "min_x": $minx,
-                            "min_y": $miny,
-                            "max_x": $maxx,
-                            "max_y": $maxy
-                        }""" % SIGNATURE,
-                "type": "body",
-                "mimeType": "application/json",
-            },
-        }, self.mock_create_trigger.call_args[1]['data_inputs'])
-
-    def test_creates_trigger_with_correct_event_type_id(self):
-        self.mock_get_triggers.return_value = []
-        self.mock_get_etid.return_value = 'test-event-type-id'
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual('test-event-type-id', self.mock_create_trigger.call_args[1]['event_type_id'])
-
-    def test_creates_trigger_with_correct_name(self):
-        self.mock_get_triggers.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual('beachfront:api:on_harvest_event', self.mock_create_trigger.call_args[1]['name'])
-
-    def test_creates_trigger_with_correct_service_id(self):
-        self.mock_get_services.return_value = [create_service()]
-        self.mock_get_triggers.return_value = []
-        productlines.install_if_needed('/test/endpoint')
-        self.assertEqual('test-service-id', self.mock_create_trigger.call_args[1]['service_id'])
-
-    def test_throws_when_piazza_throws(self):
-        self.mock_get_services.side_effect = piazza.Unauthorized()
-        with self.assertRaises(piazza.Unauthorized):
-            productlines.install_if_needed('/test/endpoint')
 
 
 #

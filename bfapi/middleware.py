@@ -20,7 +20,6 @@ from bfapi.service import users
 PUBLIC_ENDPOINTS = (
     '/',
     '/login',
-    '/v0/scene/event/harvest',
 )
 
 
@@ -45,9 +44,10 @@ def verify_api_key():
         log.debug('Allowing preflight request to endpoint `%s`', request.path)
         return
 
-    api_key = request.authorization.get('username', '').strip()
+    auth = request.authorization  # type: dict
+    api_key = auth['username'].strip() if auth else None
     if not api_key:
-        return 'Missing API key', 401
+        return 'Missing API key', 400
 
     try:
         log.debug('Attaching user to request context')
@@ -56,5 +56,7 @@ def verify_api_key():
         return str(err), 401
     except users.MalformedAPIKey:
         return 'Cannot authenticate request: API key is malformed', 400
+    except users.GeoaxisUnreachable:
+        return 'Cannot authenticate request: GeoAxis cannot be reached', 503
     except users.Error:
         return 'Cannot authenticate request: an internal error prevents API key verification', 500
