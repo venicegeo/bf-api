@@ -20,8 +20,9 @@ from typing import List
 
 import requests
 
-from bfapi import db, piazza, service
+from bfapi import db
 from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, TIDE_SERVICE
+from bfapi.service import algorithms, scenes, piazza
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
@@ -108,14 +109,14 @@ def create(
 
     # Fetch prerequisites
     try:
-        algorithm = service.algorithms.get(service_id)
-        scene = service.scenes.get(scene_id)
-    except (service.algorithms.NotFound,
-            service.algorithms.ValidationError,
-            service.scenes.MalformedSceneID,
-            service.scenes.CatalogError,
-            service.scenes.NotFound,
-            service.scenes.ValidationError) as err:
+        algorithm = algorithms.get(service_id)
+        scene = scenes.get(scene_id)
+    except (algorithms.NotFound,
+            algorithms.ValidationError,
+            scenes.MalformedSceneID,
+            scenes.CatalogError,
+            scenes.NotFound,
+            scenes.ValidationError) as err:
         log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
 
@@ -544,7 +545,7 @@ class Worker(threading.Thread):
 # Helpers
 #
 
-def _fetch_tide_prediction(scene: service.scenes.Scene) -> (float, float, float):
+def _fetch_tide_prediction(scene: scenes.Scene) -> (float, float, float):
     log = logging.getLogger(__name__)
     x, y = _get_centroid(scene.geometry['coordinates'])
     dtg = scene.capture_date.strftime(FORMAT_DTG)

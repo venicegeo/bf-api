@@ -11,4 +11,4 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-from bfapi.service import algorithms, geoserver, scenes, jobs, productlines  # Order matters here
+from bfapi.service import piazza, algorithms, geoserver, scenes, jobs, productlines  # Order matters here

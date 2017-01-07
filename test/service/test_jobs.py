@@ -23,11 +23,8 @@ import requests_mock as rm
 
 from test import helpers
 
-import bfapi.service.algorithms
-import bfapi.service.scenes
-from bfapi import piazza
 from bfapi.db import DatabaseError
-from bfapi.service import jobs
+from bfapi.service import algorithms, jobs, piazza, scenes
 
 LAST_WEEK = datetime.utcnow() - timedelta(7.0)
 
@@ -43,7 +40,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests = rm.Mocker()  # type: rm.Mocker
         self.mock_requests.start()
         self.addCleanup(self.mock_requests.stop)
-        self.mock_execute = self.create_mock('bfapi.piazza.execute')
+        self.mock_execute = self.create_mock('bfapi.service.piazza.execute')
         self.mock_get_scene = self.create_mock('bfapi.service.scenes.get')
         self.mock_get_algo = self.create_mock('bfapi.service.algorithms.get')
         self.mock_insert_job = self.create_mock('bfapi.db.jobs.insert_job')
@@ -245,7 +242,7 @@ class CreateJobTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_creation_failure_during_algorithm_retrieval(self):
-        self.mock_get_algo.side_effect = bfapi.service.algorithms.NotFound('test-algo-id')
+        self.mock_get_algo.side_effect = algorithms.NotFound('test-algo-id')
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         logstream = self.create_logstream()
         with self.assertRaises(jobs.PreprocessingError):
@@ -256,7 +253,7 @@ class CreateJobTest(unittest.TestCase):
 
     def test_logs_creation_failure_during_scene_retrieval(self):
         self.mock_get_algo.return_value = create_algorithm()
-        self.mock_get_scene.side_effect = bfapi.service.scenes.NotFound('test-scene-id')
+        self.mock_get_scene.side_effect = scenes.NotFound('test-scene-id')
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         logstream = self.create_logstream()
         with self.assertRaises(jobs.PreprocessingError):
@@ -343,7 +340,7 @@ class CreateJobTest(unittest.TestCase):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
     def test_throws_when_algorithm_not_found(self):
-        self.mock_get_algo.side_effect = bfapi.service.algorithms.NotFound('test-algo-id')
+        self.mock_get_algo.side_effect = algorithms.NotFound('test-algo-id')
         self.mock_get_scene.return_value = create_scene()
         self.mock_requests.post('/tides', text=RESPONSE_TIDE)
         with self.assertRaises(jobs.PreprocessingError):
@@ -351,7 +348,7 @@ class CreateJobTest(unittest.TestCase):
 
     def test_throws_when_scene_not_found(self):
         self.mock_get_algo.return_value = create_algorithm()
-        self.mock_get_scene.side_effect = bfapi.service.scenes.NotFound('test-scene-id')
+        self.mock_get_scene.side_effect = scenes.NotFound('test-scene-id')
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
@@ -366,7 +363,7 @@ class CreateJobTest(unittest.TestCase):
 
     def test_throws_when_catalog_is_unreachable(self):
         self.mock_get_algo.return_value = create_algorithm()
-        self.mock_get_scene.side_effect = bfapi.service.scenes.CatalogError()
+        self.mock_get_scene.side_effect = scenes.CatalogError()
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
 
@@ -987,8 +984,8 @@ class WorkerRunTest(unittest.TestCase):
 
         self.mock_sleep = self.create_mock('time.sleep')
         self.mock_thread = self.create_mock('threading.Thread')
-        self.mock_getfile = self.create_mock('bfapi.piazza.get_file')
-        self.mock_getstatus = self.create_mock('bfapi.piazza.get_status')
+        self.mock_getfile = self.create_mock('bfapi.service.piazza.get_file')
+        self.mock_getstatus = self.create_mock('bfapi.service.piazza.get_status')
         self.mock_insert_detections = self.create_mock('bfapi.db.jobs.insert_detection')
         self.mock_select_jobs = self.create_mock('bfapi.db.jobs.select_outstanding_jobs')
         self.mock_select_jobs.return_value.fetchall.return_value = []
@@ -1357,7 +1354,7 @@ class WorkerRunTest(unittest.TestCase):
 #
 
 def create_algorithm(algo_interface='pzsvc-ndwi-py'):
-    return bfapi.service.algorithms.Algorithm(
+    return algorithms.Algorithm(
         bands=('test-algo-band-1', 'test-algo-band-2'),
         description='test-algo-description',
         interface=algo_interface,
@@ -1405,7 +1402,7 @@ def create_job_db_summary(job_id: str = 'test-job-id', created_on: datetime = No
 
 
 def create_scene():
-    return bfapi.service.scenes.Scene(
+    return scenes.Scene(
         bands={
             'test-algo-band-1': 'lorem',
             'test-algo-band-2': 'ipsum',

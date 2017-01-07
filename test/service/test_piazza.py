@@ -17,7 +17,7 @@ import unittest.mock
 from requests import ConnectionError, Response
 from requests_mock import Mocker
 
-from bfapi import piazza
+from bfapi.service import piazza
 
 @Mocker()
 class CreateTriggerTest(unittest.TestCase):

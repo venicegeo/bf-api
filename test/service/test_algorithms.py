@@ -15,11 +15,10 @@ import logging
 import unittest
 from unittest.mock import patch, MagicMock
 
-from bfapi import piazza
-from bfapi.service import algorithms
+from bfapi.service import algorithms, piazza
 
 
-@patch('bfapi.piazza.get_services')
+@patch('bfapi.service.piazza.get_services')
 class ListAllTest(unittest.TestCase):
     def setUp(self):
         self._logger = logging.getLogger('bfapi.service.algorithms')
@@ -139,7 +138,7 @@ class ListAllTest(unittest.TestCase):
             algorithms.list_all()
 
 
-@patch('bfapi.piazza.get_service')
+@patch('bfapi.service.piazza.get_service')
 class GetTest(unittest.TestCase):
     def setUp(self):
         self._logger = logging.getLogger('bfapi.service.algorithms')

@@ -18,9 +18,8 @@ from unittest.mock import patch, MagicMock
 
 from test import helpers
 
-from bfapi import piazza
 from bfapi.db import DatabaseError
-from bfapi.service import productlines
+from bfapi.service import productlines, piazza
 from bfapi.service.algorithms import Algorithm, NotFound, ValidationError
 from bfapi.service.jobs import Job
 

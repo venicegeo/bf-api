@@ -17,7 +17,8 @@ from unittest.mock import call, patch, MagicMock
 
 import flask
 
-from bfapi import routes, piazza
+from bfapi import routes
+from bfapi.service import piazza
 
 
 @patch('flask.jsonify', side_effect=dict)
@@ -34,7 +35,7 @@ class LoginTest(unittest.TestCase):
         self._logger = logging.getLogger('bfapi.routes')
         self._logger.disabled = True
 
-        self.mock_create_api_key = self.create_mock('bfapi.piazza.create_api_key', return_value='test-api-key')
+        self.mock_create_api_key = self.create_mock('bfapi.service.piazza.create_api_key', return_value='test-api-key')
         self.mock_jsonify = self.create_mock('flask.jsonify', side_effect=dict)
         self.request = self.create_mock('flask.request', path='/login', headers={})
 
