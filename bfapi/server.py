@@ -16,7 +16,7 @@ import re
 import flask
 from flask_cors import CORS
 
-from bfapi import config, db, middleware, routes, service, IS_DEBUG_MODE
+from bfapi import config, db, middleware, routes, service
 
 
 def attach_routes(app: flask.Flask):
@@ -82,7 +82,6 @@ def init(app):
 
 
 def install_service_assets():
-    service.productlines.install_if_needed('/v0/scene/event/harvest')
     service.geoserver.install_if_needed()
 
 
