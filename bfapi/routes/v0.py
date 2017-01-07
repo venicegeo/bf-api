@@ -29,10 +29,7 @@ from bfapi.service import (algorithms as algorithms_service, jobs as jobs_servic
 
 def get_algorithm(service_id: str):
     try:
-        algorithm = algorithms_service.get(
-            api_key=flask.request.api_key,
-            service_id=service_id,
-        )
+        algorithm = algorithms_service.get(service_id)
     except algorithms_service.NotFound:
         return 'Algorithm not found', 404
     return flask.jsonify({
@@ -41,7 +38,7 @@ def get_algorithm(service_id: str):
 
 
 def list_algorithms():
-    algorithms = algorithms_service.list_all(api_key=flask.request.api_key)
+    algorithms = algorithms_service.list_all()
     return flask.jsonify({
         'algorithms': [a.serialize() for a in algorithms],
     })
@@ -64,8 +61,7 @@ def create_job():
 
     try:
         record = jobs_service.create(
-            api_key=flask.request.api_key,
-            user_id=flask.request.username,
+            user_id=flask.request.user.user_id,
             service_id=service_id,
             scene_id=scene_id,
             job_name=job_name.strip(),
@@ -95,14 +91,14 @@ def download_geojson(job_id: str):
 
 def forget_job(job_id: str):
     try:
-        jobs_service.forget(flask.request.username, job_id)
+        jobs_service.forget(flask.request.user.user_id, job_id)
     except jobs_service.NotFound:
         return 'Job not found', 404
     return 'Forgot {}'.format(job_id), 200
 
 
 def list_jobs():
-    jobs = jobs_service.get_all(flask.request.username)
+    jobs = jobs_service.get_all(flask.request.user.user_id)
     return flask.jsonify({
         'jobs': {
             'type': 'FeatureCollection',
@@ -142,7 +138,7 @@ def list_jobs_for_scene(scene_id: str):
 
 def get_job(job_id: str):
     try:
-        record = jobs_service.get(flask.request.username, job_id)
+        record = jobs_service.get(flask.request.user.user_id, job_id)
     except jobs_service.NotFound:
         return 'Job not found', 404
     return flask.jsonify({
@@ -175,7 +171,6 @@ def create_productline():
 
     try:
         productline = productline_service.create_productline(
-            api_key=flask.request.api_key,
             algorithm_id=algorithm_id,
             bbox=(min_x, min_y, max_x, max_y),
             category=category,
@@ -184,7 +179,7 @@ def create_productline():
             spatial_filter_id=spatial_filter_id,
             start_on=start_on.date(),
             stop_on=stop_on.date() if stop_on else None,
-            user_id=flask.request.username,
+            user_id=flask.request.user.user_id,
         )
     except algorithms_service.NotFound as err:
         return 'Algorithm {} does not exist'.format(err.service_id), 500
@@ -196,13 +191,13 @@ def create_productline():
 
 
 def delete_productline(productline_id: str):
-    user_id = flask.request.username
+    user_id = flask.request.user.user_id
     try:
-        productline_service.delete_productline(user_id, productline_id)
+        productline_service.delete_productline(flask.request.user.user_id, productline_id)
     except DatabaseError:
         return 'A database error prevents deletion of this product line', 404
     except productline_service.NotFound:
-        return 'Product Line not found', 404
+        return 'Product line not found', 404
     except PermissionError:
         return 'User `{}` does not have permission to delete this product line'.format(user_id), 403
     return 'Deleted product line {}'.format(productline_id), 200
@@ -263,7 +258,8 @@ def on_harvest_event():
 def get_user_data():
     return flask.jsonify({
         'profile': {
-            'username': flask.request.username,
+            'username': flask.request.user.user_id,
+            'joined_on': flask.request.user.created_on,
         },
         'services': {
             'catalog': 'https://{}'.format(CATALOG),

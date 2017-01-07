@@ -15,7 +15,7 @@ import logging
 
 import flask
 
-from bfapi import piazza
+from bfapi.service import users
 
 PUBLIC_ENDPOINTS = (
     '/',
@@ -45,29 +45,16 @@ def verify_api_key():
         log.debug('Allowing preflight request to endpoint `%s`', request.path)
         return
 
-    log.debug('Verifying auth header')
-    auth_header = request.headers.get('Authorization')
-    if auth_header is None:
-        return 'Missing authorization header', 400
+    api_key = request.authorization.get('username', '').strip()
+    if not api_key:
+        return 'Missing API key', 401
 
     try:
-        log.debug('Extracting API key from Auth header')
-        api_key = piazza.to_api_key(auth_header)
-
-        log.debug('Identifying user')
-        username = piazza.verify_api_key(api_key)
-
-        log.debug('Attaching username and API key to request context')
-        request.username = username
-        request.api_key = api_key
-    except piazza.ApiKeyExpired:
-        return 'Your Piazza API key has expired', 401
-    except piazza.ServerError as err:
-        log.error('Cannot verify API key: %s', err)
-        return 'A Piazza error prevents API key verification', 500
-    except piazza.MalformedCredentials as err:
-        log.error('Client passed malformed API key: %s', err)
-        return 'Cannot verify malformed API key', 400
-    except Exception as err:
-        log.exception('Cannot verify API key: %s', err)
-        return 'An internal error prevents API key verification', 500
+        log.debug('Attaching user to request context')
+        request.user = users.authenticate_via_api_key(api_key)
+    except users.Unauthorized as err:
+        return str(err), 401
+    except users.MalformedAPIKey:
+        return 'Cannot authenticate request: API key is malformed', 400
+    except users.Error:
+        return 'Cannot authenticate request: an internal error prevents API key verification', 500
