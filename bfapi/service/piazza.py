@@ -11,7 +11,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import re
 from typing import List
 
 import requests
@@ -19,8 +18,6 @@ import time
 
 from bfapi.config import PIAZZA, PIAZZA_API_KEY
 
-PATTERN_VALID_API_KEY = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
-PATTERN_VALID_AUTH_HEADER = re.compile('^Basic \S+$')
 STATUS_CANCELLED = 'Cancelled'
 STATUS_SUCCESS = 'Success'
 STATUS_RUNNING = 'Running'
