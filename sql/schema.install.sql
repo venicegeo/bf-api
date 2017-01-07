@@ -14,6 +14,13 @@
 
 -- SQL Dialect: PostgreSQL + PostGIS
 
+CREATE TABLE __beachfront__user (
+    user_id           VARCHAR(64)    PRIMARY KEY,
+    user_name         VARCHAR(64)    NOT NULL,
+    api_key           VARCHAR(255)   NOT NULL    UNIQUE,
+    created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE __beachfront__scene (
     scene_id          VARCHAR(64)    PRIMARY KEY,
     captured_on       TIMESTAMP      NOT NULL,
@@ -38,6 +45,7 @@ CREATE TABLE __beachfront__job (
     tide_min_24h      FLOAT,
     tide_max_24h      FLOAT,
 
+    FOREIGN KEY (created_by) REFERENCES __beachfront__user(user_id) ON DELETE CASCADE,
     FOREIGN KEY (scene_id) REFERENCES __beachfront__scene(scene_id) ON DELETE CASCADE
 );
 
@@ -50,21 +58,13 @@ CREATE TABLE __beachfront__detection (
     FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
 );
 
-CREATE TABLE __beachfront__user (
-    user_id           VARCHAR(64)    PRIMARY KEY,
-    user_name         VARCHAR(64)    NOT NULL,
-    api_key           VARCHAR(255)   NOT NULL    UNIQUE,
-    created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE __beachfront__job_user (
     job_id            VARCHAR(64),
     user_id           VARCHAR(64),
 
     PRIMARY KEY (job_id, user_id),
-    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
---    FOREIGN KEY (user_id) REFERENCES __beachfront__user(user_id) ON DELETE CASCADE
---       FIXME: above line can be enabled when end-to-end GeoAxis flow is complete
+    FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES __beachfront__user(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE __beachfront__job_error (
@@ -91,7 +91,9 @@ CREATE TABLE __beachfront__productline (
     owned_by          VARCHAR(64)    NOT NULL,
     spatial_filter_id VARCHAR(64),
     start_on          DATE           NOT NULL,
-    stop_on           DATE
+    stop_on           DATE,
+
+    FOREIGN KEY (owned_by) REFERENCES __beachfront__user(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE __beachfront__productline_job (
