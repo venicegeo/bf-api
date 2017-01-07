@@ -29,10 +29,9 @@ create_environment_vars() {
         export GEOAXIS_CLIENT_ID=
         export GEOAXIS_SECRET=
         export DOMAIN=
-        export SYSTEM_API_KEY=
+        export PIAZZA_API_KEY=
         export REQUESTS_CA_BUNDLE="$(dirname $BASH_SOURCE)/ssl-certificate.pem"
         export PORT=5000
-        export SKIP_PRODUCTLINE_INSTALL=1
         export VCAP_SERVICES='{
           "user-provided": [
             {

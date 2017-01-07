@@ -11,7 +11,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import hashlib
 import json
 import logging
 import random
@@ -20,10 +19,8 @@ import re
 from datetime import datetime, date
 from typing import List, Tuple
 
-from bfapi import db, piazza, service
-from bfapi.config import DOMAIN, SYSTEM_API_KEY, PZ_GATEWAY, SKIP_PRODUCTLINE_INSTALL
+from bfapi import db, service
 
-HARVEST_EVENT_IDENTIFIER = 'beachfront:api:on_harvest_event'
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 STATUS_ACTIVE = 'Active'
 STATUS_INACTIVE = 'Inactive'
@@ -85,7 +82,7 @@ class ProductLine:
                 'start_on': _serialize_dt(self.start_on),
                 'status': self.status,
                 'stop_on': _serialize_dt(self.stop_on),
-                'type': 'PRODUCT_LINE'
+                'type': 'PRODUCT_LINE',
             },
         }
 
@@ -94,17 +91,8 @@ class ProductLine:
 # Actions
 #
 
-def create_event_signature():
-    components = [
-        SYSTEM_API_KEY,
-        PZ_GATEWAY,
-    ]
-    return hashlib.sha384(':'.join(map(str, components)).encode()).hexdigest()
-
-
 def create_productline(
         *,
-        api_key: str,
         algorithm_id: str,
         bbox: tuple,
         category: str,
@@ -115,7 +103,7 @@ def create_productline(
         stop_on: date,
         user_id: str) -> ProductLine:
     log = logging.getLogger(__name__)
-    algorithm = service.algorithms.get(api_key, algorithm_id)
+    algorithm = service.algorithms.get(algorithm_id)
     productline_id = _create_id()
     log.info('Creating product line <%s>', productline_id)
     conn = db.get_connection()
@@ -206,132 +194,6 @@ def get_all() -> List[ProductLine]:
     return productlines
 
 
-def handle_harvest_event(
-        *,
-        scene_id: str,
-        signature,
-        captured_on,
-        cloud_cover,
-        min_x,
-        min_y,
-        max_x,
-        max_y):
-    log = logging.getLogger(__name__)
-
-    # Fail fast if event is untrusted
-    if not _is_valid_event_signature(signature):
-        raise UntrustedEventError()
-
-    # Find all interested productlines
-    conn = db.get_connection()
-    try:
-        cursor = db.productlines.select_summary_for_scene(
-            conn,
-            captured_on=captured_on,
-            cloud_cover=cloud_cover,
-            min_x=min_x,
-            min_y=min_y,
-            max_x=max_x,
-            max_y=max_y,
-        )
-    except db.DatabaseError as err:
-        log.error('Database search for applicable product lines failed')
-        db.print_diagnostics(err)
-        raise
-    finally:
-        conn.close()
-
-    rows = cursor.fetchall()
-    log.info('<scene:%s> Found %d applicable product lines', scene_id, len(rows))
-
-    if not rows:
-        return 'Disregard'
-
-    for row in rows:
-        pl_id = row['productline_id']
-        algorithm_id = row['algorithm_id']
-        pl_name = row['name']
-        owner_user_id = row['owned_by']
-
-        existing_job_id = _find_existing_job_id_for_scene(scene_id, algorithm_id)
-        if existing_job_id:
-            _link_to_job(pl_id, existing_job_id)
-            continue
-
-        log.info('<scene:%s> Spawning job in product line <%s>', scene_id, pl_id)
-        new_job = service.jobs.create(
-            api_key=SYSTEM_API_KEY,
-            job_name=_create_job_name(pl_name, scene_id),
-            scene_id=scene_id,
-            service_id=algorithm_id,
-            user_id=owner_user_id,
-        )
-        _link_to_job(pl_id, new_job.job_id)
-
-    return 'Accept'
-
-
-def install_if_needed(handler_endpoint: str):
-    log = logging.getLogger(__name__)
-    api_key = SYSTEM_API_KEY
-
-    if SKIP_PRODUCTLINE_INSTALL:
-        log.info('Skipping installation of Piazza trigger and service')
-        return
-
-    log.info('Checking to see if catalog harvest event handlers installation is required')
-
-    needs_installation = False
-    try:
-        if not piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER)):
-            needs_installation = True
-            log.info('Registering harvest event handler service with Piazza')
-            piazza.register_service(
-                api_key,
-                url='https://bf-api.{}/{}'.format(DOMAIN, handler_endpoint.lstrip('/')),
-                contract_url='https://bf-api.{}'.format(DOMAIN),
-                description='Beachfront handler for Scene Harvest Event',
-                name=HARVEST_EVENT_IDENTIFIER,
-            )
-
-        if not piazza.get_triggers(api_key, HARVEST_EVENT_IDENTIFIER):
-            needs_installation = True
-            log.info('Registering harvest event trigger with Piazza')
-            event_type_id = service.scenes.get_event_type_id()
-            signature = create_event_signature()
-            handler_service = piazza.get_services(api_key, pattern='^{}$'.format(HARVEST_EVENT_IDENTIFIER))[0]
-            piazza.create_trigger(
-                api_key,
-                event_type_id=event_type_id,
-                name=HARVEST_EVENT_IDENTIFIER,
-                service_id=handler_service.service_id,
-                data_inputs={
-                    "body": {
-                        "content": """{
-                            "__signature__": "%s",
-                            "scene_id": "$imageID",
-                            "captured_on": "$acquiredDate",
-                            "cloud_cover": $cloudCover,
-                            "min_x": $minx,
-                            "min_y": $miny,
-                            "max_x": $maxx,
-                            "max_y": $maxy
-                        }""" % signature,
-                        "type": "body",
-                        "mimeType": "application/json",
-                    },
-                },
-            )
-    except piazza.Error as err:
-        log.error('Piazza call failed: %s', err)
-        raise
-
-    if needs_installation:
-        log.info('Installation complete!')
-    else:
-        log.info('Event handlers exist and will not be reinstalled')
-
-
 #
 # Helpers
 #
@@ -364,10 +226,6 @@ def _find_existing_job_id_for_scene(scene_id: str, algorithm_id: str) -> str:
     finally:
         conn.close()
     return job_id
-
-
-def _is_valid_event_signature(signature: str):
-    return signature == create_event_signature()
 
 
 def _link_to_job(productline_id: str, job_id: str):
@@ -416,17 +274,7 @@ class Error(Exception):
         super().__init__(message)
 
 
-class EventValidationError(Error):
-    def __init__(self, err: Exception = None, message: str = 'invalid event: {}'):
-        super().__init__(message.format(err))
-
-
 class NotFound(Error):
     def __init__(self, productline_id: str):
         super().__init__('productline <{}> not found'.format(productline_id))
         self.productline_id = productline_id
-
-
-class UntrustedEventError(Error):
-    def __init__(self):
-        super().__init__('untrusted event')

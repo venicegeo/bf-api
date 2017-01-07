@@ -11,4 +11,4 @@ applications:
     - pz-postgres
     - pz-geoserver-efs
   env:
-    SYSTEM_API_KEY: __SYSTEM_API_KEY__
+    PIAZZA_API_KEY: __PIAZZA_API_KEY__

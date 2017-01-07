@@ -142,7 +142,7 @@ From the terminal, execute:
 portal, or from the terminal, ala:
 
 ```bash
-cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>
+cf set-env bf-api PIAZZA_API_KEY <valid Piazza API key>
 ```
 
 
@@ -150,15 +150,14 @@ cf set-env bf-api SYSTEM_API_KEY <valid Piazza API key>
 
 | Variable            | Description |
 |---------------------|-------------|
-| `SYSTEM_API_KEY`    | Credentials for accessing Piazza.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
+| `PIAZZA_API_KEY`    | Credentials for accessing Piazza.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
 | `GEOAXIS`           | GEOAxIS hostname.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
 | `GEOAXIS_CLIENT_ID` | GEOAxIS OAuth client ID.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
 | `GEOAXIS_SECRET`    | GEOAxIS OAuth secret.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
 | `DOMAIN`            | Overrides the domain where the other services can be found (automatically injected by Pivotal CloudFoundry) |
 | `PORT`              | Overrides the default listening port (automatically injected by Pivotal CloudFoundry) |
-| `PZ_GATEWAY`        | Overrides the Piazza gateway autodetection/configuration |
 | `VCAP_SERVICES`     | Overrides the default [PCF `VCAP_SERVICES`](https://docs.run.pivotal.io/devguide/deploy-apps/environment-variable.html#VCAP-SERVICES) (automatically injected by A Pivotal CloudFoundry) |
+| `PIAZZA`            | Overrides the Piazza hostname |
 | `CATALOG`           | Overrides the Image Catalog hostname |
 | `TIDE_SERVICE`      | Overrides the Tide Prediction service hostname |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
-| `SKIP_PRODUCTLINE_INSTALL` | Set to `1` to skip installing triggers and services for catalog harvest events (recommended for local development). |
