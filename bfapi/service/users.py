@@ -12,14 +12,17 @@
 # specific language governing permissions and limitations under the License.
 
 import logging
-import requests
+import re
 import uuid
+
+import requests
 
 from datetime import datetime
 from bfapi import db
-from bfapi.config import GEOAXIS
+from bfapi.config import DOMAIN, GEOAXIS, GEOAXIS_CLIENT_ID, GEOAXIS_SECRET
 
-TIMEOUT = 24
+TIMEOUT = 12
+PATTERN_API_KEY = re.compile('^[a-f0-9]{32}$')
 
 
 class User:
@@ -36,40 +39,11 @@ class User:
         self.created_on = created_on
 
 
-def authenticate_via_geoaxis(geoaxis_token: str) -> User:
+def authenticate_via_geoaxis(auth_code: str) -> User:
     log = logging.getLogger(__name__)
-    try:
-        response = requests.get(
-            'https://{}/ms_oauth/resources/userprofile/me'.format(GEOAXIS),
-            timeout=TIMEOUT,
-            headers={
-                'Authorization': geoaxis_token,
-            },
-        )
-        log.debug("GeoAxis token='%s' response='%s'", geoaxis_token, response.text)
-        response.raise_for_status()
-    except requests.ConnectionError:
-        log.error('Could not reach GeoAxis')
-        raise GeoaxisUnreachable()
-    except requests.HTTPError as err:
-        status_code = err.response.status_code
-        if status_code == 401:
-            log.error('GeoAxis rejected user auth token "%s"', geoaxis_token)
-            raise GeoaxisUnauthorized()
-        log.error('GeoAxis responded with HTTP %s.  Response Text:\n%s', status_code, err.response.text)
-        raise GeoaxisError(status_code)
 
-    auth = response.json()
-
-    user_id = auth.get('uid')
-    if not user_id:
-        log.error('Geoaxis responded to userprofile call without uid.  Response Text:\n%s', response.text)
-        raise InvalidGeoaxisResponse('missing `uid`', response.text)
-
-    user_name = auth.get('username')
-    if not user_name:
-        log.error('Geoaxis responded to userprofile call without user name.  Response Text:\n%s', response.text)
-        raise InvalidGeoaxisResponse('missing `username`', response.text)
+    access_token = _request_geoaxis_access_token(auth_code)
+    user_id, user_name = _fetch_geoaxis_profile(access_token)
 
     user = get_by_id(user_id)
     if not user:
@@ -83,20 +57,24 @@ def authenticate_via_geoaxis(geoaxis_token: str) -> User:
 def authenticate_via_api_key(api_key: str) -> User:
     log = logging.getLogger(__name__)
 
-    log.debug('Authenticating API key "%s"', api_key)
+    if not PATTERN_API_KEY.match(api_key):
+        log.error('Cannot verify malformed API key: "%s"', api_key)
+        raise MalformedAPIKey()
+
+    log.debug('Checking "%s"', api_key)
     conn = db.get_connection()
     try:
         row = db.users.select_user_by_api_key(conn, api_key=api_key).fetchone()
     except db.DatabaseError as err:
-        log.error('Database query for user by API key failed: %s', err)
+        log.error('Database query for API key "%s" failed: %s', api_key, err)
         db.print_diagnostics(err)
         raise
     finally:
         conn.close()
 
     if not row:
-        log.error('Authentication failed for API key "%s"', api_key)
-        raise BeachfrontUnauthorized()
+        log.error('Unauthorized API key "%s"', api_key)
+        raise Unauthorized('Beachfront API key is not active')
 
     return User(
         user_id=row['user_id'],
@@ -109,12 +87,12 @@ def authenticate_via_api_key(api_key: str) -> User:
 def get_by_id(user_id: str) -> User:
     log = logging.getLogger(__name__)
 
-    log.debug('Looking up user profile for "%s"', user_id)
+    log.debug('Searching database for user "%s"', user_id)
     conn = db.get_connection()
     try:
         row = db.users.select_user(conn, user_id=user_id).fetchone()
     except db.DatabaseError as err:
-        log.error('Database query for user by ID failed: %s', err)
+        log.error('Database query for user ID "%s" failed: %s', user_id, err)
         db.print_diagnostics(err)
         raise
     finally:
@@ -163,6 +141,83 @@ def _create_user(user_id, user_name) -> User:
     )
 
 
+def _fetch_geoaxis_profile(access_token: str):
+    log = logging.getLogger(__name__)
+
+    log.debug('Sending request: access_token="%s"', access_token)
+    try:
+        response = requests.get(
+            'https://{}/ms_oauth/resources/userprofile/me'.format(GEOAXIS),
+            timeout=TIMEOUT,
+            headers={
+                'Authorization': 'Bearer {}'.format(access_token),
+            },
+        )
+        log.debug('Received response: %s', response.text)
+        response.raise_for_status()
+    except requests.ConnectionError as err:
+        log.error('Could not reach GeoAxis: %s', err)
+        raise GeoaxisUnreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            log.error('GeoAxis rejected user auth code: %s', err.response.text)
+            raise Unauthorized('GeoAxis rejected auth code')
+        log.error('GeoAxis returned HTTP %s: %s', status_code, err.response.text)
+        raise GeoaxisError(status_code)
+
+    profile = response.json()
+
+    user_id = profile.get('uid')
+    if not user_id:
+        log.error('Geoaxis response missing `uid`: %s', response.text)
+        raise InvalidGeoaxisResponse('missing `uid`', response.text)
+
+    username = profile.get('username')
+    if not username:
+        log.error('Geoaxis response missing `username`: %s', response.text)
+        raise InvalidGeoaxisResponse('missing `username`', response.text)
+
+    return user_id, username
+
+
+def _request_geoaxis_access_token(auth_code: str):
+    log = logging.getLogger(__name__)
+
+    log.debug('Requesting: code="%s"', auth_code)
+    try:
+        response = requests.post(
+            'https://{}/ms_oauth/oauth2/endpoints/oauthservice/tokens'.format(GEOAXIS),
+            timeout=TIMEOUT,
+            auth=(GEOAXIS_CLIENT_ID, GEOAXIS_SECRET),
+            data={
+                'grant_type': 'authorization_code',
+                'code': auth_code,
+                # 'redirect_uri': 'https://bf-api.{}/login'.format(DOMAIN),
+                'redirect_uri': 'https://bf-api.int.geointservices.io',  # HACK
+            },
+        )
+        log.debug('Received response: %s', response.text)
+        response.raise_for_status()
+    except requests.ConnectionError as err:
+        log.error('Could not reach GeoAxis: %s', err)
+        raise GeoaxisUnreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            log.error('GeoAxis rejected user auth code: %s', err.response.text)
+            raise Unauthorized('GeoAxis rejected auth code')
+        log.error('GeoAxis returned HTTP %s: %s', status_code, err.response.text)
+        raise GeoaxisError(status_code)
+
+    access = response.json()
+    access_token = access.get('access_token')
+    if not access_token:
+        log.error('Geoaxis response missing `access_token`.  Response Text:\n%s', response.text)
+        raise InvalidGeoaxisResponse('missing `access_token`', response.text)
+    return access_token
+
+
 #
 # Errors
 #
@@ -172,19 +227,9 @@ class Error(Exception):
         super().__init__(message)
 
 
-class BeachfrontUnauthorized(Error):
-    def __init__(self):
-        super().__init__('Beachfront authorization rejected')
-
-
 class GeoaxisUnreachable(Error):
     def __init__(self):
         super().__init__('Geoaxis is unreachable')
-
-
-class GeoaxisUnauthorized(Error):
-    def __init__(self):
-        super().__init__('GeoAxis authorization rejected')
 
 
 class GeoaxisError(Error):
@@ -197,3 +242,13 @@ class InvalidGeoaxisResponse(Error):
     def __init__(self, message: str, response_text: str):
         super().__init__('GeoAxis returned invalid response: ' + message)
         self.response_text = response_text
+
+
+class MalformedAPIKey(Error):
+    def __init__(self):
+        super().__init__('Malformed API key')
+
+
+class Unauthorized(Error):
+    def __init__(self, message: str):
+        super().__init__('Unauthorized: {}'.format(message))
