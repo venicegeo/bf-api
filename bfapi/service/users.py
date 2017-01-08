@@ -51,7 +51,7 @@ def authenticate_via_api_key(api_key: str) -> User:
     try:
         row = db.users.select_user_by_api_key(conn, api_key=api_key).fetchone()
     except db.DatabaseError as err:
-        log.error('Database query for API key "%s" failed: %s', api_key, err)
+        log.error('Database query for API key "%s" failed', api_key)
         db.print_diagnostics(err)
         raise
     finally:
@@ -92,7 +92,7 @@ def get_by_id(user_id: str) -> User:
     try:
         row = db.users.select_user(conn, user_id=user_id).fetchone()
     except db.DatabaseError as err:
-        log.error('Database query for user ID "%s" failed: %s', user_id, err)
+        log.error('Database query for user ID "%s" failed', user_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -127,7 +127,7 @@ def _create_user(user_id, user_name) -> User:
             api_key=api_key,
         )
     except db.DatabaseError as err:
-        log.error('Could not insert user record to database: %s', err)
+        log.error('Could not save user account "%s" to database', user_id)
         db.print_diagnostics(err)
         raise
     finally:

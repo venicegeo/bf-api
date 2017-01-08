@@ -167,10 +167,13 @@ def delete_productline(user_id: str, productline_id: str) -> None:
 
 
 def get_all() -> List[ProductLine]:
+    log = logging.getLogger(__name__)
+
     conn = db.get_connection()
     try:
         cursor = db.productlines.select_all(conn)
     except db.DatabaseError as err:
+        log.error('Could not list productlines')
         db.print_diagnostics(err)
         raise
     finally:

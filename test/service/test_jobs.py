@@ -320,7 +320,7 @@ class CreateJobTest(unittest.TestCase):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name')
         self.assertEqual([
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
-            "ERROR - Could not save job to database: (builtins.Exception) test-error [SQL: 'test-query']",
+            "ERROR - Could not save job to database",
         ], logstream.getvalue().splitlines())
 
     def test_throws_when_piazza_throws(self):

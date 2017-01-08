@@ -95,7 +95,7 @@ def get(scene_id: str) -> Scene:
             sensor_name=scene.sensor_name,
         )
     except db.DatabaseError as err:
-        log.error('Could not save scene to database: %s', err)
+        log.error('Could not save scene to database')
         db.print_diagnostics(err)
         raise
     finally:

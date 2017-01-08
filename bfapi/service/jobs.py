@@ -30,6 +30,7 @@ FORMAT_TIME = '%TZ'
 STATUS_TIMED_OUT = 'Timed Out'
 STEP_ALGORITHM = 'runtime:algorithm'
 STEP_COLLECT_GEOJSON = 'postprocessing:collect_geojson'
+STEP_POLLING = 'runtime:polling-for-status'
 STEP_PROCESSING = 'runtime:processing'
 STEP_QUEUED = 'runtime:queued'
 STEP_RESOLVE = 'postprocessing:resolving_detections_data_id'
@@ -185,7 +186,7 @@ def create(
         transaction.commit()
     except db.DatabaseError as err:
         transaction.rollback()
-        log.error('Could not save job to database: %s', err)
+        log.error('Could not save job to database')
         db.print_diagnostics(err)
         raise
     finally:
@@ -209,12 +210,14 @@ def create(
     )
 
 def forget(user_id: str, job_id: str) -> None:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
-    if not db.jobs.exists(conn, job_id=job_id):
-        raise NotFound(job_id)
     try:
+        if not db.jobs.exists(conn, job_id=job_id):
+            raise NotFound(job_id)
         db.jobs.delete_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
+        log.error('Could not forget <job:%s> for user "%s"', job_id, user_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -222,6 +225,7 @@ def forget(user_id: str, job_id: str) -> None:
 
 
 def get(user_id: str, job_id: str) -> Job:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
 
     try:
@@ -232,6 +236,7 @@ def get(user_id: str, job_id: str) -> Job:
         # Add job to user's tracked jobs list
         db.jobs.insert_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
+        log.error('Could not get <job:%s> for user "%s"', job_id, user_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -256,11 +261,13 @@ def get(user_id: str, job_id: str) -> Job:
 
 
 def get_all(user_id: str) -> List[Job]:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
 
     try:
         cursor = db.jobs.select_jobs_for_user(conn, user_id=user_id)
     except db.DatabaseError as err:
+        log.error('Could not list jobs for user "%s"', user_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -290,11 +297,13 @@ def get_all(user_id: str) -> List[Job]:
 
 
 def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
 
     try:
         cursor = db.jobs.select_jobs_for_productline(conn, productline_id=productline_id, since=since)
     except db.DatabaseError as err:
+        log.error('Could not list jobs for <productline:%s>', productline_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -322,11 +331,13 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
 
 
 def get_by_scene(scene_id: str) -> List[Job]:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
 
     try:
         cursor = db.jobs.select_jobs_for_scene(conn, scene_id=scene_id)
     except db.DatabaseError as err:
+        log.error('Could not list jobs for <scene:%s>', scene_id)
         db.print_diagnostics(err)
         raise err
     finally:
@@ -368,6 +379,7 @@ def get_detections(job_id: str) -> str:
             raise NotFound(job_id)
         geojson = db.jobs.select_detections(conn, job_id=job_id).scalar()
     except db.DatabaseError as err:
+        log.error('Could not package detections for <job:%s>', job_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -422,7 +434,7 @@ class Worker(threading.Thread):
             try:
                 rows = db.jobs.select_outstanding_jobs(conn).fetchall()
             except db.DatabaseError as err:
-                self._log.error('Could not list running jobs: %s', err)
+                self._log.error('Could not list running jobs')
                 db.print_diagnostics(err)
                 raise
             finally:
@@ -453,7 +465,7 @@ class Worker(threading.Thread):
         except (piazza.ServerError, piazza.Error) as err:
             if isinstance(err, piazza.ServerError) and err.status_code == 404:
                 log.warning('<%03d/%s> Job not found', index, job_id)
-                _save_execution_error(job_id, 'runtime:polling-for-status', 'Job not found')
+                _save_execution_error(job_id, STEP_POLLING, 'Job not found')
                 return
             else:
                 log.error('<%03d/%s> call to Piazza failed: %s', index, job_id, err.message)

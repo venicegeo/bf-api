@@ -314,7 +314,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
             'INFO - Creating user account for "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country"',
-            "ERROR - Could not insert user record to database: (builtins.Exception) test-error [SQL: 'test-query']",
+            'ERROR - Could not save user account "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country" to database',
         ], logstream.getvalue().splitlines())
 
 
@@ -414,7 +414,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
-            """ERROR - Database query for API key "0123456789abcdef0123456789abcdef" failed: (builtins.Exception) test-error [SQL: 'test-query']""",
+            """ERROR - Database query for API key "0123456789abcdef0123456789abcdef" failed""",
         ], logstream.getvalue().splitlines())
 
 
@@ -483,7 +483,7 @@ class GetByIdTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             users.get_by_id('test-user-id')
         self.assertEqual([
-            """ERROR - Database query for user ID "test-user-id" failed: (builtins.Exception) test-error [SQL: 'test-query']""",
+            """ERROR - Database query for user ID "test-user-id" failed""",
         ], logstream.getvalue().splitlines())
 
 

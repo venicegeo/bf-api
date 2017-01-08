@@ -110,7 +110,7 @@ def _install():
     try:
         _engine.execution_options(autocommit=True).execute(sa.text(schema_query))
     except DatabaseError as err:
-        log.critical('Installation failed: %s', err)
+        log.critical('Installation failed')
         print_diagnostics(err)
         raise InstallationError('schema install failed', err)
 
@@ -134,7 +134,7 @@ def _install_if_needed():
     try:
         is_installed = _engine.execute(sa.text(query)).scalar()
     except DatabaseError as err:
-        log.critical('Schema verification failed: %s', err)
+        log.critical('Schema verification failed')
         print_diagnostics(err)
         raise InstallationError('schema execution failed', err)
 
