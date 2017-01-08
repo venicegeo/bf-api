@@ -36,9 +36,8 @@ def is_login_active():
 def login():
     query_params = flask.request.args
 
-    try:
-        auth_code = query_params['code'].strip()
-    except:
+    auth_code = query_params.get('code', '').strip()
+    if not auth_code:
         return 'Cannot log in: invalid "code" query parameter', 400
 
     try:

@@ -161,24 +161,24 @@ def _fetch_geoaxis_profile(access_token: str):
     except requests.HTTPError as err:
         status_code = err.response.status_code
         if status_code == 401:
-            log.error('GeoAxis rejected user auth code: %s', err.response.text)
-            raise Unauthorized('GeoAxis rejected auth code')
+            log.error('GeoAxis rejected access token: %s', err.response.text)
+            raise Unauthorized('GeoAxis rejected access token')
         log.error('GeoAxis returned HTTP %s: %s', status_code, err.response.text)
         raise GeoaxisError(status_code)
 
     profile = response.json()
 
-    user_id = profile.get('uid')
+    user_id = profile.get('DN')
     if not user_id:
-        log.error('Geoaxis response missing `uid`: %s', response.text)
-        raise InvalidGeoaxisResponse('missing `uid`', response.text)
+        log.error('Geoaxis response missing `DN`: %s', response.text)
+        raise InvalidGeoaxisResponse('missing `DN`', response.text)
 
-    username = profile.get('username')
-    if not username:
-        log.error('Geoaxis response missing `username`: %s', response.text)
-        raise InvalidGeoaxisResponse('missing `username`', response.text)
+    name = profile.get('commonname')
+    if not name:
+        log.error('Geoaxis response missing `commonname`: %s', response.text)
+        raise InvalidGeoaxisResponse('missing `commonname`', response.text)
 
-    return user_id, username
+    return user_id, name
 
 
 def _request_geoaxis_access_token(auth_code: str):
