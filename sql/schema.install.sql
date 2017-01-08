@@ -36,7 +36,7 @@ CREATE TABLE __beachfront__job (
     algorithm_id      VARCHAR(64)    NOT NULL,
     algorithm_name    VARCHAR(100)   NOT NULL,
     algorithm_version VARCHAR(12)    NOT NULL,
-    created_by        VARCHAR(64)    NOT NULL,
+    created_by        VARCHAR(255)   NOT NULL,
     created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
     name              VARCHAR(100)   NOT NULL,
     scene_id          VARCHAR(64)    NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE __beachfront__detection (
 
 CREATE TABLE __beachfront__job_user (
     job_id            VARCHAR(64),
-    user_id           VARCHAR(64),
+    user_id           VARCHAR(255),
 
     PRIMARY KEY (job_id, user_id),
     FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE,
@@ -83,16 +83,17 @@ CREATE TABLE __beachfront__productline (
     bbox              GEOMETRY,
     category          VARCHAR(64),
     compute_mask      GEOMETRY,
-    created_by        VARCHAR(64)    NOT NULL,
+    created_by        VARCHAR(255)   NOT NULL,
     created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
     deleted           BOOL           NOT NULL    DEFAULT FALSE,
     max_cloud_cover   INTEGER        NOT NULL,
     name              VARCHAR(100)   NOT NULL,
-    owned_by          VARCHAR(64)    NOT NULL,
+    owned_by          VARCHAR(255)   NOT NULL,
     spatial_filter_id VARCHAR(64),
     start_on          DATE           NOT NULL,
     stop_on           DATE,
 
+    FOREIGN KEY (created_by) REFERENCES __beachfront__user(user_id) ON DELETE CASCADE,
     FOREIGN KEY (owned_by) REFERENCES __beachfront__user(user_id) ON DELETE CASCADE
 );
 
