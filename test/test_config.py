@@ -19,13 +19,13 @@ from bfapi import config
 
 
 class ConfigurationValueTest(unittest.TestCase):
-    def test_autodetects_piazza_gateway(self):
-        self.assertEqual('pz-gateway.localhost', config.PZ_GATEWAY)
+    def test_autodetects_piazza_hostname(self):
+        self.assertEqual('piazza.localhost', config.PIAZZA)
 
-    def test_autodetects_catalog_url(self):
+    def test_autodetects_catalog_hostname(self):
         self.assertEqual('pzsvc-image-catalog.localhost', config.CATALOG)
 
-    def test_autodetects_tideprediction_url(self):
+    def test_autodetects_tideprediction_hostname(self):
         self.assertEqual('bf-tideprediction.localhost', config.TIDE_SERVICE)
 
     def test_defines_sensible_job_ttl(self):
@@ -39,7 +39,7 @@ class ConfigurationValidateTest(unittest.TestCase):
     def setUp(self):
         self._original_values = {}
         self.override('_errors', [])
-        self.override('SYSTEM_API_KEY', 'Basic Og==')
+        self.override('PIAZZA_API_KEY', 'test-api-key')
         self.override('POSTGRES_HOST', 'test-host')
         self.override('POSTGRES_PORT', 'test-port')
         self.override('POSTGRES_DATABASE', 'test-database')
@@ -48,6 +48,9 @@ class ConfigurationValidateTest(unittest.TestCase):
         self.override('GEOSERVER_HOST', 'test-host')
         self.override('GEOSERVER_USERNAME', 'test-username')
         self.override('GEOSERVER_PASSWORD', 'test-password')
+        self.override('GEOAXIS', 'test-host')
+        self.override('GEOAXIS_CLIENT_ID', 'test-client-id')
+        self.override('GEOAXIS_SECRET', 'test-secret')
 
     def tearDown(self):
         for key, value in self._original_values.items():
@@ -60,8 +63,8 @@ class ConfigurationValidateTest(unittest.TestCase):
     def test_succeeds_if_config_is_valid(self):
         config.validate(failfast=False)
 
-    def test_throws_if_SYSTEM_API_KEY_is_blank(self):
-        self.override('SYSTEM_API_KEY', None)
+    def test_throws_if_PIAZZA_API_KEY_is_blank(self):
+        self.override('PIAZZA_API_KEY', None)
         with self.assertRaises(Exception):
             config.validate(failfast=False)
 

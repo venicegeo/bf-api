@@ -14,7 +14,7 @@
 import logging
 from typing import List
 
-from bfapi import piazza
+from bfapi.service import piazza
 
 
 #
@@ -59,11 +59,11 @@ class Algorithm:
 # Actions
 #
 
-def list_all(api_key: str) -> List[Algorithm]:
+def list_all() -> List[Algorithm]:
     log = logging.getLogger(__name__)
     try:
         log.info('Fetching beachfront services from Piazza')
-        services = piazza.get_services(api_key, '^BF_Algo_')
+        services = piazza.get_services('^BF_Algo_')
     except piazza.Error as err:
         log.error('Service discovery failed: %s', err)
         raise
@@ -90,11 +90,11 @@ def list_all(api_key: str) -> List[Algorithm]:
     return algorithms
 
 
-def get(api_key: str, service_id: str):
+def get(service_id: str):
     log = logging.getLogger(__name__)
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id)
-        service = piazza.get_service(api_key, service_id)
+        service = piazza.get_service(service_id)
     except piazza.ServerError as err:
         log.error('Service lookup failed: %s', err)
         if err.status_code == 404:

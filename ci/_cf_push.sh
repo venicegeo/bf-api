@@ -28,7 +28,7 @@ if [ -z $api_key ]; then
 fi
 manifest_filename=$MANIFEST_FILENAME
 echo "Writing Cloud Foundry manifest to $manifest_filename:"
-sed "s/__SYSTEM_API_KEY__/$api_key/" manifest.jenkins.yml > $manifest_filename
+sed "s/__PIAZZA_API_KEY__/$api_key/" manifest.jenkins.yml > $manifest_filename
 cat $manifest_filename|sed 's/^/    | /'
 echo
 

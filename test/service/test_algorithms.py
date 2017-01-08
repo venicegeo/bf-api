@@ -15,11 +15,10 @@ import logging
 import unittest
 from unittest.mock import patch, MagicMock
 
-from bfapi import piazza
-from bfapi.service import algorithms
+from bfapi.service import algorithms, piazza
 
 
-@patch('bfapi.piazza.get_services')
+@patch('bfapi.service.piazza.get_services')
 class ListAllTest(unittest.TestCase):
     def setUp(self):
         self._logger = logging.getLogger('bfapi.service.algorithms')
@@ -29,18 +28,18 @@ class ListAllTest(unittest.TestCase):
         self._logger.disabled = False
 
     def test_requests_algorithms_from_piazza(self, mock: MagicMock):
-        algorithms.list_all('test-api-key')
-        self.assertEqual(('test-api-key', '^BF_Algo_'), mock.call_args[0])
+        algorithms.list_all()
+        self.assertEqual(('^BF_Algo_',), mock.call_args[0])
 
     def test_returns_list_of_algorithms(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        items = algorithms.list_all('test-api-key')
+        items = algorithms.list_all()
         self.assertIsInstance(items, list)
         self.assertIsInstance(items[0], algorithms.Algorithm)
 
     def test_can_handle_empty_result_set(self, mock: MagicMock):
         mock.return_value = []
-        self.assertEqual([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all())
 
     def test_can_handle_multiple_results(self, mock: MagicMock):
         mock.return_value = [
@@ -48,98 +47,98 @@ class ListAllTest(unittest.TestCase):
             create_service('test-algo-2'),
             create_service('test-algo-3'),
         ]
-        items = algorithms.list_all('test-api-key')
+        items = algorithms.list_all()
         self.assertEqual(['test-algo-1', 'test-algo-2', 'test-algo-3'], list(map(lambda a: a.service_id, items)))
 
     def test_extracts_correct_bands(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        algo = algorithms.list_all('test-api-key').pop()
+        algo = algorithms.list_all().pop()
         self.assertEqual(('test-band1', 'test-band2'), algo.bands)
 
     def test_extracts_correct_interface(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        algo = algorithms.list_all('test-api-key').pop()
+        algo = algorithms.list_all().pop()
         self.assertEqual('test-interface', algo.interface)
 
     def test_extracts_correct_description(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        algo = algorithms.list_all('test-api-key').pop()
+        algo = algorithms.list_all().pop()
         self.assertEqual('test-description', algo.description)
 
     def test_extracts_correct_max_cloud_cover(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        algo = algorithms.list_all('test-api-key').pop()
+        algo = algorithms.list_all().pop()
         self.assertEqual(42, algo.max_cloud_cover)
 
     def test_extracts_correct_name(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        algo = algorithms.list_all('test-api-key').pop()
+        algo = algorithms.list_all().pop()
         self.assertEqual('test-name', algo.name)
 
     def test_extracts_correct_service_id(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        algo = algorithms.list_all('test-api-key').pop()
+        algo = algorithms.list_all().pop()
         self.assertEqual('test-service-id', algo.service_id)
 
     def test_extracts_correct_url(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        algo = algorithms.list_all('test-api-key').pop()
+        algo = algorithms.list_all().pop()
         self.assertEqual('https://test-algo-url.localhost', algo.url)
 
     def test_extracts_correct_version(self, mock: MagicMock):
         mock.return_value = [create_service()]
-        algo = algorithms.list_all('test-api-key').pop()
+        algo = algorithms.list_all().pop()
         self.assertEqual('test-version', algo.version)
 
     def test_discards_services_missing_bands(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata'].pop('ImgReq - bands')
         mock.return_value = [service]
-        self.assertEqual([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all())
 
     def test_discards_services_missing_interface(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata'].pop('Interface')
         mock.return_value = [service]
-        self.assertEqual([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all())
 
     def test_discards_services_missing_max_cloud_cover(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata'].pop('ImgReq - cloudCover')
         mock.return_value = [service]
-        self.assertEqual([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all())
 
     def test_discards_services_missing_metadata(self, mock: MagicMock):
         service = create_service()
         service.metadata.pop('metadata')
         mock.return_value = [service]
-        self.assertEqual([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all())
 
     def test_discards_services_missing_version(self, mock: MagicMock):
         service = create_service()
         service.metadata.pop('version')
         mock.return_value = [service]
-        self.assertEqual([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all())
 
     def test_discards_services_not_using_https(self, mock: MagicMock):
         service = create_service()
         service.url = 'http://not.very.secure'
         mock.return_value = [service]
-        self.assertEqual([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all())
 
     def test_discards_services_with_invalid_max_cloud_cover(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata']['ImgReq - cloudCover'] = 'lolwut'
         mock.return_value = [service]
-        self.assertEqual([], algorithms.list_all('test-api-key'))
+        self.assertEqual([], algorithms.list_all())
 
     def test_throws_when_piazza_throws(self, mock: MagicMock):
         mock.side_effect = piazza.Unauthorized()
         with self.assertRaises(piazza.Unauthorized):
-            algorithms.list_all('test-api-key')
+            algorithms.list_all()
 
 
-@patch('bfapi.piazza.get_service')
+@patch('bfapi.service.piazza.get_service')
 class GetTest(unittest.TestCase):
     def setUp(self):
         self._logger = logging.getLogger('bfapi.service.algorithms')
@@ -150,56 +149,56 @@ class GetTest(unittest.TestCase):
 
     def test_requests_algorithms_from_piazza(self, mock: MagicMock):
         mock.return_value = create_service()
-        algorithms.get('test-api-key', 'test-service-id')
-        self.assertEqual(('test-api-key', 'test-service-id'), mock.call_args[0])
+        algorithms.get('test-service-id')
+        self.assertEqual(('test-service-id',), mock.call_args[0])
 
     def test_returns_an_algorithm(self, mock: MagicMock):
         mock.return_value = create_service()
-        self.assertIsInstance(algorithms.get('test-api-key', 'test-service-id'), algorithms.Algorithm)
+        self.assertIsInstance(algorithms.get('test-service-id'), algorithms.Algorithm)
 
     def test_throws_when_service_not_found(self, mock: MagicMock):
         mock.side_effect = piazza.ServerError(404)
         with self.assertRaises(algorithms.NotFound):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
     def test_extracts_correct_bands(self, mock: MagicMock):
         mock.return_value = create_service()
-        algo = algorithms.get('test-api-key', 'test-service-id')
+        algo = algorithms.get('test-service-id')
         self.assertEqual(('test-band1', 'test-band2'), algo.bands)
 
     def test_extracts_correct_interface(self, mock: MagicMock):
         mock.return_value = create_service()
-        algo = algorithms.get('test-api-key', 'test-service-id')
+        algo = algorithms.get('test-service-id')
         self.assertEqual('test-interface', algo.interface)
 
     def test_extracts_correct_description(self, mock: MagicMock):
         mock.return_value = create_service()
-        algo = algorithms.get('test-api-key', 'test-service-id')
+        algo = algorithms.get('test-service-id')
         self.assertEqual('test-description', algo.description)
 
     def test_extracts_correct_max_cloud_cover(self, mock: MagicMock):
         mock.return_value = create_service()
-        algo = algorithms.get('test-api-key', 'test-service-id')
+        algo = algorithms.get('test-service-id')
         self.assertEqual(42, algo.max_cloud_cover)
 
     def test_extracts_correct_name(self, mock: MagicMock):
         mock.return_value = create_service()
-        algo = algorithms.get('test-api-key', 'test-service-id')
+        algo = algorithms.get('test-service-id')
         self.assertEqual('test-name', algo.name)
 
     def test_extracts_correct_service_id(self, mock: MagicMock):
         mock.return_value = create_service()
-        algo = algorithms.get('test-api-key', 'test-service-id')
+        algo = algorithms.get('test-service-id')
         self.assertEqual('test-service-id', algo.service_id)
 
     def test_extracts_correct_url(self, mock: MagicMock):
         mock.return_value = create_service()
-        algo = algorithms.get('test-api-key', 'test-service-id')
+        algo = algorithms.get('test-service-id')
         self.assertEqual('https://test-algo-url.localhost', algo.url)
 
     def test_extracts_correct_version(self, mock: MagicMock):
         mock.return_value = create_service()
-        algo = algorithms.get('test-api-key', 'test-service-id')
+        algo = algorithms.get('test-service-id')
         self.assertEqual('test-version', algo.version)
 
     def test_throws_if_missing_bands(self, mock: MagicMock):
@@ -207,54 +206,54 @@ class GetTest(unittest.TestCase):
         service.metadata['metadata'].pop('ImgReq - bands')
         mock.return_value = service
         with self.assertRaisesRegex(algorithms.ValidationError, 'missing `bands`'):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
     def test_throws_if_missing_interface(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata'].pop('Interface')
         mock.return_value = service
         with self.assertRaisesRegex(algorithms.ValidationError, 'missing `Interface`'):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
     def test_throws_if_missing_max_cloud_cover(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata'].pop('ImgReq - cloudCover')
         mock.return_value = service
         with self.assertRaisesRegex(algorithms.ValidationError, 'missing `cloudCover`'):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
     def test_throws_if_missing_metadata(self, mock: MagicMock):
         service = create_service()
         service.metadata.pop('metadata')
         mock.return_value = service
         with self.assertRaisesRegex(algorithms.ValidationError, 'missing `metadata` hash'):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
     def test_throws_if_missing_version(self, mock: MagicMock):
         service = create_service()
         service.metadata.pop('version')
         mock.return_value = service
         with self.assertRaisesRegex(algorithms.ValidationError, 'missing `version`'):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
     def test_throws_if_not_using_https(self, mock: MagicMock):
         service = create_service()
         service.url = 'http://not.very.secure'
         mock.return_value = service
         with self.assertRaisesRegex(algorithms.ValidationError, 'is not HTTPS'):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
     def test_throws_if_with_invalid_max_cloud_cover(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata']['ImgReq - cloudCover'] = 'lolwut'
         mock.return_value = service
         with self.assertRaisesRegex(algorithms.ValidationError, 'not a number'):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
     def test_throws_when_piazza_throws(self, mock: MagicMock):
         mock.side_effect = piazza.Unauthorized()
         with self.assertRaises(piazza.Unauthorized):
-            algorithms.get('test-api-key', 'test-service-id')
+            algorithms.get('test-service-id')
 
 
 #

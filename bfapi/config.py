@@ -20,7 +20,7 @@ from datetime import timedelta
 ################################################################################
 _errors = []
 def validate(failfast: bool = True):
-    if not SYSTEM_API_KEY: _errors.append('SYSTEM_API_KEY cannot be blank')
+    if not PIAZZA_API_KEY: _errors.append('PIAZZA_API_KEY cannot be blank')
     if not POSTGRES_HOST: _errors.append('POSTGRES_HOST cannot be blank')
     if not POSTGRES_PORT: _errors.append('POSTGRES_PORT cannot be blank')
     if not POSTGRES_DATABASE: _errors.append('POSTGRES_DATABASE cannot be blank')
@@ -29,6 +29,9 @@ def validate(failfast: bool = True):
     if not GEOSERVER_HOST: _errors.append('GEOSERVER_HOST cannot be blank')
     if not GEOSERVER_USERNAME: _errors.append('GEOSERVER_USERNAME cannot be blank')
     if not GEOSERVER_PASSWORD: _errors.append('GEOSERVER_PASSWORD cannot be blank')
+    if not GEOAXIS: _errors.append('GEOAXIS cannot be blank')
+    if not GEOAXIS_CLIENT_ID: _errors.append('GEOAXIS_CLIENT_ID cannot be blank')
+    if not GEOAXIS_SECRET: _errors.append('GEOAXIS_SECRET cannot be blank')
 
     if not _errors:
         return
@@ -83,17 +86,18 @@ def _getservices() -> dict:
 
 DOMAIN = _getdomain()
 
-PZ_GATEWAY   = os.getenv('PZ_GATEWAY', 'pz-gateway.' + DOMAIN)
+PIAZZA       = os.getenv('PZ_GATEWAY', 'piazza.' + DOMAIN)
 CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + DOMAIN)
 TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + DOMAIN)
-GEOAXIS      = os.getenv('GEOAXIS', 'gxisaccess.gxaccess.com')
 
-SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
+PIAZZA_API_KEY = os.getenv('PIAZZA_API_KEY')
+
+GEOAXIS           = os.getenv('GEOAXIS')
+GEOAXIS_CLIENT_ID = os.getenv('GEOAXIS_CLIENT_ID')
+GEOAXIS_SECRET    = os.getenv('GEOAXIS_SECRET')
 
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_TTL = timedelta(hours=2)
-
-SKIP_PRODUCTLINE_INSTALL = os.getenv('SKIP_PRODUCTLINE_INSTALL') == '1'
 
 _services = _getservices()
 

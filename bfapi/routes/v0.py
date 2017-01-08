@@ -20,7 +20,7 @@ import flask
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
-from bfapi.service import (algorithms as algorithms_service, jobs as jobs_service, productlines as productline_service)
+from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines
 
 
 #
@@ -29,11 +29,8 @@ from bfapi.service import (algorithms as algorithms_service, jobs as jobs_servic
 
 def get_algorithm(service_id: str):
     try:
-        algorithm = algorithms_service.get(
-            api_key=flask.request.api_key,
-            service_id=service_id,
-        )
-    except algorithms_service.NotFound:
+        algorithm = _algorithms.get(service_id)
+    except _algorithms.NotFound:
         return 'Algorithm not found', 404
     return flask.jsonify({
         'algorithm': algorithm.serialize(),
@@ -41,7 +38,7 @@ def get_algorithm(service_id: str):
 
 
 def list_algorithms():
-    algorithms = algorithms_service.list_all(api_key=flask.request.api_key)
+    algorithms = _algorithms.list_all()
     return flask.jsonify({
         'algorithms': [a.serialize() for a in algorithms],
     })
@@ -63,14 +60,13 @@ def create_job():
         return 'Invalid input: {}'.format(err), 400
 
     try:
-        record = jobs_service.create(
-            api_key=flask.request.api_key,
-            user_id=flask.request.username,
+        record = _jobs.create(
+            user_id=flask.request.user.user_id,
             service_id=service_id,
             scene_id=scene_id,
             job_name=job_name.strip(),
         )
-    except jobs_service.PreprocessingError as err:
+    except _jobs.PreprocessingError as err:
         return 'Cannot execute: {}'.format(err), 500
     except DatabaseError:
         return 'A database error prevents job execution', 500
@@ -81,10 +77,10 @@ def create_job():
 
 def download_geojson(job_id: str):
     try:
-        detections = jobs_service.get_detections(job_id)
-    except jobs_service.NotFound:
+        detections = _jobs.get_detections(job_id)
+    except _jobs.NotFound:
         return 'Job not found', 404
-    except jobs_service.Error as err:
+    except _jobs.Error as err:
         return 'Cannot download: {}'.format(err), 500
     except DatabaseError:
         return 'A database error prevents detection download', 500
@@ -95,14 +91,14 @@ def download_geojson(job_id: str):
 
 def forget_job(job_id: str):
     try:
-        jobs_service.forget(flask.request.username, job_id)
-    except jobs_service.NotFound:
+        _jobs.forget(flask.request.user.user_id, job_id)
+    except _jobs.NotFound:
         return 'Job not found', 404
     return 'Forgot {}'.format(job_id), 200
 
 
 def list_jobs():
-    jobs = jobs_service.get_all(flask.request.username)
+    jobs = _jobs.get_all(flask.request.user.user_id)
     return flask.jsonify({
         'jobs': {
             'type': 'FeatureCollection',
@@ -118,7 +114,7 @@ def list_jobs_for_productline(productline_id: str):
         ).replace(tzinfo=dateutil.tz.tzutc())  # type: datetime
     except ValueError:
         return 'Invalid input: `since` value cannot be parsed as a valid date', 400
-    jobs = jobs_service.get_by_productline(productline_id, since)
+    jobs = _jobs.get_by_productline(productline_id, since)
     return flask.jsonify({
         'productline_id': productline_id,
         'since': since.isoformat(),
@@ -130,7 +126,7 @@ def list_jobs_for_productline(productline_id: str):
 
 
 def list_jobs_for_scene(scene_id: str):
-    jobs = jobs_service.get_by_scene(scene_id)
+    jobs = _jobs.get_by_scene(scene_id)
     return flask.jsonify({
         'scene_id': scene_id,
         'jobs': {
@@ -142,8 +138,8 @@ def list_jobs_for_scene(scene_id: str):
 
 def get_job(job_id: str):
     try:
-        record = jobs_service.get(flask.request.username, job_id)
-    except jobs_service.NotFound:
+        record = _jobs.get(flask.request.user.user_id, job_id)
+    except _jobs.NotFound:
         return 'Job not found', 404
     return flask.jsonify({
         'job': record.serialize(),
@@ -174,8 +170,7 @@ def create_productline():
         return 'Invalid input: {}'.format(err), 400
 
     try:
-        productline = productline_service.create_productline(
-            api_key=flask.request.api_key,
+        productline = _productlines.create_productline(
             algorithm_id=algorithm_id,
             bbox=(min_x, min_y, max_x, max_y),
             category=category,
@@ -184,9 +179,9 @@ def create_productline():
             spatial_filter_id=spatial_filter_id,
             start_on=start_on.date(),
             stop_on=stop_on.date() if stop_on else None,
-            user_id=flask.request.username,
+            user_id=flask.request.user.user_id,
         )
-    except algorithms_service.NotFound as err:
+    except _algorithms.NotFound as err:
         return 'Algorithm {} does not exist'.format(err.service_id), 500
     except DatabaseError:
         return 'A database error prevents product line creation', 500
@@ -196,64 +191,26 @@ def create_productline():
 
 
 def delete_productline(productline_id: str):
-    user_id = flask.request.username
+    user_id = flask.request.user.user_id
     try:
-        productline_service.delete_productline(user_id, productline_id)
+        _productlines.delete_productline(user_id, productline_id)
     except DatabaseError:
         return 'A database error prevents deletion of this product line', 404
-    except productline_service.NotFound:
-        return 'Product Line not found', 404
+    except _productlines.NotFound:
+        return 'Product line not found', 404
     except PermissionError:
         return 'User `{}` does not have permission to delete this product line'.format(user_id), 403
     return 'Deleted product line {}'.format(productline_id), 200
 
 
 def list_productlines():
-    productlines = productline_service.get_all()
+    productlines = _productlines.get_all()
     return flask.jsonify({
         'productlines': {
             'type': 'FeatureCollection',
             'features': [p.serialize() for p in productlines],
         },
     })
-
-
-def on_harvest_event():
-    try:
-        payload = flask.request.get_json()
-        signature = _get_string(payload, '__signature__')
-        scene_id = _get_string(payload, 'scene_id', max_length=64)
-        captured_on = _get_datetime(payload, 'captured_on')
-        cloud_cover = _get_number(payload, 'cloud_cover', min_value=0, max_value=100)
-        min_x = _get_number(payload, 'min_x', min_value=-180, max_value=180)
-        min_y = _get_number(payload, 'min_y', min_value=-90, max_value=90)
-        max_x = _get_number(payload, 'max_x', min_value=-180, max_value=180)
-        max_y = _get_number(payload, 'max_y', min_value=-90, max_value=90)
-    except JSONDecodeError:
-        return 'Invalid input: request body must be a JSON object', 400
-    except ValidationError as err:
-        return 'Invalid input: {}'.format(err), 400
-
-    try:
-        disposition = productline_service.handle_harvest_event(
-            signature=signature,
-            scene_id=scene_id,
-            captured_on=captured_on.date(),
-            cloud_cover=cloud_cover,
-            min_x=min_x,
-            min_y=min_y,
-            max_x=max_x,
-            max_y=max_y,
-        )
-    except productline_service.UntrustedEventError:
-        return 'Error: Invalid event signature', 401
-    except productline_service.EventValidationError as err:
-        return 'Error: Invalid scene event: {}'.format(err), 400
-    except jobs_service.PreprocessingError as err:
-        return 'Error: Cannot spawn job: {}'.format(err), 500
-    except DatabaseError:
-        return 'A database error prevents job execution', 500
-    return disposition
 
 
 #
@@ -263,7 +220,8 @@ def on_harvest_event():
 def get_user_data():
     return flask.jsonify({
         'profile': {
-            'username': flask.request.username,
+            'username': flask.request.user.user_id,
+            'joined_on': flask.request.user.created_on,
         },
         'services': {
             'catalog': 'https://{}'.format(CATALOG),

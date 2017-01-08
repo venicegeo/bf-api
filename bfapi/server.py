@@ -16,7 +16,7 @@ import re
 import flask
 from flask_cors import CORS
 
-from bfapi import config, db, middleware, routes, service, IS_DEBUG_MODE
+from bfapi import config, db, middleware, routes, service
 
 
 def attach_routes(app: flask.Flask):
@@ -30,7 +30,7 @@ def attach_routes(app: flask.Flask):
 
     # Public Endpoints
     app.add_url_rule('/', view_func=routes.health_check, methods=['GET'])
-    app.add_url_rule('/login', view_func=routes.login, methods=['POST'])
+    app.add_url_rule('/login', view_func=routes.login, methods=['GET'])
 
     # Session heartbeat
     app.add_url_rule('/login/heartbeat', view_func=routes.is_login_active, methods=['GET'])
@@ -49,7 +49,6 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule('/v0/productline', view_func=routes.v0.list_productlines, methods=['GET'])
     app.add_url_rule('/v0/productline', view_func=routes.v0.create_productline, methods=['POST'])
     app.add_url_rule('/v0/productline/<productline_id>', view_func=routes.v0.delete_productline, methods=['DELETE'])
-    app.add_url_rule('/v0/scene/event/harvest', view_func=routes.v0.on_harvest_event, methods=['POST'])
 
 
 def banner():
@@ -83,7 +82,6 @@ def init(app):
 
 
 def install_service_assets():
-    service.productlines.install_if_needed('/v0/scene/event/harvest')
     service.geoserver.install_if_needed()
 
 

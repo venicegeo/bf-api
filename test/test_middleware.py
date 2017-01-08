@@ -17,14 +17,13 @@ from unittest.mock import patch, Mock, MagicMock
 
 import flask
 
-from bfapi import piazza
+from bfapi.service import users
 from bfapi.middleware import verify_api_key
 
-API_KEY = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-AUTH_HEADER = 'Basic YWFhYWFhYWEtYmJiYi1jY2NjLWRkZGQtZWVlZWVlZWVlZWVlOg=='
+API_KEY = 'aaaaaaaabbbbccccddddeeeeeeeeeeee'
 
 
-@patch('bfapi.piazza.verify_api_key', return_value='test-username')
+@patch('bfapi.service.users.authenticate_via_api_key', side_effect=lambda _: create_user())
 class VerifyApiKeyFilterTest(unittest.TestCase):
     def setUp(self):
         self._logger = logging.getLogger('bfapi.middleware')
@@ -33,7 +32,7 @@ class VerifyApiKeyFilterTest(unittest.TestCase):
     def tearDown(self):
         self._logger.disabled = False
 
-    def test_validates_api_key_on_every_request(self, mock: MagicMock):
+    def test_checks_api_key_on_every_request(self, mock: MagicMock):
         endpoints = (
             '/v0/services',
             '/v0/algorithm',
@@ -46,7 +45,7 @@ class VerifyApiKeyFilterTest(unittest.TestCase):
             '/some/random/unmapped/path',
         )
         for endpoint in endpoints:
-            with create_request(endpoint, headers={'Authorization': AUTH_HEADER}):
+            with create_request(endpoint, api_key=API_KEY):
                 verify_api_key()
         self.assertEqual(len(endpoints), mock.call_count)
 
@@ -54,64 +53,64 @@ class VerifyApiKeyFilterTest(unittest.TestCase):
         endpoints = (
             '/',
             '/login',
-            '/v0/scene/event/harvest',
         )
         for endpoint in endpoints:
-            with patch('flask.request', path=endpoint, headers={'Authorization': AUTH_HEADER}):
+            with patch('flask.request', path=endpoint, api_key=API_KEY):
                 verify_api_key()
         self.assertEqual(0, mock.call_count)
 
-    def test_attaches_username_to_request(self, _):
-        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
+    def test_attaches_user_to_request(self, _):
+        with create_request('/protected', api_key=API_KEY) as request:
             self.assertFalse(hasattr(request, 'username'))
             verify_api_key()
-            self.assertEqual(request.username, 'test-username')
+            self.assertIsInstance(request.user, users.User)
+            self.assertEqual('test-user-id', request.user.user_id)
+            self.assertEqual(API_KEY, request.user.api_key)
 
-    def test_attaches_api_key_to_request(self, _):
-        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
-            self.assertFalse(hasattr(request, 'api_key'))
-            verify_api_key()
-            self.assertEqual(request.api_key, API_KEY)
-
-    def test_rejects_if_api_key_is_malformed(self, _):
-        with create_request('/protected', headers={'Authorization': 'lolwut'}) as request:
+    def test_rejects_if_api_key_is_missing(self, _):
+        with create_request('/protected', api_key=''):
             response = verify_api_key()
-            self.assertEqual(('Cannot verify malformed API key', 400), response)
+            self.assertEqual(('Missing API key', 400), response)
 
-    def test_rejects_if_auth_header_is_missing(self, _):
-        with create_request('/protected') as request:
+    def test_rejects_when_geoaxis_throws(self, mock: MagicMock):
+        mock.side_effect = users.GeoaxisError(500)
+        with create_request('/protected', api_key=API_KEY):
             response = verify_api_key()
-            self.assertEqual(('Missing authorization header', 400), response)
+            self.assertEqual(('Cannot authenticate request: an internal error prevents API key verification', 500), response)
 
-    def test_rejects_if_api_key_is_expired(self, mock: MagicMock):
-        mock.side_effect = piazza.ApiKeyExpired()
-        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
+    def test_rejects_when_geoaxis_is_down(self, mock: MagicMock):
+        mock.side_effect = users.GeoaxisUnreachable()
+        with create_request('/protected', api_key=API_KEY):
             response = verify_api_key()
-            self.assertEqual(('Your Piazza API key has expired', 401), response)
-
-    def test_rejects_when_piazza_throws(self, mock: MagicMock):
-        mock.side_effect = piazza.ServerError(500)
-        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
-            response = verify_api_key()
-            self.assertEqual(('A Piazza error prevents API key verification', 500), response)
+            self.assertEqual(('Cannot authenticate request: GeoAxis cannot be reached', 503), response)
 
     def test_rejects_when_encountering_unexpected_verification_error(self, mock: MagicMock):
-        mock.side_effect = FloatingPointError()
-        with create_request('/protected', headers={'Authorization': AUTH_HEADER}) as request:
+        mock.side_effect = users.Error('random error of known type')
+        with create_request('/protected', api_key=API_KEY):
             response = verify_api_key()
-            self.assertEqual(('An internal error prevents API key verification', 500), response)
+            self.assertEqual(('Cannot authenticate request: an internal error prevents API key verification', 500), response)
 
 
 #
 # Helpers
 #
 
-def create_request(path: str = '/', *, headers: dict = None):
+def create_request(path: str = '/', *, api_key: str):
     return patch(
         'flask.request',
         spec=flask.Request,
         path=path,
-        headers=headers if headers else {},
+        authorization={
+            'username': api_key,
+        },
+    )
+
+
+def create_user() -> users.User:
+    return users.User(
+        user_id='test-user-id',
+        api_key=API_KEY,
+        name='test-name',
     )
 
 

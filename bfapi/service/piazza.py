@@ -11,17 +11,13 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import base64
-import re
 from typing import List
 
 import requests
 import time
 
-from bfapi.config import PZ_GATEWAY
+from bfapi.config import PIAZZA, PIAZZA_API_KEY
 
-PATTERN_VALID_API_KEY = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
-PATTERN_VALID_AUTH_HEADER = re.compile('^Basic \S+$')
 STATUS_CANCELLED = 'Cancelled'
 STATUS_SUCCESS = 'Success'
 STATUS_RUNNING = 'Running'
@@ -72,43 +68,12 @@ class ServiceDescriptor:
 # Actions
 #
 
-def create_api_key(auth_header: str):
-    if not PATTERN_VALID_AUTH_HEADER.match(auth_header):
-        raise MalformedCredentials()
-
-    try:
-        response = requests.get(
-            'https://{}/key'.format(PZ_GATEWAY),
-            timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
-        )
-        response.raise_for_status()
-    except requests.ConnectionError:
-        raise Unreachable()
-    except requests.HTTPError as err:
-        status_code = err.response.status_code
-        if status_code == 401:
-            raise Unauthorized()
-        raise ServerError(status_code)
-
-    api_key = response.json().get('uuid')
-    if not api_key:
-        raise InvalidResponse('missing `uuid`', response.text)
-
-    return api_key
-
-
-def create_trigger(api_key: str, *, data_inputs: dict, event_type_id: str, name: str, service_id: str) -> str:
-    auth_header = to_auth_header(api_key)
+def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_id: str) -> str:
     try:
         response = requests.post(
-            'https://{}/trigger'.format(PZ_GATEWAY),
+            'https://{}/trigger'.format(PIAZZA),
             timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
+            auth=(PIAZZA_API_KEY, ''),
             json={
                 'name': name,
                 'eventTypeId': event_type_id,
@@ -151,15 +116,12 @@ def create_trigger(api_key: str, *, data_inputs: dict, event_type_id: str, name:
     return trigger_id
 
 
-def deploy(api_key: str, data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
-    auth_header = to_auth_header(api_key)
+def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
     try:
         response = requests.post(
-            'https://{}/deployment'.format(PZ_GATEWAY),
+            'https://{}/deployment'.format(PIAZZA),
             timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
+            auth=(PIAZZA_API_KEY, ''),
             json={
                 'dataId': data_id,
                 'deploymentType': 'geoserver',
@@ -186,7 +148,7 @@ def deploy(api_key: str, data_id: str, *, poll_interval: int = 3, max_poll_attem
     # Poll until complete
     poll_attempts = 0
     while True:
-        status = get_status(api_key, job_id)
+        status = get_status(job_id)
 
         if status.status == STATUS_SUCCESS:
             return status.layer_id
@@ -205,14 +167,13 @@ def deploy(api_key: str, data_id: str, *, poll_interval: int = 3, max_poll_attem
             raise DeploymentError('unexpected deployment job status: ' + status.status)
 
 
-def execute(api_key: str, service_id: str, data_inputs: dict, data_output: list = None) -> str:
-    auth_header = to_auth_header(api_key)
+def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str:
     try:
         response = requests.post(
-            'https://{}/job'.format(PZ_GATEWAY),
+            'https://{}/job'.format(PIAZZA),
             timeout=TIMEOUT_LONG,
+            auth=(PIAZZA_API_KEY, ''),
             headers={
-                'Authorization': auth_header,
                 'Content-Type': 'application/json',
             },
             json={
@@ -247,15 +208,12 @@ def execute(api_key: str, service_id: str, data_inputs: dict, data_output: list 
     return job_id
 
 
-def get_file(api_key: str, data_id: str) -> requests.Response:
-    auth_header = to_auth_header(api_key)
+def get_file(data_id: str) -> requests.Response:
     try:
         response = requests.get(
-            'https://{}/file/{}'.format(PZ_GATEWAY, data_id),
+            'https://{}/file/{}'.format(PIAZZA, data_id),
             timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
+            auth=(PIAZZA_API_KEY, ''),
         )
         response.raise_for_status()
     except requests.ConnectionError:
@@ -268,15 +226,12 @@ def get_file(api_key: str, data_id: str) -> requests.Response:
     return response
 
 
-def get_service(api_key: str, service_id: str) -> ServiceDescriptor:
-    auth_header = to_auth_header(api_key)
+def get_service(service_id: str) -> ServiceDescriptor:
     try:
         response = requests.get(
-            'https://{}/service/{}'.format(PZ_GATEWAY, service_id),
+            'https://{}/service/{}'.format(PIAZZA, service_id),
             timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
+            auth=(PIAZZA_API_KEY, ''),
         )
         response.raise_for_status()
     except requests.ConnectionError:
@@ -296,15 +251,12 @@ def get_service(api_key: str, service_id: str) -> ServiceDescriptor:
     return _to_service_descriptor(datum, response.text)
 
 
-def get_services(api_key: str, pattern: str, count: int = 100) -> List[ServiceDescriptor]:
-    auth_header = to_auth_header(api_key)
+def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
     try:
         response = requests.get(
-            'https://{}/service'.format(PZ_GATEWAY),
+            'https://{}/service'.format(PIAZZA),
             timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
+            auth=(PIAZZA_API_KEY, ''),
             params={
                 'keyword': pattern,
                 'perPage': count,
@@ -328,15 +280,12 @@ def get_services(api_key: str, pattern: str, count: int = 100) -> List[ServiceDe
     return [_to_service_descriptor(datum, response.text) for datum in data]
 
 
-def get_status(api_key: str, job_id: str) -> Status:
-    auth_header = to_auth_header(api_key)
+def get_status(job_id: str) -> Status:
     try:
         response = requests.get(
-            'https://{}/job/{}'.format(PZ_GATEWAY, job_id),
+            'https://{}/job/{}'.format(PIAZZA, job_id),
             timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
+            auth=(PIAZZA_API_KEY, ''),
         )
         response.raise_for_status()
     except requests.ConnectionError:
@@ -397,22 +346,18 @@ def get_status(api_key: str, job_id: str) -> Status:
         return Status(status, error_message=error_message)
 
     elif status == STATUS_CANCELLED:
-        # TODO -- find out what this new status even means
         return Status(status)
 
     else:
         raise InvalidResponse('ambiguous value for `data.status`', response.text)
 
 
-def get_triggers(api_key: str, name: str) -> list:
-    auth_header = to_auth_header(api_key)
+def get_triggers(name: str) -> list:
     try:
         response = requests.post(
-            'https://{}/trigger/query'.format(PZ_GATEWAY),
+            'https://{}/trigger/query'.format(PIAZZA),
             timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
+            auth=(PIAZZA_API_KEY, ''),
             json={
                 'query': {
                     'match': {
@@ -440,7 +385,6 @@ def get_triggers(api_key: str, name: str) -> list:
 
 
 def register_service(
-        api_key: str,
         *,
         contract_url: str,
         description: str,
@@ -449,14 +393,11 @@ def register_service(
         timeout: int = 60,
         url: str,
         version: str = '0.0') -> str:
-    auth_header = to_auth_header(api_key)
     try:
         response = requests.post(
-            'https://{}/service'.format(PZ_GATEWAY),
+            'https://{}/service'.format(PIAZZA),
             timeout=TIMEOUT_LONG,
-            headers={
-                'Authorization': auth_header,
-            },
+            auth=(PIAZZA_API_KEY, ''),
             json={
                 'url': url,
                 'contractUrl': contract_url,
@@ -494,63 +435,6 @@ def register_service(
         raise InvalidResponse('`serviceId` is of the wrong type', response.text)
 
     return service_id
-
-
-def to_api_key(auth_header: str) -> str:
-    if not PATTERN_VALID_AUTH_HEADER.match(auth_header):
-        raise MalformedCredentials()
-    try:
-        api_key = base64.b64decode(auth_header[6:]).decode().rstrip(':')
-    except Exception as err:
-        raise MalformedCredentials(err)
-
-    # Redundant check for good measure
-    if not PATTERN_VALID_API_KEY.match(api_key):
-        raise MalformedCredentials()
-    return api_key
-
-
-def to_auth_header(api_key: str) -> str:
-    if not PATTERN_VALID_API_KEY.match(api_key):
-        raise MalformedCredentials()
-    return 'Basic ' + base64.b64encode((api_key + ':').encode()).decode()
-
-
-def verify_api_key(api_key: str) -> str:
-    if not PATTERN_VALID_API_KEY.match(api_key):
-        raise MalformedCredentials()
-
-    # Verify with Piazza IDAM
-    try:
-        response = requests.post(
-            'https://{}/authn'.format(PZ_GATEWAY.replace('pz-gateway.', 'pz-idam.')),
-            timeout=TIMEOUT_SHORT,
-            json={
-                'uuid': api_key,
-            },
-        )
-        response.raise_for_status()
-    except requests.ConnectionError:
-        raise Unreachable()
-    except requests.HTTPError as err:
-        if err.response.status_code == 401:
-            raise ApiKeyExpired()
-        raise ServerError(err.response.status_code)
-
-    # Validate the response
-    auth = response.json()
-    if not auth.get('isAuthSuccess'):
-        raise ApiKeyExpired()
-
-    profile = auth.get('userProfile')
-    if not profile:
-        raise InvalidResponse('missing `profile` property', response.text)
-
-    username = profile.get('username')
-    if not username:
-        raise InvalidResponse('missing `username`', response.text)
-
-    return username
 
 
 #
@@ -627,11 +511,6 @@ class ServerError(Error):
     def __init__(self, status_code: int):
         super().__init__('Piazza server error (HTTP {})'.format(status_code))
         self.status_code = status_code
-
-
-class ApiKeyExpired(Error):
-    def __init__(self):
-        super().__init__('Piazza API key expired')
 
 
 class Unauthorized(Error):

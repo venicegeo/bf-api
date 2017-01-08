@@ -18,10 +18,8 @@ from datetime import datetime
 import dateutil.parser
 import requests
 
-from bfapi import piazza, db
-from bfapi.config import CATALOG, PZ_GATEWAY, SYSTEM_API_KEY
-
-PATTERN_VALID_EVENT_TYPE_ID = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
+from bfapi import db
+from bfapi.config import CATALOG
 
 
 #
@@ -104,32 +102,6 @@ def get(scene_id: str) -> Scene:
         conn.close()
 
     return scene
-
-
-def get_event_type_id() -> str:
-    log = logging.getLogger(__name__)
-    log.info("Requesting Image Catalog's event type ID")
-
-    try:
-        response = requests.get(
-            'https://{}/eventTypeID'.format(CATALOG),
-            params={
-                'pzGateway': 'https://{}'.format(PZ_GATEWAY),
-            },
-            headers={
-                'Authorization': piazza.to_auth_header(SYSTEM_API_KEY),
-            }
-        )
-        response.raise_for_status()
-    except (requests.ConnectionError, requests.HTTPError):
-        raise CatalogError()
-
-    event_type_id = response.text.strip()
-    if not PATTERN_VALID_EVENT_TYPE_ID.match(event_type_id):
-        log.error('Received invalid event type ID `%s`', event_type_id)
-        raise CatalogError()
-
-    return event_type_id
 
 
 #
