@@ -15,9 +15,9 @@
 -- SQL Dialect: PostgreSQL + PostGIS
 
 CREATE TABLE __beachfront__user (
-    user_id           VARCHAR(64)    PRIMARY KEY,
-    user_name         VARCHAR(64)    NOT NULL,
-    api_key           VARCHAR(255)   NOT NULL    UNIQUE,
+    user_id           VARCHAR(255)   PRIMARY KEY,
+    user_name         VARCHAR(100)   NOT NULL,
+    api_key           VARCHAR(40)    NOT NULL    UNIQUE,
     created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP
 );
 
