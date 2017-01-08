@@ -7,3 +7,6 @@ bf-api.zip
 .dev
 .coverage
 report
+manifest.int.yml
+manifest.stage.yml
+manifest.prod.yml

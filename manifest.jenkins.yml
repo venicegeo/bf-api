@@ -11,4 +11,7 @@ applications:
     - pz-postgres
     - pz-geoserver-efs
   env:
+    GEOAXIS: __GEOAXIS__
+    GEOAXIS_CLIENT_ID: __GEOAXIS_CLIENT_ID__
+    GEOAXIS_SECRET: __GEOAXIS_SECRET__
     PIAZZA_API_KEY: __PIAZZA_API_KEY__
