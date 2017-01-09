@@ -25,10 +25,13 @@ create_environment_vars() {
     local _filepath=$DEV_ROOT/environment-vars.sh
     echo "Creating ${_filepath}"
     sed <<'EOT' | sed -E 's/^        //' > $_filepath
+        export GEOAXIS=
+        export GEOAXIS_CLIENT_ID=
+        export GEOAXIS_SECRET=
         export DOMAIN=
-        export SYSTEM_API_KEY=
+        export PIAZZA_API_KEY=
+        export REQUESTS_CA_BUNDLE="$(dirname $BASH_SOURCE)/ssl-certificate.pem"
         export PORT=5000
-        export SKIP_PRODUCTLINE_INSTALL=1
         export VCAP_SERVICES='{
           "user-provided": [
             {

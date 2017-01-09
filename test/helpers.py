@@ -20,6 +20,10 @@ import sqlalchemy.exc as _sqlalchemyexc
 import bfapi.db
 
 
+def create_database_error():
+    return _sqlalchemyexc.DatabaseError('test-query', None, Exception('test-error'))
+
+
 def mock_database():
     mock = MockDBConnection()
     mock.install()
@@ -46,7 +50,7 @@ class MockDBConnection(unittest.mock.Mock):
         self._original_get_connection = bfapi.db.get_connection
         self._original_print_diagnostics = bfapi.db.print_diagnostics
         bfapi.db.get_connection = lambda: self
-        bfapi.db.print_diagnostics = lambda _: self
+        bfapi.db.print_diagnostics = lambda _: None
 
     def destroy(self):
         if self._original_get_connection:
@@ -65,7 +69,3 @@ class MockDBConnection(unittest.mock.Mock):
         if err is None:
             err = create_database_error()
         self.execute.side_effect = err
-
-
-def create_database_error():
-    return _sqlalchemyexc.DatabaseError('test-query', None, Exception('test-error'))

@@ -14,9 +14,7 @@
 import json
 from datetime import datetime
 
-import sqlalchemy.exc as sae
-
-from bfapi.db import Connection, DatabaseError
+from bfapi.db import Connection
 
 
 def insert(

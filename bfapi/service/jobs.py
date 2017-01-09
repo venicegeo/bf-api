@@ -20,8 +20,9 @@ from typing import List
 
 import requests
 
-from bfapi import db, piazza, service
-from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, SYSTEM_API_KEY, TIDE_SERVICE
+from bfapi import db
+from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, TIDE_SERVICE
+from bfapi.service import algorithms, scenes, piazza
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
@@ -29,6 +30,7 @@ FORMAT_TIME = '%TZ'
 STATUS_TIMED_OUT = 'Timed Out'
 STEP_ALGORITHM = 'runtime:algorithm'
 STEP_COLLECT_GEOJSON = 'postprocessing:collect_geojson'
+STEP_POLLING = 'runtime:polling-for-status'
 STEP_PROCESSING = 'runtime:processing'
 STEP_QUEUED = 'runtime:queued'
 STEP_RESOLVE = 'postprocessing:resolving_detections_data_id'
@@ -100,7 +102,6 @@ class Job:
 #
 
 def create(
-        api_key: str,
         user_id: str,
         scene_id: str,
         service_id: str,
@@ -109,14 +110,14 @@ def create(
 
     # Fetch prerequisites
     try:
-        algorithm = service.algorithms.get(api_key, service_id)
-        scene = service.scenes.get(scene_id)
-    except (service.algorithms.NotFound,
-            service.algorithms.ValidationError,
-            service.scenes.MalformedSceneID,
-            service.scenes.CatalogError,
-            service.scenes.NotFound,
-            service.scenes.ValidationError) as err:
+        algorithm = algorithms.get(service_id)
+        scene = scenes.get(scene_id)
+    except (algorithms.NotFound,
+            algorithms.ValidationError,
+            scenes.MalformedSceneID,
+            scenes.CatalogError,
+            scenes.NotFound,
+            scenes.ValidationError) as err:
         log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
 
@@ -141,10 +142,10 @@ def create(
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
         cli_cmd = _make_algorithm_cli_cmd(algorithm.interface, geotiff_filenames)
-        job_id = piazza.execute(api_key, algorithm.service_id, {
+        job_id = piazza.execute(algorithm.service_id, {
             'body': {
                 'content': json.dumps({
-                    'pzAuthKey': piazza.to_auth_header(api_key),
+                    'pzAuthKey': piazza.PIAZZA_API_KEY,
                     'cmd': cli_cmd,
                     'inExtFiles': geotiff_urls,
                     'inExtNames': geotiff_filenames,
@@ -185,7 +186,7 @@ def create(
         transaction.commit()
     except db.DatabaseError as err:
         transaction.rollback()
-        log.error('Could not save job to database: %s', err)
+        log.error('Could not save job to database')
         db.print_diagnostics(err)
         raise
     finally:
@@ -209,12 +210,14 @@ def create(
     )
 
 def forget(user_id: str, job_id: str) -> None:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
-    if not db.jobs.exists(conn, job_id=job_id):
-        raise NotFound(job_id)
     try:
+        if not db.jobs.exists(conn, job_id=job_id):
+            raise NotFound(job_id)
         db.jobs.delete_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
+        log.error('Could not forget <job:%s> for user "%s"', job_id, user_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -222,6 +225,7 @@ def forget(user_id: str, job_id: str) -> None:
 
 
 def get(user_id: str, job_id: str) -> Job:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
 
     try:
@@ -232,6 +236,7 @@ def get(user_id: str, job_id: str) -> Job:
         # Add job to user's tracked jobs list
         db.jobs.insert_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
+        log.error('Could not get <job:%s> for user "%s"', job_id, user_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -256,11 +261,13 @@ def get(user_id: str, job_id: str) -> Job:
 
 
 def get_all(user_id: str) -> List[Job]:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
 
     try:
         cursor = db.jobs.select_jobs_for_user(conn, user_id=user_id)
     except db.DatabaseError as err:
+        log.error('Could not list jobs for user "%s"', user_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -290,11 +297,13 @@ def get_all(user_id: str) -> List[Job]:
 
 
 def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
 
     try:
         cursor = db.jobs.select_jobs_for_productline(conn, productline_id=productline_id, since=since)
     except db.DatabaseError as err:
+        log.error('Could not list jobs for <productline:%s>', productline_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -322,11 +331,13 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
 
 
 def get_by_scene(scene_id: str) -> List[Job]:
+    log = logging.getLogger(__name__)
     conn = db.get_connection()
 
     try:
         cursor = db.jobs.select_jobs_for_scene(conn, scene_id=scene_id)
     except db.DatabaseError as err:
+        log.error('Could not list jobs for <scene:%s>', scene_id)
         db.print_diagnostics(err)
         raise err
     finally:
@@ -368,6 +379,7 @@ def get_detections(job_id: str) -> str:
             raise NotFound(job_id)
         geojson = db.jobs.select_detections(conn, job_id=job_id).scalar()
     except db.DatabaseError as err:
+        log.error('Could not package detections for <job:%s>', job_id)
         db.print_diagnostics(err)
         raise
     finally:
@@ -378,7 +390,6 @@ def get_detections(job_id: str) -> str:
 
 
 def start_worker(
-        api_key: str = SYSTEM_API_KEY,
         job_ttl: timedelta = JOB_TTL,
         interval: timedelta = JOB_WORKER_INTERVAL):
     global _worker
@@ -388,7 +399,7 @@ def start_worker(
 
     log = logging.getLogger(__name__)
     log.info('Starting worker thread')
-    _worker = Worker(api_key, job_ttl, interval)
+    _worker = Worker(job_ttl, interval)
     _worker.start()
 
 
@@ -403,11 +414,10 @@ def stop_worker():
 
 
 class Worker(threading.Thread):
-    def __init__(self, api_key: str, job_ttl: timedelta, interval: timedelta):
+    def __init__(self, job_ttl: timedelta, interval: timedelta):
         super().__init__()
         self.daemon = True
         self._log = logging.getLogger(__name__ + '.worker')
-        self._api_key = api_key
         self._job_ttl = job_ttl
         self._interval = interval
         self._terminated = False
@@ -424,7 +434,7 @@ class Worker(threading.Thread):
             try:
                 rows = db.jobs.select_outstanding_jobs(conn).fetchall()
             except db.DatabaseError as err:
-                self._log.error('Could not list running jobs: %s', err)
+                self._log.error('Could not list running jobs')
                 db.print_diagnostics(err)
                 raise
             finally:
@@ -444,19 +454,18 @@ class Worker(threading.Thread):
 
     def _updater(self, job_id: str, created_on: datetime, index: int):
         log = self._log
-        api_key = self._api_key
         job_ttl = self._job_ttl
 
         # Get latest status
         try:
-            status = piazza.get_status(api_key, job_id)
+            status = piazza.get_status(job_id)
         except piazza.Unauthorized:
             log.error('<%03d/%s> credentials rejected during polling!', index, job_id)
             return
         except (piazza.ServerError, piazza.Error) as err:
             if isinstance(err, piazza.ServerError) and err.status_code == 404:
                 log.warning('<%03d/%s> Job not found', index, job_id)
-                _save_execution_error(job_id, 'runtime:polling-for-status', 'Job not found')
+                _save_execution_error(job_id, STEP_POLLING, 'Job not found')
                 return
             else:
                 log.error('<%03d/%s> call to Piazza failed: %s', index, job_id, err.message)
@@ -501,7 +510,7 @@ class Worker(threading.Thread):
         elif status.status == piazza.STATUS_SUCCESS:
             log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
             try:
-                detections_data_id = _resolve_detections_data_id(api_key, status.data_id)
+                detections_data_id = _resolve_detections_data_id(status.data_id)
             except PostprocessingError as err:
                 log.error('<%03d/%s> Could not resolve detections data ID: %s', index, job_id, err)
                 _save_execution_error(job_id, STEP_RESOLVE, str(err))
@@ -509,7 +518,7 @@ class Worker(threading.Thread):
 
             log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
             try:
-                geojson = piazza.get_file(api_key, detections_data_id).text
+                geojson = piazza.get_file(detections_data_id).text
             except piazza.ServerError as err:
                 log.error('<%03d/%s> Could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
                 _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not retrieve GeoJSON from Piazza')
@@ -548,7 +557,7 @@ class Worker(threading.Thread):
 # Helpers
 #
 
-def _fetch_tide_prediction(scene: service.scenes.Scene) -> (float, float, float):
+def _fetch_tide_prediction(scene: scenes.Scene) -> (float, float, float):
     log = logging.getLogger(__name__)
     x, y = _get_centroid(scene.geometry['coordinates'])
     dtg = scene.capture_date.strftime(FORMAT_DTG)
@@ -633,9 +642,9 @@ def _make_algorithm_cli_cmd(
         raise PreprocessingError(message=error_message)
 
 
-def _resolve_detections_data_id(api_key: str, output_data_id: str) -> str:
+def _resolve_detections_data_id(output_data_id: str) -> str:
     try:
-        execution_output = piazza.get_file(api_key, output_data_id).json()
+        execution_output = piazza.get_file(output_data_id).json()
         return str(execution_output['OutFiles']['shoreline.geojson'])
     except piazza.Error as err:
         raise PostprocessingError(err, 'could not fetch execution output: {}'.format(err))

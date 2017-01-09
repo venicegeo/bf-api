@@ -126,50 +126,9 @@ class GetSceneTest(unittest.TestCase):
             scenes.get('landsat:LC80110632016220LGN00')
 
 
-@rm.Mocker()
-@unittest.mock.patch('bfapi.piazza.to_auth_header', return_value='Basic Og==')
-class GetEventTypeIDTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.scenes')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
-    def test_calls_correct_url(self, m: rm.Mocker, _):
-        m.get('/eventTypeID', text=RESPONSE_EVENT_TYPE_ID)
-        scenes.get_event_type_id()
-        self.assertEqual(
-            'https://pzsvc-image-catalog.localhost/eventTypeID?pzGateway=https%3A%2F%2Fpz-gateway.localhost',
-            m.request_history[0].url,
-        )
-
-    def test_passes_correct_headers(self, m: rm.Mocker, _):
-        m.get('/eventTypeID', text=RESPONSE_EVENT_TYPE_ID)
-        scenes.get_event_type_id()
-        self.assertEqual('Basic Og==', m.request_history[0].headers['Authorization'])
-
-    def test_returns_event_type_id(self, m: rm.Mocker, _):
-        m.get('/eventTypeID', text=RESPONSE_EVENT_TYPE_ID)
-        event_type_id = scenes.get_event_type_id()
-        self.assertEqual(RESPONSE_EVENT_TYPE_ID, event_type_id)
-
-    def test_gracefully_handles_http_errors(self, m: rm.Mocker, _):
-        m.get('/eventTypeID', status_code=500, text='oh noes')
-        with self.assertRaises(scenes.CatalogError):
-            scenes.get_event_type_id()
-
-    def test_throws_if_event_type_id_is_malformed(self, m: rm.Mocker, _):
-        m.get('/eventTypeID', text='lolwut')
-        with self.assertRaises(scenes.CatalogError):
-            scenes.get_event_type_id()
-
-
 #
 # Fixtures
 #
-
-RESPONSE_EVENT_TYPE_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
 
 RESPONSE_SCENE_NOT_FOUND = (
     'Unable to retrieve metadata for landsat:LC80110632016220LGN00: redis: nil even using wildcard search'
