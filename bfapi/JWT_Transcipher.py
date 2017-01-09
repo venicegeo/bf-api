@@ -26,7 +26,7 @@ from bfapi.db import secret
 def setSingleUseKey( uuid ):
     conn = db.get_connection()
     try:
-        secret.insert_key(conn,uuid)
+        secret.insert_one_time_key(conn,uuid)
     except db.DatabaseError as err:
         db.print_diagnostics(err)
         raise
@@ -38,9 +38,9 @@ def setSingleUseKey( uuid ):
 def getSingleUseKey( string ):
     try:
         conn = db.get_connection()
-        if secret.exists(conn,string):
+        if secret.check_if_one_time_key_exists(conn,string):
             try:
-                key = secret.used_key(conn,string)
+                key = secret.find_and_mark_one_time_key_used(conn,string)
             except db.DatabaseError as err:
                 db.print_diagnostics(err)
                 raise
@@ -56,10 +56,10 @@ def getSingleUseKey( string ):
         conn.close()
 
 """Decrypts JWT and returns payload the boolean will check if its a single use key"""
-def decrypt( str ):
+def decrypt( token ):
     secret = os.getenv('JWT_SECRET')
     try:
-        payload= jwt.decode(str,secret)
+        payload= jwt.decode(token,secret)
     except jwt.ExpiredSignature:
         return handle_error({'code': 'token_expired', 'description': 'token is expired'}, 401)
     except jwt.InvalidAudienceError:
@@ -71,9 +71,8 @@ def decrypt( str ):
     if payload['JWT_OTU']=='none':       
         return payload
     else:
-        testBool = getSingleUseKey(payload['JWT_OTU'])
-        print(testBool)
-        if testBool:
+        resultBool = getSingleUseKey(payload['JWT_OTU'])
+        if resultBool:
             return payload
         else:
             return "Single Use Token Used"
