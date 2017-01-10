@@ -19,7 +19,8 @@ from bfapi.config import DOMAIN
 from bfapi.service import users
 
 AUTHORIZED_ORIGINS = (
-    'https://beachfront.' + DOMAIN,
+    'https://beachfront.{}'.format(DOMAIN),
+    'https://bf-swagger.{}'.format(DOMAIN),
     'http://localhost:8080',
 )
 
