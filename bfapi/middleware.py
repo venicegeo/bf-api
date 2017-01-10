@@ -73,16 +73,15 @@ def deflect_csrf():
 
 def force_https():
     log = logging.getLogger(__name__)
-    request = flask.request  # type: flask.Request
+    request = flask.request
     log.debug('Enforcing HTTPS on endpoint `%s`', request.path)
     if not request.is_secure:
-        return 'HTTPS is required', 400
+        return 'Access Denied: Please retry with HTTPS', 403
 
 
 def verify_api_key():
     log = logging.getLogger(__name__)
-
-    request = flask.request  # type: flask.Request
+    request = flask.request
 
     if request.path in PUBLIC_ENDPOINTS:
         log.debug('Allowing access to public endpoint `%s`', request.path)
