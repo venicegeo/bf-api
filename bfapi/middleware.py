@@ -29,6 +29,39 @@ PUBLIC_ENDPOINTS = (
 )
 
 
+def auth_filter():
+    log = logging.getLogger(__name__)
+    request = flask.request
+
+    if request.path in PUBLIC_ENDPOINTS:
+        log.debug('Allowing access to public endpoint `%s`', request.path)
+        return
+
+    if request.method == 'OPTIONS':
+        log.debug('Allowing preflight request to endpoint `%s`', request.path)
+        return
+
+    # Check session
+    api_key = flask.session.get('api_key')
+
+    # Check Authorization header
+    if not api_key and request.authorization:
+        api_key = request.authorization['username'].strip()
+
+    if not api_key:
+        return 'Missing API key', 400
+
+    try:
+        log.debug('Attaching user to request context')
+        request.user = users.authenticate_via_api_key(api_key)
+    except users.Unauthorized as err:
+        return str(err), 401
+    except users.MalformedAPIKey:
+        return 'Cannot authenticate request: API key is malformed', 400
+    except users.Error:
+        return 'Cannot authenticate request: an internal error prevents API key verification', 500
+
+
 def csrf_filter():
     """
     Basic protection against Cross-Site Request Forgery in accordance with OWASP
@@ -83,36 +116,3 @@ def https_filter():
                 request.path,
                 request.referrer)
     return 'Access Denied: Please retry with HTTPS', 403
-
-
-def auth_filter():
-    log = logging.getLogger(__name__)
-    request = flask.request
-
-    if request.path in PUBLIC_ENDPOINTS:
-        log.debug('Allowing access to public endpoint `%s`', request.path)
-        return
-
-    if request.method == 'OPTIONS':
-        log.debug('Allowing preflight request to endpoint `%s`', request.path)
-        return
-
-    # Check session
-    api_key = flask.session.get('api_key')
-
-    # Check Authorization header
-    if not api_key and request.authorization:
-        api_key = request.authorization['username'].strip()
-
-    if not api_key:
-        return 'Missing API key', 400
-
-    try:
-        log.debug('Attaching user to request context')
-        request.user = users.authenticate_via_api_key(api_key)
-    except users.Unauthorized as err:
-        return str(err), 401
-    except users.MalformedAPIKey:
-        return 'Cannot authenticate request: API key is malformed', 400
-    except users.Error:
-        return 'Cannot authenticate request: an internal error prevents API key verification', 500
