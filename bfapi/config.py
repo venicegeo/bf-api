@@ -20,6 +20,7 @@ from datetime import timedelta
 ################################################################################
 _errors = []
 def validate(failfast: bool = True):
+    if not SESSION_SECRET: _errors.append('SESSION_SECRET cannot be blank')
     if not PIAZZA_API_KEY: _errors.append('PIAZZA_API_KEY cannot be blank')
     if not POSTGRES_HOST: _errors.append('POSTGRES_HOST cannot be blank')
     if not POSTGRES_PORT: _errors.append('POSTGRES_PORT cannot be blank')
@@ -91,6 +92,7 @@ CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + DOMAIN)
 TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + DOMAIN)
 
 PIAZZA_API_KEY = os.getenv('PIAZZA_API_KEY')
+SESSION_SECRET = os.getenv('SESSION_SECRET', os.urandom(24).hex())
 
 GEOAXIS           = os.getenv('GEOAXIS')
 GEOAXIS_CLIENT_ID = os.getenv('GEOAXIS_CLIENT_ID')

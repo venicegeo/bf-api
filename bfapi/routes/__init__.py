@@ -49,6 +49,7 @@ def login():
     except users.Error:
         return 'Cannot log in: an internal error prevents authentication', 500
 
+    flask.session['api_key'] = user.api_key
     return flask.jsonify({
         'api_key': user.api_key,
     })

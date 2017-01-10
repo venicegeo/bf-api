@@ -44,8 +44,13 @@ def verify_api_key():
         log.debug('Allowing preflight request to endpoint `%s`', request.path)
         return
 
-    auth = request.authorization  # type: dict
-    api_key = auth['username'].strip() if auth else None
+    # Check session
+    api_key = flask.session.get('api_key')
+
+    # Check Authorization header
+    if not api_key and request.authorization:
+        api_key = request.authorization['username'].strip()
+
     if not api_key:
         return 'Missing API key', 400
 

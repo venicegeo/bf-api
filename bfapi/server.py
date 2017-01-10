@@ -76,6 +76,8 @@ def init(app):
     config.validate()
     db.init()
 
+    app.secret_key = config.SESSION_SECRET
+
     install_service_assets()
     attach_routes(app)
     start_background_tasks()
