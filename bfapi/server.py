@@ -20,9 +20,9 @@ FALLBACK_MIMETYPE = 'text/plain'
 
 
 def attach_routes(app: flask.Flask):
-    app.before_request(middleware.force_https)
-    app.before_request(middleware.deflect_csrf)
-    app.before_request(middleware.verify_api_key)
+    app.before_request(middleware.https_filter)
+    app.before_request(middleware.csrf_filter)
+    app.before_request(middleware.auth_filter)
 
     CORS(app,
          origins=middleware.AUTHORIZED_ORIGINS,

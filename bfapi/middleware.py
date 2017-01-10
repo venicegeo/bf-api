@@ -29,7 +29,7 @@ PUBLIC_ENDPOINTS = (
 )
 
 
-def deflect_csrf():
+def csrf_filter():
     """
     Basic protection against Cross-Site Request Forgery in accordance with OWASP
     recommendations.  This middleware uses heuristics to identify CORS requests
@@ -71,15 +71,21 @@ def deflect_csrf():
     return 'Access Denied: CORS request validation failed', 403
 
 
-def force_https():
+def https_filter():
     log = logging.getLogger(__name__)
     request = flask.request
-    log.debug('Enforcing HTTPS on endpoint `%s`', request.path)
-    if not request.is_secure:
-        return 'Access Denied: Please retry with HTTPS', 403
+
+    if request.is_secure:
+        log.debug('Allowing HTTPS request: endpoint=`%s` referrer=`%s`', request.path, request.referrer)
+        return
+
+    log.warning('Rejecting non-HTTPS request: endpoint=`%s` referrer=`%s`',
+                request.path,
+                request.referrer)
+    return 'Access Denied: Please retry with HTTPS', 403
 
 
-def verify_api_key():
+def auth_filter():
     log = logging.getLogger(__name__)
     request = flask.request
 
@@ -108,7 +114,5 @@ def verify_api_key():
         return str(err), 401
     except users.MalformedAPIKey:
         return 'Cannot authenticate request: API key is malformed', 400
-    except users.GeoaxisUnreachable:
-        return 'Cannot authenticate request: GeoAxis cannot be reached', 503
     except users.Error:
         return 'Cannot authenticate request: an internal error prevents API key verification', 500
