@@ -11,8 +11,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import re
-
 import flask
 from flask_cors import CORS
 
@@ -21,12 +19,13 @@ from bfapi import config, db, middleware, routes, service
 
 def attach_routes(app: flask.Flask):
     app.before_request(middleware.force_https)
+    app.before_request(middleware.deflect_csrf)
     app.before_request(middleware.verify_api_key)
 
-    CORS(app, max_age=1200, origins=[
-        re.compile(r'^https://.*\.geointservices\.io$'),
-        re.compile(r'^https?://localhost:8080$'),
-    ])
+    CORS(app,
+         origins=middleware.AUTHORIZED_ORIGINS,
+         max_age=1200,
+         supports_credentials=True)
 
     # Public Endpoints
     app.add_url_rule('/', view_func=routes.health_check, methods=['GET'])

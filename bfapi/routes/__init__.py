@@ -15,6 +15,7 @@ import time
 
 import flask
 
+from bfapi.config import DOMAIN
 from bfapi.service import users
 from bfapi.routes import v0
 
@@ -50,6 +51,6 @@ def login():
         return 'Cannot log in: an internal error prevents authentication', 500
 
     flask.session['api_key'] = user.api_key
-    return flask.jsonify({
-        'api_key': user.api_key,
-    })
+
+    # Send user back to the UI
+    return flask.redirect('https://beachfront.{}?logged_in=true'.format(DOMAIN))

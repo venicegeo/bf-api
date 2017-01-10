@@ -15,12 +15,60 @@ import logging
 
 import flask
 
+from bfapi.config import DOMAIN
 from bfapi.service import users
+
+AUTHORIZED_ORIGINS = (
+    'https://beachfront.' + DOMAIN,
+    'http://localhost:8080',
+)
 
 PUBLIC_ENDPOINTS = (
     '/',
     '/login',
 )
+
+
+def deflect_csrf():
+    """
+    Basic protection against Cross-Site Request Forgery in accordance with OWASP
+    recommendations.  This middleware uses heuristics to identify CORS requests
+    and checks the origin of those against the list of allowed origins.
+
+    Reference:
+      https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)_Prevention_Cheat_Sheet
+    """
+
+    log = logging.getLogger(__name__)
+    request = flask.request
+
+    if request.path in PUBLIC_ENDPOINTS:
+        log.debug('Allowing access to public endpoint `%s`', request.path)
+        return
+
+    # Explicitly allow...
+    origin = request.headers.get('Origin')
+    if origin in AUTHORIZED_ORIGINS:
+        log.debug('Allowing CORS access to protected endpoint `%s` from authorized origin `%s`', request.path, origin)
+        return
+    elif not origin and not request.referrer:
+        log.debug('Allowing non-CORS access to protected endpoint `%s`', request.path)
+        return
+
+    # ...and reject everything else
+    error_description = 'Possible CSRF attempt from unknown origin'
+    if not origin and request.referrer:
+        # This can be the case with <script src="http://bf-api/v0/job"></script>
+        # which is not a legitimate usage of the Beachfront API
+        error_description = 'Possible CSRF attempt via <script/> tag'
+
+    log.warning('%s: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s`',
+                error_description,
+                request.path,
+                origin,
+                request.referrer,
+                request.remote_addr)
+    return 'Access Denied: CORS request validation failed', 403
 
 
 def force_https():
