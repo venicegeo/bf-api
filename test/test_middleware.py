@@ -11,14 +11,15 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import io
 import logging
 import unittest
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 
 import flask
 
 from bfapi.service import users
-from bfapi.middleware import verify_api_key
+from bfapi import middleware
 
 API_KEY = 'aaaaaaaabbbbccccddddeeeeeeeeeeee'
 
@@ -91,20 +92,52 @@ class VerifyApiKeyFilterTest(unittest.TestCase):
             self.assertEqual(('Cannot authenticate request: an internal error prevents API key verification', 500), response)
 
 
+
+class HTTPSFilterTest(unittest.TestCase):
+    def setUp(self):
+        self._logger = logging.getLogger('bfapi.middleware')
+        self._logger.disabled = True
+
+        self.request = self.create_mock('flask.request', path='/test-path', referrer='http://test-referrer')
+
+    def create_mock(self, target_name, **kwargs):
+        patcher = patch(target_name, **kwargs)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def create_logstream(self) -> io.StringIO:
+        def cleanup():
+            self._logger.propagate = True
+
+        self._logger.propagate = False
+        self._logger.disabled = False
+        stream = io.StringIO()
+        handler = logging.StreamHandler(stream)
+        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+        self._logger.addHandler(handler)
+        self.addCleanup(cleanup)
+        return stream
+
+    def tearDown(self):
+        self._logger.disabled = False
+
+    def test_rejects_non_https_requests(self):
+        self.request.is_secure = False
+        response = middleware.https_filter()
+        self.assertEqual(('Access Denied: Please retry with HTTPS', 403), response)
+
+    def test_logs_rejection(self):
+        self.request.is_secure = False
+        logstream = self.create_logstream()
+        middleware.https_filter()
+        self.assertEqual([
+            'WARNING - Rejecting non-HTTPS request: endpoint=`/test-path` referrer=`http://test-referrer`',
+        ], logstream.getvalue().splitlines())
+
+
 #
 # Helpers
 #
-
-def create_request(path: str = '/', *, api_key: str):
-    return patch(
-        'flask.request',
-        spec=flask.Request,
-        path=path,
-        authorization={
-            'username': api_key,
-        },
-    )
-
 
 def create_user() -> users.User:
     return users.User(
@@ -112,10 +145,3 @@ def create_user() -> users.User:
         api_key=API_KEY,
         name='test-name',
     )
-
-
-#
-# Fixtures
-#
-
-RESPONSE_SUCCESS = 'RESPONSE_SUCCESS'
