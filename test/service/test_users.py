@@ -93,8 +93,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_get_by_id.return_value = create_user_db_record()
         users.authenticate_via_geoaxis('test-auth-code')
         self.assertSetEqual({
-            # 'redirect_uri=https%3A%2F%2Fbf-api.localhost',
-            'redirect_uri=https%3A%2F%2Fbf-api.int.geointservices.io',  # HACK -- remove this once correct domains get whitelisted
+            'redirect_uri=https%3A%2F%2Fbf-api.localhost',
             'code=test-auth-code',
             'grant_type=authorization_code',
         }, set(self.mock_requests.request_history[0].body.split('&')))
