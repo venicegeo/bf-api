@@ -157,7 +157,9 @@ cf set-env bf-api PIAZZA_API_KEY <valid Piazza API key>
 | `DOMAIN`            | Overrides the domain where the other services can be found (automatically injected by Pivotal CloudFoundry) |
 | `PORT`              | Overrides the default listening port (automatically injected by Pivotal CloudFoundry) |
 | `VCAP_SERVICES`     | Overrides the default [PCF `VCAP_SERVICES`](https://docs.run.pivotal.io/devguide/deploy-apps/environment-variable.html#VCAP-SERVICES) (automatically injected by A Pivotal CloudFoundry) |
+| `UI`                | Overrides the Beachfront UI hostname |
 | `PIAZZA`            | Overrides the Piazza hostname |
 | `CATALOG`           | Overrides the Image Catalog hostname |
+| `SESSION_SECRET`    | Overrides the randomly-generated secret key used by Flask for session I/O |
 | `TIDE_SERVICE`      | Overrides the Tide Prediction service hostname |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |

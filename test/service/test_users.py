@@ -53,11 +53,6 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
-    def override_constant(self, target_name, value):
-        patcher = patch(target_name, value)
-        self.addCleanup(patcher.stop)
-        return patcher.start()
-
     def create_logstream(self) -> io.StringIO:
         def cleanup():
             self._logger.propagate = True
@@ -70,6 +65,11 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self._logger.addHandler(handler)
         self.addCleanup(cleanup)
         return stream
+
+    def override_constant(self, target_name, value):
+        patcher = patch(target_name, value)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
 
     def test_calls_correct_url_for_token_request(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)

@@ -109,29 +109,6 @@ class ConfigurationValidateTest(unittest.TestCase):
             config.validate(failfast=False)
 
 
-class ConfigurationGetDomain(unittest.TestCase):
-    def setUp(self):
-        self._DOMAIN = os.getenv('DOMAIN')
-
-    def tearDown(self):
-        self.override(self._DOMAIN)
-
-    def override(self, value):
-        if value is None:
-            if 'DOMAIN' in os.environ:
-                os.environ.pop('DOMAIN')
-        else:
-            os.environ['DOMAIN'] = value
-
-    def test_normalizes_domain(self):
-        self.override('int.test-domain')
-        self.assertEqual('stage.test-domain', config._getdomain())
-
-    def test_returns_localhost_if_not_defined(self):
-        self.override(None)
-        self.assertEqual('localhost', config._getdomain())
-
-
 class ConfigureGetServices(unittest.TestCase):
     maxDiff = None
 

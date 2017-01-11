@@ -221,6 +221,7 @@ def get_user_data():
     return flask.jsonify({
         'profile': {
             'username': flask.request.user.user_id,
+            'api_key': flask.request.user.api_key,
             'joined_on': flask.request.user.created_on,
         },
         'services': {

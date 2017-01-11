@@ -15,26 +15,24 @@ import logging
 
 import flask
 
+from bfapi.config import DOMAIN, UI
 from bfapi.service import users
+
+AUTHORIZED_ORIGINS = (
+    'https://{}'.format(UI),
+    'https://bf-swagger.{}'.format(DOMAIN),
+)
 
 PUBLIC_ENDPOINTS = (
     '/',
     '/login',
+    '/login/geoaxis',
 )
 
 
-def force_https():
+def auth_filter():
     log = logging.getLogger(__name__)
-    request = flask.request  # type: flask.Request
-    log.debug('Enforcing HTTPS on endpoint `%s`', request.path)
-    if not request.is_secure:
-        return 'HTTPS is required', 400
-
-
-def verify_api_key():
-    log = logging.getLogger(__name__)
-
-    request = flask.request  # type: flask.Request
+    request = flask.request
 
     if request.path in PUBLIC_ENDPOINTS:
         log.debug('Allowing access to public endpoint `%s`', request.path)
@@ -44,10 +42,15 @@ def verify_api_key():
         log.debug('Allowing preflight request to endpoint `%s`', request.path)
         return
 
-    auth = request.authorization  # type: dict
-    api_key = auth['username'].strip() if auth else None
+    # Check session
+    api_key = flask.session.get('api_key')
+
+    # Check Authorization header
+    if not api_key and request.authorization:
+        api_key = request.authorization['username'].strip()
+
     if not api_key:
-        return 'Missing API key', 400
+        return 'Cannot authenticate request: API key is missing', 400
 
     try:
         log.debug('Attaching user to request context')
@@ -56,7 +59,61 @@ def verify_api_key():
         return str(err), 401
     except users.MalformedAPIKey:
         return 'Cannot authenticate request: API key is malformed', 400
-    except users.GeoaxisUnreachable:
-        return 'Cannot authenticate request: GeoAxis cannot be reached', 503
     except users.Error:
         return 'Cannot authenticate request: an internal error prevents API key verification', 500
+
+
+def csrf_filter():
+    """
+    Basic protection against Cross-Site Request Forgery in accordance with OWASP
+    recommendations.  This middleware uses heuristics to identify CORS requests
+    and checks the origin of those against the list of allowed origins.
+
+    Reference:
+      https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)_Prevention_Cheat_Sheet
+    """
+
+    log = logging.getLogger(__name__)
+    request = flask.request
+
+    if request.path in PUBLIC_ENDPOINTS:
+        log.debug('Allowing access to public endpoint `%s`', request.path)
+        return
+
+    # Explicitly allow...
+    origin = request.headers.get('Origin')
+    if origin in AUTHORIZED_ORIGINS:
+        log.debug('Allowing CORS access to protected endpoint `%s` from authorized origin `%s`', request.path, origin)
+        return
+    elif not origin and not request.referrer:
+        log.debug('Allowing non-CORS access to protected endpoint `%s`', request.path)
+        return
+
+    # ...and reject everything else
+    error_description = 'Possible CSRF attempt from unknown origin'
+    if not origin and request.referrer:
+        # This can be the case with <script src="http://bf-api/v0/job"></script>
+        # which is not a legitimate usage of the Beachfront API
+        error_description = 'Possible CSRF attempt via <script/> tag'
+
+    log.warning('%s: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s`',
+                error_description,
+                request.path,
+                origin,
+                request.referrer,
+                request.remote_addr)
+    return 'Access Denied: CORS request validation failed', 403
+
+
+def https_filter():
+    log = logging.getLogger(__name__)
+    request = flask.request
+
+    if request.is_secure:
+        log.debug('Allowing HTTPS request: endpoint=`%s` referrer=`%s`', request.path, request.referrer)
+        return
+
+    log.warning('Rejecting non-HTTPS request: endpoint=`%s` referrer=`%s`',
+                request.path,
+                request.referrer)
+    return 'Access Denied: Please retry with HTTPS', 403
