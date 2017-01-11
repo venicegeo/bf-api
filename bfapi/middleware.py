@@ -26,7 +26,7 @@ AUTHORIZED_ORIGINS = (
 PUBLIC_ENDPOINTS = (
     '/',
     '/login',
-    '/login/start',
+    '/login/geoaxis',
 )
 
 

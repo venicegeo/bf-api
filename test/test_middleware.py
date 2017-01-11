@@ -62,7 +62,7 @@ class AuthFilterTest(unittest.TestCase):
         endpoints = (
             '/',
             '/login',
-            '/login/start',
+            '/login/geoaxis',
         )
         for endpoint in endpoints:
             self.request.reset_mock()

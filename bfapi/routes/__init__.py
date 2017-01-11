@@ -58,6 +58,9 @@ def login():
 
 
 def login_start():
+    """
+    Avoid having to drop GeoAxis configuration into bf-ui
+    """
     params = urllib.parse.urlencode((
         ('client_id', GEOAXIS_CLIENT_ID),
         ('redirect_uri', 'https://bf-api.{}/login'.format(DOMAIN)),
