@@ -38,7 +38,6 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule(methods=['GET'], rule='/login/heartbeat', view_func=routes.is_login_active)
 
     # API v0
-<<<<<<< HEAD
     app.add_url_rule('/v0/user', view_func=routes.v0.get_user_data, methods=['GET'])
     app.add_url_rule('/v0/algorithm', view_func=routes.v0.list_algorithms, methods=['GET'])
     app.add_url_rule('/v0/algorithm/<service_id>', view_func=routes.v0.get_algorithm, methods=['GET'])
@@ -55,7 +54,6 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule('/v0/scene/event/harvest', view_func=routes.v0.on_harvest_event, methods=['POST'])
     app.add_url_rule('/v0/JWT/encrypt', view_func=routes.v0.encrypt_JWT, methods=['POST'])
     app.add_url_rule('/v0/JWT/decrypt', view_func=routes.v0.decrypt_JWT, methods=['POST'])
-=======
     app.add_url_rule(methods=['GET'], rule='/v0/user', view_func=routes.v0.get_user_data)
     app.add_url_rule(methods=['GET'], rule='/v0/algorithm', view_func=routes.v0.list_algorithms)
     app.add_url_rule(methods=['GET'], rule='/v0/algorithm/<service_id>', view_func=routes.v0.get_algorithm)
@@ -69,7 +67,7 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule(methods=['GET'], rule='/v0/productline', view_func=routes.v0.list_productlines)
     app.add_url_rule(methods=['POST'], rule='/v0/productline', view_func=routes.v0.create_productline)
     app.add_url_rule(methods=['DELETE'], rule='/v0/productline/<productline_id>', view_func=routes.v0.delete_productline)
->>>>>>> master
+
 
 
 def banner():
