@@ -15,13 +15,12 @@ import logging
 
 import flask
 
-from bfapi.config import DOMAIN
+from bfapi.config import DOMAIN, UI
 from bfapi.service import users
 
 AUTHORIZED_ORIGINS = (
-    'https://beachfront.{}'.format(DOMAIN),
+    'https://{}'.format(UI),
     'https://bf-swagger.{}'.format(DOMAIN),
-    'https://localhost:8080',
 )
 
 PUBLIC_ENDPOINTS = (
