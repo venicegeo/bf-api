@@ -50,7 +50,7 @@ def auth_filter():
         api_key = request.authorization['username'].strip()
 
     if not api_key:
-        return 'Missing API key', 400
+        return 'Cannot authenticate request: API key is missing', 400
 
     try:
         log.debug('Attaching user to request context')

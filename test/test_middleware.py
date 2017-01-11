@@ -14,26 +14,32 @@
 import io
 import logging
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import call, patch
 
 import flask
 
 from bfapi.service import users
 from bfapi import middleware
 
-API_KEY = 'aaaaaaaabbbbccccddddeeeeeeeeeeee'
 
-
-@patch('bfapi.service.users.authenticate_via_api_key', side_effect=lambda _: create_user())
-class VerifyApiKeyFilterTest(unittest.TestCase):
+class AuthFilterTest(unittest.TestCase):
     def setUp(self):
         self._logger = logging.getLogger('bfapi.middleware')
         self._logger.disabled = True
 
+        self.mock_authenticate = self.create_mock('bfapi.service.users.authenticate_via_api_key', side_effect=create_user)
+        self.request = self.create_mock('flask.request', spec=flask.Request)
+        self.session = self.create_mock('flask.session', new={})
+
     def tearDown(self):
         self._logger.disabled = False
 
-    def test_checks_api_key_on_every_request(self, mock: MagicMock):
+    def create_mock(self, target_name, **kwargs):
+        patcher = patch(target_name, **kwargs)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def test_checks_api_key_for_protected_endpoints(self):
         endpoints = (
             '/v0/services',
             '/v0/algorithm',
@@ -46,50 +52,73 @@ class VerifyApiKeyFilterTest(unittest.TestCase):
             '/some/random/unmapped/path',
         )
         for endpoint in endpoints:
-            with create_request(endpoint, api_key=API_KEY):
-                verify_api_key()
-        self.assertEqual(len(endpoints), mock.call_count)
+            self.request.reset_mock()
+            self.request.path = endpoint
+            self.request.authorization = {'username': 'test-api-key'}
+            middleware.auth_filter()
+        self.assertEqual(len(endpoints), self.mock_authenticate.call_count)
 
-    def test_allows_public_endpoints_to_pass_through(self, mock: MagicMock):
+    def test_allows_public_endpoints_to_pass_through(self):
         endpoints = (
             '/',
             '/login',
         )
         for endpoint in endpoints:
-            with patch('flask.request', path=endpoint, api_key=API_KEY):
-                verify_api_key()
-        self.assertEqual(0, mock.call_count)
+            self.request.reset_mock()
+            self.request.path = endpoint
+            middleware.auth_filter()
+        self.assertEqual(0, self.mock_authenticate.call_count)
 
-    def test_attaches_user_to_request(self, _):
-        with create_request('/protected', api_key=API_KEY) as request:
-            self.assertFalse(hasattr(request, 'username'))
-            verify_api_key()
-            self.assertIsInstance(request.user, users.User)
-            self.assertEqual('test-user-id', request.user.user_id)
-            self.assertEqual(API_KEY, request.user.api_key)
+    def test_can_read_api_key_from_session(self):
+        self.request.path = '/protected'
+        self.request.authorization = None
+        self.session['api_key'] = 'test-api-key-from-session'
+        self.assertFalse(hasattr(self.request, 'user'))
+        middleware.auth_filter()
+        self.assertEqual(call('test-api-key-from-session'), self.mock_authenticate.call_args)
 
-    def test_rejects_if_api_key_is_missing(self, _):
-        with create_request('/protected', api_key=''):
-            response = verify_api_key()
-            self.assertEqual(('Missing API key', 400), response)
+    def test_can_read_api_key_from_authorization_header(self):
+        self.request.path = '/protected'
+        self.request.authorization = {'username': 'test-api-key-from-auth-header'}
+        self.assertFalse(hasattr(self.request, 'user'))
+        middleware.auth_filter()
+        self.assertEqual(call('test-api-key-from-auth-header'), self.mock_authenticate.call_args)
 
-    def test_rejects_when_geoaxis_throws(self, mock: MagicMock):
-        mock.side_effect = users.GeoaxisError(500)
-        with create_request('/protected', api_key=API_KEY):
-            response = verify_api_key()
-            self.assertEqual(('Cannot authenticate request: an internal error prevents API key verification', 500), response)
+    def test_attaches_user_to_request(self):
+        self.request.path = '/protected'
+        self.request.authorization = {'username': 'test-api-key'}
+        self.assertFalse(hasattr(self.request, 'user'))
+        middleware.auth_filter()
+        self.assertIsInstance(self.request.user, users.User)
+        self.assertEqual('test-user-id', self.request.user.user_id)
+        self.assertEqual('test-api-key', self.request.user.api_key)
 
-    def test_rejects_when_geoaxis_is_down(self, mock: MagicMock):
-        mock.side_effect = users.GeoaxisUnreachable()
-        with create_request('/protected', api_key=API_KEY):
-            response = verify_api_key()
-            self.assertEqual(('Cannot authenticate request: GeoAxis cannot be reached', 503), response)
+    def test_rejects_if_api_key_is_missing(self):
+        self.request.path = '/protected'
+        self.request.authorization = {'username': ''}
+        response = middleware.auth_filter()
+        self.assertEqual(('Cannot authenticate request: API key is missing', 400), response)
 
-    def test_rejects_when_encountering_unexpected_verification_error(self, mock: MagicMock):
-        mock.side_effect = users.Error('random error of known type')
-        with create_request('/protected', api_key=API_KEY):
-            response = verify_api_key()
-            self.assertEqual(('Cannot authenticate request: an internal error prevents API key verification', 500), response)
+    def test_rejects_if_api_key_is_malformed(self):
+        self.mock_authenticate.side_effect = users.MalformedAPIKey()
+        self.request.path = '/protected'
+        self.request.authorization = {'username': 'lorem'}
+        response = middleware.auth_filter()
+        self.assertEqual(('Cannot authenticate request: API key is malformed', 400), response)
+
+    def test_rejects_when_api_key_is_not_active(self):
+        self.mock_authenticate.side_effect = users.Unauthorized('negative ghost rider')
+        self.request.path = '/protected'
+        self.request.authorization = {'username': 'test-api-key'}
+        response = middleware.auth_filter()
+        self.assertEqual(('Unauthorized: negative ghost rider', 401), response)
+
+    def test_rejects_when_encountering_unexpected_verification_error(self):
+        self.mock_authenticate.side_effect = users.Error('random error of known type')
+        self.request.path = '/protected'
+        self.request.authorization = {'username': 'test-api-key'}
+        response = middleware.auth_filter()
+        self.assertEqual(('Cannot authenticate request: an internal error prevents API key verification', 500), response)
 
 
 
@@ -139,9 +168,9 @@ class HTTPSFilterTest(unittest.TestCase):
 # Helpers
 #
 
-def create_user() -> users.User:
+def create_user(api_key: str) -> users.User:
     return users.User(
         user_id='test-user-id',
-        api_key=API_KEY,
+        api_key=api_key,
         name='test-name',
     )
