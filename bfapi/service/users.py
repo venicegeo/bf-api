@@ -193,8 +193,7 @@ def _request_geoaxis_access_token(auth_code: str):
             data={
                 'grant_type': 'authorization_code',
                 'code': auth_code,
-                # 'redirect_uri': 'https://bf-api.{}/login'.format(DOMAIN),
-                'redirect_uri': 'https://bf-api.int.geointservices.io',  # HACK
+                'redirect_uri': 'https://bf-api.{}/login'.format(DOMAIN),
             },
         )
         log.debug('Received response: %s', response.text)
