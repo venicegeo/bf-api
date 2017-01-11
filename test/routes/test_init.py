@@ -35,9 +35,10 @@ class LoginTest(unittest.TestCase):
         self._logger = logging.getLogger('bfapi.routes')
         self._logger.disabled = True
 
-        self.mock_authenticate = self.create_mock('bfapi.service.users.authenticate_via_geoaxis', return_value=create_user())
-        self.mock_jsonify = self.create_mock('flask.jsonify', side_effect=dict)
+        self.mock_authenticate = self.create_mock('bfapi.service.users.authenticate_via_geoaxis', return_value=None)
+        self.mock_redirect = self.create_mock('flask.redirect')
         self.request = self.create_mock('flask.request', path='/login', args={})
+        self.session = self.create_mock('flask.session', new={})
 
     def tearDown(self):
         self._logger.disabled = False
@@ -58,24 +59,33 @@ class LoginTest(unittest.TestCase):
         self.assertEqual(('Cannot log in: invalid "code" query parameter', 400), response)
 
     def test_passes_correct_auth_code_to_users_service(self):
+        self.mock_authenticate.return_value = create_user()
         self.request.args = {'code': 'test-auth-code'}
         routes.login()
         self.assertEqual(call('test-auth-code'), self.mock_authenticate.call_args)
 
-    def test_returns_api_key_when_credentials_accepted(self):
+    def test_attaches_api_key_to_session_on_auth_success(self):
+        self.mock_authenticate.return_value = create_user()
+        self.request.args = {'code': 'test-auth-code'}
+        routes.login()
+        self.assertEqual({'api_key': 'test-api-key'}, self.session)
+
+    def test_redirects_to_ui_url_on_auth_success(self):
+        self.mock_authenticate.return_value = create_user()
         self.request.args = {'code': 'test-auth-code'}
         response = routes.login()
-        self.assertEqual({'api_key': 'test-api-key'}, response)
+        self.assertEqual(self.mock_redirect.return_value, response)
+        self.assertEqual(call('https://beachfront.localhost?logged_in=true'), self.mock_redirect.call_args)
 
     def test_rejects_when_credentials_are_rejected(self):
-        self.request.args = {'code': 'test-auth-code'}
         self.mock_authenticate.side_effect = users.Unauthorized('test-error-message')
+        self.request.args = {'code': 'test-auth-code'}
         response = routes.login()
         self.assertEqual(('Unauthorized: test-error-message', 401), response)
 
     def test_rejects_when_users_service_throws(self):
-        self.request.args = {'code': 'test-auth-code'}
         self.mock_authenticate.side_effect = users.Error('oh noes')
+        self.request.args = {'code': 'test-auth-code'}
         response = routes.login()
         self.assertEqual(('Cannot log in: an internal error prevents authentication', 500), response)
 
