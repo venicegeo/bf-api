@@ -21,6 +21,7 @@ from bfapi.service import users
 AUTHORIZED_ORIGINS = (
     'https://{}'.format(UI),
     'https://bf-swagger.{}'.format(DOMAIN),
+    'https://localhost:8080',
 )
 
 PUBLIC_ENDPOINTS = (
