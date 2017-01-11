@@ -121,6 +121,147 @@ class AuthFilterTest(unittest.TestCase):
         self.assertEqual(('Cannot authenticate request: an internal error prevents API key verification', 500), response)
 
 
+class CSRFFilterTest(unittest.TestCase):
+    maxDiff = 4096
+
+    def setUp(self):
+        self._logger = logging.getLogger('bfapi.middleware')
+        self._logger.disabled = True
+
+        self.request = self.create_mock('flask.request', spec=flask.Request, headers={}, referrer=None, remote_addr='1.2.3.4')
+
+    def tearDown(self):
+        self._logger.disabled = False
+
+    def create_mock(self, target_name, **kwargs):
+        patcher = patch(target_name, **kwargs)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def create_logstream(self) -> io.StringIO:
+        def cleanup():
+            self._logger.propagate = True
+
+        self._logger.propagate = False
+        self._logger.disabled = False
+        stream = io.StringIO()
+        handler = logging.StreamHandler(stream)
+        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+        self._logger.addHandler(handler)
+        self.addCleanup(cleanup)
+        return stream
+
+    def test_allows_non_cors_requests(self):
+        endpoints = (
+            '/v0/services',
+            '/v0/algorithm',
+            '/v0/algorithm/test-service-id',
+            '/v0/job',
+            '/v0/job/test-job-id',
+            '/v0/job/by_scene/test-scene-id',
+            '/v0/job/by_productline/test-productline-id',
+            '/v0/productline',
+            '/some/random/unmapped/path',
+        )
+        for endpoint in endpoints:
+            self.request.reset_mock()
+            self.request.path = endpoint
+            self.request.headers['Origin'] = ''
+            self.request.referrer = None
+            response = middleware.csrf_filter()
+            self.assertIsNone(response)
+
+    def test_allows_cors_requests_from_authorized_origins(self):
+        origins = middleware.AUTHORIZED_ORIGINS
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = origin
+            response = middleware.csrf_filter()
+            self.assertIsNone(response)
+
+    def test_rejects_cors_requests_from_unknown_origins(self):
+        origins = (
+            'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://instaspotifriendspacebooksterifygram.com',
+            'https://beachfront.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://bf-api.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://bf-swagger.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+        )
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = origin
+            response = middleware.csrf_filter()
+            self.assertEqual(('Access Denied: CORS request validation failed', 403), response)
+
+    def test_rejects_cors_requests_suspected_as_spoofed(self):
+        origins = (
+            'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://instaspotifriendspacebooksterifygram.com',
+            'https://beachfront.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://bf-api.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://bf-swagger.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+        )
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = None
+            self.request.referrer = origin
+            response = middleware.csrf_filter()
+            self.assertEqual(('Access Denied: CORS request validation failed', 403), response)
+
+    def test_logs_rejection_of_cors_requests_from_unknown_origin(self):
+        logstream = self.create_logstream()
+        origins = (
+            'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://instaspotifriendspacebooksterifygram.com',
+            'https://beachfront.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://bf-api.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://bf-swagger.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+        )
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = origin
+            middleware.csrf_filter()
+        self.assertEqual([
+            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`http://beachfront.localhost` referrer=`None` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`http://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`http://instaspotifriendspacebooksterifygram.com` referrer=`None` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`https://beachfront.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`https://bf-api.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`https://bf-swagger.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4`',
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_rejection_of_cors_requests_suspected_of_script_tag_spoofing(self):
+        logstream = self.create_logstream()
+        origins = (
+            'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://instaspotifriendspacebooksterifygram.com',
+            'https://beachfront.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://bf-api.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://bf-swagger.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+        )
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = None
+            self.request.referrer = origin
+            middleware.csrf_filter()
+        self.assertEqual([
+            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`http://beachfront.localhost` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`http://bf-swagger.localhost` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`http://instaspotifriendspacebooksterifygram.com` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`https://beachfront.localhost.totallynotaphishingattempt.com` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`https://bf-api.localhost.totallynotaphishingattempt.com` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.localhost.totallynotaphishingattempt.com` ip=`1.2.3.4`',
+        ], logstream.getvalue().splitlines())
+
 
 class HTTPSFilterTest(unittest.TestCase):
     def setUp(self):
