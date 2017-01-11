@@ -91,7 +91,6 @@ UI           = os.getenv('UI', 'beachfront.' + _normalized_domain)
 
 
 SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
-JWT_SECRET=os.getenv('JWT_SECRET')
 
 PIAZZA_API_KEY = os.getenv('PIAZZA_API_KEY')
 SESSION_SECRET = os.getenv('SESSION_SECRET', os.urandom(24).hex())

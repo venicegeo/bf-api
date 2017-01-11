@@ -41,17 +41,6 @@ def check_if_one_time_key_exists(
     }
     return conn.execute(query, params).rowcount > 0
 
-def get_one_time_key(
-        conn: Connection,
-        key: str) -> bool:
-    query = """
-        SELECT key FROM __beachfront__secret WHERE key = %(key)s
-        """
-    params = {
-        'key': key,
-    }
-    return conn.execute(query, params)
-
 def insert_one_time_key(
         conn: Connection,
         key: str) -> None:

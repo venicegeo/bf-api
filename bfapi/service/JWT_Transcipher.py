@@ -18,9 +18,10 @@ import random
 import uuid
 import json
 
-
 from bfapi import db
+from bfapi.config import SESSION_SECRET
 from bfapi.db import secret
+
 
 """Used to set the single use key"""
 def setSingleUseKey( uuid ):
@@ -57,47 +58,52 @@ def getSingleUseKey( string ):
 
 """Decrypts JWT and returns payload the boolean will check if its a single use key"""
 def decrypt( token ):
-    secret = os.getenv('JWT_SECRET')
     try:
-        payload= jwt.decode(token,secret)
+        payload= jwt.decode(token,SESSION_SECRET)
     except jwt.ExpiredSignature:
-        return handle_error({'code': 'token_expired', 'description': 'token is expired'}, 401)
-    except jwt.InvalidAudienceError:
-        return handle_error({'code': 'invalid_audience', 'description': 'incorrect audience, expected: ' + clientID}, 401)
+        raise DecryptError('token expired')
     except jwt.DecodeError:
-        return handle_error({'code': 'token_invalid_signature', 'description': 'token signature is invalid'}, 401)
+        raise DecryptError('invalid signiture')
     except Exception:
-        return handle_error({'code': 'invalid_header', 'description':'Unable to create authentication token.'}, 400)
-    if payload['JWT_OTU']=='none':       
+        raise DecryptError('invalid header')
+    one_time_use_token= payload.get('JWT_OTU')
+    if not one_time_use_token:       
         return payload
     else:
-        resultBool = getSingleUseKey(payload['JWT_OTU'])
+        resultBool = getSingleUseKey(one_time_use_token)
         if resultBool:
             return payload
         else:
-            return "Single Use Token Used"
+            raise DecryptError('one time use token expired')
 
 
 """Encrypts payload and returns JWT"""
 def encrypt( payload ):
-    secret = os.getenv('JWT_SECRET')
-    if secret=="":
-        return "Secret has no value"
-    elif payload=="":
-        return "Payload has no value"
-    else:
-        try:
-            if payload['JWT_OTU'].lower()=="yes":
-                key=str(uuid.uuid4())
-                setSingleUseKey(key)
-                payload['JWT_OTU'] = key
-            else:
-                payload['JWT_OTU'] = 'none'
-            jwtString= jwt.encode(
-                payload,
-                secret
-                )
-        except Exception:
-            return handle_error({'code': 'invalid_header', 'description':'Unable to parse authentication token.'}, 400)
+    try:
+        if not payload.get('JWT_OTU'):
+            payload['JWT_OTU'] = None
+        else:
+            key=str(uuid.uuid4())
+            setSingleUseKey(key)
+            payload['JWT_OTU'] = key
+        jwtString= jwt.encode(
+            payload,
+            SESSION_SECRET
+            )
+    except Exception:
+        raise EncryptError('unable to decrypt')
     return jwtString
-        
+
+class Error(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class DecryptError(Error):
+    def __init__(self, message: str):
+        super().__init__('Cannot Decrypt: {}'.format(message))
+
+class EncryptError(Error):
+    def __init__(self, message: str):
+        super().__init__('Cannot Decrypt: {}'.format(message))
+
+

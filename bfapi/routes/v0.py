@@ -22,10 +22,7 @@ import json
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
 
-from bfapi.service import (algorithms as algorithms_service, jobs as jobs_service, productlines as productline_service)
-from bfapi import JWT_Transcipher as JWT_service
-
-from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines
+from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines, JWT_Transcipher as JWT_service
 
 #
 # Algorithms
@@ -67,11 +64,15 @@ def decrypt_JWT():
     try:
         bodyJSON = flask.request.get_json()
         JWT = _get_string(bodyJSON, 'JWT')
-        decryptedJWT=JWT_service.decrypt(JWT)
     except JSONDecodeError:
         return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
         return 'Invalid input: {}'.format(err), 400
+    try:
+        decryptedJWT=JWT_service.decrypt(JWT)
+    except JWTDecryptError:
+        return 
+
     return flask.jsonify(decryptedJWT), 201
 
 #
