@@ -53,11 +53,6 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
-    def override_constant(self, target_name, value):
-        patcher = patch(target_name, value)
-        self.addCleanup(patcher.stop)
-        return patcher.start()
-
     def create_logstream(self) -> io.StringIO:
         def cleanup():
             self._logger.propagate = True
@@ -70,6 +65,11 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self._logger.addHandler(handler)
         self.addCleanup(cleanup)
         return stream
+
+    def override_constant(self, target_name, value):
+        patcher = patch(target_name, value)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
 
     def test_calls_correct_url_for_token_request(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)
@@ -93,8 +93,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_get_by_id.return_value = create_user_db_record()
         users.authenticate_via_geoaxis('test-auth-code')
         self.assertSetEqual({
-            # 'redirect_uri=https%3A%2F%2Fbf-api.localhost',
-            'redirect_uri=https%3A%2F%2Fbf-api.int.geointservices.io',  # HACK -- remove this once correct domains get whitelisted
+            'redirect_uri=https%3A%2F%2Fbf-api.localhost%2Flogin',
             'code=test-auth-code',
             'grant_type=authorization_code',
         }, set(self.mock_requests.request_history[0].body.split('&')))

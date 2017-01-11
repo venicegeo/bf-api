@@ -12,9 +12,11 @@
 # specific language governing permissions and limitations under the License.
 
 import time
+import urllib.parse
 
 import flask
 
+from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_CLIENT_ID
 from bfapi.service import users
 from bfapi.routes import v0
 
@@ -49,6 +51,20 @@ def login():
     except users.Error:
         return 'Cannot log in: an internal error prevents authentication', 500
 
-    return flask.jsonify({
-        'api_key': user.api_key,
-    })
+    flask.session['api_key'] = user.api_key
+
+    # Send user back to the UI
+    return flask.redirect('https://{}?logged_in=true'.format(UI))
+
+
+def login_start():
+    """
+    Avoid having to drop GeoAxis configuration into bf-ui
+    """
+    params = urllib.parse.urlencode((
+        ('client_id', GEOAXIS_CLIENT_ID),
+        ('redirect_uri', 'https://bf-api.{}/login'.format(DOMAIN)),
+        ('response_type', 'code'),
+        ('scope', 'UserProfile.me'),
+    ))
+    return flask.redirect('https://{}/ms_oauth/oauth2/endpoints/oauthservice/authorize?{}'.format(GEOAXIS, params))
