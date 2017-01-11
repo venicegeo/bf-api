@@ -20,6 +20,8 @@ from datetime import timedelta
 ################################################################################
 _errors = []
 def validate(failfast: bool = True):
+    if not DOMAIN: _errors.append('DOMAIN cannot be blank')
+    if not UI: _errors.append('UI cannot be blank')
     if not SESSION_SECRET: _errors.append('SESSION_SECRET cannot be blank')
     if not PIAZZA_API_KEY: _errors.append('PIAZZA_API_KEY cannot be blank')
     if not POSTGRES_HOST: _errors.append('POSTGRES_HOST cannot be blank')
@@ -45,13 +47,6 @@ def validate(failfast: bool = True):
         exit(1)
     else:
         raise Exception(error_message)
-
-def _getdomain() -> str:
-    value = os.getenv('DOMAIN')
-    if not value:
-        _errors.append('DOMAIN cannot be blank')
-        return 'localhost'
-    return value.strip().replace('int.', 'stage.')
 
 def _getservices() -> dict:
     def collect(node: dict):
@@ -85,11 +80,14 @@ def _getservices() -> dict:
     return services
 ################################################################################
 
-DOMAIN = _getdomain()
+DOMAIN = os.getenv('DOMAIN', 'localhost')
 
-PIAZZA       = os.getenv('PZ_GATEWAY', 'piazza.' + DOMAIN)
-CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + DOMAIN)
-TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + DOMAIN)
+_normalized_domain = DOMAIN.replace('int.', 'stage.')
+
+PIAZZA       = os.getenv('PZ_GATEWAY', 'piazza.' + _normalized_domain)
+CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + _normalized_domain)
+TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _normalized_domain)
+UI           = os.getenv('UI', 'beachfront.' + _normalized_domain)
 
 PIAZZA_API_KEY = os.getenv('PIAZZA_API_KEY')
 SESSION_SECRET = os.getenv('SESSION_SECRET', os.urandom(24).hex())

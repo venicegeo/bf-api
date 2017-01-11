@@ -13,9 +13,7 @@
 
 import logging
 import unittest
-from unittest.mock import call, patch, MagicMock
-
-import flask
+from unittest.mock import call, patch
 
 from bfapi import routes
 from bfapi.service import users
@@ -28,6 +26,23 @@ class HealthCheckTest(unittest.TestCase):
         response = routes.health_check()
         self.assertIn('uptime', response)
         self.assertIsInstance(response['uptime'], float)
+
+
+@patch('bfapi.routes.GEOAXIS', new='geoaxis.localhost')
+@patch('bfapi.routes.GEOAXIS_CLIENT_ID', new='test-geoaxis-client-id')
+class LoginStartCheckTest(unittest.TestCase):
+    maxDiff = 4096
+
+    def test_redirects_to_geoaxis_oauth_authorization(self):
+        response = routes.login_start()
+        self.assertEqual(
+            'https://geoaxis.localhost/ms_oauth/oauth2/endpoints/oauthservice/authorize' +
+            '?client_id=test-geoaxis-client-id' +
+            '&redirect_uri=https%3A%2F%2Fbf-api.localhost%2Flogin' +
+            '&response_type=code' +
+            '&scope=UserProfile.me',
+            response.location,
+        )
 
 
 class LoginTest(unittest.TestCase):
@@ -93,14 +108,6 @@ class LoginTest(unittest.TestCase):
 #
 # Helpers
 #
-
-def create_request(path: str = '/', *, headers: dict = None):
-    return MagicMock(
-        'flask.request',
-        spec=flask.Request,
-        path=path,
-        headers=headers if headers else {},
-    )
 
 def create_user():
     return users.User(

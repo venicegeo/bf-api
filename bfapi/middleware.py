@@ -21,12 +21,13 @@ from bfapi.service import users
 AUTHORIZED_ORIGINS = (
     'https://beachfront.{}'.format(DOMAIN),
     'https://bf-swagger.{}'.format(DOMAIN),
-    'http://localhost:8080',
+    'https://localhost:8080',
 )
 
 PUBLIC_ENDPOINTS = (
     '/',
     '/login',
+    '/login/start',
 )
 
 

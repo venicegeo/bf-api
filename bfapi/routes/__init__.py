@@ -12,10 +12,11 @@
 # specific language governing permissions and limitations under the License.
 
 import time
+import urllib.parse
 
 import flask
 
-from bfapi.config import DOMAIN
+from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_CLIENT_ID
 from bfapi.service import users
 from bfapi.routes import v0
 
@@ -53,4 +54,14 @@ def login():
     flask.session['api_key'] = user.api_key
 
     # Send user back to the UI
-    return flask.redirect('https://beachfront.{}?logged_in=true'.format(DOMAIN))
+    return flask.redirect('https://{}?logged_in=true'.format(UI))
+
+
+def login_start():
+    params = urllib.parse.urlencode((
+        ('client_id', GEOAXIS_CLIENT_ID),
+        ('redirect_uri', 'https://bf-api.{}/login'.format(DOMAIN)),
+        ('response_type', 'code'),
+        ('scope', 'UserProfile.me'),
+    ))
+    return flask.redirect('https://{}/ms_oauth/oauth2/endpoints/oauthservice/authorize?{}'.format(GEOAXIS, params))

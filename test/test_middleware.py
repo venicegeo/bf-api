@@ -62,6 +62,7 @@ class AuthFilterTest(unittest.TestCase):
         endpoints = (
             '/',
             '/login',
+            '/login/start',
         )
         for endpoint in endpoints:
             self.request.reset_mock()
