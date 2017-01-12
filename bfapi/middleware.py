@@ -51,7 +51,7 @@ def auth_filter():
         api_key = request.authorization['username'].strip()
 
     if not api_key:
-        return 'Cannot authenticate request: API key is missing', 400
+        return 'Cannot authenticate request: API key is missing', 401
 
     try:
         log.debug('Attaching user to request context')
@@ -59,7 +59,7 @@ def auth_filter():
     except users.Unauthorized as err:
         return str(err), 401
     except users.MalformedAPIKey:
-        return 'Cannot authenticate request: API key is malformed', 400
+        return 'Cannot authenticate request: API key is malformed', 401
     except users.Error:
         return 'Cannot authenticate request: an internal error prevents API key verification', 500
 

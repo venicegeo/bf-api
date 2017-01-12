@@ -12,3 +12,8 @@ report
 manifest.int.yml
 manifest.stage.yml
 manifest.prod.yml
+
+.project
+
+.pydevproject
+

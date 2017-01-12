@@ -98,14 +98,14 @@ class AuthFilterTest(unittest.TestCase):
         self.request.path = '/protected'
         self.request.authorization = {'username': ''}
         response = middleware.auth_filter()
-        self.assertEqual(('Cannot authenticate request: API key is missing', 400), response)
+        self.assertEqual(('Cannot authenticate request: API key is missing', 401), response)
 
     def test_rejects_if_api_key_is_malformed(self):
         self.mock_authenticate.side_effect = users.MalformedAPIKey()
         self.request.path = '/protected'
         self.request.authorization = {'username': 'lorem'}
         response = middleware.auth_filter()
-        self.assertEqual(('Cannot authenticate request: API key is malformed', 400), response)
+        self.assertEqual(('Cannot authenticate request: API key is malformed', 401), response)
 
     def test_rejects_when_api_key_is_not_active(self):
         self.mock_authenticate.side_effect = users.Unauthorized('negative ghost rider')
