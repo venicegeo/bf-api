@@ -20,7 +20,6 @@ from bfapi.service import users
 
 AUTHORIZED_ORIGINS = (
     'https://{}'.format(UI),
-    'https://beachfront.{}'.format(DOMAIN),  # HACK -- temporary workaround for ui.int->api.stage problem
     'https://bf-swagger.{}'.format(DOMAIN),
     'https://localhost:8080',
 )
