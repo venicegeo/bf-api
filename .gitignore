@@ -11,4 +11,12 @@ report
 .pydevproject
 manifest.int.yml
 manifest.stage.yml
+<<<<<<< HEAD
 manifest.prod.yml
+=======
+manifest.prod.yml
+
+.project
+
+.pydevproject
+>>>>>>> master
