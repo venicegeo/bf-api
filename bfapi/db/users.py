@@ -13,7 +13,7 @@
 
 from bfapi.db import Connection, ResultProxy
 
-
+#Audit Log Required: db data access
 def select_user(
         conn: Connection,
         *,
@@ -28,7 +28,7 @@ def select_user(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_user_by_api_key(
         conn: Connection,
         *,
@@ -43,7 +43,7 @@ def select_user_by_api_key(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_user(
         conn: Connection,
         *,

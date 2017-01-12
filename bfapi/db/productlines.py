@@ -15,7 +15,7 @@ from datetime import date
 
 from bfapi.db import Connection, ResultProxy
 
-
+#Audit Log Required: db modifiaction delete
 def delete_productline(
         conn: Connection,
         *,
@@ -30,7 +30,7 @@ def delete_productline(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_productline(
         conn: Connection,
         *,
@@ -68,7 +68,7 @@ def insert_productline(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_productline_job(
         conn: Connection,
         *,
@@ -85,7 +85,7 @@ def insert_productline_job(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_all(conn: Connection):
     query = """
         SELECT productline_id, algorithm_id, algorithm_name, category, compute_mask, created_by,
@@ -97,7 +97,7 @@ def select_all(conn: Connection):
         """
     return conn.execute(query)
 
-
+#Audit Log Required: db data access
 def select_productline(
         conn: Connection,
         *,
@@ -115,7 +115,7 @@ def select_productline(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_summary_for_scene(
         conn: Connection,
         *,

@@ -15,6 +15,7 @@
 from bfapi.db import Connection, ResultProxy
 import datetime
 
+#Audit Log Required: db modification update
 def find_and_mark_one_time_key_used(
         conn: Connection,
         key: str) -> bool:
@@ -29,7 +30,7 @@ def find_and_mark_one_time_key_used(
     }
     return conn.execute(query, params).rowcount > 0
 
-
+#Audit Log Required: db data access
 def check_if_one_time_key_exists(
         conn: Connection,
         key: str) -> bool:
@@ -41,6 +42,7 @@ def check_if_one_time_key_exists(
     }
     return conn.execute(query, params).rowcount > 0
 
+#Audit Log Required: db modification insert
 def insert_one_time_key(
         conn: Connection,
         key: str) -> None:

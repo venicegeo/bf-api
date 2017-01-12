@@ -50,7 +50,7 @@ class Scene:
 #
 # Actions
 #
-
+#Audit Log Required: data access
 def get(scene_id: str) -> Scene:
     log = logging.getLogger(__name__)
 

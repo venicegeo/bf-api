@@ -32,7 +32,7 @@ def delete_job_user(
     }
     return conn.execute(query, params).rowcount > 0
 
-
+#Audit Log Required: db data accessed
 def exists(
         conn: Connection,
         *,
@@ -45,7 +45,7 @@ def exists(
     }
     return conn.execute(query, params).rowcount > 0
 
-#Audit Log Required: 
+#Audit Log Required: db modification insert
 def insert_detection(
         conn: Connection,
         *,
@@ -65,7 +65,7 @@ def insert_detection(
     }
     conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_job(
         conn: Connection,
         *,
@@ -101,7 +101,7 @@ def insert_job(
     }
     conn.execute(query, params)
 
-
+#Audit Log Required: db modification attempt failure
 def insert_job_failure(
         conn: Connection,
         *,
@@ -119,7 +119,7 @@ def insert_job_failure(
     }
     conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_job_user(
         conn: Connection,
         *,
@@ -136,7 +136,7 @@ def insert_job_user(
     }
     conn.execute(query, params)
 
-
+#Audit Log Required: db data accessed
 def select_detections(
         conn: Connection,
         *,
@@ -163,7 +163,7 @@ def select_detections(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data accesssed
 def select_job(
         conn: Connection,
         *,
@@ -182,7 +182,7 @@ def select_job(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_jobs_for_inputs(
         conn: Connection,
         *,
@@ -207,7 +207,7 @@ def select_jobs_for_inputs(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_jobs_for_productline(
         conn: Connection,
         *,
@@ -230,7 +230,7 @@ def select_jobs_for_productline(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data accessed
 def select_jobs_for_scene(
         conn: Connection,
         *,
@@ -249,7 +249,7 @@ def select_jobs_for_scene(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data accessed
 def select_jobs_for_user(
         conn: Connection,
         *,
@@ -270,7 +270,7 @@ def select_jobs_for_user(
     }
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data accessed
 def select_outstanding_jobs(conn: Connection) -> ResultProxy:
     query = """
         SELECT job_id, created_on

@@ -22,7 +22,7 @@ from bfapi import db
 from bfapi.config import SESSION_SECRET
 from bfapi.db import secret
 
-
+#Audit Log Required: data creation
 """Used to set the single use key"""
 def setSingleUseKey( uuid ):
     conn = db.get_connection()
@@ -35,6 +35,7 @@ def setSingleUseKey( uuid ):
         conn.close()
     return
 
+#Audit Log Required: data access
 """Used to find single use key and mark it as used"""
 def getSingleUseKey( string ):
     try:
@@ -56,6 +57,7 @@ def getSingleUseKey( string ):
     finally:
         conn.close()
 
+#Audit Log Required: action preformed
 """Decrypts JWT and returns payload the boolean will check if its a single use key"""
 def decrypt( token ):
     try:
@@ -76,7 +78,7 @@ def decrypt( token ):
         else:
             raise DecryptError('one time use token expired')
 
-
+#Audit Log Required: action preformed
 """Encrypts payload and returns JWT"""
 def encrypt( payload ):
     try:

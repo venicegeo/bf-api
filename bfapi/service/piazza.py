@@ -67,7 +67,7 @@ class ServiceDescriptor:
 #
 # Actions
 #
-
+#Audit Log Required: data created
 def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_id: str) -> str:
     try:
         response = requests.post(
@@ -115,7 +115,7 @@ def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_
 
     return trigger_id
 
-
+#Audit Log Required: action preformed
 def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
     try:
         response = requests.post(
@@ -166,7 +166,7 @@ def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10)
         else:
             raise DeploymentError('unexpected deployment job status: ' + status.status)
 
-
+#Audit Log Required: action preformed
 def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str:
     try:
         response = requests.post(
@@ -207,7 +207,7 @@ def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str
 
     return job_id
 
-
+#Audit Log Required: data access
 def get_file(data_id: str) -> requests.Response:
     try:
         response = requests.get(
@@ -250,7 +250,7 @@ def get_service(service_id: str) -> ServiceDescriptor:
 
     return _to_service_descriptor(datum, response.text)
 
-
+#Audit Log Required: data access
 def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
     try:
         response = requests.get(
@@ -279,7 +279,7 @@ def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
 
     return [_to_service_descriptor(datum, response.text) for datum in data]
 
-
+#Audit Log Required: data access
 def get_status(job_id: str) -> Status:
     try:
         response = requests.get(
@@ -351,7 +351,7 @@ def get_status(job_id: str) -> Status:
     else:
         raise InvalidResponse('ambiguous value for `data.status`', response.text)
 
-
+#Audit Log Required: data access
 def get_triggers(name: str) -> list:
     try:
         response = requests.post(
@@ -383,7 +383,7 @@ def get_triggers(name: str) -> list:
 
     return data
 
-
+#Audit Log Required: action preformed
 def register_service(
         *,
         contract_url: str,

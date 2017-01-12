@@ -38,7 +38,7 @@ class User:
         self.api_key = api_key
         self.created_on = created_on
 
-
+#Audit Log Required: action preformed
 def authenticate_via_api_key(api_key: str) -> User:
     log = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def authenticate_via_api_key(api_key: str) -> User:
         created_on=row['created_on'],
     )
 
-
+#Audit Log Required: action preformed
 def authenticate_via_geoaxis(auth_code: str) -> User:
     log = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def authenticate_via_geoaxis(auth_code: str) -> User:
 
     return user
 
-
+#Audit Log Required: data access
 def get_by_id(user_id: str) -> User:
     log = logging.getLogger(__name__)
 

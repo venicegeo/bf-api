@@ -58,7 +58,7 @@ class Algorithm:
 #
 # Actions
 #
-
+#Audit Log Required: data access
 def list_all() -> List[Algorithm]:
     log = logging.getLogger(__name__)
     try:
@@ -89,7 +89,7 @@ def list_all() -> List[Algorithm]:
             continue
     return algorithms
 
-
+#Audit Log Required: data access
 def get(service_id: str):
     log = logging.getLogger(__name__)
     try:

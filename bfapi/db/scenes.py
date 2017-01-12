@@ -16,7 +16,7 @@ from datetime import datetime
 
 from bfapi.db import Connection
 
-
+#Audit Log Required: db modification insert
 def insert(
         conn: Connection,
         *,
