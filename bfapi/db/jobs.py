@@ -15,6 +15,7 @@ from datetime import datetime
 
 from bfapi.db import Connection, ResultProxy
 
+#Audit Log Required: db modification delete
 def delete_job_user(
         conn: Connection,
         *,
@@ -44,7 +45,7 @@ def exists(
     }
     return conn.execute(query, params).rowcount > 0
 
-
+#Audit Log Required: 
 def insert_detection(
         conn: Connection,
         *,

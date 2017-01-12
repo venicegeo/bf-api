@@ -25,7 +25,7 @@ from bfapi.db import jobs, productlines, scenes, users
 
 _engine = None  # type: Engine
 
-
+#Audit Log Required: Closing connnection
 def cleanup():
     global _engine
     log = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def cleanup():
     _engine = None
     log.info('Done')
 
-
+#Audit Log Required: Attempting to connect
 def get_connection() -> Connection:
     log = logging.getLogger(__name__)
     try:
@@ -43,7 +43,7 @@ def get_connection() -> Connection:
         log.critical('Database connection failed: %s', err)
         raise ConnectionFailed(err)
 
-
+#Audit Log Required: Starting DB
 def init():
     log = logging.getLogger(__name__)
     global _engine
@@ -93,6 +93,7 @@ def print_diagnostics(err: DatabaseError):
 # Helpers
 #
 
+#Audit Log Required: Setting up DB
 def _install():
     log = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ def _install():
 
     log.info('Installation complete!')
 
-
+#Audit Log Required: Setting up DB
 def _install_if_needed():
     log = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ def _install_if_needed():
 
     _install()
 
-
+#Audit Log Required: Reading In file
 def _read_sql_file(name: str) -> str:
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     with open(os.path.join(root_dir, 'sql', name)) as fp:
@@ -154,13 +155,13 @@ def _read_sql_file(name: str) -> str:
 #
 # Errors
 #
-
+#Audit Log Required: Connection Issue
 class ConnectionFailed(Exception):
     def __init__(self, err: DatabaseError, message: str = 'cannot connect to database'):
         super().__init__(message)
         self.original_error = err
 
-
+#Audit Log Required: Installation Issue
 class InstallationError(Exception):
     def __init__(self, message: str, err: Exception = None):
         super().__init__(message)
