@@ -630,9 +630,9 @@ def _make_algorithm_cli_cmd(
         ])
     elif algo_interface == 'pzsvc-ndwi-py':
         return ' '.join([
-            '--b1',
+            '-i',
             geotiff_filenames[0],
-            '--b2',
+            '-i',
             geotiff_filenames[1],
             '--fout ./shoreline.geojson',
         ])
