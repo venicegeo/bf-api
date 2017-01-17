@@ -30,11 +30,6 @@ def health_check():
     })
 
 
-def is_login_active():
-    """This should be mounted behind the verification middleware"""
-    return '', 204
-
-
 def login():
     query_params = flask.request.args
 
@@ -51,6 +46,7 @@ def login():
     except users.Error:
         return 'Cannot log in: an internal error prevents authentication', 500
 
+    flask.session.permanent = True
     flask.session['api_key'] = user.api_key
 
     # Send user back to the UI
@@ -68,3 +64,8 @@ def login_start():
         ('scope', 'UserProfile.me'),
     ))
     return flask.redirect('https://{}/ms_oauth/oauth2/endpoints/oauthservice/authorize?{}'.format(GEOAXIS, params))
+
+
+def logout():
+    flask.session.clear()
+    return 'You have been logged out'
