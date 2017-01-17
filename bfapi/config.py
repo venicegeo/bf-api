@@ -22,7 +22,7 @@ _errors = []
 def validate(failfast: bool = True):
     if not DOMAIN: _errors.append('DOMAIN cannot be blank')
     if not UI: _errors.append('UI cannot be blank')
-    if not SESSION_SECRET: _errors.append('SESSION_SECRET cannot be blank')
+    if not SECRET_KEY: _errors.append('SECRET_KEY cannot be blank')
     if not PIAZZA_API_KEY: _errors.append('PIAZZA_API_KEY cannot be blank')
     if not POSTGRES_HOST: _errors.append('POSTGRES_HOST cannot be blank')
     if not POSTGRES_PORT: _errors.append('POSTGRES_PORT cannot be blank')
@@ -90,7 +90,7 @@ TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _normalized_doma
 UI           = os.getenv('UI', 'beachfront.' + _normalized_domain)
 
 PIAZZA_API_KEY = os.getenv('PIAZZA_API_KEY')
-SESSION_SECRET = os.getenv('SESSION_SECRET', os.urandom(24).hex())
+SECRET_KEY     = os.getenv('SECRET_KEY', os.urandom(24).hex())
 
 GEOAXIS           = os.getenv('GEOAXIS')
 GEOAXIS_CLIENT_ID = os.getenv('GEOAXIS_CLIENT_ID')

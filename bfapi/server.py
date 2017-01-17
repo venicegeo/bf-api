@@ -78,7 +78,7 @@ def init(app):
     config.validate()
     db.init()
 
-    app.secret_key = config.SESSION_SECRET
+    app.secret_key = config.SECRET_KEY
     app.response_class.default_mimetype = FALLBACK_MIMETYPE
 
     install_service_assets()
