@@ -34,10 +34,7 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule(methods=['GET'], rule='/login', view_func=routes.login)
     app.add_url_rule(methods=['GET'], rule='/login/geoaxis', view_func=routes.login_start)
 
-    # Session heartbeat
-    app.add_url_rule(methods=['GET'], rule='/login/heartbeat', view_func=routes.is_login_active)
-
-    # API v0
+    # Protected endpoints
     app.add_url_rule(methods=['GET'], rule='/logout', view_func=routes.logout)
     app.add_url_rule(methods=['GET'], rule='/v0/user', view_func=routes.v0.get_user_data)
     app.add_url_rule(methods=['GET'], rule='/v0/algorithm', view_func=routes.v0.list_algorithms)
@@ -81,6 +78,7 @@ def init(app):
 
     app.secret_key = config.SECRET_KEY
     app.response_class.default_mimetype = FALLBACK_MIMETYPE
+    app.permanent_session_lifetime = config.SESSION_TTL
 
     install_service_assets()
     attach_routes(app)

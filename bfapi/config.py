@@ -98,6 +98,7 @@ GEOAXIS_SECRET    = os.getenv('GEOAXIS_SECRET')
 
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_TTL = timedelta(hours=2)
+SESSION_TTL = timedelta(minutes=30)
 
 _services = _getservices()
 
