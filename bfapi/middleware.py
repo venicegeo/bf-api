@@ -22,6 +22,12 @@ AUTHORIZED_ORIGINS = (
     'https://{}'.format(UI),
     'https://bf-swagger.{}'.format(DOMAIN),
     'https://localhost:8080',
+
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+    # FIXME -- this is a hopefully temporary workaround for *.int->api.stage problem
+    'https://{}'.format(UI).replace('.stage.', '.int.'),
+    'https://bf-swagger.{}'.format(DOMAIN).replace('.stage.', '.int.'),
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 )
 
 PUBLIC_ENDPOINTS = (
