@@ -88,8 +88,9 @@ def csrf_filter():
         return
 
     # Explicitly allow...
+    is_xhr = request.is_xhr or 'x-requested-with' in request.headers.get('Access-Control-Request-Headers', '').lower()
     origin = request.headers.get('Origin')
-    if origin in AUTHORIZED_ORIGINS:
+    if origin in AUTHORIZED_ORIGINS and is_xhr:
         log.debug('Allowing CORS access to protected endpoint `%s` from authorized origin `%s`', request.path, origin)
         return
     elif not origin and not request.referrer:
@@ -97,18 +98,12 @@ def csrf_filter():
         return
 
     # ...and reject everything else
-    error_description = 'Possible CSRF attempt from unknown origin'
-    if not origin and request.referrer:
-        # This can be the case with <script src="http://bf-api/v0/job"></script>
-        # which is not a legitimate usage of the Beachfront API
-        error_description = 'Possible CSRF attempt via <script/> tag'
-
-    log.warning('%s: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s`',
-                error_description,
+    log.warning('Possible CSRF attempt: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s` is_xhr=`%s`',
                 request.path,
                 origin,
                 request.referrer,
-                request.remote_addr)
+                request.remote_addr,
+                is_xhr)
     return 'Access Denied: CORS request validation failed', 403
 
 

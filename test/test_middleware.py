@@ -129,7 +129,13 @@ class CSRFFilterTest(unittest.TestCase):
         self._logger = logging.getLogger('bfapi.middleware')
         self._logger.disabled = True
 
-        self.request = self.create_mock('flask.request', spec=flask.Request, headers={}, referrer=None, remote_addr='1.2.3.4')
+        self.request = self.create_mock('flask.request',
+                                        spec=flask.Request,
+                                        headers={},
+                                        method='GET',
+                                        referrer=None,
+                                        remote_addr='1.2.3.4',
+                                        is_xhr=False)
 
     def tearDown(self):
         self._logger.disabled = False
@@ -169,6 +175,7 @@ class CSRFFilterTest(unittest.TestCase):
             self.request.path = endpoint
             self.request.headers['Origin'] = ''
             self.request.referrer = None
+            self.request.is_xhr = False
             response = middleware.csrf_filter()
             self.assertIsNone(response)
 
@@ -178,6 +185,19 @@ class CSRFFilterTest(unittest.TestCase):
             self.request.reset_mock()
             self.request.path = '/protected'
             self.request.headers['Origin'] = origin
+            self.request.is_xhr = True
+            response = middleware.csrf_filter()
+            self.assertIsNone(response)
+
+    def test_allows_cors_preflights_from_authorized_origins(self):
+        origins = middleware.AUTHORIZED_ORIGINS
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.method = 'OPTIONS'
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = origin
+            self.request.headers['Access-Control-Request-Headers'] = 'Content-Type,X-Requested-With'
+            self.request.is_xhr = False
             response = middleware.csrf_filter()
             self.assertIsNone(response)
 
@@ -194,10 +214,11 @@ class CSRFFilterTest(unittest.TestCase):
             self.request.reset_mock()
             self.request.path = '/protected'
             self.request.headers['Origin'] = origin
+            self.request.is_xhr = True
             response = middleware.csrf_filter()
             self.assertEqual(('Access Denied: CORS request validation failed', 403), response)
 
-    def test_rejects_cors_requests_suspected_as_spoofed(self):
+    def test_rejects_cors_preflights_from_unknown_origins(self):
         origins = (
             'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
             'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
@@ -208,9 +229,37 @@ class CSRFFilterTest(unittest.TestCase):
         )
         for origin in origins:
             self.request.reset_mock()
+            self.request.method = 'OPTIONS'
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = origin
+            self.request.headers['Access-Control-Request-Headers'] = 'Content-Type,X-Requested-With'
+            self.request.is_xhr = True
+            response = middleware.csrf_filter()
+            self.assertEqual(('Access Denied: CORS request validation failed', 403), response)
+
+    def test_rejects_cors_requests_that_look_spoofed(self):
+        """
+        Background:
+
+        If `Origin` is empty and `Referrer` is not, more than likely the call
+        came from an <img/> or <script/> tag, neither of which are legit uses
+        """
+        origins = middleware.AUTHORIZED_ORIGINS
+        for origin in origins:
             self.request.path = '/protected'
             self.request.headers['Origin'] = None
             self.request.referrer = origin
+            response = middleware.csrf_filter()
+            self.assertEqual(('Access Denied: CORS request validation failed', 403), response)
+
+    def test_rejects_cors_requests_not_marked_as_xhr(self):
+        origins = middleware.AUTHORIZED_ORIGINS
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = origin
+            self.request.referrer = origin
+            self.request.is_xhr = False
             response = middleware.csrf_filter()
             self.assertEqual(('Access Denied: CORS request validation failed', 403), response)
 
@@ -228,17 +277,18 @@ class CSRFFilterTest(unittest.TestCase):
             self.request.reset_mock()
             self.request.path = '/protected'
             self.request.headers['Origin'] = origin
+            self.request.is_xhr = True
             middleware.csrf_filter()
         self.assertEqual([
-            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`http://beachfront.localhost` referrer=`None` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`http://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`http://instaspotifriendspacebooksterifygram.com` referrer=`None` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`https://beachfront.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`https://bf-api.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt from unknown origin: endpoint=`/protected` origin=`https://bf-swagger.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://beachfront.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://instaspotifriendspacebooksterifygram.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-api.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
         ], logstream.getvalue().splitlines())
 
-    def test_logs_rejection_of_cors_requests_suspected_of_script_tag_spoofing(self):
+    def test_logs_rejection_of_cors_preflights_from_unknown_origin(self):
         logstream = self.create_logstream()
         origins = (
             'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
@@ -251,16 +301,52 @@ class CSRFFilterTest(unittest.TestCase):
         for origin in origins:
             self.request.reset_mock()
             self.request.path = '/protected'
-            self.request.headers['Origin'] = None
-            self.request.referrer = origin
+            self.request.headers['Origin'] = origin
+            self.request.headers['Access-Control-Request-Headers'] = 'Content-Type,X-Requested-With'
+            self.request.is_xhr = False
             middleware.csrf_filter()
         self.assertEqual([
-            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`http://beachfront.localhost` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`http://bf-swagger.localhost` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`http://instaspotifriendspacebooksterifygram.com` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`https://beachfront.localhost.totallynotaphishingattempt.com` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`https://bf-api.localhost.totallynotaphishingattempt.com` ip=`1.2.3.4`',
-            'WARNING - Possible CSRF attempt via <script/> tag: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.localhost.totallynotaphishingattempt.com` ip=`1.2.3.4`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://beachfront.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://instaspotifriendspacebooksterifygram.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-api.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_rejection_of_cors_requests_not_marked_as_xhr(self):
+        logstream = self.create_logstream()
+        origins = middleware.AUTHORIZED_ORIGINS
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = origin
+            self.request.is_xhr = False
+            middleware.csrf_filter()
+        self.assertEqual([
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://localhost:8080` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+        ], logstream.getvalue().splitlines())
+
+    def test_logs_rejection_of_cors_requests_that_look_spoofed(self):
+        logstream = self.create_logstream()
+        origins = middleware.AUTHORIZED_ORIGINS
+        for origin in origins:
+            self.request.reset_mock()
+            self.request.path = '/protected'
+            self.request.headers['Origin'] = None
+            self.request.referrer = origin
+            self.request.is_xhr = False
+            middleware.csrf_filter()
+        self.assertEqual([
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.localhost` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.localhost` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://localhost:8080` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.localhost` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.localhost` ip=`1.2.3.4` is_xhr=`False`',
         ], logstream.getvalue().splitlines())
 
 
