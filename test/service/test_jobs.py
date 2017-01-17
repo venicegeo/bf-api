@@ -213,7 +213,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
             'pzAuthKey': None,  # FIXME: remove when pzsvc-exec removes external passing of PZ API keys
-            'cmd': '--b1 test-algo-band-1.TIF --b2 test-algo-band-2.TIF --fout ./shoreline.geojson',
+            'cmd': '-i test-algo-band-1.TIF -i test-algo-band-2.TIF --fout ./shoreline.geojson',
             'inExtFiles': ['lorem', 'ipsum'],
             'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
             'outGeoJson': ['shoreline.geojson'],
