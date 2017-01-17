@@ -105,6 +105,26 @@ class LoginTest(unittest.TestCase):
         self.assertEqual(('Cannot log in: an internal error prevents authentication', 500), response)
 
 
+class LogoutTest(unittest.TestCase):
+    def setUp(self):
+        self._logger = logging.getLogger('bfapi.routes')
+        self._logger.disabled = True
+
+        self.session = self.create_mock('flask.session', spec=dict)
+
+    def tearDown(self):
+        self._logger.disabled = False
+
+    def create_mock(self, target, **kwargs):
+        patcher = patch(target, **kwargs)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def test_clears_session(self):
+        routes.logout()
+        self.assertTrue(self.session.clear.called)
+
+
 #
 # Helpers
 #

@@ -68,3 +68,8 @@ def login_start():
         ('scope', 'UserProfile.me'),
     ))
     return flask.redirect('https://{}/ms_oauth/oauth2/endpoints/oauthservice/authorize?{}'.format(GEOAXIS, params))
+
+
+def logout():
+    flask.session.clear()
+    return 'You have been logged out'
