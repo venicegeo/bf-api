@@ -53,7 +53,7 @@ class LoginTest(unittest.TestCase):
         self.mock_authenticate = self.create_mock('bfapi.service.users.authenticate_via_geoaxis', return_value=None)
         self.mock_redirect = self.create_mock('flask.redirect')
         self.request = self.create_mock('flask.request', path='/login', args={})
-        self.session = self.create_mock('flask.session', new={})
+        self.session = self.create_mock('flask.session', spec=dict)
 
     def tearDown(self):
         self._logger.disabled = False
@@ -83,7 +83,13 @@ class LoginTest(unittest.TestCase):
         self.mock_authenticate.return_value = create_user()
         self.request.args = {'code': 'test-auth-code'}
         routes.login()
-        self.assertEqual({'api_key': 'test-api-key'}, self.session)
+        self.assertEqual([call('api_key', 'test-api-key')], self.session.__setitem__.call_args_list)
+
+    def test_opts_in_to_session_expiration(self):
+        self.mock_authenticate.return_value = create_user()
+        self.request.args = {'code': 'test-auth-code'}
+        routes.login()
+        self.assertTrue(self.session.permanent)
 
     def test_redirects_to_ui_url_on_auth_success(self):
         self.mock_authenticate.return_value = create_user()
@@ -103,6 +109,26 @@ class LoginTest(unittest.TestCase):
         self.request.args = {'code': 'test-auth-code'}
         response = routes.login()
         self.assertEqual(('Cannot log in: an internal error prevents authentication', 500), response)
+
+
+class LogoutTest(unittest.TestCase):
+    def setUp(self):
+        self._logger = logging.getLogger('bfapi.routes')
+        self._logger.disabled = True
+
+        self.session = self.create_mock('flask.session', spec=dict)
+
+    def tearDown(self):
+        self._logger.disabled = False
+
+    def create_mock(self, target, **kwargs):
+        patcher = patch(target, **kwargs)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def test_clears_session(self):
+        routes.logout()
+        self.assertTrue(self.session.clear.called)
 
 
 #
