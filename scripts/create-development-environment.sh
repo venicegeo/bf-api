@@ -64,11 +64,17 @@ create_ssl_certs() {
     local _filepath_pem=$DEV_ROOT/ssl-certificate.pem
     local _filepath_key=$DEV_ROOT/ssl-certificate.key
     local _filepath_keystore=$DEV_ROOT/ssl-certificate.pkcs12
+    local _extensions="
+        [beachfront_extensions]
+        subjectAltName=DNS:localhost,DNS:localhost.localdomain
+    "
     echo "Creating ${_filepath_pem}"
     echo "Creating ${_filepath_key}"
     openssl req \
       -newkey rsa:2048 -nodes -keyout $_filepath_key \
       -x509 -days 99999 -out $_filepath_pem \
+      -extensions beachfront_extensions \
+      -config <(cat /etc/ssl/openssl.cnf; printf "$_extensions") \
       -subj "/C=US/ST=Unknown/L=Unknown/O=Beachfront/OU=Development/CN=localhost" \
       -passin pass:secret \
       -passout pass:secret \
