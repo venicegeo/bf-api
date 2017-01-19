@@ -145,7 +145,6 @@ def create(
         job_id = piazza.execute(algorithm.service_id, {
             'body': {
                 'content': json.dumps({
-                    'pzAuthKey': piazza.PIAZZA_API_KEY,
                     'cmd': cli_cmd,
                     'inExtFiles': geotiff_urls,
                     'inExtNames': geotiff_filenames,

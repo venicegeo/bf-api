@@ -193,7 +193,6 @@ class CreateJobTest(unittest.TestCase):
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
-            'pzAuthKey': None,  # FIXME: remove when pzsvc-exec removes external passing of PZ API keys
             'cmd': 'shoreline' +
                    ' --image test-algo-band-1.TIF,test-algo-band-2.TIF' +
                    ' --projection geo-scaled' +
@@ -212,7 +211,6 @@ class CreateJobTest(unittest.TestCase):
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name')
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
-            'pzAuthKey': None,  # FIXME: remove when pzsvc-exec removes external passing of PZ API keys
             'cmd': '-i test-algo-band-1.TIF -i test-algo-band-2.TIF --fout ./shoreline.geojson',
             'inExtFiles': ['lorem', 'ipsum'],
             'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
