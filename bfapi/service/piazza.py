@@ -441,10 +441,11 @@ def register_service(
 # Helpers
 #
 
-def _to_service_descriptor(datum, response_text: str):
-    metadata = datum.get('resourceMetadata')
+def _to_service_descriptor(datum: dict, response_text: str):
+    metadata = datum.get('resourceMetadata')  # type: dict
     if not metadata:
         raise InvalidResponse('Missing `resourceMetadata`', response_text)
+    metadata = metadata.copy()
     name = metadata.get('name')
     if not name:
         raise InvalidResponse('Missing `resourceMetadata.name`', response_text)
