@@ -923,7 +923,8 @@ class StartWorkerTest(unittest.TestCase):
 
     def test_starts_worker(self, _):
         jobs.start_worker()
-        self.assertEqual(1, jobs._worker.start.call_count)
+        stub = jobs._worker.start  # type: Mock
+        self.assertEqual(1, stub.call_count)
 
     def test_retains_worker_instance(self, _):
         jobs.start_worker()
@@ -955,7 +956,7 @@ class StopWorkerTest(unittest.TestCase):
 
     def test_stops_worker(self, _):
         jobs.start_worker()
-        stub = jobs._worker.terminate
+        stub = jobs._worker.terminate  # type: Mock
         jobs.stop_worker()
         self.assertIsNone(jobs._worker)
         self.assertEqual(1, stub.call_count)
