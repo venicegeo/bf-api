@@ -541,7 +541,7 @@ class Worker(threading.Thread):
             finally:
                 conn.close()
 
-        elif status.status == piazza.STATUS_ERROR:
+        elif status.status in (piazza.STATUS_ERROR, piazza.STATUS_FAIL):
             # FIXME -- use heuristics to generate a more descriptive error message
             _save_execution_error(job_id, STEP_ALGORITHM, 'Job failed during algorithm execution')
 
