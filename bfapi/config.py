@@ -86,6 +86,7 @@ _normalized_domain = DOMAIN.replace('int.', 'stage.')
 
 PIAZZA       = os.getenv('PZ_GATEWAY', 'piazza.' + _normalized_domain)
 CATALOG      = os.getenv('CATALOG', 'pzsvc-image-catalog.' + _normalized_domain)
+PLANET       = os.getenv('PLANET', 'bf-ia-broker.' + _normalized_domain)
 TIDE_SERVICE = os.getenv('TIDE_SERVICE', 'bf-tideprediction.' + _normalized_domain)
 UI           = os.getenv('UI', 'beachfront.' + _normalized_domain)
 

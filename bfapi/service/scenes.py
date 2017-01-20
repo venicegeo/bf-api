@@ -19,8 +19,11 @@ import dateutil.parser
 import requests
 
 from bfapi import db
-from bfapi.config import CATALOG
+from bfapi.config import CATALOG, PLANET
 
+
+PATTERN_LANDSAT = re.compile(r'^landsat:\w+$')
+PATTERN_PLANET = re.compile(r'^(planetscope|rapideye):[\w_-]+$')
 
 #
 # Types
@@ -29,19 +32,26 @@ from bfapi.config import CATALOG
 class Scene:
     def __init__(
             self,
-            bands: dict,
+            *,
             capture_date: datetime,
             cloud_cover: float,
+            geotiff_coastal: str = None,
+            geotiff_multispectral: str = None,
+            geotiff_swir1: str = None,
             geometry: dict,
+            is_active: bool,
             resolution: int,
             scene_id: str,
             sensor_name: str,
             uri: str):
-        self.bands = bands
         self.capture_date = capture_date
         self.cloud_cover = cloud_cover
         self.id = scene_id
         self.geometry = geometry
+        self.geotiff_coastal = geotiff_coastal
+        self.geotiff_multispectral = geotiff_multispectral
+        self.geotiff_swir1 = geotiff_swir1
+        self.is_active = is_active
         self.resolution = resolution
         self.sensor_name = sensor_name
         self.uri = uri
@@ -51,17 +61,27 @@ class Scene:
 # Actions
 #
 
-def get(scene_id: str) -> Scene:
+def get(scene_id: str, planet_api_key: str = None) -> Scene:
     log = logging.getLogger(__name__)
 
-    if not re.match(r'^landsat:\w+$', scene_id):
+    if PATTERN_LANDSAT.match(scene_id):
+        return _get_from_legacy_catalog(scene_id)
+    if not PATTERN_PLANET.match(scene_id):
         raise MalformedSceneID(scene_id)
 
-    scene_uri = 'https://{}/image/{}'.format(CATALOG, scene_id)
+    platform, external_id = scene_id.split(':', 1)
+
+    uri = 'https://{}/planet/{}/{}'.format(PLANET, platform, external_id)
+    log.info('Fetch `%s`', uri)
     try:
-        log.info('Fetch `%s`', scene_uri)
-        scene_req = requests.get(scene_uri)
-        scene_req.raise_for_status()
+        log.debug('Requesting metadata; url=`%s`', uri)
+        response = requests.get(
+            uri,
+            params={
+                'PL_API_KEY': planet_api_key,
+            }
+        )
+        response.raise_for_status()
     except requests.ConnectionError:
         raise CatalogError()
     except requests.HTTPError as err:
@@ -70,43 +90,86 @@ def get(scene_id: str) -> Scene:
             raise NotFound(scene_id)
         raise CatalogError()
 
-    geojson = scene_req.json()
+    feature = response.json()
+
+    geotiff_multispectral = feature['properties'].get('location')
     scene = Scene(
         scene_id=scene_id,
-        uri=scene_uri,
-        capture_date=_extract_capture_date(scene_id, geojson),
-        bands=_extract_bands(scene_id, geojson),
-        cloud_cover=_extract_cloud_cover(scene_id, geojson),
-        geometry=_extract_geometry(scene_id, geojson),
-        resolution=_extract_resolution(scene_id, geojson),
-        sensor_name=_extract_sensor_name(scene_id, geojson),
+        uri=uri,
+        capture_date=_extract_capture_date(scene_id, feature),
+        cloud_cover=_extract_cloud_cover(scene_id, feature),
+        geometry=_extract_geometry(scene_id, feature),
+        geotiff_multispectral=geotiff_multispectral,
+        is_active=_extract_activation_status(scene_id, feature),
+        resolution=_extract_resolution(scene_id, feature),
+        sensor_name=_extract_sensor_name(scene_id, feature),
     )
 
-    conn = db.get_connection()
-    try:
-        db.scenes.insert(
-            conn,
-            scene_id=scene.id,
-            captured_on=scene.capture_date,
-            catalog_uri=scene.uri,
-            cloud_cover=scene.cloud_cover,
-            geometry=scene.geometry,
-            resolution=scene.resolution,
-            sensor_name=scene.sensor_name,
-        )
-    except db.DatabaseError as err:
-        log.error('Could not save scene to database')
-        db.print_diagnostics(err)
-        raise
-    finally:
-        conn.close()
-
+    _save_to_database(scene)
     return scene
 
 
 #
 # Helpers
 #
+
+def _get_from_legacy_catalog(scene_id: str) -> Scene:
+    log = logging.getLogger(__name__)
+    scene_uri = 'https://{}/image/{}'.format(CATALOG, scene_id)
+    try:
+        log.info('Fetch `%s`', scene_uri)
+        response = requests.get(scene_uri)
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise CatalogError()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 404:
+            raise NotFound(scene_id)
+        raise CatalogError()
+
+    feature = response.json()
+    geotiff_coastal, geotiff_swir1 = _extract_bands(scene_id, feature)
+    scene = Scene(
+        scene_id=scene_id,
+        uri=scene_uri,
+        capture_date=_extract_capture_date(scene_id, feature),
+        cloud_cover=_extract_cloud_cover(scene_id, feature),
+        geometry=_extract_geometry(scene_id, feature),
+        geotiff_coastal=geotiff_coastal,
+        geotiff_swir1=geotiff_swir1,
+        is_active=True,
+        resolution=_extract_resolution(scene_id, feature),
+        sensor_name=_extract_sensor_name(scene_id, feature),
+    )
+
+    _save_to_database(scene)
+    return scene
+
+
+def _extract_activation_status(scene_id: str, feature) -> bool:
+    value = feature['properties'].get('status')
+    if value is None:
+        raise ValidationError(scene_id, 'missing `status`')
+    if value not in ('active', 'activating', 'inactive'):
+        raise ValidationError(scene_id, 'value of `status` is ambiguous')
+    return value == 'active'
+
+
+def _extract_bands(scene_id: str, feature: dict) -> (str, str):
+    bands = feature['properties'].get('bands')
+    if bands is None:
+        raise ValidationError(scene_id, 'missing `bands`')
+    try:
+        coastal = bands['coastal'].strip()
+    except:
+        raise ValidationError(scene_id, 'value of `bands.coastal` is not valid')
+    try:
+        swir1 = bands['swir1'].strip()
+    except:
+        raise ValidationError(scene_id, 'value of `bands.swir1` is not valid')
+    return coastal, swir1
+
 
 def _extract_capture_date(scene_id: str, feature: dict) -> datetime:
     value = feature['properties'].get('acquiredDate')
@@ -116,15 +179,6 @@ def _extract_capture_date(scene_id: str, feature: dict) -> datetime:
         value = dateutil.parser.parse(value)
     except Exception as err:
         raise ValidationError(scene_id, 'could not parse `acquiredDate`: ({})'.format(err))
-    return value
-
-
-def _extract_bands(scene_id: str, feature: dict) -> dict:
-    value = feature['properties'].get('bands')
-    if value is None:
-        raise ValidationError(scene_id, 'missing `bands`')
-    if not isinstance(value, dict):
-        raise ValidationError(scene_id, '`bands` is not a dictionary')
     return value
 
 
@@ -163,6 +217,28 @@ def _extract_sensor_name(scene_id: str, feature: dict) -> str:
     if value is None:
         raise ValidationError(scene_id, 'missing `sensorName`')
     return value.strip()
+
+
+def _save_to_database(scene: Scene):
+    log = logging.getLogger(__name__)
+    conn = db.get_connection()
+    try:
+        db.scenes.insert(
+            conn,
+            scene_id=scene.id,
+            captured_on=scene.capture_date,
+            catalog_uri=scene.uri,
+            cloud_cover=scene.cloud_cover,
+            geometry=scene.geometry,
+            resolution=scene.resolution,
+            sensor_name=scene.sensor_name,
+        )
+    except db.DatabaseError as err:
+        log.error('Could not save scene to database')
+        db.print_diagnostics(err)
+        raise
+    finally:
+        conn.close()
 
 
 #

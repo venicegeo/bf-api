@@ -160,6 +160,7 @@ cf set-env bf-api PIAZZA_API_KEY <valid Piazza API key>
 | `UI`                | Overrides the Beachfront UI hostname |
 | `PIAZZA`            | Overrides the Piazza hostname |
 | `CATALOG`           | Overrides the Image Catalog hostname |
+| `PLANET`            | Overrides the Planet API broker hostname |
 | `SECRET_KEY`        | Overrides the randomly-generated secret key used by Flask for session I/O |
 | `TIDE_SERVICE`      | Overrides the Tide Prediction service hostname |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
