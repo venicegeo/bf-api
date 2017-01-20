@@ -474,7 +474,7 @@ class Worker(threading.Thread):
         log.info('<%03d/%s> polled (%s)', index, job_id, status.status)
 
         # Determine appropriate action by status
-        if status.status == piazza.STATUS_SUBMITTED:
+        if status.status in (piazza.STATUS_SUBMITTED, piazza.STATUS_PENDING):
             if datetime.utcnow() - created_on > job_ttl:
                 log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
                 _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)

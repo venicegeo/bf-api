@@ -21,6 +21,7 @@ from bfapi.config import PIAZZA, PIAZZA_API_KEY
 STATUS_CANCELLED = 'Cancelled'
 STATUS_SUCCESS = 'Success'
 STATUS_RUNNING = 'Running'
+STATUS_PENDING = 'Pending'
 STATUS_SUBMITTED = 'Submitted'
 STATUS_ERROR = 'Error'
 TYPE_DATA = 'data'
@@ -55,13 +56,11 @@ class ServiceDescriptor:
             description: str,
             metadata: dict,
             name: str,
-            service_id: str,
-            url: str):
+            service_id: str):
         self.description = description
         self.metadata = metadata
         self.name = name
         self.service_id = service_id
-        self.url = url
 
 
 #
@@ -308,7 +307,10 @@ def get_status(job_id: str) -> Status:
     if status == STATUS_RUNNING:
         return Status(status)
 
-    if status == STATUS_SUBMITTED:
+    elif status == STATUS_SUBMITTED:
+        return Status(status)
+
+    elif status == STATUS_PENDING:
         return Status(status)
 
     elif status == STATUS_SUCCESS:
@@ -455,9 +457,6 @@ def _to_service_descriptor(datum: dict, response_text: str):
     service_id = datum.get('serviceId')
     if not service_id:
         raise InvalidResponse('Missing `serviceId`', response_text)
-    url = datum.get('url')
-    if not url:
-        raise InvalidResponse('Missing `url`', response_text)
 
     # Prune redundant properties
     metadata.pop('name')
@@ -467,7 +466,6 @@ def _to_service_descriptor(datum: dict, response_text: str):
         description=description,
         metadata=metadata,
         name=name,
-        url=url,
     )
 
 

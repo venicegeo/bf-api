@@ -274,7 +274,7 @@ def select_outstanding_jobs(conn: Connection) -> ResultProxy:
     query = """
         SELECT job_id, created_on
           FROM __beachfront__job
-         WHERE status IN ('Submitted', 'Running')
+         WHERE status IN ('Submitted', 'Pending', 'Running')
         ORDER BY created_on ASC
         """
     return conn.execute(query)

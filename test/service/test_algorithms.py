@@ -80,11 +80,6 @@ class ListAllTest(unittest.TestCase):
         algo = algorithms.list_all().pop()
         self.assertEqual('test-service-id', algo.service_id)
 
-    def test_extracts_correct_url(self, mock: MagicMock):
-        mock.return_value = [create_service()]
-        algo = algorithms.list_all().pop()
-        self.assertEqual('https://test-algo-url.localhost', algo.url)
-
     def test_extracts_correct_version(self, mock: MagicMock):
         mock.return_value = [create_service()]
         algo = algorithms.list_all().pop()
@@ -117,12 +112,6 @@ class ListAllTest(unittest.TestCase):
     def test_discards_services_missing_version(self, mock: MagicMock):
         service = create_service()
         service.metadata.pop('version')
-        mock.return_value = [service]
-        self.assertEqual([], algorithms.list_all())
-
-    def test_discards_services_not_using_https(self, mock: MagicMock):
-        service = create_service()
-        service.url = 'http://not.very.secure'
         mock.return_value = [service]
         self.assertEqual([], algorithms.list_all())
 
@@ -191,11 +180,6 @@ class GetTest(unittest.TestCase):
         algo = algorithms.get('test-service-id')
         self.assertEqual('test-service-id', algo.service_id)
 
-    def test_extracts_correct_url(self, mock: MagicMock):
-        mock.return_value = create_service()
-        algo = algorithms.get('test-service-id')
-        self.assertEqual('https://test-algo-url.localhost', algo.url)
-
     def test_extracts_correct_version(self, mock: MagicMock):
         mock.return_value = create_service()
         algo = algorithms.get('test-service-id')
@@ -236,13 +220,6 @@ class GetTest(unittest.TestCase):
         with self.assertRaisesRegex(algorithms.ValidationError, 'missing `version`'):
             algorithms.get('test-service-id')
 
-    def test_throws_if_not_using_https(self, mock: MagicMock):
-        service = create_service()
-        service.url = 'http://not.very.secure'
-        mock.return_value = service
-        with self.assertRaisesRegex(algorithms.ValidationError, 'is not HTTPS'):
-            algorithms.get('test-service-id')
-
     def test_throws_if_with_invalid_max_cloud_cover(self, mock: MagicMock):
         service = create_service()
         service.metadata['metadata']['ImgReq - cloudCover'] = 'lolwut'
@@ -273,5 +250,4 @@ def create_service(service_id: str = 'test-service-id'):
         },
         name='test-name',
         service_id=service_id,
-        url='https://test-algo-url.localhost',
     )

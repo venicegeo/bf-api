@@ -470,7 +470,6 @@ def create_algorithm():
         max_cloud_cover=42,
         name='test-algo-name',
         service_id='test-algo-id',
-        url='test-algo-url',
         version='test-algo-version',
     )
 
@@ -491,16 +490,6 @@ def create_job(job_id: str = 'test-job-id'):
         tide=5.4321,
         tide_min_24h=-10.0,
         tide_max_24h=10.0,
-    )
-
-
-def create_service():
-    return piazza.ServiceDescriptor(
-        description='test-description',
-        metadata={},
-        name='test-name',
-        service_id='test-service-id',
-        url='test-url',
     )
 
 

@@ -31,7 +31,6 @@ class Algorithm:
             max_cloud_cover: int,
             name: str,
             service_id: str,
-            url: str,
             version: str):
         self.bands = bands
         self.description = description
@@ -39,7 +38,6 @@ class Algorithm:
         self.max_cloud_cover = max_cloud_cover
         self.name = name
         self.service_id = service_id
-        self.url = url
         self.version = version
 
     def serialize(self):
@@ -50,7 +48,6 @@ class Algorithm:
             'max_cloud_cover': self.max_cloud_cover,
             'name': self.name,
             'service_id': self.service_id,
-            'url': self.url,
             'version': self.version,
         }
 
@@ -81,7 +78,6 @@ def list_all() -> List[Algorithm]:
                 max_cloud_cover=_extract_max_cloud_cover(service),
                 name=_extract_name(service),
                 service_id=service.service_id,
-                url=_extract_url(service),
                 version=_extract_version(service),
             ))
         except ValidationError as err:
@@ -113,7 +109,6 @@ def get(service_id: str):
             max_cloud_cover=_extract_max_cloud_cover(service),
             name=_extract_name(service),
             service_id=service.service_id,
-            url=_extract_url(service),
             version=_extract_version(service),
         )
     except ValidationError as err:
@@ -155,13 +150,6 @@ def _extract_max_cloud_cover(service: piazza.ServiceDescriptor) -> int:
 
 def _extract_name(service: piazza.ServiceDescriptor) -> str:
     return service.name.replace('BF_Algo_', '').strip()
-
-
-def _extract_url(service: piazza.ServiceDescriptor) -> str:
-    value = service.url.strip()
-    if not value.startswith('https://'):
-        raise ValidationError('algorithm `url` is not HTTPS')
-    return value
 
 
 def _extract_version(service: piazza.ServiceDescriptor) -> str:

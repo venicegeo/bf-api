@@ -1359,7 +1359,6 @@ def create_algorithm(algo_interface='pzsvc-ndwi-py'):
         max_cloud_cover=42,
         name='test-algo-name',
         service_id='test-algo-id',
-        url='test-algo-url',
         version='test-algo-version',
     )
 
