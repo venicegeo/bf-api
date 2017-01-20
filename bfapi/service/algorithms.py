@@ -25,14 +25,12 @@ class Algorithm:
     def __init__(
             self,
             *,
-            bands: tuple,
             description: str,
             interface: str,
             max_cloud_cover: int,
             name: str,
             service_id: str,
             version: str):
-        self.bands = bands
         self.description = description
         self.interface = interface
         self.max_cloud_cover = max_cloud_cover
@@ -42,7 +40,6 @@ class Algorithm:
 
     def serialize(self):
         return {
-            'bands': self.bands,
             'description': self.description,
             'interface': self.interface,
             'max_cloud_cover': self.max_cloud_cover,
@@ -72,7 +69,6 @@ def list_all() -> List[Algorithm]:
             continue
         try:
             algorithms.append(Algorithm(
-                bands=_extract_bands(service),
                 interface=_extract_interface(service),
                 description=_extract_description(service),
                 max_cloud_cover=_extract_max_cloud_cover(service),
@@ -103,7 +99,6 @@ def get(service_id: str):
         raise ValidationError('missing `metadata` hash')
     try:
         return Algorithm(
-            bands=_extract_bands(service),
             interface=_extract_interface(service),
             description=_extract_description(service),
             max_cloud_cover=_extract_max_cloud_cover(service),

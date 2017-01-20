@@ -52,6 +52,7 @@ def create_job():
     try:
         payload = flask.request.get_json()
         job_name = _get_string(payload, 'name', max_length=100)
+        planet_api_key = _get_string(payload, 'planet_api_key', max_length=64)
         service_id = _get_string(payload, 'algorithm_id', max_length=64)
         scene_id = _get_string(payload, 'scene_id', max_length=64)
     except JSONDecodeError:
@@ -65,6 +66,7 @@ def create_job():
             service_id=service_id,
             scene_id=scene_id,
             job_name=job_name.strip(),
+            planet_api_key=planet_api_key,
         )
     except _jobs.PreprocessingError as err:
         return 'Cannot execute: {}'.format(err), 500

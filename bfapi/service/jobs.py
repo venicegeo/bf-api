@@ -21,7 +21,7 @@ from typing import List
 import requests
 
 from bfapi import db
-from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, TIDE_SERVICE
+from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL
 from bfapi.service import algorithms, scenes, piazza
 
 FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
@@ -105,13 +105,14 @@ def create(
         user_id: str,
         scene_id: str,
         service_id: str,
-        job_name: str) -> Job:
+        job_name: str,
+        planet_api_key: str) -> Job:
     log = logging.getLogger(__name__)
 
     # Fetch prerequisites
     try:
         algorithm = algorithms.get(service_id)
-        scene = scenes.get(scene_id)
+        scene = scenes.get(scene_id, planet_api_key)
     except (algorithms.NotFound,
             algorithms.ValidationError,
             scenes.MalformedSceneID,
@@ -122,21 +123,17 @@ def create(
         raise PreprocessingError(err)
 
     # Determine GeoTIFF URLs
-    geotiff_filenames = []
-    geotiff_urls = []
-    for key in algorithm.bands:
-        geotiff_url = scene.bands.get(key)
-        if not geotiff_url:
-            raise PreprocessingError(message='Scene `{}` is missing band `{}`'.format(scene.id, key))
-        geotiff_urls.append(geotiff_url)
-        geotiff_filenames.append(key + '.TIF')
+    if not scene.is_active:
+        raise PreprocessingError(message='Scene {} must already be activated'.format(scene.id))
 
-    # Fetch tide info
-    try:
-        tide, tide_min, tide_max = _fetch_tide_prediction(scene)
-    except TidePredictionError as err:
-        log.error('Preprocessing error: %s', err)
-        raise PreprocessingError(err)
+    if scene.geotiff_multispectral:
+        geotiff_filenames = ['multispectral.TIF']
+        geotiff_urls = [scene.geotiff_multispectral]
+    elif scene.geotiff_coastal and scene.geotiff_swir1:
+        geotiff_filenames = ['coastal.TIF', 'swir1.TIF']
+        geotiff_urls = [scene.geotiff_coastal, scene.geotiff_swir1]
+    else:
+        raise PreprocessingError(message='Scene {} is missing GeoTIFF URLs.  Is the scene activated?'.format(scene.id))
 
     # Dispatch to Piazza
     try:
@@ -173,9 +170,9 @@ def create(
             scene_id=scene_id,
             status=piazza.STATUS_SUBMITTED,
             user_id=user_id,
-            tide=tide,
-            tide_min_24h=tide_min,
-            tide_max_24h=tide_max,
+            tide=scene.tide,
+            tide_min_24h=scene.tide_min,
+            tide_max_24h=scene.tide_max,
         )
         db.jobs.insert_job_user(
             conn,
@@ -203,9 +200,9 @@ def create(
         scene_sensor_name=scene.sensor_name,
         scene_id=scene_id,
         status=piazza.STATUS_SUBMITTED,
-        tide=tide,
-        tide_min_24h=tide_min,
-        tide_max_24h=tide_max,
+        tide=scene.tide,
+        tide_min_24h=scene.tide_min,
+        tide_max_24h=scene.tide_max,
     )
 
 def forget(user_id: str, job_id: str) -> None:
@@ -556,64 +553,6 @@ class Worker(threading.Thread):
 # Helpers
 #
 
-def _fetch_tide_prediction(scene: scenes.Scene) -> (float, float, float):
-    log = logging.getLogger(__name__)
-    x, y = _get_centroid(scene.geometry['coordinates'])
-    dtg = scene.capture_date.strftime(FORMAT_DTG)
-
-    log.debug('Predict tide for centroid (%s, %s) at %s', x, y, dtg)
-    try:
-        response = requests.post('https://{}/tides'.format(TIDE_SERVICE), json={
-            'locations': [{
-                'lat': y,
-                'lon': x,
-                'dtg': dtg
-            }]
-        })
-        response.raise_for_status()
-    except requests.ConnectionError:
-        raise TidePredictionError('service is unreachable')
-    except requests.HTTPError as err:
-        raise TidePredictionError('HTTP {}'.format(err.response.status_code))
-
-    # Validate and extract the response
-    try:
-        (prediction,) = response.json()['locations']
-        tide = round(float(prediction['results']['currentTide']), 12)
-        min_tide = round(float(prediction['results']['maximumTide24Hours']), 12)
-        max_tide = round(float(prediction['results']['minimumTide24Hours']), 12)
-        return tide, min_tide, max_tide
-    except (ValueError, TypeError):
-        log.error('Malformed tide prediction response:\n%s',
-                  '\n'.join([
-                      '!' * 80,
-                      '\nINPUTS\n',
-                      '    dtg: {}'.format(dtg),
-                      '    lat: {:0.12}'.format(y),
-                      '    lon: {:0.12}'.format(x),
-                      '\nRESPONSE\n',
-                      response.text,
-                      '',
-                      '!' * 80,
-                  ]))
-    return None, None, None
-
-
-def _get_bbox(polygon: list):
-    (min_x, min_y) = (max_x, max_y) = polygon[0][0]
-    for x, y in polygon[0]:
-        min_x = min(min_x, x)
-        min_y = min(min_y, y)
-        max_x = max(max_x, x)
-        max_y = max(max_y, x)
-    return min_x, min_y, max_x, max_y
-
-
-def _get_centroid(polygon: list):
-    min_x, min_y, max_x, max_y = _get_bbox(polygon)
-    return (max_x + min_x) / 2, (max_y + min_y) / 2
-
-
 def _make_algorithm_cli_cmd(
         algo_interface: str,
         geotiff_filenames: list) -> str:
@@ -629,10 +568,7 @@ def _make_algorithm_cli_cmd(
         ])
     elif algo_interface == 'pzsvc-ndwi-py':
         return ' '.join([
-            '-i',
-            geotiff_filenames[0],
-            '-i',
-            geotiff_filenames[1],
+            ' '.join(['-i ' + filename for filename in geotiff_filenames]),
             '--fout ./shoreline.geojson',
         ])
     else:
@@ -708,8 +644,3 @@ class PostprocessingError(Error):
 class PreprocessingError(Error):
     def __init__(self, err: Exception = None, message: str = None):
         super().__init__('during preprocessing, {}'.format(message or err))
-
-
-class TidePredictionError(Error):
-    def __init__(self, message: str):
-        super().__init__(message='tide prediction failed: {}'.format(message))
