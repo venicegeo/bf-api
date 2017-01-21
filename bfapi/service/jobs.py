@@ -157,7 +157,7 @@ def create(
             job_id=job_id,
             name=job_name,
             scene_id=scene_id,
-            status=piazza.STATUS_SUBMITTED,
+            status=piazza.STATUS_PENDING,
             user_id=user_id,
             tide=scene.tide,
             tide_min_24h=scene.tide_min,
