@@ -123,6 +123,8 @@ def https_filter():
 #
 
 def _is_authorized_origin(origin: str) -> bool:
+    if not origin:
+        return False
     for pattern in PATTERNS_AUTHORIZED_ORIGINS:
         if pattern.match(origin):
             return True
