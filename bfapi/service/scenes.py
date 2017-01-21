@@ -20,10 +20,14 @@ import dateutil.parser
 import requests
 
 from bfapi import db
-from bfapi.config import CATALOG
+from bfapi.config import CATALOG, DOMAIN
 
 
 PATTERN_SCENE_ID = re.compile(r'^(planetscope|rapideye):[\w_-]+$')
+STATUS_ACTIVE = 'active'
+STATUS_ACTIVATING = 'activating'
+STATUS_INACTIVE = 'inactive'
+
 
 #
 # Types
@@ -39,10 +43,10 @@ class Scene:
             geotiff_multispectral: str = None,
             geotiff_swir1: str = None,
             geometry: dict,
-            is_active: bool,
             resolution: int,
             scene_id: str,
             sensor_name: str,
+            status: str,
             tide: float,
             tide_min: float,
             tide_max: float,
@@ -54,9 +58,9 @@ class Scene:
         self.geotiff_coastal = geotiff_coastal
         self.geotiff_multispectral = geotiff_multispectral
         self.geotiff_swir1 = geotiff_swir1
-        self.is_active = is_active
         self.resolution = resolution
         self.sensor_name = sensor_name
+        self.status = status
         self.tide = tide
         self.tide_min = tide_min
         self.tide_max = tide_max
@@ -67,23 +71,62 @@ class Scene:
 # Actions
 #
 
-def get(scene_id: str, planet_api_key: str) -> Scene:
+def activate(scene_id: str, planet_api_key: str) -> str:
     log = logging.getLogger(__name__)
 
-    if not PATTERN_SCENE_ID.match(scene_id):
-        raise MalformedSceneID(scene_id)
+    scene = get(scene_id, planet_api_key, with_tides=False)
+    if scene.status == STATUS_ACTIVE:
+        return scene.geotiff_multispectral
+    elif scene.status == STATUS_ACTIVATING:
+        return None
 
-    platform, external_id = scene_id.split(':', 1)
+    # Request activation
+    platform, external_id = _parse_scene_id(scene_id)
+
+    activation_url = 'https://{}/planet/activate/{}/{}'.format(CATALOG, platform, external_id)
+    log.info('Activating `%s`', scene.id)
+    try:
+        log.debug('Requesting activation; url=`%s`', activation_url)
+        response = requests.get(
+            activation_url,
+            params={
+                'PL_API_KEY': planet_api_key,
+            }
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise CatalogError()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 404:
+            raise NotFound(scene_id)
+        raise CatalogError()
+
+
+def create_download_url(scene_id: str, planet_api_key: str = None) -> str:
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+    # FIXME -- hopefully this endpoint can move into the IA Broker eventually
+    return 'https://bf-api.{}/v0/scene/{}.TIF?planet_api_key={}'.format(
+        DOMAIN,
+        scene_id,
+        planet_api_key,
+    )
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+
+
+def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene:
+    log = logging.getLogger(__name__)
+
+    platform, external_id = _parse_scene_id(scene_id)
 
     uri = 'https://{}/planet/{}/{}'.format(CATALOG, platform, external_id)
-    log.info('Fetch `%s`', uri)
+    log.info('Fetching `%s`', uri)
     try:
-        log.debug('Requesting metadata; url=`%s`', uri)
         response = requests.get(
             uri,
             params={
                 'PL_API_KEY': planet_api_key,
-                'tides': True,
+                'tides': with_tides,
             }
         )
         response.raise_for_status()
@@ -97,11 +140,11 @@ def get(scene_id: str, planet_api_key: str) -> Scene:
 
     feature = response.json()
 
-    is_active = _extract_activation_status(scene_id, feature)
+    status = _extract_status(scene_id, feature)
 
     geotiff_multispectral = feature['properties'].get('location')
-    if is_active and not geotiff_multispectral:
-        raise ValidationError(scene_id, 'Scene is active but missing GeoTIFF URL')
+    if status == STATUS_ACTIVE and not geotiff_multispectral:
+        raise ValidationError(scene_id, 'Scene is activated but missing GeoTIFF URL')
 
     scene = Scene(
         scene_id=scene_id,
@@ -110,9 +153,9 @@ def get(scene_id: str, planet_api_key: str) -> Scene:
         cloud_cover=_extract_cloud_cover(scene_id, feature),
         geometry=_extract_geometry(scene_id, feature),
         geotiff_multispectral=geotiff_multispectral,
-        is_active=is_active,
         resolution=_extract_resolution(scene_id, feature),
         sensor_name=_extract_sensor_name(scene_id, feature),
+        status=status,
         tide=_extract_tide(scene_id, feature),
         tide_min=_extract_tide_min(scene_id, feature),
         tide_max=_extract_tide_max(scene_id, feature),
@@ -125,15 +168,6 @@ def get(scene_id: str, planet_api_key: str) -> Scene:
 #
 # Helpers
 #
-
-def _extract_activation_status(scene_id: str, feature) -> bool:
-    value = feature['properties'].get('status')
-    if value is None:
-        raise ValidationError(scene_id, 'missing `status`')
-    if value not in ('active', 'activating', 'inactive'):
-        raise ValidationError(scene_id, 'value of `status` is ambiguous')
-    return value == 'active'
-
 
 def _extract_capture_date(scene_id: str, feature: dict) -> datetime:
     value = feature['properties'].get('acquiredDate')
@@ -184,6 +218,15 @@ def _extract_sensor_name(scene_id: str, feature: dict) -> str:
     return value.strip()
 
 
+def _extract_status(scene_id: str, feature) -> str:
+    value = feature['properties'].get('status')
+    if value is None:
+        raise ValidationError(scene_id, 'missing `status`')
+    if value not in (STATUS_ACTIVE, STATUS_ACTIVATING, STATUS_INACTIVE):
+        raise ValidationError(scene_id, 'value of `status` is ambiguous')
+    return value
+
+
 def _extract_tide(scene_id: str, feature: dict) -> float:
     value = feature['properties'].get('CurrentTide')
     if value is not None:
@@ -212,6 +255,12 @@ def _extract_tide_max(scene_id: str, feature: dict) -> float:
         except:
             raise ValidationError(scene_id, '`24hrMaxTide` is not a float')
     return value
+
+
+def _parse_scene_id(scene_id) -> (str, str):
+    if not PATTERN_SCENE_ID.match(scene_id):
+        raise MalformedSceneID(scene_id)
+    return scene_id.split(':', 1)
 
 
 def _save_to_database(scene: Scene):

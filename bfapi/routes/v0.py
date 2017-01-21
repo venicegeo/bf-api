@@ -20,7 +20,7 @@ import flask
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
-from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines
+from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines, scenes as _scenes
 
 
 #
@@ -231,6 +231,74 @@ def get_user_data():
             'wms_server': 'https://{}/geoserver/wms'.format(GEOSERVER_HOST),
         },
     })
+
+#
+# Scenes
+#
+
+# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+# FIXME -- hopefully this can move into the IA Broker eventually
+def forward_to_geotiff(scene_id: str):
+    planet_api_key = flask.request.args.get('planet_api_key')
+    if not planet_api_key:
+        return 'Missing `planet_api_key` parameter', 400
+
+    try:
+        geotiff_url = _scenes.activate(scene_id, planet_api_key)
+    except _scenes.NotFound:
+        return 'Cannot download: Scene `{}` not found'.format(scene_id), 404
+    except _scenes.CatalogError as err:
+        return 'Cannot download: {}'.format(err), 500
+
+    if geotiff_url:
+        return flask.redirect(geotiff_url)
+
+    return """
+        <h1>GeoTIFF for <code>{scene_id}</code> is activating</h1>
+        <p>
+            We're still requesting the GeoTIFF for this scene for you.  Your
+            browser will automatically be redirected to the GeoTIFF file when it
+            is ready. <strong>If this takes longer than an hour, please contact
+            the Beachfront team for technical support.</strong>
+        </p>
+
+        <p>
+            Your wait time so far is: <code class="elapsed">NN duration</code>.
+        </p>
+
+        <script>
+            setTimeout(location.reload.bind(location), 30000)
+
+            var t = sessionStorage.getItem(location.href)
+            if (!t) {{
+                t = Date.now()
+                sessionStorage.setItem(location.href, t)
+            }}
+
+            // Update thingy
+            var seconds = Math.ceil((Date.now() - t) / 1000)
+            var timeElapsed = seconds < 60 ? seconds + ' second(s)' : Math.floor(seconds / 60) + ' minute(s)'
+            document.querySelector('.elapsed').textContent = timeElapsed
+        </script>
+        <style>
+            body {{
+                margin: 5em;
+                font: 18px sans-serif;
+                line-height: 1.75em;
+            }}
+            .elapsed {{
+                background-color: #eee;
+                color: #555;
+                padding: .3em;
+                margin: 0 .25em;
+                font-weight: bold;
+            }}
+        </style>
+    """.format(scene_id=scene_id), 202, {
+        'Content-Type': 'text/html',
+    }
+# HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+
 
 #
 # Helpers
