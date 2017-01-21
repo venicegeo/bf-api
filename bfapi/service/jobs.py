@@ -127,7 +127,7 @@ def create(
     # Dispatch to Piazza
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
-        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, geotiff_filenames)
+        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, geotiff_filenames, scene.platform)
         job_id = piazza.execute(algorithm.service_id, {
             'body': {
                 'content': json.dumps({
@@ -544,7 +544,8 @@ class Worker(threading.Thread):
 
 def _create_algorithm_cli_cmd(
         algo_interface: str,
-        geotiff_filenames: list) -> str:
+        geotiff_filenames: list,
+        scene_platform: str) -> str:
     log = logging.getLogger(__name__)
     if algo_interface == 'pzsvc-ossim':
         return ' '.join([
@@ -556,8 +557,14 @@ def _create_algorithm_cli_cmd(
             'shoreline.geojson',
         ])
     elif algo_interface == 'pzsvc-ndwi-py':
+        band_flag = ''
+        if scene_platform == scenes.PLATFORM_PLANETSCOPE:
+            band_flag = '--bands 2 4'
+        elif scene_platform == scenes.PLATFORM_RAPIDEYE:
+            band_flag = '--bands 2 5'
         return ' '.join([
             ' '.join(['-i ' + filename for filename in geotiff_filenames]),
+            band_flag,
             '--fout ./shoreline.geojson',
         ])
     else:

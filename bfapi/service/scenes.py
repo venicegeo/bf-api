@@ -24,6 +24,8 @@ from bfapi.config import CATALOG, DOMAIN
 
 
 PATTERN_SCENE_ID = re.compile(r'^(planetscope|rapideye):[\w_-]+$')
+PLATFORM_PLANETSCOPE = 'planetscope'
+PLATFORM_RAPIDEYE = 'rapideye'
 STATUS_ACTIVE = 'active'
 STATUS_ACTIVATING = 'activating'
 STATUS_INACTIVE = 'inactive'
@@ -43,6 +45,7 @@ class Scene:
             geotiff_multispectral: str = None,
             geotiff_swir1: str = None,
             geometry: dict,
+            platform: str,
             resolution: int,
             scene_id: str,
             sensor_name: str,
@@ -58,6 +61,7 @@ class Scene:
         self.geotiff_coastal = geotiff_coastal
         self.geotiff_multispectral = geotiff_multispectral
         self.geotiff_swir1 = geotiff_swir1
+        self.platform = platform
         self.resolution = resolution
         self.sensor_name = sensor_name
         self.status = status
@@ -153,6 +157,7 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
         cloud_cover=_extract_cloud_cover(scene_id, feature),
         geometry=_extract_geometry(scene_id, feature),
         geotiff_multispectral=geotiff_multispectral,
+        platform=platform,
         resolution=_extract_resolution(scene_id, feature),
         sensor_name=_extract_sensor_name(scene_id, feature),
         status=status,

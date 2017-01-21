@@ -253,25 +253,37 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
             'cmd': 'shoreline' +
-                   ' --image test-algo-band-1.TIF,test-algo-band-2.TIF' +
+                   ' --image multispectral.TIF' +
                    ' --projection geo-scaled' +
                    ' --threshold 0.5' +
                    ' --tolerance 0.075' +
                    ' shoreline.geojson',
-            'inExtFiles': ['lorem', 'ipsum'],
-            'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
+            'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
+            'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
         }, json.loads(self.mock_execute.call_args[0][1]['body']['content']))
 
-    def test_sends_correct_payload_to_piazza_pzsvc_ndwi_py(self):
+    def test_sends_correct_payload_to_piazza_pzsvc_ndwi_py_for_planetscope(self):
         self.mock_get_algo.return_value = create_algorithm()
-        self.mock_get_scene.return_value = create_scene()
+        self.mock_get_scene.return_value = create_scene(platform=scenes.PLATFORM_PLANETSCOPE)
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
-            'cmd': '-i test-algo-band-1.TIF -i test-algo-band-2.TIF --fout ./shoreline.geojson',
-            'inExtFiles': ['lorem', 'ipsum'],
-            'inExtNames': ['test-algo-band-1.TIF', 'test-algo-band-2.TIF'],
+            'cmd': '-i multispectral.TIF --bands 2 4 --fout ./shoreline.geojson',
+            'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
+            'inExtNames': ['multispectral.TIF'],
+            'outGeoJson': ['shoreline.geojson'],
+        }, json.loads(self.mock_execute.call_args[0][1]['body']['content']))
+
+    def test_sends_correct_payload_to_piazza_pzsvc_ndwi_py_for_rapideye(self):
+        self.mock_get_algo.return_value = create_algorithm()
+        self.mock_get_scene.return_value = create_scene(platform=scenes.PLATFORM_RAPIDEYE)
+        jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
+        self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
+        self.assertEqual({
+            'cmd': '-i multispectral.TIF --bands 2 5 --fout ./shoreline.geojson',
+            'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
+            'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
         }, json.loads(self.mock_execute.call_args[0][1]['body']['content']))
 
@@ -1394,11 +1406,12 @@ def create_job_db_summary(job_id: str = 'test-job-id', created_on: datetime = No
     }
 
 
-def create_scene():
+def create_scene(platform: str = scenes.PLATFORM_PLANETSCOPE):
     return scenes.Scene(
         capture_date=datetime.utcfromtimestamp(1400000000),
         cloud_cover=33,
         geometry={"type": "Polygon", "coordinates": [[[0, 0], [0, 30], [30, 30], [30, 0], [0, 0]]]},
+        platform=platform,
         resolution=15,
         scene_id='test-scene-id',
         sensor_name='test-sensor-name',
