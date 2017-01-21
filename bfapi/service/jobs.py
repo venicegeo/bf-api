@@ -18,8 +18,6 @@ import time
 from datetime import datetime, timedelta
 from typing import List
 
-import requests
-
 from bfapi import db
 from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL
 from bfapi.service import algorithms, scenes, piazza
@@ -123,22 +121,13 @@ def create(
         raise PreprocessingError(err)
 
     # Determine GeoTIFF URLs
-    if not scene.is_active:
-        raise PreprocessingError(message='Scene {} must already be activated'.format(scene.id))
-
-    if scene.geotiff_multispectral:
-        geotiff_filenames = ['multispectral.TIF']
-        geotiff_urls = [scene.geotiff_multispectral]
-    elif scene.geotiff_coastal and scene.geotiff_swir1:
-        geotiff_filenames = ['coastal.TIF', 'swir1.TIF']
-        geotiff_urls = [scene.geotiff_coastal, scene.geotiff_swir1]
-    else:
-        raise PreprocessingError(message='Scene {} is missing GeoTIFF URLs.  Is the scene activated?'.format(scene.id))
+    geotiff_filenames = ['multispectral.TIF']
+    geotiff_urls = [scenes.create_download_url(scene.id, planet_api_key)]
 
     # Dispatch to Piazza
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
-        cli_cmd = _make_algorithm_cli_cmd(algorithm.interface, geotiff_filenames)
+        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, geotiff_filenames)
         job_id = piazza.execute(algorithm.service_id, {
             'body': {
                 'content': json.dumps({
@@ -553,7 +542,7 @@ class Worker(threading.Thread):
 # Helpers
 #
 
-def _make_algorithm_cli_cmd(
+def _create_algorithm_cli_cmd(
         algo_interface: str,
         geotiff_filenames: list) -> str:
     log = logging.getLogger(__name__)
