@@ -220,25 +220,25 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
-        self.assertEqual('Submitted', self.mock_insert_job.call_args[1]['status'])
+        self.assertEqual('Pending', self.mock_insert_job.call_args[1]['status'])
 
     def test_saves_correct_tide_to_database(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
-        self.assertEqual('Submitted', self.mock_insert_job.call_args[1]['status'])
+        self.assertEqual(0.5, self.mock_insert_job.call_args[1]['tide'])
 
     def test_saves_correct_tide_min_to_database(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
-        self.assertEqual('Submitted', self.mock_insert_job.call_args[1]['status'])
+        self.assertEqual(0.0, self.mock_insert_job.call_args[1]['tide_min_24h'])
 
     def test_saves_correct_tide_max_to_database(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
-        self.assertEqual('Submitted', self.mock_insert_job.call_args[1]['status'])
+        self.assertEqual(1.0, self.mock_insert_job.call_args[1]['tide_max_24h'])
 
     def test_fetches_correct_scene(self):
         self.mock_get_algo.return_value = create_algorithm()
