@@ -107,7 +107,7 @@ def activate(scene_id: str, planet_api_key: str) -> str:
         raise CatalogError()
 
 
-def create_download_url(scene_id: str, planet_api_key: str = None) -> str:
+def create_download_url(scene_id: str, planet_api_key: str = '') -> str:
     # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
     # FIXME -- hopefully this endpoint can move into the IA Broker eventually
     return 'https://bf-api.{}/v0/scene/{}.TIF?planet_api_key={}'.format(
@@ -190,7 +190,7 @@ def _extract_cloud_cover(scene_id: str, feature: dict) -> float:
     if value is None:
         raise ValidationError(scene_id, 'missing `cloudCover`')
     try:
-        value = round(value)
+        value = round(value, 2)
     except:
         raise ValidationError(scene_id, '`cloudCover` is not a float')
     return value
