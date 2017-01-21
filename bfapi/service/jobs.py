@@ -188,7 +188,7 @@ def create(
         scene_capture_date=scene.capture_date,
         scene_sensor_name=scene.sensor_name,
         scene_id=scene_id,
-        status=piazza.STATUS_SUBMITTED,
+        status=piazza.STATUS_PENDING,
         tide=scene.tide,
         tide_min_24h=scene.tide_min,
         tide_max_24h=scene.tide_max,
