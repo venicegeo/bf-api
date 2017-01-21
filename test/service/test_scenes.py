@@ -11,8 +11,11 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import json
 import logging
-import unittest.mock
+import unittest
+from datetime import datetime
+from unittest.mock import patch
 
 import requests_mock as rm
 from requests import ConnectionError
@@ -23,175 +26,463 @@ from bfapi.db import DatabaseError
 from bfapi.service import scenes
 
 
-@rm.Mocker()
+class ActivateSceneTest(unittest.TestCase):
+    def setUp(self):
+        self._logger = logging.getLogger('bfapi.service.scenes')
+        self._logger.disabled = True
+
+        self.mock_requests = rm.Mocker()  # type: rm.Mocker
+        self.mock_requests.start()
+        self.addCleanup(self.mock_requests.stop)
+
+        self.mock_get = self.create_mock('bfapi.service.scenes.get')
+
+    def tearDown(self):
+        self._logger.disabled = False
+
+    def create_mock(self, target_name, **kwargs):
+        patcher = patch(target_name, **kwargs)
+        self.addCleanup(patcher.stop)
+        return patcher.start()
+
+    def test_activates_if_inactive(self):
+        self.mock_get.return_value = create_scene()
+        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
+        scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual(1, len(self.mock_requests.request_history))
+
+    def test_does_not_spam_activation_url_if_already_activating(self):
+        scene = create_scene()
+        scene.status = scenes.STATUS_ACTIVATING
+        self.mock_get.return_value = scene
+        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
+        scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual(0, len(self.mock_requests.request_history))
+
+    def test_calls_correct_activation_url_for_planetscope(self):
+        self.mock_get.return_value = create_scene(platform='planetscope')
+        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
+        scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual('https://bf-ia-broker.localhost/planet/activate/planetscope/test-scene-id?PL_API_KEY=test-planet-api-key',
+                         self.mock_requests.request_history[0].url)
+
+    def test_calls_correct_activation_url_for_rapideye(self):
+        self.mock_get.return_value = create_scene(platform='rapideye')
+        self.mock_requests.get('/planet/activate/rapideye/test-scene-id', text='')
+        scenes.activate('rapideye:test-scene-id', 'test-planet-api-key')
+        self.assertEqual('https://bf-ia-broker.localhost/planet/activate/rapideye/test-scene-id?PL_API_KEY=test-planet-api-key',
+                         self.mock_requests.request_history[0].url)
+
+    def test_returns_multispectral_url_if_activated(self):
+        scene = create_scene()
+        scene.status = scenes.STATUS_ACTIVE
+        scene.geotiff_multispectral = 'test-geotiff-multispectral-url'
+        self.mock_get.return_value = scene
+        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
+        url = scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual('test-geotiff-multispectral-url', url)
+
+    def test_returns_nothing_if_activated(self):
+        self.mock_get.return_value = create_scene()
+        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
+        url = scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertIsNone(url)
+
+    def test_throws_when_catalog_is_unreachable(self):
+        self.mock_get.return_value = create_scene()
+        with unittest.mock.patch('requests.get') as stub:
+            stub.side_effect = ConnectionError()
+            with self.assertRaises(scenes.CatalogError):
+                scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_catalog_throws(self):
+        self.mock_get.return_value = create_scene()
+        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', status_code=500, text='oh noes')
+        with self.assertRaises(scenes.CatalogError):
+            scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_does_not_exist(self):
+        self.mock_get.return_value = create_scene()
+        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', status_code=404, text='wat')
+        with self.assertRaises(scenes.NotFound):
+            scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_id_is_malformed(self):
+        self.mock_get.return_value = create_scene()
+        malformed_ids = (
+            'lolwut',
+            'landsat:LC80110632016220LGN00',
+            'planetnope:foobar',
+        )
+        for malformed_id in malformed_ids:
+            with self.assertRaises(scenes.MalformedSceneID):
+                scenes.activate(malformed_id, 'test-planet-api-key')
+
+
+class CreateDownloadURLTest(unittest.TestCase):
+    def test_returns_correct_url(self):
+        url = scenes.create_download_url('test-scene-id', 'test-planet-api-key')
+        self.assertEqual('https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key', url)
+
+    def test_accepts_blank_planet_api_key(self):
+        url = scenes.create_download_url('test-scene-id')
+        self.assertEqual('https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=', url)
+
+
 class GetSceneTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
         self._logger = logging.getLogger('bfapi.service.scenes')
         self._logger.disabled = True
 
+        self.mock_requests = rm.Mocker()  # type: rm.Mocker
+        self.mock_requests.start()
+        self.addCleanup(self.mock_requests.stop)
+
     def tearDown(self):
         self._mockdb.destroy()
         self._logger.disabled = False
 
-    def test_calls_correct_url(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scenes.get('landsat:LC80110632016220LGN00')
-        self.assertEqual('https://pzsvc-image-catalog.localhost/image/landsat:LC80110632016220LGN00',
-                         m.request_history[0].url)
+    def test_calls_correct_url_for_planetscope_scene(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        uri, params = self.mock_requests.request_history[0].url.split('?', 1)
+        self.assertEqual('https://bf-ia-broker.localhost/planet/planetscope/test-scene-id', uri)
+        self.assertEqual({'PL_API_KEY=test-planet-api-key', 'tides=True'}, set(params.split('&')))
 
-    def test_fetches_scenes(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
+    def test_calls_correct_url_for_rapideye_scene(self):
+        self.mock_requests.get('/planet/rapideye/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scenes.get('rapideye:test-scene-id', 'test-planet-api-key')
+        uri, params = self.mock_requests.request_history[0].url.split('?', 1)
+        self.assertEqual('https://bf-ia-broker.localhost/planet/rapideye/test-scene-id', uri)
+        self.assertEqual({'PL_API_KEY=test-planet-api-key', 'tides=True'}, set(params.split('&')))
+
+    def test_fetches_scenes(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
         self.assertIsInstance(scene, scenes.Scene)
 
-    def test_yields_correct_capture_date(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
-        self.assertEqual('2016-08-07T15:33:42.572449+00:00',
-                         scene.capture_date.isoformat())
+    def test_returns_correct_capture_date(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual('2017-01-20T00:00:00+00:00', scene.capture_date.isoformat())
 
-    def test_yields_correct_bands(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
-        self.assertSetEqual({'blue', 'cirrus', 'coastal', 'green', 'nir', 'panchromatic', 'red', 'swir1', 'swir2',
-                             'tirs1', 'tirs2'},
-                            set(scene.bands.keys()))
-
-    def test_yields_correct_cloud_cover(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
+    def test_returns_correct_cloud_cover(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
         self.assertEqual(1.47, scene.cloud_cover)
 
-    def test_yields_correct_id(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
-        self.assertEqual('landsat:LC80110632016220LGN00', scene.id)
+    def test_returns_correct_id(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual('planetscope:test-scene-id', scene.id)
 
-    def test_yields_correct_geometry(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
+    def test_returns_correct_geometry(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
         self.assertIsInstance(scene.geometry, dict)
         self.assertIsInstance(scene.geometry.get('coordinates'), list)
-        self.assertEqual([[[-81.5725334896228, -3.29632263428811], [-79.934112104967, -3.64597257671337],
-                           [-80.3035877737851, -5.38806769101045], [-81.9453446162527, -5.03306405829352],
-                           [-81.5725334896228, -3.29632263428811]]],
+        self.assertEqual([[[115.78907135188213, 26.67939763560932], [115.78653934657243, 26.905071315070465],
+                           [116.01004245933433, 26.90679345550323], [115.95815780815747, 26.680701401397425],
+                           [115.78907135188213, 26.67939763560932]]],
                          scene.geometry.get('coordinates'))
 
-    def test_yields_correct_resolution(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
-        self.assertEqual(30, scene.resolution)
+    def test_returns_correct_geotiff_multispectral_url_for_active_scene(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_ACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual('test-location', scene.geotiff_multispectral)
 
-    def test_yields_correct_sensor_name(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
-        self.assertEqual('Landsat8', scene.sensor_name)
+    def test_returns_correct_geotiff_multispectral_url_for_inactive_scene(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertIsNone(scene.geotiff_multispectral)
 
-    def test_yields_correct_uri(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scene = scenes.get('landsat:LC80110632016220LGN00')
-        self.assertEqual('https://pzsvc-image-catalog.localhost/image/landsat:LC80110632016220LGN00',
-                         scene.uri)
+    def test_returns_correct_geotiff_single_band_urls(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        # FIXME -- if Planet's API ever offers Landsat retrieval...
+        self.assertIsNone(scene.geotiff_coastal)
+        self.assertIsNone(scene.geotiff_swir1)
 
-    def test_throws_if_catalog_is_unreachable(self, _):
+    def test_returns_correct_resolution(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual(4, scene.resolution)
+
+    def test_returns_correct_sensor_name(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual('test-sensor-name', scene.sensor_name)
+
+    def test_returns_correct_uri(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+        self.assertEqual('https://bf-ia-broker.localhost/planet/planetscope/test-scene-id', scene.uri)
+
+    def test_throws_when_catalog_is_unreachable(self):
         with unittest.mock.patch('requests.get') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(scenes.CatalogError):
-                scenes.get('landsat:LC80110632016220LGN00')
+                scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
 
-    def test_gracefully_handles_catalog_http_errors(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', status_code=500, text='oh noes')
+    def test_throws_when_catalog_throws(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', status_code=500, text='oh noes')
         with self.assertRaises(scenes.CatalogError):
-            scenes.get('landsat:LC80110632016220LGN00')
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
 
-    def test_throws_if_scene_does_not_exist(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', status_code=404, text=RESPONSE_SCENE_NOT_FOUND)
+    def test_throws_when_scene_does_not_exist(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', status_code=404, text='wat')
         with self.assertRaises(scenes.NotFound):
-            scenes.get('landsat:LC80110632016220LGN00')
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
 
-    def test_throws_if_scene_id_is_malformed(self, _):
-        with self.assertRaises(scenes.MalformedSceneID):
-            scenes.get('lolwut')
+    def test_throws_when_scene_id_is_malformed(self):
+        malformed_ids = (
+            'lolwut',
+            'landsat:LC80110632016220LGN00',
+            'planetnope:foobar',
+        )
+        for malformed_id in malformed_ids:
+            with self.assertRaises(scenes.MalformedSceneID):
+                scenes.get(malformed_id, 'test-planet-api-key')
 
-    def test_saves_scene_to_database(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
-        scenes.get('landsat:LC80110632016220LGN00')
+    def test_throws_when_scene_is_active_and_missing_location(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        del mangled_scene['properties']['location']
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_is_missing_capture_date(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        del mangled_scene['properties']['acquiredDate']
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_is_missing_cloud_cover(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        del mangled_scene['properties']['cloudCover']
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_is_missing_geometry(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        del mangled_scene['geometry']
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_is_missing_resolution(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        del mangled_scene['properties']['resolution']
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_is_missing_status(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        del mangled_scene['properties']['status']
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_has_invalid_capture_date(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        mangled_scene['properties']['acquiredDate'] = None
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_has_invalid_cloud_cover(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        mangled_scene['properties']['cloudCover'] = None
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_has_invalid_geometry(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        mangled_scene['geometry'] = None
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_has_invalid_resolution(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        mangled_scene['properties']['resolution'] = None
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_has_invalid_status(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        mangled_scene['properties']['status'] = None
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_has_invalid_tide(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        mangled_scene['properties']['CurrentTide'] = 'whee'
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_has_invalid_tide_min(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        mangled_scene['properties']['24hrMinTide'] = 'whee'
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_throws_when_scene_has_invalid_tide_max(self):
+        mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
+        mangled_scene['properties']['24hrMaxTide'] = 'whee'
+        self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
+        with self.assertRaises(scenes.ValidationError):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+    def test_saves_scene_to_database(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
+        scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
         self.assertTrue(self._mockdb.executed)
 
-    def test_gracefully_handles_database_errors(self, m: rm.Mocker):
-        m.get('/image/landsat:LC80110632016220LGN00', text=RESPONSE_SCENE)
+    def test_gracefully_handles_database_errors(self):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
         self._mockdb.raise_on_execute()
         with self.assertRaises(DatabaseError):
-            scenes.get('landsat:LC80110632016220LGN00')
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+
+
+#
+# Helpers
+#
+
+def create_scene(*, platform: str = 'planetscope') -> scenes.Scene:
+    return scenes.Scene(
+        scene_id=platform + ':test-scene-id',
+        uri='test-uri',
+        capture_date=datetime.utcnow(),
+        cloud_cover=33,
+        geometry={"type": "Polygon", "coordinates": [[[0, 0], [0, 30], [30, 30], [30, 0], [0, 0]]]},
+        platform=platform,
+        resolution=7,
+        sensor_name='test-sensor-name',
+        status=scenes.STATUS_INACTIVE,
+        tide=0.5,
+        tide_min=0.0,
+        tide_max=1.0,
+    )
 
 
 #
 # Fixtures
 #
 
-RESPONSE_SCENE_NOT_FOUND = (
-    'Unable to retrieve metadata for landsat:LC80110632016220LGN00: redis: nil even using wildcard search'
-)
-
-RESPONSE_SCENE = """{
+RESPONSE_SCENE_ACTIVE = """{
   "type": "Feature",
   "geometry": {
     "type": "Polygon",
     "coordinates": [
       [
         [
-          -81.5725334896228,
-          -3.29632263428811
+          115.78907135188213,
+          26.67939763560932
         ],
         [
-          -79.934112104967,
-          -3.64597257671337
+          115.78653934657243,
+          26.905071315070465
         ],
         [
-          -80.3035877737851,
-          -5.38806769101045
+          116.01004245933433,
+          26.90679345550323
         ],
         [
-          -81.9453446162527,
-          -5.03306405829352
+          115.95815780815747,
+          26.680701401397425
         ],
         [
-          -81.5725334896228,
-          -3.29632263428811
+          115.78907135188213,
+          26.67939763560932
         ]
       ]
     ]
   },
   "properties": {
-    "acquiredDate": "2016-08-07T15:33:42.572449+00:00",
-    "bands": {
-      "blue": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B2.TIF",
-      "cirrus": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B9.TIF",
-      "coastal": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B1.TIF",
-      "green": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B3.TIF",
-      "nir": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B5.TIF",
-      "panchromatic": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B8.TIF",
-      "red": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B4.TIF",
-      "swir1": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B6.TIF",
-      "swir2": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B7.TIF",
-      "tirs1": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B10.TIF",
-      "tirs2": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_B11.TIF"
-    },
+    "24hrMaxTide": 1.0,
+    "24hrMinTide": 0.0,
+    "CurrentTide": 0.5,
+    "acquiredDate": "2017-01-20T00:00:00Z",
     "cloudCover": 1.47,
     "fileFormat": "geotiff",
-    "path": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/index.html",
-    "resolution": 30,
-    "sensorName": "Landsat8",
-    "thumb_large": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_thumb_large.jpg",
-    "thumb_small": "https://landsat-pds.s3.amazonaws.com/L8/011/063/LC80110632016220LGN00/LC80110632016220LGN00_thumb_small.jpg"
+    "location": "test-location",
+    "permissions": [
+      "download"
+    ],
+    "resolution": 3.9791881719258697,
+    "sensorName": "test-sensor-name",
+    "status": "active",
+    "type": "analytic"
   },
-  "id": "landsat:LC80110632016220LGN00",
+  "id": "test-scene-id",
   "bbox": [
-    -81.9453446162527,
-    -5.38806769101045,
-    -79.934112104967,
-    -3.29632263428811
+    115.78653934657243,
+    26.67939763560932,
+    116.01004245933433,
+    26.90679345550323
   ]
-}
-"""
+}"""
+
+RESPONSE_SCENE_INACTIVE = """{
+  "type": "Feature",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          115.78907135188213,
+          26.67939763560932
+        ],
+        [
+          115.78653934657243,
+          26.905071315070465
+        ],
+        [
+          116.01004245933433,
+          26.90679345550323
+        ],
+        [
+          115.95815780815747,
+          26.680701401397425
+        ],
+        [
+          115.78907135188213,
+          26.67939763560932
+        ]
+      ]
+    ]
+  },
+  "properties": {
+    "24hrMaxTide": 1.0,
+    "24hrMinTide": 0.0,
+    "CurrentTide": 0.5,
+    "acquiredDate": "2017-01-20T00:00:00Z",
+    "cloudCover": 1.47,
+    "fileFormat": "geotiff",
+    "permissions": [
+      "download"
+    ],
+    "resolution": 3.9791881719258697,
+    "sensorName": "test-sensor-name",
+    "status": "inactive",
+    "type": "analytic"
+  },
+  "id": "test-scene-id",
+  "bbox": [
+    115.78653934657243,
+    26.67939763560932,
+    116.01004245933433,
+    26.90679345550323
+  ]
+}"""

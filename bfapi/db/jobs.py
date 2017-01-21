@@ -284,7 +284,7 @@ def update_status(
         conn: Connection,
         *,
         job_id: str,
-        status: str) -> ResultProxy:
+        status: str) -> None:
     query = """
         UPDATE __beachfront__job
            SET status = %(status)s

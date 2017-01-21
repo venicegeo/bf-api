@@ -21,6 +21,19 @@ import flask
 from bfapi.service import users
 from bfapi import middleware
 
+AUTHORIZED_ORIGINS = (
+    'https://beachfront.geointservices.io',
+    'https://beachfront.dev.geointservices.io',
+    'https://beachfront.int.geointservices.io',
+    'https://beachfront.stage.geointservices.io',
+    'https://beachfront.arbitrary.subdomain.geointservices.io',
+    'https://bf-swagger.geointservices.io',
+    'https://bf-swagger.dev.geointservices.io',
+    'https://bf-swagger.int.geointservices.io',
+    'https://bf-swagger.stage.geointservices.io',
+    'https://bf-swagger.arbitrary.subdomain.geointservices.io',
+    'https://localhost:8080',
+)
 
 class AuthFilterTest(unittest.TestCase):
     def setUp(self):
@@ -173,14 +186,14 @@ class CSRFFilterTest(unittest.TestCase):
         for endpoint in endpoints:
             self.request.reset_mock()
             self.request.path = endpoint
-            self.request.headers['Origin'] = ''
+            self.request.headers['Origin'] = None
             self.request.referrer = None
             self.request.is_xhr = False
             response = middleware.csrf_filter()
             self.assertIsNone(response)
 
     def test_allows_cors_requests_from_authorized_origins(self):
-        origins = middleware.AUTHORIZED_ORIGINS
+        origins = AUTHORIZED_ORIGINS
         for origin in origins:
             self.request.reset_mock()
             self.request.path = '/protected'
@@ -190,7 +203,7 @@ class CSRFFilterTest(unittest.TestCase):
             self.assertIsNone(response)
 
     def test_allows_cors_preflights_from_authorized_origins(self):
-        origins = middleware.AUTHORIZED_ORIGINS
+        origins = AUTHORIZED_ORIGINS
         for origin in origins:
             self.request.reset_mock()
             self.request.method = 'OPTIONS'
@@ -203,12 +216,11 @@ class CSRFFilterTest(unittest.TestCase):
 
     def test_rejects_cors_requests_from_unknown_origins(self):
         origins = (
-            'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
-            'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://beachfront.geointservices.io',  # Not HTTPS
+            'http://bf-swagger.geointservices.io',  # Not HTTPS
             'http://instaspotifriendspacebooksterifygram.com',
-            'https://beachfront.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
-            'https://bf-api.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
-            'https://bf-swagger.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://beachfront.geointservices.io.totallynotaphishingattempt.com',
+            'https://bf-swagger.geointservices.io.totallynotaphishingattempt.com',
         )
         for origin in origins:
             self.request.reset_mock()
@@ -220,12 +232,11 @@ class CSRFFilterTest(unittest.TestCase):
 
     def test_rejects_cors_preflights_from_unknown_origins(self):
         origins = (
-            'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
-            'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://beachfront.geointservices.io',  # Not HTTPS
+            'http://bf-swagger.geointservices.io',  # Not HTTPS
             'http://instaspotifriendspacebooksterifygram.com',
-            'https://beachfront.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
-            'https://bf-api.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
-            'https://bf-swagger.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://beachfront.geointservices.io.totallynotaphishingattempt.com',
+            'https://bf-swagger.geointservices.io.totallynotaphishingattempt.com',
         )
         for origin in origins:
             self.request.reset_mock()
@@ -244,7 +255,7 @@ class CSRFFilterTest(unittest.TestCase):
         If `Origin` is empty and `Referrer` is not, more than likely the call
         came from an <img/> or <script/> tag, neither of which are legit uses
         """
-        origins = middleware.AUTHORIZED_ORIGINS
+        origins = AUTHORIZED_ORIGINS
         for origin in origins:
             self.request.path = '/protected'
             self.request.headers['Origin'] = None
@@ -253,7 +264,7 @@ class CSRFFilterTest(unittest.TestCase):
             self.assertEqual(('Access Denied: CORS request validation failed', 403), response)
 
     def test_rejects_cors_requests_not_marked_as_xhr(self):
-        origins = middleware.AUTHORIZED_ORIGINS
+        origins = AUTHORIZED_ORIGINS
         for origin in origins:
             self.request.reset_mock()
             self.request.path = '/protected'
@@ -266,12 +277,11 @@ class CSRFFilterTest(unittest.TestCase):
     def test_logs_rejection_of_cors_requests_from_unknown_origin(self):
         logstream = self.create_logstream()
         origins = (
-            'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
-            'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://beachfront.geointservices.io',  # Not HTTPS
+            'http://bf-swagger.geointservices.io',  # Not HTTPS
             'http://instaspotifriendspacebooksterifygram.com',
-            'https://beachfront.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
-            'https://bf-api.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
-            'https://bf-swagger.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://beachfront.geointservices.io.totallynotaphishingattempt.com',
+            'https://bf-swagger.geointservices.io.totallynotaphishingattempt.com',
         )
         for origin in origins:
             self.request.reset_mock()
@@ -280,23 +290,21 @@ class CSRFFilterTest(unittest.TestCase):
             self.request.is_xhr = True
             middleware.csrf_filter()
         self.assertEqual([
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://beachfront.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://beachfront.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://bf-swagger.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://instaspotifriendspacebooksterifygram.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-api.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.geointservices.io.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.geointservices.io.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
         ], logstream.getvalue().splitlines())
 
     def test_logs_rejection_of_cors_preflights_from_unknown_origin(self):
         logstream = self.create_logstream()
         origins = (
-            'http://beachfront.{}'.format(middleware.DOMAIN),  # Not HTTPS
-            'http://bf-swagger.{}'.format(middleware.DOMAIN),  # Not HTTPS
+            'http://beachfront.geointservices.io',  # Not HTTPS
+            'http://bf-swagger.geointservices.io',  # Not HTTPS
             'http://instaspotifriendspacebooksterifygram.com',
-            'https://beachfront.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
-            'https://bf-api.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
-            'https://bf-swagger.{}.totallynotaphishingattempt.com'.format(middleware.DOMAIN),
+            'https://beachfront.geointservices.io.totallynotaphishingattempt.com',
+            'https://bf-swagger.geointservices.io.totallynotaphishingattempt.com',
         )
         for origin in origins:
             self.request.reset_mock()
@@ -306,17 +314,16 @@ class CSRFFilterTest(unittest.TestCase):
             self.request.is_xhr = False
             middleware.csrf_filter()
         self.assertEqual([
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://beachfront.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://beachfront.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://bf-swagger.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://instaspotifriendspacebooksterifygram.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-api.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.localhost.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.geointservices.io.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.geointservices.io.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
         ], logstream.getvalue().splitlines())
 
     def test_logs_rejection_of_cors_requests_not_marked_as_xhr(self):
         logstream = self.create_logstream()
-        origins = middleware.AUTHORIZED_ORIGINS
+        origins = AUTHORIZED_ORIGINS
         for origin in origins:
             self.request.reset_mock()
             self.request.path = '/protected'
@@ -324,16 +331,22 @@ class CSRFFilterTest(unittest.TestCase):
             self.request.is_xhr = False
             middleware.csrf_filter()
         self.assertEqual([
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.dev.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.int.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.stage.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.arbitrary.subdomain.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.dev.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.int.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.stage.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.arbitrary.subdomain.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://localhost:8080` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.localhost` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
         ], logstream.getvalue().splitlines())
 
     def test_logs_rejection_of_cors_requests_that_look_spoofed(self):
         logstream = self.create_logstream()
-        origins = middleware.AUTHORIZED_ORIGINS
+        origins = AUTHORIZED_ORIGINS
         for origin in origins:
             self.request.reset_mock()
             self.request.path = '/protected'
@@ -342,11 +355,17 @@ class CSRFFilterTest(unittest.TestCase):
             self.request.is_xhr = False
             middleware.csrf_filter()
         self.assertEqual([
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.localhost` ip=`1.2.3.4` is_xhr=`False`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.localhost` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.dev.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.int.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.stage.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.arbitrary.subdomain.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.dev.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.int.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.stage.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
+            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.arbitrary.subdomain.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://localhost:8080` ip=`1.2.3.4` is_xhr=`False`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://beachfront.localhost` ip=`1.2.3.4` is_xhr=`False`',
-            'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.localhost` ip=`1.2.3.4` is_xhr=`False`',
         ], logstream.getvalue().splitlines())
 
 
