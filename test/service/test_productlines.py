@@ -19,7 +19,7 @@ from unittest.mock import patch, MagicMock
 from test import helpers
 
 from bfapi.db import DatabaseError
-from bfapi.service import productlines, piazza
+from bfapi.service import productlines
 from bfapi.service.algorithms import Algorithm, NotFound, ValidationError
 from bfapi.service.jobs import Job
 
@@ -464,7 +464,6 @@ class GetAllTest(unittest.TestCase):
 
 def create_algorithm():
     return Algorithm(
-        bands=('test-algo-band-1', 'test-algo-band-2'),
         description='test-algo-description',
         interface='test-algo-interface',
         max_cloud_cover=42,
