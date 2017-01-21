@@ -15,6 +15,7 @@ import logging
 import math
 import re
 from datetime import datetime
+from typing import Optional
 
 import dateutil.parser
 import requests
@@ -75,7 +76,7 @@ class Scene:
 # Actions
 #
 
-def activate(scene_id: str, planet_api_key: str) -> str:
+def activate(scene_id: str, planet_api_key: str) -> Optional[str]:
     log = logging.getLogger(__name__)
 
     scene = get(scene_id, planet_api_key, with_tides=False)
