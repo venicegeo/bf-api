@@ -28,6 +28,8 @@ def find_and_mark_one_time_key_used(
         'datetime' : datetime.datetime.now(),
         'key': key,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting to make one time use key used', extra={'actor': 'system', 'actee': 'system', 'action': 'data modify'})
     return conn.execute(query, params).rowcount > 0
 
 #Audit Log Required: db data access
@@ -40,6 +42,8 @@ def check_if_one_time_key_exists(
     params = {
         'key': key,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting check for one time use key', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params).rowcount > 0
 
 #Audit Log Required: db modification insert
@@ -52,4 +56,6 @@ def insert_one_time_key(
     params = {
         'key': key,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting insert one time use key', extra={'actor': 'system', 'actee': 'system', 'action': 'data create'})
     conn.execute(query, params)

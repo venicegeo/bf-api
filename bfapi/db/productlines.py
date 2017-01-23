@@ -28,6 +28,8 @@ def delete_productline(
     params = {
         'productline_id': productline_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting delete productline', extra={'actor': 'system', 'actee': 'system', 'action': 'data delete'})
     return conn.execute(query, params)
 
 #Audit Log Required: db modification insert
@@ -66,6 +68,8 @@ def insert_productline(
         'stop_on': stop_on,
         'user_id': user_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting insert productline', extra={'actor': user_id, 'actee': 'system', 'action': 'data create'})
     return conn.execute(query, params)
 
 #Audit Log Required: db modification insert
@@ -83,6 +87,8 @@ def insert_productline_job(
         'job_id': job_id,
         'productline_id': productline_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting insert productline job', extra={'actor': 'system', 'actee': 'system', 'action': 'data create'})
     return conn.execute(query, params)
 
 #Audit Log Required: db data access
@@ -95,6 +101,8 @@ def select_all(conn: Connection):
          WHERE NOT deleted
          ORDER BY created_on ASC
         """
+    log = logging.getLogger(__name__)
+    log.info('Attempting query all productlines', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query)
 
 #Audit Log Required: db data access
@@ -113,6 +121,8 @@ def select_productline(
     params = {
         'productline_id': productline_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting query a productline', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params)
 
 #Audit Log Required: db data access
@@ -142,4 +152,6 @@ def select_summary_for_scene(
         'max_x': max_x,
         'max_y': max_y,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting query scene summary', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params)

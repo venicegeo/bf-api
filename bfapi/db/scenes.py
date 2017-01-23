@@ -42,4 +42,6 @@ def insert(
         'resolution': resolution,
         'sensor_name': sensor_name,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting insert scene', extra={'actor': 'system', 'actee': 'system', 'action': 'data create'})
     return conn.execute(query, params)
