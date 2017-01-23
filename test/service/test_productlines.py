@@ -19,7 +19,7 @@ from unittest.mock import patch, MagicMock
 from test import helpers
 
 from bfapi.db import DatabaseError
-from bfapi.service import productlines, piazza
+from bfapi.service import productlines
 from bfapi.service.algorithms import Algorithm, NotFound, ValidationError
 from bfapi.service.jobs import Job
 
@@ -270,7 +270,7 @@ class CreateProductlineTest(unittest.TestCase):
         mock.side_effect = NotFound('test-algo-id')
         with self.assertRaisesRegex(NotFound, 'algorithm `test-algo-id` does not exist'):
             productlines.create_productline(
-                    algorithm_id='test-algo-id',
+                algorithm_id='test-algo-id',
                 bbox=(0, 0, 30, 30),
                 category='test-category',
                 max_cloud_cover=42,
@@ -285,7 +285,7 @@ class CreateProductlineTest(unittest.TestCase):
         mock.side_effect = ValidationError('test-error-message')
         with self.assertRaises(ValidationError):
             productlines.create_productline(
-                    algorithm_id='test-algo-id',
+                algorithm_id='test-algo-id',
                 bbox=(0, 0, 30, 30),
                 category='test-category',
                 max_cloud_cover=42,
@@ -300,7 +300,7 @@ class CreateProductlineTest(unittest.TestCase):
         self._mockdb.raise_on_execute()
         with self.assertRaises(DatabaseError):
             productlines.create_productline(
-                    algorithm_id='test-algo-id',
+                algorithm_id='test-algo-id',
                 bbox=(0, 0, 30, 30),
                 category='test-category',
                 max_cloud_cover=42,
@@ -464,13 +464,11 @@ class GetAllTest(unittest.TestCase):
 
 def create_algorithm():
     return Algorithm(
-        bands=('test-algo-band-1', 'test-algo-band-2'),
         description='test-algo-description',
         interface='test-algo-interface',
         max_cloud_cover=42,
         name='test-algo-name',
         service_id='test-algo-id',
-        url='test-algo-url',
         version='test-algo-version',
     )
 
@@ -491,16 +489,6 @@ def create_job(job_id: str = 'test-job-id'):
         tide=5.4321,
         tide_min_24h=-10.0,
         tide_max_24h=10.0,
-    )
-
-
-def create_service():
-    return piazza.ServiceDescriptor(
-        description='test-description',
-        metadata={},
-        name='test-name',
-        service_id='test-service-id',
-        url='test-url',
     )
 
 

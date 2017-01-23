@@ -23,10 +23,7 @@ class ConfigurationValueTest(unittest.TestCase):
         self.assertEqual('piazza.localhost', config.PIAZZA)
 
     def test_autodetects_catalog_hostname(self):
-        self.assertEqual('pzsvc-image-catalog.localhost', config.CATALOG)
-
-    def test_autodetects_tideprediction_hostname(self):
-        self.assertEqual('bf-tideprediction.localhost', config.TIDE_SERVICE)
+        self.assertEqual('bf-ia-broker.localhost', config.CATALOG)
 
     def test_defines_sensible_job_ttl(self):
         self.assertGreaterEqual(config.JOB_TTL, timedelta(seconds=600))

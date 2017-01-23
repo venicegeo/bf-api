@@ -25,7 +25,7 @@ def attach_routes(app: flask.Flask):
     app.before_request(middleware.auth_filter)
 
     CORS(app,
-         origins=middleware.AUTHORIZED_ORIGINS,
+         origins=middleware.PATTERNS_AUTHORIZED_ORIGINS,
          max_age=1200,
          supports_credentials=True)
 
@@ -33,6 +33,7 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule(methods=['GET'], rule='/', view_func=routes.health_check)
     app.add_url_rule(methods=['GET'], rule='/login', view_func=routes.login)
     app.add_url_rule(methods=['GET'], rule='/login/geoaxis', view_func=routes.login_start)
+    app.add_url_rule(methods=['GET'], rule='/v0/scene/<scene_id>.TIF', view_func=routes.v0.forward_to_geotiff)
 
     # Protected endpoints
     app.add_url_rule(methods=['GET'], rule='/logout', view_func=routes.logout)

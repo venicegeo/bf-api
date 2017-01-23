@@ -19,10 +19,13 @@ import time
 from bfapi.config import PIAZZA, PIAZZA_API_KEY
 
 STATUS_CANCELLED = 'Cancelled'
-STATUS_SUCCESS = 'Success'
+STATUS_CANCELLING = 'Cancelling'
+STATUS_ERROR = 'Error'
+STATUS_FAIL = 'Fail'
+STATUS_PENDING = 'Pending'
 STATUS_RUNNING = 'Running'
 STATUS_SUBMITTED = 'Submitted'
-STATUS_ERROR = 'Error'
+STATUS_SUCCESS = 'Success'
 TYPE_DATA = 'data'
 TYPE_DEPLOYMENT = 'deployment'
 
@@ -55,13 +58,11 @@ class ServiceDescriptor:
             description: str,
             metadata: dict,
             name: str,
-            service_id: str,
-            url: str):
+            service_id: str):
         self.description = description
         self.metadata = metadata
         self.name = name
         self.service_id = service_id
-        self.url = url
 
 
 #
@@ -305,13 +306,17 @@ def get_status(job_id: str) -> Status:
         raise InvalidResponse('missing `data.status`', response.text)
 
     # Status wrangling
-    if status == STATUS_RUNNING:
-        return Status(status)
+    if status not in (STATUS_CANCELLED,
+                      STATUS_CANCELLING,
+                      STATUS_ERROR,
+                      STATUS_FAIL,
+                      STATUS_PENDING,
+                      STATUS_RUNNING,
+                      STATUS_SUBMITTED,
+                      STATUS_SUCCESS):
+        raise InvalidResponse('ambiguous value for `data.status`', response.text)
 
-    if status == STATUS_SUBMITTED:
-        return Status(status)
-
-    elif status == STATUS_SUCCESS:
+    if status == STATUS_SUCCESS:
         result = data.get('result')
         if not result:
             raise InvalidResponse('missing `data.result`', response.text)
@@ -345,11 +350,7 @@ def get_status(job_id: str) -> Status:
             error_message = result.get('message')
         return Status(status, error_message=error_message)
 
-    elif status == STATUS_CANCELLED:
-        return Status(status)
-
-    else:
-        raise InvalidResponse('ambiguous value for `data.status`', response.text)
+    return Status(status)
 
 
 def get_triggers(name: str) -> list:
@@ -441,10 +442,11 @@ def register_service(
 # Helpers
 #
 
-def _to_service_descriptor(datum, response_text: str):
-    metadata = datum.get('resourceMetadata')
+def _to_service_descriptor(datum: dict, response_text: str):
+    metadata = datum.get('resourceMetadata')  # type: dict
     if not metadata:
         raise InvalidResponse('Missing `resourceMetadata`', response_text)
+    metadata = metadata.copy()
     name = metadata.get('name')
     if not name:
         raise InvalidResponse('Missing `resourceMetadata.name`', response_text)
@@ -454,9 +456,6 @@ def _to_service_descriptor(datum, response_text: str):
     service_id = datum.get('serviceId')
     if not service_id:
         raise InvalidResponse('Missing `serviceId`', response_text)
-    url = datum.get('url')
-    if not url:
-        raise InvalidResponse('Missing `url`', response_text)
 
     # Prune redundant properties
     metadata.pop('name')
@@ -466,7 +465,6 @@ def _to_service_descriptor(datum, response_text: str):
         description=description,
         metadata=metadata,
         name=name,
-        url=url,
     )
 
 

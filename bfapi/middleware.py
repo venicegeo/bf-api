@@ -12,28 +12,24 @@
 # specific language governing permissions and limitations under the License.
 
 import logging
+import re
 
 import flask
 
-from bfapi.config import DOMAIN, UI
 from bfapi.service import users
 
-AUTHORIZED_ORIGINS = (
-    'https://{}'.format(UI),
-    'https://bf-swagger.{}'.format(DOMAIN),
-    'https://localhost:8080',
-
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-    # FIXME -- this is a hopefully temporary workaround for *.int->api.stage problem
-    'https://{}'.format(UI).replace('.stage.', '.int.'),
-    'https://bf-swagger.{}'.format(DOMAIN).replace('.stage.', '.int.'),
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+PATTERNS_AUTHORIZED_ORIGINS = (
+    re.compile(r'^https://beachfront(\.[^.]+)*\.geointservices\.io$'),
+    re.compile(r'^https://bf-swagger(\.[^.]+)*\.geointservices\.io$'),
+    re.compile(r'^https://localhost:8080$'),
 )
 
-PUBLIC_ENDPOINTS = (
-    '/',
-    '/login',
-    '/login/geoaxis',
+PATTERNS_PUBLIC_ENDPOINTS = (
+    re.compile(r'^/$'),
+    re.compile(r'^/favicon.ico$'),
+    re.compile(r'^/login$'),
+    re.compile(r'^/login/geoaxis$'),
+    re.compile(r'^/v0/scene/[^/]+.TIF$'),
 )
 
 
@@ -41,7 +37,7 @@ def auth_filter():
     log = logging.getLogger(__name__)
     request = flask.request
 
-    if request.path in PUBLIC_ENDPOINTS:
+    if _is_public_endpoint(request.path):
         log.debug('Allowing access to public endpoint `%s`', request.path)
         return
 
@@ -83,14 +79,15 @@ def csrf_filter():
     log = logging.getLogger(__name__)
     request = flask.request
 
-    if request.path in PUBLIC_ENDPOINTS:
+    if _is_public_endpoint(request.path):
         log.debug('Allowing access to public endpoint `%s`', request.path)
         return
 
     # Explicitly allow...
+
     is_xhr = request.is_xhr or 'x-requested-with' in request.headers.get('Access-Control-Request-Headers', '').lower()
     origin = request.headers.get('Origin')
-    if origin in AUTHORIZED_ORIGINS and is_xhr:
+    if _is_authorized_origin(origin) and is_xhr:
         log.debug('Allowing CORS access to protected endpoint `%s` from authorized origin `%s`', request.path, origin)
         return
     elif not origin and not request.referrer:
@@ -119,3 +116,23 @@ def https_filter():
                 request.path,
                 request.referrer)
     return 'Access Denied: Please retry with HTTPS', 403
+
+
+#
+# Helpers
+#
+
+def _is_authorized_origin(origin: str) -> bool:
+    if not origin:
+        return False
+    for pattern in PATTERNS_AUTHORIZED_ORIGINS:
+        if pattern.match(origin):
+            return True
+    return False
+
+
+def _is_public_endpoint(path: str) -> bool:
+    for pattern in PATTERNS_PUBLIC_ENDPOINTS:
+        if re.match(pattern, path):
+            return True
+    return False

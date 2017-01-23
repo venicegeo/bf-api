@@ -12,14 +12,24 @@
 # specific language governing permissions and limitations under the License.
 
 import logging
+import math
 import re
 from datetime import datetime
+from typing import Optional
 
 import dateutil.parser
 import requests
 
 from bfapi import db
-from bfapi.config import CATALOG
+from bfapi.config import CATALOG, DOMAIN
+
+
+PATTERN_SCENE_ID = re.compile(r'^(planetscope|rapideye):[\w_-]+$')
+PLATFORM_PLANETSCOPE = 'planetscope'
+PLATFORM_RAPIDEYE = 'rapideye'
+STATUS_ACTIVE = 'active'
+STATUS_ACTIVATING = 'activating'
+STATUS_INACTIVE = 'inactive'
 
 
 #
@@ -29,21 +39,36 @@ from bfapi.config import CATALOG
 class Scene:
     def __init__(
             self,
-            bands: dict,
+            *,
             capture_date: datetime,
             cloud_cover: float,
+            geotiff_coastal: str = None,
+            geotiff_multispectral: str = None,
+            geotiff_swir1: str = None,
             geometry: dict,
+            platform: str,
             resolution: int,
             scene_id: str,
             sensor_name: str,
+            status: str,
+            tide: float,
+            tide_min: float,
+            tide_max: float,
             uri: str):
-        self.bands = bands
         self.capture_date = capture_date
         self.cloud_cover = cloud_cover
         self.id = scene_id
         self.geometry = geometry
+        self.geotiff_coastal = geotiff_coastal
+        self.geotiff_multispectral = geotiff_multispectral
+        self.geotiff_swir1 = geotiff_swir1
+        self.platform = platform
         self.resolution = resolution
         self.sensor_name = sensor_name
+        self.status = status
+        self.tide = tide
+        self.tide_min = tide_min
+        self.tide_max = tide_max
         self.uri = uri
 
 
@@ -51,17 +76,29 @@ class Scene:
 # Actions
 #
 
-def get(scene_id: str) -> Scene:
+def activate(scene_id: str, planet_api_key: str) -> Optional[str]:
     log = logging.getLogger(__name__)
 
-    if not re.match(r'^landsat:\w+$', scene_id):
-        raise MalformedSceneID(scene_id)
+    scene = get(scene_id, planet_api_key, with_tides=False)
+    if scene.status == STATUS_ACTIVE:
+        return scene.geotiff_multispectral
+    elif scene.status == STATUS_ACTIVATING:
+        return None
 
-    scene_uri = 'https://{}/image/{}'.format(CATALOG, scene_id)
+    # Request activation
+    platform, external_id = _parse_scene_id(scene_id)
+
+    activation_url = 'https://{}/planet/activate/{}/{}'.format(CATALOG, platform, external_id)
+    log.info('Activating `%s`', scene.id)
     try:
-        log.info('Fetch `%s`', scene_uri)
-        scene_req = requests.get(scene_uri)
-        scene_req.raise_for_status()
+        log.debug('Requesting activation; url=`%s`', activation_url)
+        response = requests.get(
+            activation_url,
+            params={
+                'PL_API_KEY': planet_api_key,
+            }
+        )
+        response.raise_for_status()
     except requests.ConnectionError:
         raise CatalogError()
     except requests.HTTPError as err:
@@ -70,37 +107,67 @@ def get(scene_id: str) -> Scene:
             raise NotFound(scene_id)
         raise CatalogError()
 
-    geojson = scene_req.json()
+
+def create_download_url(scene_id: str, planet_api_key: str = '') -> str:
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+    # FIXME -- hopefully this endpoint can move into the IA Broker eventually
+    return 'https://bf-api.{}/v0/scene/{}.TIF?planet_api_key={}'.format(
+        DOMAIN,
+        scene_id,
+        planet_api_key,
+    )
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+
+
+def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene:
+    log = logging.getLogger(__name__)
+
+    platform, external_id = _parse_scene_id(scene_id)
+
+    uri = 'https://{}/planet/{}/{}'.format(CATALOG, platform, external_id)
+    log.info('Fetching `%s`', uri)
+    try:
+        response = requests.get(
+            uri,
+            params={
+                'PL_API_KEY': planet_api_key,
+                'tides': with_tides,
+            }
+        )
+        response.raise_for_status()
+    except requests.ConnectionError:
+        raise CatalogError()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 404:
+            raise NotFound(scene_id)
+        raise CatalogError()
+
+    feature = response.json()
+
+    status = _extract_status(scene_id, feature)
+
+    geotiff_multispectral = feature['properties'].get('location')
+    if status == STATUS_ACTIVE and not geotiff_multispectral:
+        raise ValidationError(scene_id, 'Scene is activated but missing GeoTIFF URL')
+
     scene = Scene(
         scene_id=scene_id,
-        uri=scene_uri,
-        capture_date=_extract_capture_date(scene_id, geojson),
-        bands=_extract_bands(scene_id, geojson),
-        cloud_cover=_extract_cloud_cover(scene_id, geojson),
-        geometry=_extract_geometry(scene_id, geojson),
-        resolution=_extract_resolution(scene_id, geojson),
-        sensor_name=_extract_sensor_name(scene_id, geojson),
+        uri=uri,
+        capture_date=_extract_capture_date(scene_id, feature),
+        cloud_cover=_extract_cloud_cover(scene_id, feature),
+        geometry=_extract_geometry(scene_id, feature),
+        geotiff_multispectral=geotiff_multispectral,
+        platform=platform,
+        resolution=_extract_resolution(scene_id, feature),
+        sensor_name=_extract_sensor_name(scene_id, feature),
+        status=status,
+        tide=_extract_tide(scene_id, feature),
+        tide_min=_extract_tide_min(scene_id, feature),
+        tide_max=_extract_tide_max(scene_id, feature),
     )
 
-    conn = db.get_connection()
-    try:
-        db.scenes.insert(
-            conn,
-            scene_id=scene.id,
-            captured_on=scene.capture_date,
-            catalog_uri=scene.uri,
-            cloud_cover=scene.cloud_cover,
-            geometry=scene.geometry,
-            resolution=scene.resolution,
-            sensor_name=scene.sensor_name,
-        )
-    except db.DatabaseError as err:
-        log.error('Could not save scene to database')
-        db.print_diagnostics(err)
-        raise
-    finally:
-        conn.close()
-
+    _save_to_database(scene)
     return scene
 
 
@@ -119,21 +186,12 @@ def _extract_capture_date(scene_id: str, feature: dict) -> datetime:
     return value
 
 
-def _extract_bands(scene_id: str, feature: dict) -> dict:
-    value = feature['properties'].get('bands')
-    if value is None:
-        raise ValidationError(scene_id, 'missing `bands`')
-    if not isinstance(value, dict):
-        raise ValidationError(scene_id, '`bands` is not a dictionary')
-    return value
-
-
 def _extract_cloud_cover(scene_id: str, feature: dict) -> float:
     value = feature['properties'].get('cloudCover')
     if value is None:
         raise ValidationError(scene_id, 'missing `cloudCover`')
     try:
-        value = float(value)
+        value = round(value, 2)
     except:
         raise ValidationError(scene_id, '`cloudCover` is not a float')
     return value
@@ -153,9 +211,10 @@ def _extract_resolution(scene_id: str, feature: dict) -> int:
     if value is None:
         raise ValidationError(scene_id, 'missing `resolution`')
     try:
-        return int(value)
+        value = int(math.ceil(value))
     except:
         raise ValidationError(scene_id, '`resolution` is not an int')
+    return value
 
 
 def _extract_sensor_name(scene_id: str, feature: dict) -> str:
@@ -163,6 +222,73 @@ def _extract_sensor_name(scene_id: str, feature: dict) -> str:
     if value is None:
         raise ValidationError(scene_id, 'missing `sensorName`')
     return value.strip()
+
+
+def _extract_status(scene_id: str, feature) -> str:
+    value = feature['properties'].get('status')
+    if value is None:
+        raise ValidationError(scene_id, 'missing `status`')
+    if value not in (STATUS_ACTIVE, STATUS_ACTIVATING, STATUS_INACTIVE):
+        raise ValidationError(scene_id, 'value of `status` is ambiguous')
+    return value
+
+
+def _extract_tide(scene_id: str, feature: dict) -> float:
+    value = feature['properties'].get('CurrentTide')
+    if value is not None:
+        try:
+            value = round(value, 5)
+        except:
+            raise ValidationError(scene_id, '`CurrentTide` is not a float')
+    return value
+
+
+def _extract_tide_min(scene_id: str, feature: dict) -> float:
+    value = feature['properties'].get('24hrMinTide')
+    if value is not None:
+        try:
+            value = round(value, 5)
+        except:
+            raise ValidationError(scene_id, '`24hrMinTide` is not a float')
+    return value
+
+
+def _extract_tide_max(scene_id: str, feature: dict) -> float:
+    value = feature['properties'].get('24hrMaxTide')
+    if value is not None:
+        try:
+            value = round(value, 5)
+        except:
+            raise ValidationError(scene_id, '`24hrMaxTide` is not a float')
+    return value
+
+
+def _parse_scene_id(scene_id) -> (str, str):
+    if not PATTERN_SCENE_ID.match(scene_id):
+        raise MalformedSceneID(scene_id)
+    return scene_id.split(':', 1)
+
+
+def _save_to_database(scene: Scene):
+    log = logging.getLogger(__name__)
+    conn = db.get_connection()
+    try:
+        db.scenes.insert(
+            conn,
+            scene_id=scene.id,
+            captured_on=scene.capture_date,
+            catalog_uri=scene.uri,
+            cloud_cover=scene.cloud_cover,
+            geometry=scene.geometry,
+            resolution=scene.resolution,
+            sensor_name=scene.sensor_name,
+        )
+    except db.DatabaseError as err:
+        log.error('Could not save scene `%s` to database', scene.id)
+        db.print_diagnostics(err)
+        raise
+    finally:
+        conn.close()
 
 
 #
