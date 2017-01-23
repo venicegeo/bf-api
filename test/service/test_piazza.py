@@ -400,6 +400,13 @@ class GetStatusTest(unittest.TestCase):
         self.assertIsNone(status.data_id)
         self.assertIsNone(status.error_message)
 
+    def test_returns_correct_status_for_pending_job(self, m: Mocker):
+        m.get('/job/test-job-id', text=RESPONSE_JOB_PENDING)
+        status = piazza.get_status('test-job-id')
+        self.assertEqual('Pending', status.status)
+        self.assertIsNone(status.data_id)
+        self.assertIsNone(status.error_message)
+
     def test_returns_correct_status_for_successful_execution_job(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_SUCCESS)
         status = piazza.get_status('test-job-id')
@@ -520,7 +527,6 @@ class GetServiceTest(unittest.TestCase):
         self.assertEqual('test-id', descriptor.service_id)
         self.assertEqual('test-description', descriptor.description)
         self.assertEqual('test-name', descriptor.name)
-        self.assertEqual('test-url', descriptor.url)
 
     def test_deserializes_metadata(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
@@ -561,13 +567,6 @@ class GetServiceTest(unittest.TestCase):
     def test_throws_when_name_is_missing(self, m: Mocker):
         mangled_response = json.loads(RESPONSE_SERVICE)
         mangled_response['data']['resourceMetadata'].pop('name')
-        m.get('/service/test-id', json=mangled_response)
-        with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_service(service_id='test-id')
-
-    def test_throws_when_url_is_missing(self, m: Mocker):
-        mangled_response = json.loads(RESPONSE_SERVICE)
-        mangled_response['data'].pop('url')
         m.get('/service/test-id', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
             piazza.get_service(service_id='test-id')
@@ -616,15 +615,17 @@ class GetServicesTest(unittest.TestCase):
 
     def test_deserializes_canonical_data(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
-        (descriptor, _) = piazza.get_services(pattern='^test-pattern$')
-        self.assertEqual('test-id-1', descriptor.service_id)
-        self.assertEqual('test-description', descriptor.description)
-        self.assertEqual('test-name', descriptor.name)
-        self.assertEqual('test-url', descriptor.url)
+        descriptors = piazza.get_services(pattern='^test-pattern$')
+        self.assertEqual('test-id-1', descriptors[0].service_id)
+        self.assertEqual('test-description', descriptors[0].description)
+        self.assertEqual('test-name', descriptors[0].name)
+        self.assertEqual('test-id-2', descriptors[1].service_id)
+        self.assertEqual('test-description', descriptors[1].description)
+        self.assertEqual('test-name', descriptors[1].name)
 
     def test_deserializes_metadata(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
-        (descriptor, _) = piazza.get_services(pattern='^test-pattern$')
+        descriptor = piazza.get_services(pattern='^test-pattern$')[0]
         self.assertEqual({'classType': {'classification': 'UNCLASSIFIED'}, 'version': 'test-version'},
                          descriptor.metadata)
 
@@ -657,14 +658,6 @@ class GetServicesTest(unittest.TestCase):
         mangled_response = json.loads(RESPONSE_SERVICE_LIST)
         mangled_response['data'][0]['resourceMetadata'].pop('name')
         mangled_response['data'][1]['resourceMetadata'].pop('name')
-        m.get('/service', json=mangled_response)
-        with self.assertRaises(piazza.InvalidResponse):
-            piazza.get_services(pattern='^test-pattern$')
-
-    def test_throws_when_url_is_missing(self, m: Mocker):
-        mangled_response = json.loads(RESPONSE_SERVICE_LIST)
-        mangled_response['data'][0].pop('url')
-        mangled_response['data'][1].pop('url')
         m.get('/service', json=mangled_response)
         with self.assertRaises(piazza.InvalidResponse):
             piazza.get_services(pattern='^test-pattern$')
@@ -998,6 +991,19 @@ RESPONSE_JOB_RUNNING = """{
   }
 }"""
 
+RESPONSE_JOB_PENDING = """{
+  "type": "status",
+  "data": {
+    "status": "Pending",
+    "jobType": "ExecuteServiceJob",
+    "createdBy": "test-username",
+    "createdOn": "2017-01-19T22:01:34.251Z",
+    "executedServiceId": "a209c8dd-7dbf-49ce-b83d-18aded5ef8e3",
+    "progress": {},
+    "jobId": "test-job-id"
+  }
+}"""
+
 RESPONSE_JOB_SUBMITTED = """{
   "type": "status",
   "data": {
@@ -1032,6 +1038,7 @@ RESPONSE_SERVICE = """{
     "url": "test-url",
     "contractUrl": "test-contract-url",
     "method": "POST",
+    "isTaskManaged": false,
     "resourceMetadata": {
       "name": "test-name",
       "description": "test-description",
@@ -1051,6 +1058,7 @@ RESPONSE_SERVICE_LIST = """{
       "url": "test-url",
       "contractUrl": "test-contract-url",
       "method": "POST",
+      "isTaskManaged": false,
       "resourceMetadata": {
         "name": "test-name",
         "description": "test-description",
@@ -1062,9 +1070,10 @@ RESPONSE_SERVICE_LIST = """{
     },
     {
       "serviceId": "test-id-2",
-      "url": "test-url",
+      "url": null,
       "contractUrl": "test-contract-url",
       "method": "POST",
+      "isTaskManaged": true,
       "resourceMetadata": {
         "name": "test-name",
         "description": "test-description",

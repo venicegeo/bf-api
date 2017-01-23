@@ -25,32 +25,26 @@ class Algorithm:
     def __init__(
             self,
             *,
-            bands: tuple,
             description: str,
             interface: str,
             max_cloud_cover: int,
             name: str,
             service_id: str,
-            url: str,
             version: str):
-        self.bands = bands
         self.description = description
         self.interface = interface
         self.max_cloud_cover = max_cloud_cover
         self.name = name
         self.service_id = service_id
-        self.url = url
         self.version = version
 
     def serialize(self):
         return {
-            'bands': self.bands,
             'description': self.description,
             'interface': self.interface,
             'max_cloud_cover': self.max_cloud_cover,
             'name': self.name,
             'service_id': self.service_id,
-            'url': self.url,
             'version': self.version,
         }
 
@@ -75,13 +69,11 @@ def list_all() -> List[Algorithm]:
             continue
         try:
             algorithms.append(Algorithm(
-                bands=_extract_bands(service),
                 interface=_extract_interface(service),
                 description=_extract_description(service),
                 max_cloud_cover=_extract_max_cloud_cover(service),
                 name=_extract_name(service),
                 service_id=service.service_id,
-                url=_extract_url(service),
                 version=_extract_version(service),
             ))
         except ValidationError as err:
@@ -89,8 +81,10 @@ def list_all() -> List[Algorithm]:
             continue
     return algorithms
 
-#Audit Log Required: data access
-def get(service_id: str):
+
+
+def get(service_id: str) -> Algorithm:
+
     log = logging.getLogger(__name__)
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id)
@@ -107,13 +101,11 @@ def get(service_id: str):
         raise ValidationError('missing `metadata` hash')
     try:
         return Algorithm(
-            bands=_extract_bands(service),
             interface=_extract_interface(service),
             description=_extract_description(service),
             max_cloud_cover=_extract_max_cloud_cover(service),
             name=_extract_name(service),
             service_id=service.service_id,
-            url=_extract_url(service),
             version=_extract_version(service),
         )
     except ValidationError as err:
@@ -155,13 +147,6 @@ def _extract_max_cloud_cover(service: piazza.ServiceDescriptor) -> int:
 
 def _extract_name(service: piazza.ServiceDescriptor) -> str:
     return service.name.replace('BF_Algo_', '').strip()
-
-
-def _extract_url(service: piazza.ServiceDescriptor) -> str:
-    value = service.url.strip()
-    if not value.startswith('https://'):
-        raise ValidationError('algorithm `url` is not HTTPS')
-    return value
 
 
 def _extract_version(service: piazza.ServiceDescriptor) -> str:
