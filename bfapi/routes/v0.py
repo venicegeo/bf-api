@@ -247,7 +247,8 @@ def forward_to_geotiff(scene_id: str):
         geotiff_url = _scenes.activate(scene_id, planet_api_key)
     except _scenes.NotFound:
         return 'Cannot download: Scene `{}` not found'.format(scene_id), 404
-    except _scenes.CatalogError as err:
+    except (_scenes.CatalogError,
+            _scenes.MalformedSceneID) as err:
         return 'Cannot download: {}'.format(err), 500
 
     if geotiff_url:
