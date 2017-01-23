@@ -26,7 +26,7 @@ class DecryptJWTTest(unittest.TestCase):
         self._mockdb = helpers.mock_database()
         self._logger = logging.getLogger('bfapi.service.REPLACE_WITH_SERVICE')
         self._logger.disabled = True
-        self.override_constant('bfapi.service.JWT_Transcipher.SESSION_SECRET', 'test-secret')
+        self.override_constant('bfapi.service.JWT_Transcipher.SECRET_KEY', 'test-secret')
 
     def tearDown(self):
         self._mockdb.destroy()
@@ -51,7 +51,7 @@ class EncryptJWTTest(unittest.TestCase):
         self._mockdb = helpers.mock_database()
         self._logger = logging.getLogger('bfapi.service.REPLACE_WITH_SERVICE')
         self._logger.disabled = True
-        self.override_constant('bfapi.service.JWT_Transcipher.SESSION_SECRET', 'test-secret')
+        self.override_constant('bfapi.service.JWT_Transcipher.SECRET_KEY', 'test-secret')
         self.mock_insert_key = self.create_mock('bfapi.db.secret.insert_one_time_key')
         self.mock_use_key = self.create_mock('bfapi.db.secret.find_and_mark_one_time_key_used')
         self.mock_exists_key = self.create_mock('bfapi.db.secret.check_if_one_time_key_exists')

@@ -19,7 +19,7 @@ import uuid
 import json
 
 from bfapi import db
-from bfapi.config import SESSION_SECRET
+from bfapi.config import SECRET_KEY
 from bfapi.db import secret
 
 #Audit Log Required: data creation
@@ -61,7 +61,7 @@ def getSingleUseKey( string ):
 """Decrypts JWT and returns payload the boolean will check if its a single use key"""
 def decrypt( token ):
     try:
-        payload= jwt.decode(token,SESSION_SECRET)
+        payload= jwt.decode(token,SECRET_KEY)
     except jwt.ExpiredSignature:
         raise DecryptError('token expired')
     except jwt.DecodeError:
@@ -90,7 +90,7 @@ def encrypt( payload ):
             payload['JWT_OTU'] = key
         jwtString= jwt.encode(
             payload,
-            SESSION_SECRET
+            SECRET_KEY
             )
     except Exception:
         raise EncryptError('unable to decrypt')

@@ -30,14 +30,12 @@ def health_check():
     })
 
 
-<<<<<<< HEAD
+
 def is_login_active():
     """This should be mounted behind the verification middleware"""
     return '', 204
 
 #Audit Log Required: Login
-=======
->>>>>>> master
 def login():
     query_params = flask.request.args
 
