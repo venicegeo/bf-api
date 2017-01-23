@@ -111,6 +111,7 @@ def create(
     try:
         algorithm = algorithms.get(service_id)
         scene = scenes.get(scene_id, planet_api_key)
+        scenes.activate(scene, planet_api_key)
     except (algorithms.NotFound,
             algorithms.ValidationError,
             scenes.MalformedSceneID,

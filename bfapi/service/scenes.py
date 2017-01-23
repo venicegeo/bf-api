@@ -76,17 +76,16 @@ class Scene:
 # Actions
 #
 
-def activate(scene_id: str, planet_api_key: str) -> Optional[str]:
+def activate(scene: Scene, planet_api_key: str) -> Optional[str]:
     log = logging.getLogger(__name__)
 
-    scene = get(scene_id, planet_api_key, with_tides=False)
     if scene.status == STATUS_ACTIVE:
         return scene.geotiff_multispectral
     elif scene.status == STATUS_ACTIVATING:
         return None
 
     # Request activation
-    platform, external_id = _parse_scene_id(scene_id)
+    platform, external_id = _parse_scene_id(scene.id)
 
     activation_url = 'https://{}/planet/activate/{}/{}'.format(CATALOG, platform, external_id)
     log.info('Activating `%s`', scene.id)
@@ -104,7 +103,7 @@ def activate(scene_id: str, planet_api_key: str) -> Optional[str]:
     except requests.HTTPError as err:
         status_code = err.response.status_code
         if status_code == 404:
-            raise NotFound(scene_id)
+            raise NotFound(scene.id)
         raise CatalogError()
 
 

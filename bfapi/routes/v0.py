@@ -244,7 +244,8 @@ def forward_to_geotiff(scene_id: str):
         return 'Missing `planet_api_key` parameter', 400
 
     try:
-        geotiff_url = _scenes.activate(scene_id, planet_api_key)
+        scene = _scenes.get(scene_id, planet_api_key)
+        geotiff_url = _scenes.activate(scene, planet_api_key)
     except _scenes.NotFound:
         return 'Cannot download: Scene `{}` not found'.format(scene_id), 404
     except (_scenes.CatalogError,
