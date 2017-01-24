@@ -26,16 +26,11 @@ from bfapi.db import DatabaseError
 from bfapi.service import scenes
 
 
+@rm.Mocker()
 class ActivateSceneTest(unittest.TestCase):
     def setUp(self):
         self._logger = logging.getLogger('bfapi.service.scenes')
         self._logger.disabled = True
-
-        self.mock_requests = rm.Mocker()  # type: rm.Mocker
-        self.mock_requests.start()
-        self.addCleanup(self.mock_requests.stop)
-
-        self.mock_get = self.create_mock('bfapi.service.scenes.get')
 
     def tearDown(self):
         self._logger.disabled = False
@@ -45,78 +40,74 @@ class ActivateSceneTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
-    def test_activates_if_inactive(self):
-        self.mock_get.return_value = create_scene()
-        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
-        scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
-        self.assertEqual(1, len(self.mock_requests.request_history))
+    def test_activates_if_inactive(self, m: rm.Mocker):
+        scene = create_scene()
+        m.get('/planet/activate/planetscope/test-scene-id', text='')
+        scenes.activate(scene, 'test-planet-api-key')
+        self.assertEqual(1, len(m.request_history))
 
-    def test_does_not_spam_activation_url_if_already_activating(self):
+    def test_does_not_spam_activation_url_if_already_activating(self, m: rm.Mocker):
         scene = create_scene()
         scene.status = scenes.STATUS_ACTIVATING
-        self.mock_get.return_value = scene
-        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
-        scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
-        self.assertEqual(0, len(self.mock_requests.request_history))
+        m.get('/planet/activate/planetscope/test-scene-id', text='')
+        scenes.activate(scene, 'test-planet-api-key')
+        self.assertEqual(0, len(m.request_history))
 
-    def test_calls_correct_activation_url_for_planetscope(self):
-        self.mock_get.return_value = create_scene(platform='planetscope')
-        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
-        scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+    def test_does_not_spam_activation_url_if_already_active(self, m: rm.Mocker):
+        scene = create_scene()
+        scene.status = scenes.STATUS_ACTIVE
+        m.get('/planet/activate/planetscope/test-scene-id', text='')
+        scenes.activate(scene, 'test-planet-api-key')
+        self.assertEqual(0, len(m.request_history))
+
+    def test_calls_correct_activation_url_for_planetscope(self, m: rm.Mocker):
+        scene = create_scene()
+        scene.id = 'planetscope:test-scene-id'
+        m.get('/planet/activate/planetscope/test-scene-id', text='')
+        scenes.activate(scene, 'test-planet-api-key')
         self.assertEqual('https://bf-ia-broker.localhost/planet/activate/planetscope/test-scene-id?PL_API_KEY=test-planet-api-key',
-                         self.mock_requests.request_history[0].url)
+                         m.request_history[0].url)
 
-    def test_calls_correct_activation_url_for_rapideye(self):
-        self.mock_get.return_value = create_scene(platform='rapideye')
-        self.mock_requests.get('/planet/activate/rapideye/test-scene-id', text='')
-        scenes.activate('rapideye:test-scene-id', 'test-planet-api-key')
+    def test_calls_correct_activation_url_for_rapideye(self, m: rm.Mocker):
+        scene = create_scene()
+        scene.id = 'rapideye:test-scene-id'
+        m.get('/planet/activate/rapideye/test-scene-id', text='')
+        scenes.activate(scene, 'test-planet-api-key')
         self.assertEqual('https://bf-ia-broker.localhost/planet/activate/rapideye/test-scene-id?PL_API_KEY=test-planet-api-key',
-                         self.mock_requests.request_history[0].url)
+                         m.request_history[0].url)
 
-    def test_returns_multispectral_url_if_activated(self):
+    def test_returns_multispectral_url_if_activated(self, m: rm.Mocker):
         scene = create_scene()
         scene.status = scenes.STATUS_ACTIVE
         scene.geotiff_multispectral = 'test-geotiff-multispectral-url'
-        self.mock_get.return_value = scene
-        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
-        url = scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+        m.get('/planet/activate/planetscope/test-scene-id', text='')
+        url = scenes.activate(scene, 'test-planet-api-key')
         self.assertEqual('test-geotiff-multispectral-url', url)
 
-    def test_returns_nothing_if_activated(self):
-        self.mock_get.return_value = create_scene()
-        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', text='')
-        url = scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+    def test_returns_nothing_if_activated(self, m: rm.Mocker):
+        scene = create_scene()
+        m.get('/planet/activate/planetscope/test-scene-id', text='')
+        url = scenes.activate(scene, 'test-planet-api-key')
         self.assertIsNone(url)
 
-    def test_throws_when_catalog_is_unreachable(self):
-        self.mock_get.return_value = create_scene()
+    def test_throws_when_catalog_is_unreachable(self, _):
+        scene = create_scene()
         with unittest.mock.patch('requests.get') as stub:
             stub.side_effect = ConnectionError()
             with self.assertRaises(scenes.CatalogError):
-                scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+                scenes.activate(scene, 'test-planet-api-key')
 
-    def test_throws_when_catalog_throws(self):
-        self.mock_get.return_value = create_scene()
-        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', status_code=500, text='oh noes')
+    def test_throws_when_catalog_throws(self, m: rm.Mocker):
+        scene = create_scene()
+        m.get('/planet/activate/planetscope/test-scene-id', status_code=500, text='oh noes')
         with self.assertRaises(scenes.CatalogError):
-            scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
+            scenes.activate(scene, 'test-planet-api-key')
 
-    def test_throws_when_scene_does_not_exist(self):
-        self.mock_get.return_value = create_scene()
-        self.mock_requests.get('/planet/activate/planetscope/test-scene-id', status_code=404, text='wat')
+    def test_throws_when_scene_does_not_exist(self, m: rm.Mocker):
+        scene = create_scene()
+        m.get('/planet/activate/planetscope/test-scene-id', status_code=404, text='wat')
         with self.assertRaises(scenes.NotFound):
-            scenes.activate('planetscope:test-scene-id', 'test-planet-api-key')
-
-    def test_throws_when_scene_id_is_malformed(self):
-        self.mock_get.return_value = create_scene()
-        malformed_ids = (
-            'lolwut',
-            'landsat:LC80110632016220LGN00',
-            'planetnope:foobar',
-        )
-        for malformed_id in malformed_ids:
-            with self.assertRaises(scenes.MalformedSceneID):
-                scenes.activate(malformed_id, 'test-planet-api-key')
+            scenes.activate(scene, 'test-planet-api-key')
 
 
 class CreateDownloadURLTest(unittest.TestCase):

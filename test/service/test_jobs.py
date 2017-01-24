@@ -40,6 +40,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_requests.start()
         self.addCleanup(self.mock_requests.stop)
         self.mock_execute = self.create_mock('bfapi.service.piazza.execute')
+        self.mock_activate_scene = self.create_mock('bfapi.service.scenes.activate')
         self.mock_get_scene = self.create_mock('bfapi.service.scenes.get')
         self.mock_get_algo = self.create_mock('bfapi.service.algorithms.get')
         self.mock_insert_job = self.create_mock('bfapi.db.jobs.insert_job')
@@ -245,6 +246,13 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_scene.return_value = create_scene()
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
         self.assertEqual(call('test-scene-id', 'test-planet-api-key'), self.mock_get_scene.call_args)
+
+    def test_preemptively_activates_scene(self):
+        self.mock_get_algo.return_value = create_algorithm()
+        scene = create_scene()
+        self.mock_get_scene.return_value = scene
+        jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
+        self.assertEqual(call(scene, 'test-planet-api-key'), self.mock_activate_scene.call_args)
 
     def test_sends_correct_payload_to_piazza_pzsvc_ossim(self):
         self.mock_get_algo.return_value = create_algorithm('pzsvc-ossim')
