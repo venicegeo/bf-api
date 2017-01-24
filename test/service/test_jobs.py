@@ -269,6 +269,7 @@ class CreateJobTest(unittest.TestCase):
             'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
             'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
+            'userID': 'test-user-id',
         }, json.loads(self.mock_execute.call_args[0][1]['body']['content']))
 
     def test_sends_correct_payload_to_piazza_pzsvc_ndwi_py_for_planetscope(self):
@@ -281,6 +282,7 @@ class CreateJobTest(unittest.TestCase):
             'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
             'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
+            'userID': 'test-user-id',
         }, json.loads(self.mock_execute.call_args[0][1]['body']['content']))
 
     def test_sends_correct_payload_to_piazza_pzsvc_ndwi_py_for_rapideye(self):
@@ -293,6 +295,7 @@ class CreateJobTest(unittest.TestCase):
             'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
             'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
+            'userID': 'test-user-id',
         }, json.loads(self.mock_execute.call_args[0][1]['body']['content']))
 
     def test_does_not_create_database_record_if_cannot_start(self):

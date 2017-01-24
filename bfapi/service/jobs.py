@@ -136,6 +136,7 @@ def create(
                     'inExtFiles': geotiff_urls,
                     'inExtNames': geotiff_filenames,
                     'outGeoJson': ['shoreline.geojson'],
+                    'userID': user_id,
                 }),
                 'type': 'body',
                 'mimeType': 'application/json',
