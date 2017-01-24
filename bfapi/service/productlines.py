@@ -90,7 +90,7 @@ class ProductLine:
 #
 # Actions
 #
-
+#Audit Log Required: data created
 def create_productline(
         *,
         algorithm_id: str,
@@ -144,7 +144,7 @@ def create_productline(
         stop_on=stop_on,
     )
 
-
+#Audit Log Required: data deleted
 def delete_productline(user_id: str, productline_id: str) -> None:
     log = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ def delete_productline(user_id: str, productline_id: str) -> None:
     finally:
         conn.close()
 
-
+#Audit Log Required: data access
 def get_all() -> List[ProductLine]:
     log = logging.getLogger(__name__)
 

@@ -52,7 +52,7 @@ class Algorithm:
 #
 # Actions
 #
-
+#Audit Log Required: data access
 def list_all() -> List[Algorithm]:
     log = logging.getLogger(__name__)
     try:
@@ -82,7 +82,9 @@ def list_all() -> List[Algorithm]:
     return algorithms
 
 
+
 def get(service_id: str) -> Algorithm:
+
     log = logging.getLogger(__name__)
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id)

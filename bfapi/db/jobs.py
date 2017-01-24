@@ -14,7 +14,9 @@
 from datetime import datetime
 
 from bfapi.db import Connection, ResultProxy
+import logging
 
+#Audit Log Required: db modification delete
 def delete_job_user(
         conn: Connection,
         *,
@@ -29,9 +31,11 @@ def delete_job_user(
         'job_id': job_id,
         'user_id': user_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempt to delete job', extra={'actor': user_id, 'actee': 'system', 'action': 'data delete'})
     return conn.execute(query, params).rowcount > 0
 
-
+#Audit Log Required: db data accessed
 def exists(
         conn: Connection,
         *,
@@ -42,9 +46,11 @@ def exists(
     params = {
         'job_id': job_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempt to check for job', extra={'actor': 'user', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params).rowcount > 0
 
-
+#Audit Log Required: db modification insert
 def insert_detection(
         conn: Connection,
         *,
@@ -62,9 +68,11 @@ def insert_detection(
         'job_id': job_id,
         'feature_collection': feature_collection,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting to add detection', extra={'actor': 'system', 'actee': 'system', 'action': 'data creation'})
     conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_job(
         conn: Connection,
         *,
@@ -98,9 +106,11 @@ def insert_job(
         'tide_min_24h': tide_min_24h,
         'tide_max_24h': tide_max_24h,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting to insert job', extra={'actor': user_id, 'actee': 'system', 'action': 'data creation'})
     conn.execute(query, params)
 
-
+#Audit Log Required: db modification attempt failure
 def insert_job_failure(
         conn: Connection,
         *,
@@ -116,9 +126,11 @@ def insert_job_failure(
         'error_message': error_message or None,
         'execution_step': execution_step,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting to insert job failed', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
     conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_job_user(
         conn: Connection,
         *,
@@ -133,9 +145,11 @@ def insert_job_user(
         'job_id': job_id,
         'user_id': user_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting to insert job user', extra={'actor': user_id, 'actee': 'system', 'action': 'create data'})
     conn.execute(query, params)
 
-
+#Audit Log Required: db data accessed
 def select_detections(
         conn: Connection,
         *,
@@ -160,9 +174,11 @@ def select_detections(
     params = {
         'job_id': job_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting get detections', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data accesssed
 def select_job(
         conn: Connection,
         *,
@@ -179,9 +195,11 @@ def select_job(
     params = {
         'job_id': job_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting query a job', extra={'actor': 'system', 'actee': 'system', 'action': 'query data'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_jobs_for_inputs(
         conn: Connection,
         *,
@@ -204,9 +222,11 @@ def select_jobs_for_inputs(
         'algorithm_id': algorithm_id,
         'scene_id': scene_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting to query jobs to modify', extra={'actor': 'system', 'actee': 'system', 'action': 'query data'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_jobs_for_productline(
         conn: Connection,
         *,
@@ -227,9 +247,11 @@ def select_jobs_for_productline(
         'productline_id': productline_id,
         'since': since,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting query jobs for product line', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data accessed
 def select_jobs_for_scene(
         conn: Connection,
         *,
@@ -246,9 +268,11 @@ def select_jobs_for_scene(
     params = {
         'scene_id': scene_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting query job for scene', extra={'actor': 'system', 'actee': 'system', 'action': 'db conn attempt'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data accessed
 def select_jobs_for_user(
         conn: Connection,
         *,
@@ -267,9 +291,11 @@ def select_jobs_for_user(
     params = {
         'user_id': user_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting query job for user', extra={'actor': user_id, 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data accessed
 def select_outstanding_jobs(conn: Connection) -> ResultProxy:
     query = """
         SELECT job_id, created_on
@@ -277,6 +303,8 @@ def select_outstanding_jobs(conn: Connection) -> ResultProxy:
          WHERE status IN ('Submitted', 'Pending', 'Running')
         ORDER BY created_on ASC
         """
+    log = logging.getLogger(__name__)
+    log.info('Attempting query for outstanding jobs', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query)
 
 
@@ -294,4 +322,6 @@ def update_status(
         'job_id': job_id,
         'status': status,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting update job status', extra={'actor': 'system', 'actee': 'system', 'action': 'data modify'})
     conn.execute(query, params)

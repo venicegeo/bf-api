@@ -98,7 +98,7 @@ class Job:
 #
 # Actions
 #
-
+#Audit Log Required: data created
 def create(
         user_id: str,
         scene_id: str,
@@ -196,6 +196,7 @@ def create(
         tide_max_24h=scene.tide_max,
     )
 
+#Audit Log Required: data deleted
 def forget(user_id: str, job_id: str) -> None:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
@@ -210,7 +211,7 @@ def forget(user_id: str, job_id: str) -> None:
     finally:
         conn.close()
 
-
+#Audit Log Required: data access
 def get(user_id: str, job_id: str) -> Job:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
@@ -246,7 +247,7 @@ def get(user_id: str, job_id: str) -> Job:
         tide_max_24h=row['tide_max_24h'],
     )
 
-
+#Audit Log Required: data access
 def get_all(user_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
@@ -282,7 +283,7 @@ def get_all(user_id: str) -> List[Job]:
 
     return jobs
 
-
+#Audit Log Required: data access
 def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
@@ -316,7 +317,7 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
         ))
     return jobs
 
-
+#Audit Log Required: data access
 def get_by_scene(scene_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
@@ -350,7 +351,7 @@ def get_by_scene(scene_id: str) -> List[Job]:
         ))
     return jobs
 
-
+#Audit Log Required: data access
 def get_detections(job_id: str) -> str:
     """
     Returns a potentially massive stringified GeoJSON feature collection containing all detections
@@ -375,7 +376,7 @@ def get_detections(job_id: str) -> str:
     log.debug('Packaging complete: %d bytes for <job:%s>', len(geojson), job_id)
     return geojson
 
-
+#Audit Log Required: action preformed
 def start_worker(
         job_ttl: timedelta = JOB_TTL,
         interval: timedelta = JOB_WORKER_INTERVAL):
@@ -389,7 +390,7 @@ def start_worker(
     _worker = Worker(job_ttl, interval)
     _worker.start()
 
-
+#Audit Log Required: action preformed
 def stop_worker():
     global _worker
     if not _worker:

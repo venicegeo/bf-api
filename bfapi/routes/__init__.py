@@ -30,6 +30,12 @@ def health_check():
     })
 
 
+
+def is_login_active():
+    """This should be mounted behind the verification middleware"""
+    return '', 204
+
+#Audit Log Required: Login
 def login():
     query_params = flask.request.args
 
@@ -52,7 +58,7 @@ def login():
     # Send user back to the UI
     return flask.redirect('https://{}?logged_in=true'.format(UI))
 
-
+#Audit Log Required: login
 def login_start():
     """
     Avoid having to drop GeoAxis configuration into bf-ui

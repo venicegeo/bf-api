@@ -25,29 +25,31 @@ from bfapi.db import jobs, productlines, scenes, users
 
 _engine = None  # type: Engine
 
-
+#Audit Log Required: Closing connnection
 def cleanup():
     global _engine
     log = logging.getLogger(__name__)
-    log.info('Closing database connection')
+    log.info('Closing database connection', extra={'actor': 'system', 'actee': 'system', 'action': 'db conn closed'})
     _engine.dispose()
     _engine = None
     log.info('Done')
 
-
+#Audit Log Required: Attempting to connect
 def get_connection() -> Connection:
     log = logging.getLogger(__name__)
     try:
+        log.info('Attempting database connection', extra={'actor': 'system', 'actee': 'system', 'action': 'db conn attempt'})
         return _engine.connect()
     except DatabaseError as err:
         log.critical('Database connection failed: %s', err)
         raise ConnectionFailed(err)
 
-
+#Audit Log Required: Starting DB
 def init():
     log = logging.getLogger(__name__)
     global _engine
     try:
+        log.info('Starting database', extra={'actor': 'system', 'actee': 'system', 'action': 'db starting'})
         _engine = sa.create_engine(
             'postgresql://{user}:{password}@{host}:{port}/{database}'.format(
                 host=POSTGRES_HOST,
@@ -93,6 +95,7 @@ def print_diagnostics(err: DatabaseError):
 # Helpers
 #
 
+
 def _install():
     log = logging.getLogger(__name__)
 
@@ -115,7 +118,6 @@ def _install():
         raise InstallationError('schema install failed', err)
 
     log.info('Installation complete!')
-
 
 def _install_if_needed():
     log = logging.getLogger(__name__)
@@ -154,13 +156,13 @@ def _read_sql_file(name: str) -> str:
 #
 # Errors
 #
-
+#Audit Log Required: Connection Issue
 class ConnectionFailed(Exception):
     def __init__(self, err: DatabaseError, message: str = 'cannot connect to database'):
         super().__init__(message)
         self.original_error = err
 
-
+#Audit Log Required: Installation Issue
 class InstallationError(Exception):
     def __init__(self, message: str, err: Exception = None):
         super().__init__(message)

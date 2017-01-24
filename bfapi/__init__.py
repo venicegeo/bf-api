@@ -14,6 +14,31 @@
 import logging
 import logging.config
 import os
+import flask
+import uuid
+from flask import request
+
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+
+        attHolder = getattr(record, "actor", None)
+        if attHolder is not None:
+            record.actor="[ actor:"+record.actor
+        else:
+            record.actor=''
+
+        attHolder = getattr(record, "action", None)
+        if attHolder is not None:
+            record.action=" action:"+record.action+" "
+        else:
+            record.action=''
+
+        attHolder = getattr(record, "actee", None)
+        if attHolder is not None:
+            record.actee="actee:"+record.actee+" ]"
+        else:
+            record.actee=''
+        return super(CustomFormatter, self).format(record)
 
 IS_DEBUG_MODE = os.getenv('DEBUG_MODE') == '1'
 if IS_DEBUG_MODE:
@@ -24,7 +49,6 @@ class _ErrorExclusionFilter(logging.Filter):
     def filter(self, record: logging.LogRecord):
         return record.levelno < logging.ERROR
 
-
 logging.config.dictConfig(dict(
     version=1,
     disable_existing_loggers=False,
@@ -34,20 +58,22 @@ logging.config.dictConfig(dict(
         },
     },
     formatters={
-        'standard': {
-            'format': '%(levelname)-5s - [%(name)s:%(funcName)s]  %(message)s',
+        'CustomFormatter': {
+            '()': CustomFormatter,
+            'format': '<%(levelno)s> %(asctime)s %(name)s:%(funcName)s %(actor)s%(action)s%(actee)s %(message)s',
+            'datefmt':'%Y-%d-%mT%H:%M:%SZ'
         }
     },
     handlers={
         'stdout': {
             'class': 'logging.StreamHandler',
             'filters': ['error_exclusion'],
-            'formatter': 'standard',
+            'formatter': 'CustomFormatter',
             'stream': 'ext://sys.stdout',
         },
         'stderr': {
             'class': 'logging.StreamHandler',
-            'formatter': 'standard',
+            'formatter': 'CustomFormatter',
             'level': logging.ERROR,
             'stream': 'ext://sys.stderr',
         },
@@ -62,3 +88,6 @@ logging.config.dictConfig(dict(
 
 log = logging.getLogger(__name__)
 log.debug('Initialized logging')
+
+
+

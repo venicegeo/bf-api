@@ -88,6 +88,9 @@ PIAZZA       = os.getenv('PZ_GATEWAY', 'piazza.' + _normalized_domain)
 CATALOG      = os.getenv('CATALOG', 'bf-ia-broker.' + _normalized_domain)
 UI           = os.getenv('UI', 'beachfront.' + _normalized_domain)
 
+
+SYSTEM_API_KEY = os.getenv('SYSTEM_API_KEY')
+
 PIAZZA_API_KEY = os.getenv('PIAZZA_API_KEY')
 SECRET_KEY     = os.getenv('SECRET_KEY', os.urandom(24).hex())
 

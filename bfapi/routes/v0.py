@@ -17,16 +17,18 @@ from json import JSONDecodeError
 import dateutil.parser
 import dateutil.tz
 import flask
+import json
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
-from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines, scenes as _scenes
 
+from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines, JWT_Transcipher as JWT_service
 
 #
 # Algorithms
 #
 
+#Audit Log Required: data access
 def get_algorithm(service_id: str):
     try:
         algorithm = _algorithms.get(service_id)
@@ -36,18 +38,50 @@ def get_algorithm(service_id: str):
         'algorithm': algorithm.serialize(),
     })
 
-
+#Audit Log Required: data access
 def list_algorithms():
     algorithms = _algorithms.list_all()
     return flask.jsonify({
         'algorithms': [a.serialize() for a in algorithms],
     })
 
+#
+# JWT
+#
+#Audit Log Required: action preformed
+def encrypt_JWT():
+    try:
+        payload = flask.request.get_json()
+    except JSONDecodeError:
+        return 'Invalid input: request body must be a JSON object', 400
+    except ValidationError as err:
+        return 'Invalid input: {}'.format(err), 400
+    try:
+        encryptedJWT = JWT_service.encrypt(payload)
+    except ValidationError as err:
+        return 'Unable to encrypt'.format(err), 400
+    return encryptedJWT, 201
+
+#Audit Log Required: action preformed
+def decrypt_JWT():
+    try:
+        bodyJSON = flask.request.get_json()
+        JWT = _get_string(bodyJSON, 'JWT')
+    except JSONDecodeError:
+        return 'Invalid input: request body must be a JSON object', 400
+    except ValidationError as err:
+        return 'Invalid input: {}'.format(err), 400
+    try:
+        decryptedJWT=JWT_service.decrypt(JWT)
+    except JWTDecryptError:
+        return 
+
+    return flask.jsonify(decryptedJWT), 201
 
 #
 # Jobs
 #
-
+#Audit Log Required: data creation attempt
 def create_job():
     try:
         payload = flask.request.get_json()
@@ -76,7 +110,7 @@ def create_job():
         'job': record.serialize(),
     }), 201
 
-
+#Audit Log Required: data access
 def download_geojson(job_id: str):
     try:
         detections = _jobs.get_detections(job_id)
@@ -90,7 +124,7 @@ def download_geojson(job_id: str):
         'Content-Type': 'application/vnd.geo+json',
     }
 
-
+#Audit Log Required: data removed
 def forget_job(job_id: str):
     try:
         _jobs.forget(flask.request.user.user_id, job_id)
@@ -98,7 +132,7 @@ def forget_job(job_id: str):
         return 'Job not found', 404
     return 'Forgot {}'.format(job_id), 200
 
-
+#Audit Log Required: data access
 def list_jobs():
     jobs = _jobs.get_all(flask.request.user.user_id)
     return flask.jsonify({
@@ -108,7 +142,7 @@ def list_jobs():
         },
     })
 
-
+#Audit Log Required: data access
 def list_jobs_for_productline(productline_id: str):
     try:
         since = dateutil.parser.parse(
@@ -126,7 +160,7 @@ def list_jobs_for_productline(productline_id: str):
         },
     })
 
-
+#Audit Log Required: data access
 def list_jobs_for_scene(scene_id: str):
     jobs = _jobs.get_by_scene(scene_id)
     return flask.jsonify({
@@ -137,7 +171,7 @@ def list_jobs_for_scene(scene_id: str):
         }
     })
 
-
+#Audit Log Required: data access
 def get_job(job_id: str):
     try:
         record = _jobs.get(flask.request.user.user_id, job_id)
@@ -151,7 +185,7 @@ def get_job(job_id: str):
 #
 # Product Lines
 #
-
+#Audit Log Required: data created
 def create_productline():
     try:
         payload = flask.request.get_json()
@@ -191,7 +225,7 @@ def create_productline():
         'productline': productline.serialize(),
     }), 201
 
-
+#Audit Log Required: data deleted
 def delete_productline(productline_id: str):
     user_id = flask.request.user.user_id
     try:
@@ -204,7 +238,7 @@ def delete_productline(productline_id: str):
         return 'User `{}` does not have permission to delete this product line'.format(user_id), 403
     return 'Deleted product line {}'.format(productline_id), 200
 
-
+#Audit Log Required: data access
 def list_productlines():
     productlines = _productlines.get_all()
     return flask.jsonify({
@@ -218,7 +252,7 @@ def list_productlines():
 #
 # Profile
 #
-
+#Audit Log Required: data access
 def get_user_data():
     return flask.jsonify({
         'profile': {
@@ -305,7 +339,7 @@ def forward_to_geotiff(scene_id: str):
 #
 # Helpers
 #
-
+#Audit Log Required: data access
 def _get_datetime(d: dict, key: str, *, nullable: bool = False) -> datetime:
     if key not in d:
         raise ValidationError('`{}` is missing'.format(key))
@@ -318,7 +352,7 @@ def _get_datetime(d: dict, key: str, *, nullable: bool = False) -> datetime:
         raise ValidationError('`{}` must be a valid timestamp'.format(key))
     return value
 
-
+#Audit Log Required: data access
 def _get_number(d: dict, key: str, *, min_value: int = None, max_value: int = None):
     if key not in d:
         raise ValidationError('`{}` is missing'.format(key))
@@ -329,7 +363,7 @@ def _get_number(d: dict, key: str, *, min_value: int = None, max_value: int = No
         raise ValidationError('`{}` must be a number between {} and {}'.format(key, min_value, max_value))
     return value
 
-
+#Audit Log Required: data access
 def _get_string(d: dict, key: str, *, nullable: bool = False, min_length: int = 1, max_length: int = 256):
     if key not in d:
         raise ValidationError('`{}` is missing'.format(key))

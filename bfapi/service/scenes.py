@@ -77,6 +77,7 @@ class Scene:
 #
 
 def activate(scene: Scene, planet_api_key: str) -> Optional[str]:
+
     log = logging.getLogger(__name__)
 
     if scene.status == STATUS_ACTIVE:

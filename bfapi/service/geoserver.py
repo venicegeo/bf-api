@@ -21,7 +21,7 @@ DETECTIONS_LAYER_ID = 'bfdetections'
 DETECTIONS_STYLE_ID = 'bfdetections'
 TIMEOUT = 24
 
-
+#Audit Log Required: installation
 def install_if_needed():
     log = logging.getLogger(__name__)
     log.info('Checking to see if installation is required')
@@ -41,7 +41,7 @@ def install_if_needed():
     else:
         log.info('Installation complete!')
 
-
+#Audit Log Required: installation
 def install_layer(layer_id: str):
     log = logging.getLogger(__name__)
     log.info('Installing `%s`', layer_id)
@@ -128,7 +128,7 @@ def install_layer(layer_id: str):
                   err.request.url)
         raise GeoServerError()
 
-
+#Audit Log Required: installation
 def install_style(style_id: str):
     log = logging.getLogger(__name__)
     log.info('Installing `%s`', style_id)
@@ -194,7 +194,7 @@ def install_style(style_id: str):
                   err.request.url)
         raise GeoServerError()
 
-
+#Audit Log Required: data access
 def layer_exists(layer_id: str) -> bool:
     log = logging.getLogger(__name__)
     try:
@@ -211,7 +211,7 @@ def layer_exists(layer_id: str) -> bool:
         raise GeoServerError()
     return response.status_code == 200
 
-
+#Audit Log Required: data access
 def style_exists(style_id: str) -> bool:
     log = logging.getLogger(__name__)
     try:

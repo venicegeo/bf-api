@@ -15,7 +15,7 @@ from datetime import date
 
 from bfapi.db import Connection, ResultProxy
 
-
+#Audit Log Required: db modifiaction delete
 def delete_productline(
         conn: Connection,
         *,
@@ -28,9 +28,11 @@ def delete_productline(
     params = {
         'productline_id': productline_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting delete productline', extra={'actor': 'system', 'actee': 'system', 'action': 'data delete'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_productline(
         conn: Connection,
         *,
@@ -66,9 +68,11 @@ def insert_productline(
         'stop_on': stop_on,
         'user_id': user_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting insert productline', extra={'actor': user_id, 'actee': 'system', 'action': 'data create'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db modification insert
 def insert_productline_job(
         conn: Connection,
         *,
@@ -83,9 +87,11 @@ def insert_productline_job(
         'job_id': job_id,
         'productline_id': productline_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting insert productline job', extra={'actor': 'system', 'actee': 'system', 'action': 'data create'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_all(conn: Connection):
     query = """
         SELECT productline_id, algorithm_id, algorithm_name, category, compute_mask, created_by,
@@ -95,9 +101,11 @@ def select_all(conn: Connection):
          WHERE NOT deleted
          ORDER BY created_on ASC
         """
+    log = logging.getLogger(__name__)
+    log.info('Attempting query all productlines', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query)
 
-
+#Audit Log Required: db data access
 def select_productline(
         conn: Connection,
         *,
@@ -113,9 +121,11 @@ def select_productline(
     params = {
         'productline_id': productline_id,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting query a productline', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params)
 
-
+#Audit Log Required: db data access
 def select_summary_for_scene(
         conn: Connection,
         *,
@@ -142,4 +152,6 @@ def select_summary_for_scene(
         'max_x': max_x,
         'max_y': max_y,
     }
+    log = logging.getLogger(__name__)
+    log.info('Attempting query scene summary', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return conn.execute(query, params)
