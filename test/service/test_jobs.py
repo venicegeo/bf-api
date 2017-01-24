@@ -126,12 +126,12 @@ class CreateJobTest(unittest.TestCase):
         self.assertIsInstance(job, jobs.Job)
         self.assertEqual('test-name', job.name)
 
-    def test_assigns_correct_scene_capture_date(self):
+    def test_assigns_correct_time_of_collect(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         job = jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
         self.assertIsInstance(job, jobs.Job)
-        self.assertEqual('2014-05-13T16:53:20', job.scene_capture_date.isoformat())
+        self.assertEqual('2014-05-13T16:53:20', job.scene_time_of_collect.isoformat())
 
     def test_assigns_correct_scene_sensor_name(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -505,10 +505,10 @@ class GetAllJobsTest(unittest.TestCase):
         job = jobs.get_all('test-user-id').pop()
         self.assertEqual('test-name', job.name)
 
-    def test_assigns_correct_scene_capture_date(self, mock: Mock):
+    def test_assigns_correct_time_of_collect(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_all('test-user-id').pop()
-        self.assertEqual(datetime.utcnow().date(), job.scene_capture_date.date())
+        self.assertEqual(datetime.utcnow().date(), job.scene_time_of_collect.date())
 
     def test_assigns_correct_scene_sensor_name(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
@@ -652,10 +652,10 @@ class GetJobTest(unittest.TestCase):
         job = jobs.get('test-user-id', 'test-job-id')
         self.assertEqual('test-name', job.name)
 
-    def test_assigns_correct_scene_capture_date(self, mock_select: Mock, _):
+    def test_assigns_correct_time_of_collect(self, mock_select: Mock, _):
         mock_select.return_value.fetchone.return_value = create_job_db_record()
         job = jobs.get('test-user-id', 'test-job-id')
-        self.assertEqual(datetime.utcnow().date(), job.scene_capture_date.date())
+        self.assertEqual(datetime.utcnow().date(), job.scene_time_of_collect.date())
 
     def test_assigns_correct_scene_sensor_name(self, mock_select: Mock, _):
         mock_select.return_value.fetchone.return_value = create_job_db_record()
@@ -771,10 +771,10 @@ class GetByProductlineTest(unittest.TestCase):
         job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
         self.assertEqual('test-name', job.name)
 
-    def test_assigns_correct_scene_capture_date(self, mock: Mock):
+    def test_assigns_correct_time_of_collect(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_by_productline('test-productline-id', LAST_WEEK).pop()
-        self.assertEqual(datetime.utcnow().date(), job.scene_capture_date.date())
+        self.assertEqual(datetime.utcnow().date(), job.scene_time_of_collect.date())
 
     def test_assigns_correct_scene_sensor_name(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
@@ -885,10 +885,10 @@ class GetBySceneTest(unittest.TestCase):
         job = jobs.get_by_scene('test-scene-id').pop()
         self.assertEqual('test-name', job.name)
 
-    def test_assigns_correct_scene_capture_date(self, mock: Mock):
+    def test_assigns_correct_time_of_collect(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
         job = jobs.get_by_scene('test-scene-id').pop()
-        self.assertEqual(datetime.utcnow().date(), job.scene_capture_date.date())
+        self.assertEqual(datetime.utcnow().date(), job.scene_time_of_collect.date())
 
     def test_assigns_correct_scene_sensor_name(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
@@ -1401,8 +1401,8 @@ def create_job_db_record(job_id: str = 'test-job-id'):
         'geometry': '{"type": "Polygon", "coordinates": [[[0, 0], [0, 30], [30, 30], [30, 0], [0, 0]]]}',
         'job_id': job_id,
         'name': 'test-name',
-        'scene_capture_date': datetime.utcnow(),
-        'scene_sensor_name': 'test-scene-sensor-name',
+        'captured_on': datetime.utcnow(),
+        'sensor_name': 'test-scene-sensor-name',
         'scene_id': 'test-scene-id',
         'status': 'test-status',
         'tide': 5.4321,

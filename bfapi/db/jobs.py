@@ -146,13 +146,10 @@ def select_detections(
           FROM (SELECT 'FeatureCollection' AS "type",
                        array_agg(f) AS "features"
                   FROM (SELECT concat_ws('#', d.job_id, d.feature_id) AS "id",
-                               to_json(j) AS "properties",
+                               to_json(p) AS "properties",
                                ST_AsGeoJSON(d.geometry)::json AS "geometry"
                           FROM __beachfront__detection d
-                               INNER JOIN (SELECT *,
-                                                  'NOT FOR TARGETING OR NAVIGATION PURPOSES' AS data_usage,
-                                                  'UNCLASSIFIED' AS classification
-                                             FROM __beachfront__job) AS j ON (j.job_id = d.job_id)
+                               INNER JOIN __beachfront__provenance AS p ON (p.job_id = d.job_id)
                          WHERE d.job_id = %(job_id)s
                        ) AS f
                ) AS fc
@@ -170,7 +167,7 @@ def select_job(
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                e.error_message, e.execution_step,
-               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
+               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__job_error e ON (e.job_id = j.job_id)
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
@@ -214,7 +211,7 @@ def select_jobs_for_productline(
         since: datetime) -> ResultProxy:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
-               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
+               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
           FROM __beachfront__productline_job p
                LEFT OUTER JOIN __beachfront__job j ON (j.job_id = p.job_id)
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
@@ -236,7 +233,7 @@ def select_jobs_for_scene(
         scene_id: str) -> ResultProxy:
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
-               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
+               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE j.scene_id = %(scene_id)s
@@ -256,7 +253,7 @@ def select_jobs_for_user(
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                e.error_message, e.execution_step,
-               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name AS scene_sensor_name, s.captured_on AS scene_capture_date
+               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__job_user u ON (u.job_id = j.job_id)
                LEFT OUTER JOIN __beachfront__job_error e ON (e.job_id = j.job_id)

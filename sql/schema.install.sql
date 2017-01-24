@@ -106,13 +106,33 @@ CREATE TABLE __beachfront__productline_job (
     FOREIGN KEY (job_id) REFERENCES __beachfront__job(job_id) ON DELETE CASCADE
 );
 
+CREATE VIEW __beachfront__provenance AS
+SELECT j.job_id,
+       j.algorithm_id,
+       j.algorithm_name,
+       j.algorithm_version,
+       s.cloud_cover,
+       j.created_by,
+       j.created_on,
+       j.name,
+       s.resolution,
+       s.scene_id,
+       s.sensor_name,
+       j.status,
+       j.tide,
+       j.tide_min_24h,
+       j.tide_max_24h,
+       s.captured_on AS time_of_collect,
+      'NOT FOR TARGETING OR NAVIGATION PURPOSES'::varchar AS data_usage,
+      'UNCLASSIFIED'::varchar                             AS classification
+  FROM __beachfront__job j
+       JOIN __beachfront__scene s ON (s.scene_id = j.scene_id);
+
 CREATE VIEW __beachfront__geoserver AS
-SELECT d.job_id, d.feature_id, d.geometry,
-       s.captured_on, s.scene_id,
-       j.tide, j.tide_min_24h, j.tide_max_24h,
-       p.productline_id
+SELECT p.*,
+       d.feature_id,
+       d.geometry,
+       plj.productline_id
   FROM __beachfront__detection d
-       JOIN __beachfront__job j ON (j.job_id = d.job_id)
-       JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
-       LEFT OUTER JOIN __beachfront__productline_job p ON (p.job_id = d.job_id)
-;
+       JOIN __beachfront__provenance p ON (p.job_id = d.job_id)
+       LEFT OUTER JOIN __beachfront__productline_job plj ON (plj.job_id = d.job_id);

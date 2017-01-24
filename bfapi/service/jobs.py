@@ -51,8 +51,8 @@ class Job:
             geometry: dict,
             job_id: str,
             name: str,
-            scene_capture_date: datetime,
             scene_sensor_name: str,
+            scene_time_of_collect: datetime,
             scene_id: str,
             status: str,
             tide: float,
@@ -65,7 +65,7 @@ class Job:
         self.geometry = geometry
         self.job_id = job_id
         self.name = name
-        self.scene_capture_date = scene_capture_date
+        self.scene_time_of_collect = scene_time_of_collect
         self.scene_sensor_name = scene_sensor_name
         self.scene_id = scene_id
         self.status = status
@@ -84,7 +84,7 @@ class Job:
                 'created_by': self.created_by,
                 'created_on': _serialize_dt(self.created_on),
                 'name': self.name,
-                'scene_capture_date': _serialize_dt(self.scene_capture_date),
+                'scene_time_of_collect': _serialize_dt(self.scene_time_of_collect),
                 'scene_id': self.scene_id,
                 'scene_sensor_name': self.scene_sensor_name,
                 'status': self.status,
@@ -188,7 +188,7 @@ def create(
         geometry=scene.geometry,
         job_id=job_id,
         name=job_name,
-        scene_capture_date=scene.capture_date,
+        scene_time_of_collect=scene.capture_date,
         scene_sensor_name=scene.sensor_name,
         scene_id=scene_id,
         status=piazza.STATUS_PENDING,
@@ -238,8 +238,8 @@ def get(user_id: str, job_id: str) -> Job:
         geometry=json.loads(row['geometry']),
         job_id=row['job_id'],
         name=row['name'],
-        scene_capture_date=row['scene_capture_date'],
-        scene_sensor_name=row['scene_sensor_name'],
+        scene_time_of_collect=row['captured_on'],
+        scene_sensor_name=row['sensor_name'],
         scene_id=row['scene_id'],
         status=row['status'],
         tide=row['tide'],
@@ -271,8 +271,8 @@ def get_all(user_id: str) -> List[Job]:
             geometry=json.loads(row['geometry']),
             job_id=row['job_id'],
             name=row['name'],
-            scene_capture_date=row['scene_capture_date'],
-            scene_sensor_name=row['scene_sensor_name'],
+            scene_time_of_collect=row['captured_on'],
+            scene_sensor_name=row['sensor_name'],
             scene_id=row['scene_id'],
             status=row['status'],
             tide=row['tide'],
@@ -307,8 +307,8 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
             geometry=json.loads(row['geometry']),
             job_id=row['job_id'],
             name=row['name'],
-            scene_capture_date=row['scene_capture_date'],
-            scene_sensor_name=row['scene_sensor_name'],
+            scene_time_of_collect=row['captured_on'],
+            scene_sensor_name=row['sensor_name'],
             scene_id=row['scene_id'],
             status=row['status'],
             tide=row['tide'],
@@ -341,8 +341,8 @@ def get_by_scene(scene_id: str) -> List[Job]:
             geometry=json.loads(row['geometry']),
             job_id=row['job_id'],
             name=row['name'],
-            scene_capture_date=row['scene_capture_date'],
-            scene_sensor_name=row['scene_sensor_name'],
+            scene_time_of_collect=row['captured_on'],
+            scene_sensor_name=row['sensor_name'],
             scene_id=row['scene_id'],
             status=row['status'],
             tide=row['tide'],
