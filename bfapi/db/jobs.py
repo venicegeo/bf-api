@@ -272,7 +272,8 @@ def select_jobs_for_user(
 
 def select_outstanding_jobs(conn: Connection) -> ResultProxy:
     query = """
-        SELECT job_id, created_on
+        SELECT job_id,
+               DATE_TRUNC('second', NOW() - created_on) AS age
           FROM __beachfront__job
          WHERE status IN ('Submitted', 'Pending', 'Running')
         ORDER BY created_on ASC

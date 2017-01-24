@@ -25,7 +25,8 @@ from test import helpers
 from bfapi.db import DatabaseError
 from bfapi.service import algorithms, jobs, piazza, scenes
 
-LAST_WEEK = datetime.utcnow() - timedelta(7.0)
+ONE_WEEK = timedelta(days=7.0, hours=12, minutes=34, seconds=56)
+LAST_WEEK = datetime.utcnow() - ONE_WEEK
 
 
 class CreateJobTest(unittest.TestCase):
@@ -1083,13 +1084,13 @@ class WorkerRunTest(unittest.TestCase):
         worker.run()
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
-            'INFO - <001/test-job-id> polled (Error)',
+            'INFO - <001/test-job-id> polled (Error; age=7 days, 12:34:56)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
     def test_logs_jobs_failing_during_geometry_resolution(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_SUCCESS, data_id='test-execution-output-id')
         self.mock_getfile.side_effect = piazza.ServerError(404)
 
@@ -1098,7 +1099,7 @@ class WorkerRunTest(unittest.TestCase):
         worker.run()
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
-            'INFO - <001/test-job-id> polled (Success)',
+            'INFO - <001/test-job-id> polled (Success; age=7 days, 12:34:56)',
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'ERROR - <001/test-job-id> Could not resolve detections data ID: during postprocessing, could not fetch execution output: Piazza server error (HTTP 404)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
@@ -1111,7 +1112,7 @@ class WorkerRunTest(unittest.TestCase):
                 return Mock(json=lambda: create_execution_output())
             raise piazza.ServerError(404)
 
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_SUCCESS, data_id='test-execution-output-id')
         self.mock_getfile.side_effect = getfile
 
@@ -1120,7 +1121,7 @@ class WorkerRunTest(unittest.TestCase):
         worker.run()
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
-            'INFO - <001/test-job-id> polled (Success)',
+            'INFO - <001/test-job-id> polled (Success; age=7 days, 12:34:56)',
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'INFO - <001/test-job-id> Fetching detections from Piazza',
             'ERROR - <001/test-job-id> Could not fetch data ID <test-detections-id>: Piazza server error (HTTP 404)',
@@ -1129,7 +1130,7 @@ class WorkerRunTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_jobs_failing_during_geometry_insertion(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_SUCCESS, data_id='test-execution-output-id')
         self.mock_getfile.return_value.json.return_value = create_execution_output()
         self.mock_getfile.return_value.text = 'lorem ipsum'
@@ -1140,7 +1141,7 @@ class WorkerRunTest(unittest.TestCase):
         worker.run()
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
-            'INFO - <001/test-job-id> polled (Success)',
+            'INFO - <001/test-job-id> polled (Success; age=7 days, 12:34:56)',
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'INFO - <001/test-job-id> Fetching detections from Piazza',
             'INFO - <001/test-job-id> Saving detections to database (0.0MB)',
@@ -1150,14 +1151,14 @@ class WorkerRunTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_jobs_that_are_still_running(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary()]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=timedelta(minutes=20))]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_RUNNING)
         logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
-            'INFO - <001/test-job-id> polled (Running)',
+            'INFO - <001/test-job-id> polled (Running; age=0:20:00)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
@@ -1172,7 +1173,7 @@ class WorkerRunTest(unittest.TestCase):
         worker.run()
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
-            'INFO - <001/test-job-id> polled (Success)',
+            'INFO - <001/test-job-id> polled (Success; age=7 days, 12:34:56)',
             'INFO - <001/test-job-id> Resolving detections data ID (via <test-execution-output-id>)',
             'INFO - <001/test-job-id> Fetching detections from Piazza',
             'INFO - <001/test-job-id> Saving detections to database (2.0MB)',
@@ -1181,21 +1182,21 @@ class WorkerRunTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_jobs_that_time_out(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_RUNNING)
         logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
-            'INFO - <001/test-job-id> polled (Running)',
+            'INFO - <001/test-job-id> polled (Running; age=7 days, 12:34:56)',
             'WARNING - <001/test-job-id> appears to have stalled and will no longer be tracked',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
         ], logstream.getvalue().splitlines())
 
     def test_logs_piazza_server_errors(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.side_effect = piazza.ServerError(500)
         logstream = self.create_logstream()
         worker = self.create_worker()
@@ -1208,7 +1209,7 @@ class WorkerRunTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_piazza_response_parsing_errors(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.side_effect = piazza.InvalidResponse('test-error', 'lorem ipsum')
         logstream = self.create_logstream()
         worker = self.create_worker()
@@ -1221,7 +1222,7 @@ class WorkerRunTest(unittest.TestCase):
         ], logstream.getvalue().splitlines())
 
     def test_logs_piazza_auth_failures(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.side_effect = piazza.Unauthorized()
         logstream = self.create_logstream()
         worker = self.create_worker()
@@ -1259,7 +1260,7 @@ class WorkerRunTest(unittest.TestCase):
                          self.mock_insert_job_failure.call_args_list)
 
     def test_updates_status_for_job_timing_out_while_queued(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_SUBMITTED)
         worker = self.create_worker()
         worker.run()
@@ -1270,7 +1271,7 @@ class WorkerRunTest(unittest.TestCase):
                          self.mock_insert_job_failure.call_args_list)
 
     def test_updates_status_for_job_timing_out_while_processing(self):
-        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(created_on=LAST_WEEK)]
+        self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_RUNNING)
         worker = self.create_worker()
         worker.run()
@@ -1410,10 +1411,10 @@ def create_job_db_record(job_id: str = 'test-job-id'):
     }
 
 
-def create_job_db_summary(job_id: str = 'test-job-id', created_on: datetime = None):
+def create_job_db_summary(job_id: str = 'test-job-id', age: timedelta = None):
     return {
         'job_id': job_id,
-        'created_on': created_on if created_on else datetime.utcnow(),
+        'age': age or ONE_WEEK,
     }
 
 

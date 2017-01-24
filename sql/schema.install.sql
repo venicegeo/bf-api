@@ -18,12 +18,12 @@ CREATE TABLE __beachfront__user (
     user_id           VARCHAR(255)   PRIMARY KEY,
     user_name         VARCHAR(100)   NOT NULL,
     api_key           VARCHAR(40)    NOT NULL    UNIQUE,
-    created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP
+    created_on        TIMESTAMPTZ    NOT NULL    DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE __beachfront__scene (
     scene_id          VARCHAR(64)    PRIMARY KEY,
-    captured_on       TIMESTAMP      NOT NULL,
+    captured_on       TIMESTAMPTZ    NOT NULL,
     cloud_cover       FLOAT          NOT NULL,
     geometry          GEOMETRY       NOT NULL,
     resolution        INTEGER        NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE __beachfront__job (
     algorithm_name    VARCHAR(100)   NOT NULL,
     algorithm_version VARCHAR(12)    NOT NULL,
     created_by        VARCHAR(255)   NOT NULL,
-    created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    created_on        TIMESTAMPTZ    NOT NULL    DEFAULT CURRENT_TIMESTAMP,
     name              VARCHAR(100)   NOT NULL,
     scene_id          VARCHAR(64)    NOT NULL,
     status            VARCHAR(16)    NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE __beachfront__productline (
     category          VARCHAR(64),
     compute_mask      GEOMETRY,
     created_by        VARCHAR(255)   NOT NULL,
-    created_on        TIMESTAMP      NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    created_on        TIMESTAMPTZ    NOT NULL    DEFAULT CURRENT_TIMESTAMP,
     deleted           BOOL           NOT NULL    DEFAULT FALSE,
     max_cloud_cover   INTEGER        NOT NULL,
     name              VARCHAR(100)   NOT NULL,

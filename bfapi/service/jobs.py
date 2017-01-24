@@ -18,11 +18,12 @@ import time
 from datetime import datetime, timedelta
 from typing import List
 
+import dateutil.tz
+
 from bfapi import db
 from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL
 from bfapi.service import algorithms, scenes, piazza
 
-FORMAT_ISO8601 = '%Y-%m-%dT%H:%M:%SZ'
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
 FORMAT_TIME = '%TZ'
 STATUS_TIMED_OUT = 'Timed Out'
@@ -432,14 +433,14 @@ class Worker(threading.Thread):
             else:
                 self._log.info('Begin cycle for %d records', len(rows))
                 for i, row in enumerate(rows, start=1):
-                    self._updater(row['job_id'], row['created_on'], i)
+                    self._updater(row['job_id'], row['age'], i)
                 self._log.info('Cycle complete; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
 
             time.sleep(self._interval.total_seconds())
 
         self._log.info('Stopped')
 
-    def _updater(self, job_id: str, created_on: datetime, index: int):
+    def _updater(self, job_id: str, age: timedelta, index: int):
         log = self._log
         job_ttl = self._job_ttl
 
@@ -459,11 +460,11 @@ class Worker(threading.Thread):
                 return
 
         # Emit console feedback
-        log.info('<%03d/%s> polled (%s)', index, job_id, status.status)
+        log.info('<%03d/%s> polled (%s; age=%s)', index, job_id, status.status, age)
 
         # Determine appropriate action by status
         if status.status in (piazza.STATUS_SUBMITTED, piazza.STATUS_PENDING):
-            if datetime.utcnow() - created_on > job_ttl:
+            if age > job_ttl:
                 log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
                 _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)
                 return
@@ -479,7 +480,7 @@ class Worker(threading.Thread):
                 conn.close()
 
         elif status.status == piazza.STATUS_RUNNING:
-            if datetime.utcnow() - created_on > job_ttl:
+            if age > job_ttl:
                 log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
                 _save_execution_error(job_id, STEP_PROCESSING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
                 return
@@ -616,7 +617,7 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
 
 def _serialize_dt(dt: datetime = None) -> str:
     if dt is not None:
-        return dt.strftime(FORMAT_ISO8601)
+        return dt.isoformat()
 
 
 #
