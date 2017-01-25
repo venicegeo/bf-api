@@ -218,7 +218,7 @@ def select_jobs_for_productline(
          WHERE p.productline_id = %(productline_id)s
            AND (j.status IN ('Submitted', 'Running', 'Success'))
            AND (s.captured_on >= %(since)s)
-        ORDER BY scene_capture_date DESC
+        ORDER BY captured_on DESC
         """
     params = {
         'productline_id': productline_id,
