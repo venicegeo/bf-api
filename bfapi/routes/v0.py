@@ -41,6 +41,8 @@ def get_algorithm(service_id: str):
 #Audit Log Required: data access
 def list_algorithms():
     algorithms = _algorithms.list_all()
+    log = logging.getLogger(__name__)
+    log.info('Attempting access json', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return flask.jsonify({
         'algorithms': [a.serialize() for a in algorithms],
     })
@@ -50,30 +52,42 @@ def list_algorithms():
 #
 #Audit Log Required: action preformed
 def encrypt_JWT():
+    log = logging.getLogger(__name__)
     try:
+        log.info('Attempting access json', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
         payload = flask.request.get_json()
     except JSONDecodeError:
+        log.info('Attempting access json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'invalid json'})
         return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
+        log.info('Attempting access json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'invalid json'})
         return 'Invalid input: {}'.format(err), 400
     try:
+        log.info('Attempting to encrypt json', extra={'actor': 'system', 'actee': 'system', 'action': 'encrypting'})
         encryptedJWT = JWT_service.encrypt(payload)
     except ValidationError as err:
+        log.info('Attempting json encryption failed', extra={'actor': 'system', 'actee': 'system', 'action': 'internal error'})
         return 'Unable to encrypt'.format(err), 400
     return encryptedJWT, 201
 
 #Audit Log Required: action preformed
 def decrypt_JWT():
+    log = logging.getLogger(__name__)
     try:
+        log.info('Attempting access json', extra={'actor': 'system', 'actee': 'system', 'action': 'data access'})
         bodyJSON = flask.request.get_json()
         JWT = _get_string(bodyJSON, 'JWT')
     except JSONDecodeError:
+        log.info('Attempting access json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'decode error'})
         return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
+        log.info('Attempting access json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'validation error'})
         return 'Invalid input: {}'.format(err), 400
     try:
+        log.info('Attempting decryption', extra={'actor': 'system', 'actee': 'system', 'action': 'decrypt'})
         decryptedJWT=JWT_service.decrypt(JWT)
     except JWTDecryptError:
+        log.info('Attempting decryption failed', extra={'actor': 'system', 'actee': 'system', 'action': 'internal error'})
         return 
 
     return flask.jsonify(decryptedJWT), 201
@@ -83,18 +97,23 @@ def decrypt_JWT():
 #
 #Audit Log Required: data creation attempt
 def create_job():
+    log = logging.getLogger(__name__)
     try:
         payload = flask.request.get_json()
         job_name = _get_string(payload, 'name', max_length=100)
         planet_api_key = _get_string(payload, 'planet_api_key', max_length=64)
         service_id = _get_string(payload, 'algorithm_id', max_length=64)
         scene_id = _get_string(payload, 'scene_id', max_length=64)
+        log.info('Attempting create job from json', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
     except JSONDecodeError:
+        log.info('Attempting create job from json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'json error'})
         return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
+        log.info('Attempting create job from json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'validation error'})
         return 'Invalid input: {}'.format(err), 400
 
     try:
+        log.info('Attempting create job record', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
         record = _jobs.create(
             user_id=flask.request.user.user_id,
             service_id=service_id,
@@ -103,8 +122,10 @@ def create_job():
             planet_api_key=planet_api_key,
         )
     except _jobs.PreprocessingError as err:
+        log.info('Attempting create job record failed', extra={'actor': 'system', 'actee': 'system', 'action': 'proccessing error'})
         return 'Cannot execute: {}'.format(err), 500
     except DatabaseError:
+        log.info('Attempting create job record failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         return 'A database error prevents job execution', 500
     return flask.jsonify({
         'job': record.serialize(),
@@ -112,13 +133,18 @@ def create_job():
 
 #Audit Log Required: data access
 def download_geojson(job_id: str):
+    log = logging.getLogger(__name__)
     try:
+        log.info('Attempting download json', extra={'actor': 'system', 'actee': 'system', 'action': 'data download'})
         detections = _jobs.get_detections(job_id)
     except _jobs.NotFound:
+        log.info('Attempting download json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'not found'})
         return 'Job not found', 404
     except _jobs.Error as err:
+        log.info('Attempting download json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'unable to download'})
         return 'Cannot download: {}'.format(err), 500
     except DatabaseError:
+        log.info('Attempting download json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         return 'A database error prevents detection download', 500
     return detections, 200, {
         'Content-Type': 'application/vnd.geo+json',
@@ -126,14 +152,19 @@ def download_geojson(job_id: str):
 
 #Audit Log Required: data removed
 def forget_job(job_id: str):
+    log = logging.getLogger(__name__)
     try:
+        log.info('Attempting forget job', extra={'actor': user_id, 'actee': 'system', 'action': 'delete data'})
         _jobs.forget(flask.request.user.user_id, job_id)
     except _jobs.NotFound:
+        log.info('Attempting forget job failed', extra={'actor': 'system', 'actee': 'system', 'action': 'job not found'})
         return 'Job not found', 404
     return 'Forgot {}'.format(job_id), 200
 
 #Audit Log Required: data access
 def list_jobs():
+    log = logging.getLogger(__name__)
+    log.info('Attempting list jobs', extra={'actor': user_id, 'actee': 'system', 'action': 'query data'})
     jobs = _jobs.get_all(flask.request.user.user_id)
     return flask.jsonify({
         'jobs': {
@@ -145,10 +176,13 @@ def list_jobs():
 #Audit Log Required: data access
 def list_jobs_for_productline(productline_id: str):
     try:
+        log = logging.getLogger(__name__)
+        log.info('Attempting list jobs for productline ', extra={'actor': 'system', 'actee': 'system', 'action': 'query data'})
         since = dateutil.parser.parse(
             flask.request.args.get('since', '1970-01-01', type=str),
         ).replace(tzinfo=dateutil.tz.tzutc())  # type: datetime
     except ValueError:
+        log.info('Attempting list jobs for productline failed', extra={'actor': 'system', 'actee': 'system', 'action': 'value error'})
         return 'Invalid input: `since` value cannot be parsed as a valid date', 400
     jobs = _jobs.get_by_productline(productline_id, since)
     return flask.jsonify({
@@ -162,7 +196,9 @@ def list_jobs_for_productline(productline_id: str):
 
 #Audit Log Required: data access
 def list_jobs_for_scene(scene_id: str):
+    log = logging.getLogger(__name__)
     jobs = _jobs.get_by_scene(scene_id)
+    log.info('Attempting list jobs for scene', extra={'actor': 'system', 'actee': 'system', 'action': 'query data'})
     return flask.jsonify({
         'scene_id': scene_id,
         'jobs': {
@@ -173,9 +209,12 @@ def list_jobs_for_scene(scene_id: str):
 
 #Audit Log Required: data access
 def get_job(job_id: str):
+    log = logging.getLogger(__name__)
     try:
+        log.info('Attempting get job', extra={'actor': 'system', 'actee': 'system', 'action': 'query data'})
         record = _jobs.get(flask.request.user.user_id, job_id)
     except _jobs.NotFound:
+        log.info('Attempting get job failed', extra={'actor': 'system', 'actee': 'system', 'action': 'job not found'})
         return 'Job not found', 404
     return flask.jsonify({
         'job': record.serialize(),
@@ -187,7 +226,9 @@ def get_job(job_id: str):
 #
 #Audit Log Required: data created
 def create_productline():
+    log = logging.getLogger(__name__)
     try:
+        log.info('Attempting create productline json', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
         payload = flask.request.get_json()
         algorithm_id = _get_string(payload, 'algorithm_id', max_length=100)
         category = _get_string(payload, 'category', nullable=True, max_length=64)
@@ -201,11 +242,14 @@ def create_productline():
         start_on = _get_datetime(payload, 'start_on')
         stop_on = _get_datetime(payload, 'stop_on', nullable=True)
     except JSONDecodeError:
+        log.info('Attempting create productline json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'json decode error'})
         return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
+        log.info('Attempting create productline json failed', extra={'actor': 'system', 'actee': 'system', 'action': 'format error'})
         return 'Invalid input: {}'.format(err), 400
 
     try:
+        log.info('Attempting create productline record', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
         productline = _productlines.create_productline(
             algorithm_id=algorithm_id,
             bbox=(min_x, min_y, max_x, max_y),
@@ -218,8 +262,10 @@ def create_productline():
             user_id=flask.request.user.user_id,
         )
     except _algorithms.NotFound as err:
+        log.info('Attempting create productline record failed', extra={'actor': 'system', 'actee': 'system', 'action': 'algorithm not found'})
         return 'Algorithm {} does not exist'.format(err.service_id), 500
     except DatabaseError:
+        log.info('Attempting create productline record failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         return 'A database error prevents product line creation', 500
     return flask.jsonify({
         'productline': productline.serialize(),
@@ -227,20 +273,27 @@ def create_productline():
 
 #Audit Log Required: data deleted
 def delete_productline(productline_id: str):
+    log = logging.getLogger(__name__)
+    log.info('Attempting delete productline', extra={'actor': user_id, 'actee': 'system', 'action': 'data delete'})
     user_id = flask.request.user.user_id
     try:
         _productlines.delete_productline(user_id, productline_id)
     except DatabaseError:
+        log.info('Attempting delete productline failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         return 'A database error prevents deletion of this product line', 404
     except _productlines.NotFound:
+        log.info('Attempting delete productline failed', extra={'actor': 'system', 'actee': 'system', 'action': 'productline not found'})
         return 'Product line not found', 404
     except PermissionError:
+        log.info('Attempting delete productline failed', extra={'actor': 'system', 'actee': 'system', 'action': 'permissions error'})
         return 'User `{}` does not have permission to delete this product line'.format(user_id), 403
     return 'Deleted product line {}'.format(productline_id), 200
 
 #Audit Log Required: data access
 def list_productlines():
+    log = logging.getLogger(__name__)
     productlines = _productlines.get_all()
+    log.info('Attempting get productlines list', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return flask.jsonify({
         'productlines': {
             'type': 'FeatureCollection',
@@ -254,6 +307,8 @@ def list_productlines():
 #
 #Audit Log Required: data access
 def get_user_data():
+    log = logging.getLogger(__name__)
+    log.info('Attempting get user data', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     return flask.jsonify({
         'profile': {
             'username': flask.request.user.user_id,
@@ -273,17 +328,22 @@ def get_user_data():
 # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 # FIXME -- hopefully this can move into the IA Broker eventually
 def forward_to_geotiff(scene_id: str):
+    log = logging.getLogger(__name__)
+    log.info('Attempting foward to geotiff', extra={'actor': 'system', 'actee': 'system', 'action': 'data manipulation'})
     planet_api_key = flask.request.args.get('planet_api_key')
     if not planet_api_key:
+        log.info('Attempting foward to geotiff failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing api key'})
         return 'Missing `planet_api_key` parameter', 400
 
     try:
         scene = _scenes.get(scene_id, planet_api_key)
         geotiff_url = _scenes.activate(scene, planet_api_key)
     except _scenes.NotFound:
+        log.info('Attempting foward to geotiff failed', extra={'actor': 'system', 'actee': 'system', 'action': 'scene not found'})
         return 'Cannot download: Scene `{}` not found'.format(scene_id), 404
     except (_scenes.CatalogError,
             _scenes.MalformedSceneID) as err:
+        log.info('Attempting foward to geotiff failed', extra={'actor': 'system', 'actee': 'system', 'action': 'download error'})
         return 'Cannot download: {}'.format(err), 500
 
     if geotiff_url:

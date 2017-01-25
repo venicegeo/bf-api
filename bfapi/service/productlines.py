@@ -105,6 +105,7 @@ def create_productline(
     log = logging.getLogger(__name__)
     algorithm = service.algorithms.get(algorithm_id)
     productline_id = _create_id()
+    log.info('Attempting create product line', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
     log.info('Creating product line <%s>', productline_id)
     conn = db.get_connection()
     try:
@@ -123,6 +124,7 @@ def create_productline(
             user_id=user_id,
         )
     except db.DatabaseError as err:
+        log.info('Attempting create product line failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         log.error('Could not insert product line record')
         db.print_diagnostics(err)
         raise
@@ -147,18 +149,21 @@ def create_productline(
 #Audit Log Required: data deleted
 def delete_productline(user_id: str, productline_id: str) -> None:
     log = logging.getLogger(__name__)
-
+    log.info('Attempting delete product line', extra={'actor': 'system', 'actee': 'system', 'action': 'delete data'})
     conn = db.get_connection()
     try:
         productline = db.productlines.select_productline(conn, productline_id=productline_id).fetchone()
         if not productline:
+            log.info('Attempting delete product line failed', extra={'actor': 'system', 'actee': 'system', 'action': 'productline not found'})
             raise NotFound(productline_id)
 
         if user_id != productline['owned_by']:
+            log.info('Attempting delete product line failed', extra={'actor': 'system', 'actee': 'system', 'action': 'permission error'})
             raise PermissionError('only the owner can delete this productline')
 
         db.productlines.delete_productline(conn, productline_id=productline_id)
     except db.DatabaseError as err:
+        log.info('Attempting delete product line failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         log.error('Could not delete productline <%s>', productline_id)
         db.print_diagnostics(err)
         raise
@@ -168,11 +173,12 @@ def delete_productline(user_id: str, productline_id: str) -> None:
 #Audit Log Required: data access
 def get_all() -> List[ProductLine]:
     log = logging.getLogger(__name__)
-
+    log.info('Attempting get all productlines', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     conn = db.get_connection()
     try:
         cursor = db.productlines.select_all(conn)
     except db.DatabaseError as err:
+        log.info('Attempting get all productlines failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         log.error('Could not list productlines')
         db.print_diagnostics(err)
         raise

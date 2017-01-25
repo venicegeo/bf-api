@@ -70,6 +70,8 @@ class ServiceDescriptor:
 #
 #Audit Log Required: data created
 def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_id: str) -> str:
+    log = logging.getLogger(__name__)
+    log.info('Attempting create trigger', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
     try:
         response = requests.post(
             'https://{}/trigger'.format(PIAZZA),
@@ -99,8 +101,10 @@ def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting create trigger failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting create trigger failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
             raise Unauthorized()
@@ -108,16 +112,20 @@ def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_
 
     data = response.json().get('data')
     if not data:
+        log.info('Attempting create trigger failed', extra={'actor': 'system', 'actee': 'system', 'action': 'no data'})
         raise InvalidResponse('missing `data`', response.text)
 
     trigger_id = data.get('triggerId')
     if not trigger_id:
+        log.info('Attempting create trigger failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing trigger id'})
         raise InvalidResponse('missing `data.triggerId`', response.text)
 
     return trigger_id
 
 #Audit Log Required: action preformed
 def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
+    log = logging.getLogger(__name__)
+    log.info('Attempting deployment', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
     try:
         response = requests.post(
             'https://{}/deployment'.format(PIAZZA),
@@ -131,8 +139,10 @@ def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10)
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting deployment failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting deployment failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
             raise Unauthorized()
@@ -140,10 +150,12 @@ def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10)
 
     data = response.json().get('data')
     if not data:
+        log.info('Attempting deployment failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing data error'})
         raise InvalidResponse('missing `data`', response.text)
 
     job_id = data.get('jobId')
     if not job_id:
+        log.info('Attempting deployment failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing jobid'})
         raise InvalidResponse('missing `jobId`', response.text)
 
     # Poll until complete
@@ -157,18 +169,23 @@ def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10)
         elif status.status == STATUS_RUNNING:
             poll_attempts += 1
             if poll_attempts >= max_poll_attempts:
+                log.info('Attempting deployment failed', extra={'actor': 'system', 'actee': 'system', 'action': 'polling error'})
                 raise DeploymentError('exhausted max poll attempts')
             time.sleep(poll_interval)
             continue
 
         if status.status == STATUS_ERROR:
+            log.info('Attempting deployment failed', extra={'actor': 'system', 'actee': 'system', 'action': 'deployment error'})
             raise DeploymentError('deployment job failed')
 
         else:
+            log.info('Attempting deployment failed', extra={'actor': 'system', 'actee': 'system', 'action': 'unknown status error'})
             raise DeploymentError('unexpected deployment job status: ' + status.status)
 
 #Audit Log Required: action preformed
 def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str:
+    log = logging.getLogger(__name__)
+    log.info('Attempting execution', extra={'actor': 'system', 'actee': 'system', 'action': 'execution'})
     try:
         response = requests.post(
             'https://{}/job'.format(PIAZZA),
@@ -191,8 +208,10 @@ def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting execution failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting execution failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
             raise Unauthorized()
@@ -200,16 +219,20 @@ def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str
 
     data = response.json().get('data')
     if not data:
+        log.info('Attempting execution failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing data'})
         raise InvalidResponse('missing `data`', response.text)
 
     job_id = data.get('jobId')
     if not job_id:
+        log.info('Attempting execution failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing jobid'})
         raise InvalidResponse('missing `data.jobId`', response.text)
 
     return job_id
 
 #Audit Log Required: data access
 def get_file(data_id: str) -> requests.Response:
+    log = logging.getLogger(__name__)
+    log.info('Attempting get file', extra={'actor': 'system', 'actee': 'system', 'action': 'file access'})
     try:
         response = requests.get(
             'https://{}/file/{}'.format(PIAZZA, data_id),
@@ -218,16 +241,22 @@ def get_file(data_id: str) -> requests.Response:
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting get file failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting get file failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
+            log.info('Attempting get file failed', extra={'actor': 'system', 'actee': 'system', 'action': 'unauchorised access'})
             raise Unauthorized()
+        log.info('Attempting get file failed', extra={'actor': 'system', 'actee': 'system', 'action': 'server error'})
         raise ServerError(status_code)
     return response
 
 
 def get_service(service_id: str) -> ServiceDescriptor:
+    log = logging.getLogger(__name__)
+    log.info('Attempting get service', extra={'actor': 'system', 'actee': 'system', 'action': 'data access'})
     try:
         response = requests.get(
             'https://{}/service/{}'.format(PIAZZA, service_id),
@@ -236,23 +265,31 @@ def get_service(service_id: str) -> ServiceDescriptor:
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting get service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting get service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
+            log.info('Attempting get service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'unauthorized access'})
             raise Unauthorized()
+        log.info('Attempting get service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'server error'})
         raise ServerError(status_code)
 
     datum = response.json().get('data')
     if datum is None:
+        log.info('Attempting get service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing data'})
         raise InvalidResponse('missing `data`', response.text)
     elif not isinstance(datum, dict):
+        log.info('Attempting get service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'incorrect type'})
         raise InvalidResponse('`data` is of the wrong type', response.text)
 
     return _to_service_descriptor(datum, response.text)
 
 #Audit Log Required: data access
 def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
+    log = logging.getLogger(__name__)
+    log.info('Attempting get services', extra={'actor': 'system', 'actee': 'system', 'action': 'query data'})
     try:
         response = requests.get(
             'https://{}/service'.format(PIAZZA),
@@ -265,8 +302,10 @@ def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting get services failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting get services failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
             raise Unauthorized()
@@ -274,14 +313,18 @@ def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
 
     data = response.json().get('data')
     if data is None:
+        log.info('Attempting get services failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing data'})
         raise InvalidResponse('missing `data`', response.text)
     elif not isinstance(data, list):
+        log.info('Attempting get services failed', extra={'actor': 'system', 'actee': 'system', 'action': 'incorrect type'})
         raise InvalidResponse('`data` is of the wrong type', response.text)
 
     return [_to_service_descriptor(datum, response.text) for datum in data]
 
 #Audit Log Required: data access
 def get_status(job_id: str) -> Status:
+    log = logging.getLogger(__name__)
+    log.info('Attempting get status', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     try:
         response = requests.get(
             'https://{}/job/{}'.format(PIAZZA, job_id),
@@ -290,15 +333,20 @@ def get_status(job_id: str) -> Status:
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting get status failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting get status failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
+            log.info('Attempting get status failed', extra={'actor': 'system', 'actee': 'system', 'action': 'unauthorized access'})
             raise Unauthorized()
+        log.info('Attempting get status failed', extra={'actor': 'system', 'actee': 'system', 'action': 'server error'})
         raise ServerError(status_code)
 
     data = response.json().get('data')
     if not data:
+        log.info('Attempting get status failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing data'})
         raise InvalidResponse('missing `data`', response.text)
 
     status = data.get('status')
@@ -354,6 +402,8 @@ def get_status(job_id: str) -> Status:
 
 #Audit Log Required: data access
 def get_triggers(name: str) -> list:
+    log = logging.getLogger(__name__)
+    log.info('Attempting get triggers', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     try:
         response = requests.post(
             'https://{}/trigger/query'.format(PIAZZA),
@@ -369,17 +419,23 @@ def get_triggers(name: str) -> list:
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting get triggers failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting get triggers failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
+            log.info('Attempting get triggers failed', extra={'actor': 'system', 'actee': 'system', 'action': 'unauthorized access'})
             raise Unauthorized()
+        log.info('Attempting get triggers failed', extra={'actor': 'system', 'actee': 'system', 'action': 'server error'})
         raise ServerError(status_code)
 
     data = response.json().get('data')
     if data is None:
+        log.info('Attempting get triggers failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing data'})
         raise InvalidResponse('missing `data`', response.text)
     elif not isinstance(data, list):
+        log.info('Attempting get triggers failed', extra={'actor': 'system', 'actee': 'system', 'action': 'incorrect type'})
         raise InvalidResponse('`data` is of the wrong type', response.text)
 
     return data
@@ -394,6 +450,8 @@ def register_service(
         timeout: int = 60,
         url: str,
         version: str = '0.0') -> str:
+    log = logging.getLogger(__name__)
+    log.info('Attempting register service', extra={'actor': 'system', 'actee': 'system', 'action': 'registering'})
     try:
         response = requests.post(
             'https://{}/service'.format(PIAZZA),
@@ -416,23 +474,31 @@ def register_service(
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting register service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise Unreachable()
     except requests.HTTPError as err:
+        log.info('Attempting register service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 401:
+            log.info('Attempting register service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'unauthorized access'})
             raise Unauthorized()
+        log.info('Attempting register service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'server error'})
         raise ServerError(status_code)
 
     data = response.json().get('data')
     if data is None:
+        log.info('Attempting register service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing data'})
         raise InvalidResponse('missing `data`', response.text)
     elif not isinstance(data, dict):
+        log.info('Attempting register service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'incorrect type'})
         raise InvalidResponse('`data` is of the wrong type', response.text)
 
     service_id = data.get('serviceId')
     if service_id is None:
+        log.info('Attempting register service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'missing data'})
         raise InvalidResponse('missing `data.serviceId`', response.text)
     elif not isinstance(service_id, str):
+        log.info('Attempting register service failed', extra={'actor': 'system', 'actee': 'system', 'action': 'incorrect type'})
         raise InvalidResponse('`serviceId` is of the wrong type', response.text)
 
     return service_id

@@ -24,6 +24,7 @@ TIMEOUT = 24
 #Audit Log Required: installation
 def install_if_needed():
     log = logging.getLogger(__name__)
+    log.info('Attempting install geoserver', extra={'actor': 'system', 'actee': 'system', 'action': 'installation'})
     log.info('Checking to see if installation is required')
 
     is_installed = True
@@ -44,6 +45,7 @@ def install_if_needed():
 #Audit Log Required: installation
 def install_layer(layer_id: str):
     log = logging.getLogger(__name__)
+    log.info('Attempting install layer', extra={'actor': 'system', 'actee': 'system', 'action': 'install'})
     log.info('Installing `%s`', layer_id)
     try:
         response = requests.post(
@@ -118,9 +120,11 @@ def install_layer(layer_id: str):
         )
         response.raise_for_status()
     except requests.ConnectionError as err:
+        log.info('Attempting install layer failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection issue'})
         log.error('Cannot communicate with GeoServer: %s', err)
         raise GeoServerError()
     except requests.HTTPError as err:
+        log.info('Attempting install layer failed', extra={'actor': 'system', 'actee': 'system', 'action': 'HTTP error'})
         log.error('Cannot create layer `%s`: HTTP %d on %s to %s',
                   layer_id,
                   err.response.status_code,
@@ -131,6 +135,7 @@ def install_layer(layer_id: str):
 #Audit Log Required: installation
 def install_style(style_id: str):
     log = logging.getLogger(__name__)
+    log.info('Attempting install style', extra={'actor': 'system', 'actee': 'system', 'action': 'installation'})
     log.info('Installing `%s`', style_id)
     try:
         response = requests.post(
@@ -184,9 +189,11 @@ def install_style(style_id: str):
         )
         response.raise_for_status()
     except requests.ConnectionError as err:
+        log.info('Attempting install style failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         log.error('Cannot communicate with GeoServer: %s', err)
         raise GeoServerError()
     except requests.HTTPError as err:
+        log.info('Attempting install style error', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         log.error('Cannot create style `%s`: HTTP %d on %s to %s',
                   style_id,
                   err.response.status_code,
@@ -197,6 +204,7 @@ def install_style(style_id: str):
 #Audit Log Required: data access
 def layer_exists(layer_id: str) -> bool:
     log = logging.getLogger(__name__)
+    log.info('Attempting check for layer', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     try:
         response = requests.get(
             'http://{}/geoserver/rest/layers/{}'.format(  # FIXME -- https please
@@ -207,6 +215,7 @@ def layer_exists(layer_id: str) -> bool:
             timeout=TIMEOUT,
         )
     except requests.ConnectionError as err:
+        log.info('Attempting check for layer failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         log.error('Cannot communicate with GeoServer: %s', err)
         raise GeoServerError()
     return response.status_code == 200
@@ -214,6 +223,7 @@ def layer_exists(layer_id: str) -> bool:
 #Audit Log Required: data access
 def style_exists(style_id: str) -> bool:
     log = logging.getLogger(__name__)
+    log.info('Attempting check for style', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     try:
         response = requests.get(
             'http://{}/geoserver/rest/styles/{}'.format(  # FIXME -- https please
@@ -224,6 +234,7 @@ def style_exists(style_id: str) -> bool:
             timeout=TIMEOUT,
         )
     except requests.ConnectionError as err:
+        log.info('Attempting check for style failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         log.error('Cannot communicate with GeoServer: %s', err)
         raise GeoServerError()
     return response.status_code == 200

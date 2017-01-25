@@ -109,6 +109,7 @@ def create(
 
     # Fetch prerequisites
     try:
+        log.info('Attempting create job', extra={'actor': 'system', 'actee': 'system', 'action': 'data created'})
         algorithm = algorithms.get(service_id)
         scene = scenes.get(scene_id, planet_api_key)
         scenes.activate(scene, planet_api_key)
@@ -118,6 +119,7 @@ def create(
             scenes.CatalogError,
             scenes.NotFound,
             scenes.ValidationError) as err:
+        log.info('Attempting create job failed', extra={'actor': 'system', 'actee': 'system', 'action': 'processing error'})
         log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
 
@@ -127,6 +129,7 @@ def create(
 
     # Dispatch to Piazza
     try:
+        log.info('Attempting send job to piazza', extra={'actor': 'system', 'actee': 'system', 'action': 'data transmission'})
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
         cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, geotiff_filenames, scene.platform)
         job_id = piazza.execute(algorithm.service_id, {
@@ -143,10 +146,12 @@ def create(
             },
         })
     except piazza.Error as err:
+        log.info('Attempting send job to piazza failed', extra={'actor': 'system', 'actee': 'system', 'action': 'piazza error'})
         log.error('Could not execute via Piazza: %s', err)
         raise
 
     # Record the data
+    log.info('Attempting save job', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
     log.debug('Saving job record <%s>', job_id)
     conn = db.get_connection()
     transaction = conn.begin()
@@ -173,6 +178,7 @@ def create(
         transaction.commit()
     except db.DatabaseError as err:
         transaction.rollback()
+        log.info('Attempting save job failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         log.error('Could not save job to database')
         db.print_diagnostics(err)
         raise
@@ -201,10 +207,13 @@ def forget(user_id: str, job_id: str) -> None:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
     try:
+        log.info('Attempting forget job', extra={'actor': user_id, 'actee': 'system', 'action': 'data delete'})
         if not db.jobs.exists(conn, job_id=job_id):
+            log.info('Attempting forget job failed', extra={'actor': user_id, 'actee': 'system', 'action': 'job not found'})
             raise NotFound(job_id)
         db.jobs.delete_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
+        log.info('Attempting forget job failed', extra={'actor': user_id, 'actee': 'system', 'action': 'database error'})
         log.error('Could not forget <job:%s> for user "%s"', job_id, user_id)
         db.print_diagnostics(err)
         raise
@@ -213,17 +222,19 @@ def forget(user_id: str, job_id: str) -> None:
 
 #Audit Log Required: data access
 def get(user_id: str, job_id: str) -> Job:
+    log.info('Attempting get job', extra={'actor': user_id, 'actee': 'system', 'action': 'data query'})
     log = logging.getLogger(__name__)
     conn = db.get_connection()
-
     try:
         row = db.jobs.select_job(conn, job_id=job_id).fetchone()
         if not row:
+            log.info('Attempting get job failed', extra={'actor': user_id, 'actee': 'system', 'action': 'job not found'})
             raise NotFound(job_id)
 
         # Add job to user's tracked jobs list
         db.jobs.insert_job_user(conn, job_id=job_id, user_id=user_id)
     except db.DatabaseError as err:
+        log.info('Attempting get job failed', extra={'actor': user_id, 'actee': 'system', 'action': 'database not found'})
         log.error('Could not get <job:%s> for user "%s"', job_id, user_id)
         db.print_diagnostics(err)
         raise
@@ -251,10 +262,11 @@ def get(user_id: str, job_id: str) -> Job:
 def get_all(user_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
-
+    log.info('Attempting get all jobs', extra={'actor': user_id, 'actee': 'system', 'action': 'data query'})
     try:
         cursor = db.jobs.select_jobs_for_user(conn, user_id=user_id)
     except db.DatabaseError as err:
+        log.info('Attempting get all jobs failed', extra={'actor': user_id, 'actee': 'system', 'action': 'database error'})
         log.error('Could not list jobs for user "%s"', user_id)
         db.print_diagnostics(err)
         raise
@@ -287,10 +299,11 @@ def get_all(user_id: str) -> List[Job]:
 def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
-
+    log.info('Attempting get productline', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     try:
         cursor = db.jobs.select_jobs_for_productline(conn, productline_id=productline_id, since=since)
     except db.DatabaseError as err:
+        log.info('Attempting get productline failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         log.error('Could not list jobs for <productline:%s>', productline_id)
         db.print_diagnostics(err)
         raise
@@ -321,10 +334,11 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
 def get_by_scene(scene_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
     conn = db.get_connection()
-
+    log.info('Attempting get scene', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     try:
         cursor = db.jobs.select_jobs_for_scene(conn, scene_id=scene_id)
     except db.DatabaseError as err:
+        log.info('Attempting get scene failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         log.error('Could not list jobs for <scene:%s>', scene_id)
         db.print_diagnostics(err)
         raise err
@@ -360,13 +374,15 @@ def get_detections(job_id: str) -> str:
 
     log = logging.getLogger(__name__)
     conn = db.get_connection()
-
+    log.info('Attempting get detections', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
     log.info('Packaging detections for <job:%s>', job_id)
     try:
         if not db.jobs.exists(conn, job_id=job_id):
+            log.info('Attempting get detection failed', extra={'actor': 'system', 'actee': 'system', 'action': 'job not found'})
             raise NotFound(job_id)
         geojson = db.jobs.select_detections(conn, job_id=job_id).scalar()
     except db.DatabaseError as err:
+        log.info('Attempting get detection failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         log.error('Could not package detections for <job:%s>', job_id)
         db.print_diagnostics(err)
         raise
@@ -381,11 +397,12 @@ def start_worker(
         job_ttl: timedelta = JOB_TTL,
         interval: timedelta = JOB_WORKER_INTERVAL):
     global _worker
-
+    log = logging.getLogger(__name__)
+    log.info('Attempting start worker', extra={'actor': 'system', 'actee': 'system', 'action': 'start proccess'})
     if _worker is not None:
+        log.info('Attempting start worker failed', extra={'actor': 'system', 'actee': 'system', 'action': 'worker already started'})
         raise Error('worker already started')
 
-    log = logging.getLogger(__name__)
     log.info('Starting worker thread')
     _worker = Worker(job_ttl, interval)
     _worker.start()
@@ -396,6 +413,7 @@ def stop_worker():
     if not _worker:
         return
     log = logging.getLogger(__name__)
+    log.info('Attempting stop worker', extra={'actor': 'system', 'actee': 'system', 'action': 'end proccess'})
     log.info('Stopping worker thread')
     _worker.terminate()
     _worker = None

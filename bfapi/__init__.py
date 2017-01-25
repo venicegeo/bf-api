@@ -29,13 +29,13 @@ class CustomFormatter(logging.Formatter):
 
         attHolder = getattr(record, "action", None)
         if attHolder is not None:
-            record.action=" action:"+record.action+" "
+            record.action="action:"+record.action+" ]"
         else:
             record.action=''
 
         attHolder = getattr(record, "actee", None)
         if attHolder is not None:
-            record.actee="actee:"+record.actee+" ]"
+            record.actee=" actee:"+record.actee+" "
         else:
             record.actee=''
         return super(CustomFormatter, self).format(record)
@@ -60,7 +60,7 @@ logging.config.dictConfig(dict(
     formatters={
         'CustomFormatter': {
             '()': CustomFormatter,
-            'format': '<%(levelno)s> %(asctime)s %(name)s:%(funcName)s %(actor)s%(action)s%(actee)s %(message)s',
+            'format': '<%(levelno)s> %(asctime)s %(name)s:%(funcName)s %(actor)s%(actee)s%(action)s %(message)s',
             'datefmt':'%Y-%d-%mT%H:%M:%SZ'
         }
     },

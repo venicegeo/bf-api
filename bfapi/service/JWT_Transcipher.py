@@ -25,10 +25,13 @@ from bfapi.db import secret
 #Audit Log Required: data creation
 """Used to set the single use key"""
 def setSingleUseKey( uuid ):
+    log = logging.getLogger(__name__)
+    log.info('Attempting set single use key', extra={'actor': 'system', 'actee': 'system', 'action': 'modify data'})
     conn = db.get_connection()
     try:
         secret.insert_one_time_key(conn,uuid)
     except db.DatabaseError as err:
+        log.info('Attempting set single use key failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         db.print_diagnostics(err)
         raise
     finally:
@@ -38,20 +41,25 @@ def setSingleUseKey( uuid ):
 #Audit Log Required: data access
 """Used to find single use key and mark it as used"""
 def getSingleUseKey( string ):
+    log = logging.getLogger(__name__)
+    log.info('Attempting get single use key', extra={'actor': 'system', 'actee': 'system', 'action': 'create data'})
     try:
         conn = db.get_connection()
         if secret.check_if_one_time_key_exists(conn,string):
             try:
                 key = secret.find_and_mark_one_time_key_used(conn,string)
             except db.DatabaseError as err:
+                log.info('Attempting get single use key failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
                 db.print_diagnostics(err)
                 raise
             finally:
                 conn.close()
             return True
         else:
+            log.info('Attempting get single use key failed', extra={'actor': 'system', 'actee': 'system', 'action': 'key does not exist'})
             return False
     except db.DatabaseError as err:
+        log.info('Attempting get single use key', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         db.print_diagnostics(err)
         raise
     finally:
@@ -60,13 +68,18 @@ def getSingleUseKey( string ):
 #Audit Log Required: action preformed
 """Decrypts JWT and returns payload the boolean will check if its a single use key"""
 def decrypt( token ):
+    log = logging.getLogger(__name__)
+    log.info('Attempting decryption', extra={'actor': 'system', 'actee': 'system', 'action': 'decryption'})
     try:
         payload= jwt.decode(token,SECRET_KEY)
     except jwt.ExpiredSignature:
+        log.info('Attempting decryption failed', extra={'actor': 'system', 'actee': 'system', 'action': 'signature expired'})
         raise DecryptError('token expired')
     except jwt.DecodeError:
+        log.info('Attempting decryption failed', extra={'actor': 'system', 'actee': 'system', 'action': 'decode error'})
         raise DecryptError('invalid signiture')
     except Exception:
+        log.info('Attempting decryption failed', extra={'actor': 'system', 'actee': 'system', 'action': 'invalid header'})
         raise DecryptError('invalid header')
     one_time_use_token= payload.get('JWT_OTU')
     if not one_time_use_token:       
@@ -76,12 +89,15 @@ def decrypt( token ):
         if resultBool:
             return payload
         else:
+            log.info('Attempting decryption failed', extra={'actor': 'system', 'actee': 'system', 'action': 'one time use expired'})
             raise DecryptError('one time use token expired')
 
 #Audit Log Required: action preformed
 """Encrypts payload and returns JWT"""
 def encrypt( payload ):
+    log = logging.getLogger(__name__)
     try:
+        log.info('Attempting encrypt', extra={'actor': 'system', 'actee': 'system', 'action': 'encrypting'})
         if not payload.get('JWT_OTU'):
             payload['JWT_OTU'] = None
         else:
@@ -93,7 +109,8 @@ def encrypt( payload ):
             SECRET_KEY
             )
     except Exception:
-        raise EncryptError('unable to decrypt')
+        log.info('Attempting encrypt filed', extra={'actor': 'system', 'actee': 'system', 'action': 'encrypting failed'})
+        raise EncryptError('unable to encrypt')
     return jwtString
 
 class Error(Exception):

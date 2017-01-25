@@ -79,7 +79,7 @@ class Scene:
 def activate(scene: Scene, planet_api_key: str) -> Optional[str]:
 
     log = logging.getLogger(__name__)
-
+    log.info('Attempting to activate scene', extra={'actor': 'system', 'actee': 'system', 'action': 'activation'})
     if scene.status == STATUS_ACTIVE:
         return scene.geotiff_multispectral
     elif scene.status == STATUS_ACTIVATING:
@@ -100,8 +100,10 @@ def activate(scene: Scene, planet_api_key: str) -> Optional[str]:
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting to activate scene failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise CatalogError()
     except requests.HTTPError as err:
+        log.info('Attempting to activate scene failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 404:
             raise NotFound(scene.id)
@@ -121,7 +123,7 @@ def create_download_url(scene_id: str, planet_api_key: str = '') -> str:
 
 def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene:
     log = logging.getLogger(__name__)
-
+    log.info('Attempting to get scene', extra={'actor': 'system', 'actee': 'system', 'action': 'access data'})
     platform, external_id = _parse_scene_id(scene_id)
 
     uri = 'https://{}/planet/{}/{}'.format(CATALOG, platform, external_id)
@@ -136,11 +138,15 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
         )
         response.raise_for_status()
     except requests.ConnectionError:
+        log.info('Attempting to get scene failed', extra={'actor': 'system', 'actee': 'system', 'action': 'connection error'})
         raise CatalogError()
     except requests.HTTPError as err:
+        log.info('Attempting to get scene failed', extra={'actor': 'system', 'actee': 'system', 'action': 'http error'})
         status_code = err.response.status_code
         if status_code == 404:
+            log.info('Attempting to get scene failed', extra={'actor': 'system', 'actee': 'system', 'action': 'scene not found'})
             raise NotFound(scene_id)
+        log.info('Attempting to get scene failed', extra={'actor': 'system', 'actee': 'system', 'action': 'catalog error'})
         raise CatalogError()
 
     feature = response.json()

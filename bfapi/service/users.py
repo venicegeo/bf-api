@@ -41,8 +41,9 @@ class User:
 #Audit Log Required: action preformed
 def authenticate_via_api_key(api_key: str) -> User:
     log = logging.getLogger(__name__)
-
+    log.info('Attempting authenticate api key', extra={'actor': 'system', 'actee': 'system', 'action': 'authentication'})
     if not PATTERN_API_KEY.match(api_key):
+        log.info('Attempting authenticate api key failed', extra={'actor': 'system', 'actee': 'system', 'action': 'malformed API key'})
         log.error('Cannot verify malformed API key: "%s"', api_key)
         raise MalformedAPIKey()
 
@@ -51,6 +52,7 @@ def authenticate_via_api_key(api_key: str) -> User:
     try:
         row = db.users.select_user_by_api_key(conn, api_key=api_key).fetchone()
     except db.DatabaseError as err:
+        log.info('Attempting authenticate api key failed', extra={'actor': 'system', 'actee': 'system', 'action': 'database error'})
         log.error('Database query for API key "%s" failed', api_key)
         db.print_diagnostics(err)
         raise
@@ -58,6 +60,7 @@ def authenticate_via_api_key(api_key: str) -> User:
         conn.close()
 
     if not row:
+        log.info('Attempting authenticate api key failed', extra={'actor': 'system', 'actee': 'system', 'action': 'unauthorized'})
         log.error('Unauthorized API key "%s"', api_key)
         raise Unauthorized('Beachfront API key is not active')
 
@@ -71,7 +74,7 @@ def authenticate_via_api_key(api_key: str) -> User:
 #Audit Log Required: action preformed
 def authenticate_via_geoaxis(auth_code: str) -> User:
     log = logging.getLogger(__name__)
-
+    log.info('Attempting authenticate geoaxis', extra={'actor': 'system', 'actee': 'system', 'action': 'authentication'})
     access_token = _request_geoaxis_access_token(auth_code)
     user_id, user_name = _fetch_geoaxis_profile(access_token)
 
@@ -86,12 +89,13 @@ def authenticate_via_geoaxis(auth_code: str) -> User:
 #Audit Log Required: data access
 def get_by_id(user_id: str) -> User:
     log = logging.getLogger(__name__)
-
+    log.info('Attempting get user by id', extra={'actor': user_id, 'actee': 'system', 'action': 'access data'})
     log.debug('Searching database for user "%s"', user_id)
     conn = db.get_connection()
     try:
         row = db.users.select_user(conn, user_id=user_id).fetchone()
     except db.DatabaseError as err:
+        log.info('Attempting get user by id failed', extra={'actor': user_id, 'actee': 'system', 'action': 'database error'})
         log.error('Database query for user ID "%s" failed', user_id)
         db.print_diagnostics(err)
         raise

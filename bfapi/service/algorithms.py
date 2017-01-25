@@ -57,8 +57,10 @@ def list_all() -> List[Algorithm]:
     log = logging.getLogger(__name__)
     try:
         log.info('Fetching beachfront services from Piazza')
+        log.info('Attempting get beachfront services', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
         services = piazza.get_services('^BF_Algo_')
     except piazza.Error as err:
+        log.info('Attempting get beachfront services failed', extra={'actor': 'system', 'actee': 'system', 'action': 'piazza error'})
         log.error('Service discovery failed: %s', err)
         raise
 
@@ -68,6 +70,7 @@ def list_all() -> List[Algorithm]:
             log.warning('Algorithm <%s> missing `metadata` hash', service.service_id)
             continue
         try:
+            log.info('Attempting get algorithm', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
             algorithms.append(Algorithm(
                 interface=_extract_interface(service),
                 description=_extract_description(service),
@@ -77,6 +80,7 @@ def list_all() -> List[Algorithm]:
                 version=_extract_version(service),
             ))
         except ValidationError as err:
+            log.info('Attempting get algorithm failed', extra={'actor': 'system', 'actee': 'system', 'action': 'validation error'})
             log.error('Algorithm conversion failed: %s', err)
             continue
     return algorithms
@@ -87,14 +91,17 @@ def get(service_id: str) -> Algorithm:
 
     log = logging.getLogger(__name__)
     try:
+        log.info('Attempting get algorithm', extra={'actor': 'system', 'actee': 'system', 'action': 'data query'})
         log.info('Fetch beachfront service `%s` from Piazza', service_id)
         service = piazza.get_service(service_id)
     except piazza.ServerError as err:
+        log.info('Attempting get algorithm failed', extra={'actor': 'system', 'actee': 'system', 'action': 'service error'})
         log.error('Service lookup failed: %s', err)
         if err.status_code == 404:
             raise NotFound(service_id)
         raise
     except piazza.Error as err:
+        log.info('Attempting get algorithm failed', extra={'actor': 'system', 'actee': 'system', 'action': 'service error'})
         log.error('Service lookup failed: %s', err)
         raise
     if 'metadata' not in service.metadata:
@@ -109,6 +116,7 @@ def get(service_id: str) -> Algorithm:
             version=_extract_version(service),
         )
     except ValidationError as err:
+        log.info('Attempting get algorithm failed', extra={'actor': 'system', 'actee': 'system', 'action': 'conversion error'})
         log.error('Algorithm conversion failed: %s', err)
         raise
 
