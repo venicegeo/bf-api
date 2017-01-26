@@ -147,7 +147,8 @@ def select_detections(
                        array_agg(f) AS "features"
                   FROM (SELECT concat_ws('#', d.job_id, d.feature_id) AS "id",
                                to_json(p) AS "properties",
-                               ST_AsGeoJSON(d.geometry)::json AS "geometry"
+                               ST_AsGeoJSON(d.geometry)::json AS "geometry",
+                               'Feature' AS "type"
                           FROM __beachfront__detection d
                                INNER JOIN __beachfront__provenance AS p ON (p.job_id = d.job_id)
                          WHERE d.job_id = %(job_id)s
