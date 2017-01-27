@@ -9,7 +9,8 @@ node ('python35') {
             pip install -r requirements.txt
         """
         sh '/opt/dependency-check/bin/dependency-check.sh --project "bf-api" --scan ".env" --format "XML" --enableExperimental'
-        cat dependency-check-report.xml
+        sh 'cat dependency-check-report.xml'
         sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/57/upload?apiKey=$THREADFIXKEY"
+        archive 'dependency-check-report.xml'
     }
 }
