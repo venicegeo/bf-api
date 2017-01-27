@@ -19,16 +19,19 @@ from bfapi import config, db, middleware, routes, service
 FALLBACK_MIMETYPE = 'text/plain'
 
 
-def attach_routes(app: flask.Flask):
+def apply_middlewares(app: flask.Flask):
     app.before_request(middleware.https_filter)
     app.before_request(middleware.csrf_filter)
     app.before_request(middleware.auth_filter)
+    app.after_request(middleware.apply_default_response_headers)
 
     CORS(app,
          origins=middleware.PATTERNS_AUTHORIZED_ORIGINS,
          max_age=1200,
          supports_credentials=True)
 
+
+def attach_routes(app: flask.Flask):
     # Public Endpoints
     app.add_url_rule(methods=['GET'], rule='/', view_func=routes.health_check)
     app.add_url_rule(methods=['GET'], rule='/login', view_func=routes.login)
@@ -82,6 +85,7 @@ def init(app):
     app.permanent_session_lifetime = config.SESSION_TTL
 
     install_service_assets()
+    apply_middlewares(app)
     attach_routes(app)
     start_background_tasks()
 

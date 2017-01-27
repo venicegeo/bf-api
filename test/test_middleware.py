@@ -35,6 +35,29 @@ AUTHORIZED_ORIGINS = (
     'https://localhost:8080',
 )
 
+
+class ApplyDefaultResponseHeadersTest(unittest.TestCase):
+    def test_adds_correct_x_frame_options(self):
+        response = flask.Response()
+        middleware.apply_default_response_headers(response)
+        self.assertEqual('DENY', response.headers['X-Frame-Options'])
+
+    def test_adds_correct_x_content_type_options(self):
+        response = flask.Response()
+        middleware.apply_default_response_headers(response)
+        self.assertEqual('nosniff', response.headers['X-Content-Type-Options'])
+
+    def test_adds_correct_x_xss_protection(self):
+        response = flask.Response()
+        middleware.apply_default_response_headers(response)
+        self.assertEqual('1; mode-block', response.headers['X-XSS-Protection'])
+
+    def test_adds_correct_cache_control(self):
+        response = flask.Response()
+        middleware.apply_default_response_headers(response)
+        self.assertEqual('no-cache, no-store, must-revalidate, private', response.headers['Cache-Control'])
+
+
 class AuthFilterTest(unittest.TestCase):
     def setUp(self):
         self._logger = logging.getLogger('bfapi.middleware')
