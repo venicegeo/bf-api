@@ -18,8 +18,6 @@ import time
 from datetime import datetime, timedelta
 from typing import List
 
-import dateutil.tz
-
 from bfapi import db
 from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL
 from bfapi.service import algorithms, scenes, piazza
