@@ -115,6 +115,7 @@ class LogoutTest(unittest.TestCase):
         self._logger.disabled = True
 
         self.session = self.create_mock('flask.session', spec=dict)
+        self.request = self.create_mock('flask.request')
 
     def tearDown(self):
         self._logger.disabled = False

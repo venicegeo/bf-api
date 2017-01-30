@@ -79,7 +79,7 @@ def authenticate_via_geoaxis(auth_code: str) -> User:
     if not user:
         user = _create_user(user_id, user_name)
 
-    log.info('User "%s" has logged in successfully', user_id)
+    log.info('User "%s" has logged in successfully', user_id, actor=user_id, action='logged in')
 
     return user
 
@@ -117,7 +117,7 @@ def _create_user(user_id, user_name) -> User:
     log = logging.getLogger(__name__)
     api_key = uuid.uuid4().hex
 
-    log.info('Creating user account for "%s"', user_id)
+    log.info('Creating user account for "%s"', user_id, actor=user_id, action='create account')
     conn = db.get_connection()
     try:
         db.users.insert_user(
