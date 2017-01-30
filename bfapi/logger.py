@@ -17,19 +17,13 @@ import logging.config
 import sys
 
 ACTOR_SYSTEM = 'SYSTEM'
-
-HOSTNAME = os.uname()[1].lower()
-
-FORMAT = ('<{PRI}>1'
-          ' {asctime}'
-          ' {HOSTNAME}'
-          ' {APP_NAME} {name}:{funcName}'
-          ' [{SD_ID} actor="{ACTOR}" action="{ACTION}" actee="{ACTEE}"]'
-          ' {levelname:<5} {message}')
-
-DATE_FORMAT = '%Y-%d-%mT%H:%M:%SZ'
-
-FACILITY = 1
+APP_NAME     = 'beachfront'
+DATE_FORMAT  = '%Y-%d-%mT%H:%M:%SZ'
+FACILITY     = 1
+FORMAT       = ('<{PRI}>1 {asctime} {HOSTNAME} {APP_NAME} {name}:{funcName} '
+                '[{SD_ID} actor="{ACTOR}" action="{ACTION}" actee="{ACTEE}"] {levelname:<5} {message}')
+HOSTNAME     = os.uname()[1].lower()
+SD_ID        = 'bfaudit@48851'
 
 PRI_CODES = {
     'FATAL':    0,
@@ -72,10 +66,10 @@ class AuditableLogger(logging.Logger):
             'ACTEE':     actee,
             'ACTION':    action,
             'ACTOR':     actor or ACTOR_SYSTEM,
-            'APP_NAME':  'beachfront',
+            'APP_NAME':  APP_NAME,
             'HOSTNAME':  hostname,
             'PRI':       pri_code,
-            'SD_ID':     'bfaudit@48851',
+            'SD_ID':     SD_ID,
         }
 
         super()._log(level, msg, args, exc_info, extra, stack_info)
