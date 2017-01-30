@@ -22,4 +22,5 @@ gunicorn bfapi.server:server \
   --threads 5 \
   --keyfile .dev/ssl-certificate.key \
   --certfile .dev/ssl-certificate.pem \
-  --reload
+  --reload \
+  | sed -E 's/^.* beachfront (bfapi[.:])/\1/'  # Comment out this line to see the unabridged logging
