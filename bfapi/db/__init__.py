@@ -26,18 +26,10 @@ from bfapi.db import jobs, productlines, scenes, users
 _engine = None  # type: Engine
 
 
-def cleanup():
-    global _engine
-    log = logging.getLogger(__name__)
-    log.info('Closing database connection')
-    _engine.dispose()
-    _engine = None
-    log.info('Done')
-
-
 def get_connection() -> Connection:
     log = logging.getLogger(__name__)
     try:
+        log.debug('Connecting to database', action='connect', actee=POSTGRES_HOST + '/' + POSTGRES_DATABASE)
         return _engine.connect()
     except DatabaseError as err:
         log.critical('Database connection failed: %s', err)
@@ -58,7 +50,7 @@ def init():
             ))
         _install_if_needed()
     except:
-        log.exception('Initialization failed', exc_info=True)
+        log.exception('Initialization failed', action='initialize', actee=POSTGRES_HOST + '/' + POSTGRES_DATABASE)
         # Fail fast
         print(
             '-' * 80,
@@ -95,26 +87,27 @@ def print_diagnostics(err: DatabaseError):
 
 def _install():
     log = logging.getLogger(__name__)
+    audit = dict(action='install schema', actee=POSTGRES_HOST + '/' + POSTGRES_DATABASE)
 
-    log.info('Installing schema')
+    log.info('Installing schema', **audit)
 
     # Load SQL script
     try:
         schema_query = _read_sql_file('schema.install.sql')
     except Exception as err:
         err = InstallationError('cannot open schema.install.sql', err)
-        log.critical('Installation failed: %s', err)
+        log.critical('Installation failed: %s', err, **audit)
         raise err
 
     # Execute
     try:
         _engine.execution_options(autocommit=True).execute(sa.text(schema_query))
     except DatabaseError as err:
-        log.critical('Installation failed')
+        log.critical('Installation failed', **audit)
         print_diagnostics(err)
         raise InstallationError('schema install failed', err)
 
-    log.info('Installation complete!')
+    log.info('Installation complete!', **audit)
 
 
 def _install_if_needed():

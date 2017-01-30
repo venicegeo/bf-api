@@ -38,7 +38,7 @@ class CreateTriggerTest(unittest.TestCase):
             name='test-name',
             service_id='test-service-id',
         )
-        self.assertEqual('https://piazza.localhost/trigger', m.request_history[0].url)
+        self.assertEqual('https://piazza.test.localdomain/trigger', m.request_history[0].url)
 
     def test_sends_correct_api_key(self, m: Mocker):
         m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
@@ -162,8 +162,8 @@ class DeployTest(unittest.TestCase):
             {'text': RESPONSE_DEPLOY_SUCCESS},
         ])
         piazza.deploy(data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
-        self.assertEqual('https://piazza.localhost/deployment', m.request_history[0].url)
-        self.assertEqual('https://piazza.localhost/job/test-job-id', m.request_history[1].url)
+        self.assertEqual('https://piazza.test.localdomain/deployment', m.request_history[0].url)
+        self.assertEqual('https://piazza.test.localdomain/job/test-job-id', m.request_history[1].url)
 
     def test_sends_correct_api_key(self, m: Mocker):
         m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
@@ -259,7 +259,7 @@ class ExecuteTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
         piazza.execute('test-service-id', {})
-        self.assertEqual('https://piazza.localhost/job', m.request_history[0].url)
+        self.assertEqual('https://piazza.test.localdomain/job', m.request_history[0].url)
 
     def test_sends_correct_service_id(self, m: Mocker):
         m.post('/job', text=RESPONSE_JOB_RUNNING, status_code=201)
@@ -323,7 +323,7 @@ class GetFileTest(unittest.TestCase):
     def test_calls_correct_urls(self, m: Mocker):
         m.get('/file/test-data-id', text=RESPONSE_FILE)
         piazza.get_file('test-data-id')
-        self.assertEqual('https://piazza.localhost/file/test-data-id', m.request_history[0].url)
+        self.assertEqual('https://piazza.test.localdomain/file/test-data-id', m.request_history[0].url)
 
     def test_sends_correct_api_key(self, m: Mocker):
         m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
@@ -374,7 +374,7 @@ class GetStatusTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/job/test-job-id', text=RESPONSE_JOB_RUNNING)
         piazza.get_status('test-job-id')
-        self.assertEqual('https://piazza.localhost/job/test-job-id', m.request_history[0].url)
+        self.assertEqual('https://piazza.test.localdomain/job/test-job-id', m.request_history[0].url)
 
     def test_sends_correct_api_key(self, m: Mocker):
         m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
@@ -504,7 +504,7 @@ class GetServiceTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service/test-id', text=RESPONSE_SERVICE)
         piazza.get_service(service_id='test-id')
-        self.assertEqual('https://piazza.localhost/service/test-id', m.request_history[0].url)
+        self.assertEqual('https://piazza.test.localdomain/service/test-id', m.request_history[0].url)
 
     def test_sends_correct_api_key(self, m: Mocker):
         m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
@@ -591,9 +591,9 @@ class GetServicesTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.get('/service', text=RESPONSE_SERVICE_LIST)
         piazza.get_services(pattern='^test-pattern$')
-        self.assertEqual('https://piazza.localhost/service?', m.request_history[0].url[:33])
-        self.assertIn('perPage=100', m.request_history[0].url[33:])
-        self.assertIn('keyword=%5Etest-pattern%24', m.request_history[0].url[33:])
+        self.assertEqual('https://piazza.test.localdomain/service?', m.request_history[0].url[:40])
+        self.assertIn('perPage=100', m.request_history[0].url[40:])
+        self.assertIn('keyword=%5Etest-pattern%24', m.request_history[0].url[40:])
 
     def test_sends_correct_api_key(self, m: Mocker):
         m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
@@ -683,7 +683,7 @@ class GetTriggersTest(unittest.TestCase):
     def test_calls_correct_url(self, m: Mocker):
         m.post('/trigger/query', text=RESPONSE_TRIGGER_LIST)
         piazza.get_triggers('test-name')
-        self.assertEqual('https://piazza.localhost/trigger/query', m.request_history[0].url)
+        self.assertEqual('https://piazza.test.localdomain/trigger/query', m.request_history[0].url)
 
     def test_sends_correct_api_key(self, m: Mocker):
         m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)
@@ -762,7 +762,7 @@ class RegisterServiceTest(unittest.TestCase):
             name='test-name',
             url='test-url',
         )
-        self.assertEqual('https://piazza.localhost/service', m.request_history[0].url)
+        self.assertEqual('https://piazza.test.localdomain/service', m.request_history[0].url)
 
     def test_sends_correct_api_key(self, m: Mocker):
         m.post('/trigger', text=RESPONSE_TRIGGER, status_code=201)

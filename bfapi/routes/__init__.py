@@ -15,6 +15,7 @@ import time
 import urllib.parse
 
 import flask
+import logging
 
 from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_CLIENT_ID
 from bfapi.service import users
@@ -67,5 +68,8 @@ def login_start():
 
 
 def logout():
+    log = logging.getLogger(__name__)
+
     flask.session.clear()
+    log.info('Logged out', actor=flask.request.user.user_id, action='log out')
     return 'You have been logged out'

@@ -267,7 +267,7 @@ class CreateJobTest(unittest.TestCase):
                    ' --threshold 0.5' +
                    ' --tolerance 0.075' +
                    ' shoreline.geojson',
-            'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
+            'inExtFiles': ['https://bf-api.test.localdomain/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
             'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
             'userID': 'test-user-id',
@@ -280,7 +280,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
             'cmd': '-i multispectral.TIF --bands 2 4 --fout ./shoreline.geojson',
-            'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
+            'inExtFiles': ['https://bf-api.test.localdomain/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
             'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
             'userID': 'test-user-id',
@@ -293,7 +293,7 @@ class CreateJobTest(unittest.TestCase):
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
             'cmd': '-i multispectral.TIF --bands 2 5 --fout ./shoreline.geojson',
-            'inExtFiles': ['https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
+            'inExtFiles': ['https://bf-api.test.localdomain/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key'],
             'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
             'userID': 'test-user-id',

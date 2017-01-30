@@ -80,11 +80,11 @@ def _getservices() -> dict:
     return services
 ################################################################################
 
-DOMAIN = os.getenv('DOMAIN', 'localhost')
+DOMAIN = os.getenv('DOMAIN', 'localdomain')
 
 _normalized_domain = DOMAIN.replace('int.', 'stage.')
 
-PIAZZA       = os.getenv('PZ_GATEWAY', 'piazza.' + _normalized_domain)
+PIAZZA       = os.getenv('PIAZZA', 'piazza.' + _normalized_domain)
 CATALOG      = os.getenv('CATALOG', 'bf-ia-broker.' + _normalized_domain)
 UI           = os.getenv('UI', 'beachfront.' + _normalized_domain)
 

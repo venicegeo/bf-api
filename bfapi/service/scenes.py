@@ -76,7 +76,7 @@ class Scene:
 # Actions
 #
 
-def activate(scene: Scene, planet_api_key: str) -> Optional[str]:
+def activate(scene: Scene, planet_api_key: str, user_id: str) -> Optional[str]:
     log = logging.getLogger(__name__)
 
     if scene.status == STATUS_ACTIVE:
@@ -88,7 +88,7 @@ def activate(scene: Scene, planet_api_key: str) -> Optional[str]:
     platform, external_id = _parse_scene_id(scene.id)
 
     activation_url = 'https://{}/planet/activate/{}/{}'.format(CATALOG, platform, external_id)
-    log.info('Activating `%s`', scene.id)
+    log.info('Activating `%s`', scene.id, actor=user_id, action='activate scene', actee=scene.id)
     try:
         log.debug('Requesting activation; url=`%s`', activation_url)
         response = requests.get(
@@ -124,7 +124,7 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
     platform, external_id = _parse_scene_id(scene_id)
 
     uri = 'https://{}/planet/{}/{}'.format(CATALOG, platform, external_id)
-    log.info('Fetching `%s`', uri)
+    log.info('Fetching `%s`', uri, action='fetch scene metadata', actee=scene_id)
     try:
         response = requests.get(
             uri,

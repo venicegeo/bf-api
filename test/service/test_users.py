@@ -40,10 +40,6 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_requests.start()
         self.addCleanup(self.mock_requests.stop)
 
-        self.override_constant('bfapi.service.users.GEOAXIS', 'test-geoaxis')
-        self.override_constant('bfapi.service.users.GEOAXIS_CLIENT_ID', 'test-geoaxis-client-id')
-        self.override_constant('bfapi.service.users.GEOAXIS_SECRET', 'test-geoaxis-secret')
-
     def tearDown(self):
         self._mockdb.destroy()
         self._logger.disabled = False
@@ -66,17 +62,12 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.addCleanup(cleanup)
         return stream
 
-    def override_constant(self, target_name, value):
-        patcher = patch(target_name, value)
-        self.addCleanup(patcher.stop)
-        return patcher.start()
-
     def test_calls_correct_url_for_token_request(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text=RESPONSE_GEOAXIS_PROFILE)
         self.mock_get_by_id.return_value = create_user_db_record()
         users.authenticate_via_geoaxis('test-auth-code')
-        self.assertEqual('https://test-geoaxis/ms_oauth/oauth2/endpoints/oauthservice/tokens',
+        self.assertEqual('https://test-geoaxis.test.localdomain/ms_oauth/oauth2/endpoints/oauthservice/tokens',
                          self.mock_requests.request_history[0].url)
 
     def test_calls_correct_url_for_profile_request(self):
@@ -84,7 +75,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text=RESPONSE_GEOAXIS_PROFILE)
         self.mock_get_by_id.return_value = create_user_db_record()
         users.authenticate_via_geoaxis('test-auth-code')
-        self.assertEqual('https://test-geoaxis/ms_oauth/resources/userprofile/me',
+        self.assertEqual('https://test-geoaxis.test.localdomain/ms_oauth/resources/userprofile/me',
                          self.mock_requests.request_history[1].url)
 
     def test_sends_correct_payload_to_token_request(self):
@@ -93,7 +84,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_get_by_id.return_value = create_user_db_record()
         users.authenticate_via_geoaxis('test-auth-code')
         self.assertSetEqual({
-            'redirect_uri=https%3A%2F%2Fbf-api.localhost%2Flogin',
+            'redirect_uri=https%3A%2F%2Fbf-api.test.localdomain%2Flogin',
             'code=test-auth-code',
             'grant_type=authorization_code',
         }, set(self.mock_requests.request_history[0].body.split('&')))

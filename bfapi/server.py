@@ -62,14 +62,14 @@ def banner():
             continue
         configurations.append('{key:>38} : {value}'.format(key=key, value=value))
     print(
-        '-' * 80,
+        '-' * 120,
         '',
-        'bf-api'.center(80),
-        '~~~~~~'.center(80),
+        'bf-api'.center(120),
+        '~~~~~~'.center(120),
         '',
         *configurations,
         '',
-        '-' * 80,
+        '-' * 120,
         sep='\n',
         flush=True
     )

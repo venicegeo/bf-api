@@ -56,7 +56,7 @@ class Algorithm:
 def list_all() -> List[Algorithm]:
     log = logging.getLogger(__name__)
     try:
-        log.info('Fetching beachfront services from Piazza')
+        log.info('Fetching beachfront services from Piazza', action='fetch services')
         services = piazza.get_services('^BF_Algo_')
     except piazza.Error as err:
         log.error('Service discovery failed: %s', err)
@@ -85,7 +85,7 @@ def list_all() -> List[Algorithm]:
 def get(service_id: str) -> Algorithm:
     log = logging.getLogger(__name__)
     try:
-        log.info('Fetch beachfront service `%s` from Piazza', service_id)
+        log.info('Fetch beachfront service `%s` from Piazza', service_id, action='fetch service', actee=service_id)
         service = piazza.get_service(service_id)
     except piazza.ServerError as err:
         log.error('Service lookup failed: %s', err)

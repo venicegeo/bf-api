@@ -20,10 +20,10 @@ from bfapi import config
 
 class ConfigurationValueTest(unittest.TestCase):
     def test_autodetects_piazza_hostname(self):
-        self.assertEqual('piazza.localhost', config.PIAZZA)
+        self.assertEqual('piazza.test.localdomain', config.PIAZZA)
 
     def test_autodetects_catalog_hostname(self):
-        self.assertEqual('bf-ia-broker.localhost', config.CATALOG)
+        self.assertEqual('bf-ia-broker.test.localdomain', config.CATALOG)
 
     def test_defines_sensible_job_ttl(self):
         self.assertGreaterEqual(config.JOB_TTL, timedelta(seconds=600))
