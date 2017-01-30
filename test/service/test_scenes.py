@@ -65,7 +65,7 @@ class ActivateSceneTest(unittest.TestCase):
         scene.id = 'planetscope:test-scene-id'
         m.get('/planet/activate/planetscope/test-scene-id', text='')
         scenes.activate(scene, 'test-planet-api-key')
-        self.assertEqual('https://bf-ia-broker.localhost/planet/activate/planetscope/test-scene-id?PL_API_KEY=test-planet-api-key',
+        self.assertEqual('https://bf-ia-broker.test.localdomain/planet/activate/planetscope/test-scene-id?PL_API_KEY=test-planet-api-key',
                          m.request_history[0].url)
 
     def test_calls_correct_activation_url_for_rapideye(self, m: rm.Mocker):
@@ -73,7 +73,7 @@ class ActivateSceneTest(unittest.TestCase):
         scene.id = 'rapideye:test-scene-id'
         m.get('/planet/activate/rapideye/test-scene-id', text='')
         scenes.activate(scene, 'test-planet-api-key')
-        self.assertEqual('https://bf-ia-broker.localhost/planet/activate/rapideye/test-scene-id?PL_API_KEY=test-planet-api-key',
+        self.assertEqual('https://bf-ia-broker.test.localdomain/planet/activate/rapideye/test-scene-id?PL_API_KEY=test-planet-api-key',
                          m.request_history[0].url)
 
     def test_returns_multispectral_url_if_activated(self, m: rm.Mocker):
@@ -113,11 +113,11 @@ class ActivateSceneTest(unittest.TestCase):
 class CreateDownloadURLTest(unittest.TestCase):
     def test_returns_correct_url(self):
         url = scenes.create_download_url('test-scene-id', 'test-planet-api-key')
-        self.assertEqual('https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key', url)
+        self.assertEqual('https://bf-api.test.localdomain/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key', url)
 
     def test_accepts_blank_planet_api_key(self):
         url = scenes.create_download_url('test-scene-id')
-        self.assertEqual('https://bf-api.localhost/v0/scene/test-scene-id.TIF?planet_api_key=', url)
+        self.assertEqual('https://bf-api.test.localdomain/v0/scene/test-scene-id.TIF?planet_api_key=', url)
 
 
 class GetSceneTest(unittest.TestCase):
@@ -138,14 +138,14 @@ class GetSceneTest(unittest.TestCase):
         self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
         scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
         uri, params = self.mock_requests.request_history[0].url.split('?', 1)
-        self.assertEqual('https://bf-ia-broker.localhost/planet/planetscope/test-scene-id', uri)
+        self.assertEqual('https://bf-ia-broker.test.localdomain/planet/planetscope/test-scene-id', uri)
         self.assertEqual({'PL_API_KEY=test-planet-api-key', 'tides=True'}, set(params.split('&')))
 
     def test_calls_correct_url_for_rapideye_scene(self):
         self.mock_requests.get('/planet/rapideye/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
         scenes.get('rapideye:test-scene-id', 'test-planet-api-key')
         uri, params = self.mock_requests.request_history[0].url.split('?', 1)
-        self.assertEqual('https://bf-ia-broker.localhost/planet/rapideye/test-scene-id', uri)
+        self.assertEqual('https://bf-ia-broker.test.localdomain/planet/rapideye/test-scene-id', uri)
         self.assertEqual({'PL_API_KEY=test-planet-api-key', 'tides=True'}, set(params.split('&')))
 
     def test_fetches_scenes(self):
@@ -208,7 +208,7 @@ class GetSceneTest(unittest.TestCase):
     def test_returns_correct_uri(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
         scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
-        self.assertEqual('https://bf-ia-broker.localhost/planet/planetscope/test-scene-id', scene.uri)
+        self.assertEqual('https://bf-ia-broker.test.localdomain/planet/planetscope/test-scene-id', scene.uri)
 
     def test_throws_when_catalog_is_unreachable(self):
         with unittest.mock.patch('requests.get') as stub:

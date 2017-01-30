@@ -27,12 +27,10 @@ XMLNS = {'sld': 'http://www.opengis.net/sld'}
 @rm.Mocker()
 class InstallIfNeededTest(unittest.TestCase):
     def setUp(self):
-        self._config = ConfigOverride()
         self._logger = logging.getLogger('bfapi.service.geoserver')
         self._logger.disabled = True
 
     def tearDown(self):
-        self._config.destroy()
         self._logger.disabled = False
 
     def test_calls_correct_urls(self, m: rm.Mocker):
@@ -40,8 +38,8 @@ class InstallIfNeededTest(unittest.TestCase):
         m.get('/geoserver/rest/styles/bfdetections')
         geoserver.install_if_needed()
         self.assertEqual(2, len(m.request_history))
-        self.assertEqual('http://geoserver.localhost/geoserver/rest/layers/bfdetections', m.request_history[0].url)
-        self.assertEqual('http://geoserver.localhost/geoserver/rest/styles/bfdetections', m.request_history[1].url)
+        self.assertEqual('http://vcap-geoserver.test.localdomain/geoserver/rest/layers/bfdetections', m.request_history[0].url)
+        self.assertEqual('http://vcap-geoserver.test.localdomain/geoserver/rest/styles/bfdetections', m.request_history[1].url)
 
     def test_sends_correct_credentials(self, m: rm.Mocker):
         m.get('/geoserver/rest/layers/bfdetections')
@@ -68,18 +66,16 @@ class InstallIfNeededTest(unittest.TestCase):
 @rm.Mocker()
 class InstallLayerTest(unittest.TestCase):
     def setUp(self):
-        self._config = ConfigOverride()
         self._logger = logging.getLogger('bfapi.service.geoserver')
         self._logger.disabled = True
 
     def tearDown(self):
-        self._config.destroy()
         self._logger.disabled = False
 
     def test_calls_correct_url(self, m: rm.Mocker):
         m.post('/geoserver/rest/workspaces/piazza/datastores/piazza/featuretypes')
         geoserver.install_layer('test-layer-id')
-        self.assertEqual('http://geoserver.localhost/geoserver/rest/workspaces/piazza/datastores/piazza/featuretypes',
+        self.assertEqual('http://vcap-geoserver.test.localdomain/geoserver/rest/workspaces/piazza/datastores/piazza/featuretypes',
                          m.request_history[0].url)
 
     def test_sends_correct_credentials(self, m: rm.Mocker):
@@ -115,26 +111,24 @@ class InstallLayerTest(unittest.TestCase):
 @rm.Mocker()
 class InstallStyleTest(unittest.TestCase):
     def setUp(self):
-        self._config = ConfigOverride()
         self._logger = logging.getLogger('bfapi.service.geoserver')
         self._logger.disabled = True
 
     def tearDown(self):
-        self._config.destroy()
         self._logger.disabled = False
 
     def test_calls_correct_url_when_creating_sld(self, m: rm.Mocker):
         m.post('/geoserver/rest/styles')
         m.put('/geoserver/rest/layers/bfdetections')
         geoserver.install_style('test-style-id')
-        self.assertEqual('http://geoserver.localhost/geoserver/rest/styles?name=test-style-id',
+        self.assertEqual('http://vcap-geoserver.test.localdomain/geoserver/rest/styles?name=test-style-id',
                          m.request_history[0].url)
 
     def test_calls_correct_url_when_setting_default_style(self, m: rm.Mocker):
         m.post('/geoserver/rest/styles')
         m.put('/geoserver/rest/layers/bfdetections')
         geoserver.install_style('test-style-id')
-        self.assertEqual('http://geoserver.localhost/geoserver/rest/layers/bfdetections',
+        self.assertEqual('http://vcap-geoserver.test.localdomain/geoserver/rest/layers/bfdetections',
                          m.request_history[1].url)
 
     def test_sends_correct_credentials_when_creating_sld(self, m: rm.Mocker):
@@ -192,18 +186,16 @@ class InstallStyleTest(unittest.TestCase):
 @rm.Mocker()
 class LayerExistsTest(unittest.TestCase):
     def setUp(self):
-        self._config = ConfigOverride()
         self._logger = logging.getLogger('bfapi.service.geoserver')
         self._logger.disabled = True
 
     def tearDown(self):
-        self._config.destroy()
         self._logger.disabled = False
 
     def test_calls_correct_url(self, m: rm.Mocker):
         m.get('/geoserver/rest/layers/test-layer-id')
         geoserver.layer_exists('test-layer-id')
-        self.assertEqual('http://geoserver.localhost/geoserver/rest/layers/test-layer-id', m.request_history[0].url)
+        self.assertEqual('http://vcap-geoserver.test.localdomain/geoserver/rest/layers/test-layer-id', m.request_history[0].url)
 
     def test_sends_correct_credentials(self, m: rm.Mocker):
         m.get('/geoserver/rest/layers/test-layer-id')
@@ -228,18 +220,16 @@ class LayerExistsTest(unittest.TestCase):
 @rm.Mocker()
 class StyleExistsTest(unittest.TestCase):
     def setUp(self):
-        self._config = ConfigOverride()
         self._logger = logging.getLogger('bfapi.service.geoserver')
         self._logger.disabled = True
 
     def tearDown(self):
-        self._config.destroy()
         self._logger.disabled = False
 
     def test_calls_correct_url(self, m: rm.Mocker):
         m.get('/geoserver/rest/styles/test-style-id')
         geoserver.style_exists('test-style-id')
-        self.assertEqual('http://geoserver.localhost/geoserver/rest/styles/test-style-id', m.request_history[0].url)
+        self.assertEqual('http://vcap-geoserver.test.localdomain/geoserver/rest/styles/test-style-id', m.request_history[0].url)
 
     def test_sends_correct_credentials(self, m: rm.Mocker):
         m.get('/geoserver/rest/styles/test-style-id')
@@ -259,26 +249,3 @@ class StyleExistsTest(unittest.TestCase):
             stub.side_effect = ConnectionError()
             with self.assertRaises(geoserver.GeoServerError):
                 geoserver.style_exists('test-style-id')
-
-
-#
-# Helpers
-#
-
-class ConfigOverride:
-    HOST = 'geoserver.localhost'
-    USERNAME = 'test-username'
-    PASSWORD = 'test-password'
-
-    def __init__(self):
-        self._original_host = geoserver.GEOSERVER_HOST
-        self._original_username = geoserver.GEOSERVER_USERNAME
-        self._original_password = geoserver.GEOSERVER_PASSWORD
-        geoserver.GEOSERVER_HOST = self.HOST
-        geoserver.GEOSERVER_USERNAME = self.USERNAME
-        geoserver.GEOSERVER_PASSWORD = self.PASSWORD
-
-    def destroy(self):
-        geoserver.GEOSERVER_HOST = self._original_host
-        geoserver.GEOSERVER_USERNAME = self._original_username
-        geoserver.GEOSERVER_PASSWORD = self._original_password

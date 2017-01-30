@@ -28,17 +28,15 @@ class HealthCheckTest(unittest.TestCase):
         self.assertIsInstance(response['uptime'], float)
 
 
-@patch('bfapi.routes.GEOAXIS', new='geoaxis.localhost')
-@patch('bfapi.routes.GEOAXIS_CLIENT_ID', new='test-geoaxis-client-id')
 class LoginStartCheckTest(unittest.TestCase):
     maxDiff = 4096
 
     def test_redirects_to_geoaxis_oauth_authorization(self):
         response = routes.login_start()
         self.assertEqual(
-            'https://geoaxis.localhost/ms_oauth/oauth2/endpoints/oauthservice/authorize' +
+            'https://test-geoaxis.test.localdomain/ms_oauth/oauth2/endpoints/oauthservice/authorize' +
             '?client_id=test-geoaxis-client-id' +
-            '&redirect_uri=https%3A%2F%2Fbf-api.localhost%2Flogin' +
+            '&redirect_uri=https%3A%2F%2Fbf-api.test.localdomain%2Flogin' +
             '&response_type=code' +
             '&scope=UserProfile.me',
             response.location,
@@ -96,7 +94,7 @@ class LoginTest(unittest.TestCase):
         self.request.args = {'code': 'test-auth-code'}
         response = routes.login()
         self.assertEqual(self.mock_redirect.return_value, response)
-        self.assertEqual(call('https://beachfront.localhost?logged_in=true'), self.mock_redirect.call_args)
+        self.assertEqual(call('https://beachfront.test.localdomain?logged_in=true'), self.mock_redirect.call_args)
 
     def test_rejects_when_credentials_are_rejected(self):
         self.mock_authenticate.side_effect = users.Unauthorized('test-error-message')

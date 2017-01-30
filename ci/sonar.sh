@@ -23,6 +23,11 @@ pip install -r requirements.txt
 
 ## Run Tests ###################################################################
 
+# Grab environment variables
+set -a;
+. test/fixtures/environment-vars.test.sh
+set +a
+
 coverage run --source=bfapi -m unittest discover
 coverage xml -o report/coverage/coverage.xml
 coverage html -d report/coverage/html
