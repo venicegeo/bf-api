@@ -243,7 +243,8 @@ def forward_to_geotiff(scene_id: str):
     if not planet_api_key:
         return 'Missing `planet_api_key` parameter', 400
 
-    user_id = flask.request.user.user_id
+    user = getattr(flask.request, 'user', None)
+    user_id = user.user_id if user else None
     try:
         scene = _scenes.get(scene_id, planet_api_key)
         geotiff_url = _scenes.activate(scene, planet_api_key, user_id)
