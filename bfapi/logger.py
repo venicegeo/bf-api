@@ -19,7 +19,6 @@ import sys
 
 ACTOR_SYSTEM = 'SYSTEM'
 APP_NAME     = 'beachfront'
-DATE_FORMAT  = '%Y-%d-%mT%H:%M:%S%z'
 FACILITY     = 1
 FORMAT       = ('<{PRI}>1 {TIMESTAMP} {HOSTNAME} {APP_NAME} {process} {MSG_ID} '
                 '[{SD_ID} actor="{ACTOR}" action="{ACTION}" actee="{ACTEE}"] '
@@ -42,7 +41,6 @@ PRI_CODES = {
 
 def init(debug: bool = False):
     logging.basicConfig(
-        datefmt=DATE_FORMAT,
         format=FORMAT,
         level=logging.DEBUG if debug else logging.INFO,
         stream=sys.stdout,
@@ -72,7 +70,7 @@ class AuditableLogger(logging.Logger):
             'PRI':       (FACILITY << 3) | PRI_CODES.get(logging.getLevelName(level),
                                                          PRI_CODES['NOTICE']),
             'SD_ID':     SD_ID,
-            'TIMESTAMP': datetime.datetime.utcnow().isoformat(),
+            'TIMESTAMP': datetime.datetime.utcnow().isoformat() + 'Z',
         }
 
         super()._log(level, msg, args, exc_info, extra, stack_info)
