@@ -11,6 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import datetime
 import os
 import logging.config
 
@@ -18,11 +19,13 @@ import sys
 
 ACTOR_SYSTEM = 'SYSTEM'
 APP_NAME     = 'beachfront'
-DATE_FORMAT  = '%Y-%d-%mT%H:%M:%SZ'
+DATE_FORMAT  = '%Y-%d-%mT%H:%M:%S%z'
 FACILITY     = 1
-FORMAT       = ('<{PRI}>1 {asctime} {HOSTNAME} {APP_NAME} {name}:{funcName} '
-                '[{SD_ID} actor="{ACTOR}" action="{ACTION}" actee="{ACTEE}"] {levelname:<5} {message}')
+FORMAT       = ('<{PRI}>1 {TIMESTAMP} {HOSTNAME} {APP_NAME} {process} {MSG_ID} '
+                '[{SD_ID} actor="{ACTOR}" action="{ACTION}" actee="{ACTEE}"] '
+                '({name}:{funcName}) {levelname:<5} {message}')
 HOSTNAME     = os.uname()[1].lower()
+MSG_ID       = '-'
 SD_ID        = 'bfaudit@48851'
 
 PRI_CODES = {
@@ -59,17 +62,17 @@ class AuditableLogger(logging.Logger):
              actee='', action='', actor='', **kwargs):
 
         # Assemble RFC 5424 elements
-        facility = FACILITY << 3
-        pri_code = facility | PRI_CODES.get(logging.getLevelName(level), PRI_CODES['NOTICE'])
-        hostname = os.uname()[1].lower()
         extra = {
             'ACTEE':     actee,
             'ACTION':    action,
             'ACTOR':     actor or ACTOR_SYSTEM,
             'APP_NAME':  APP_NAME,
-            'HOSTNAME':  hostname,
-            'PRI':       pri_code,
+            'HOSTNAME':  HOSTNAME,
+            'MSG_ID':    MSG_ID,
+            'PRI':       (FACILITY << 3) | PRI_CODES.get(logging.getLevelName(level),
+                                                         PRI_CODES['NOTICE']),
             'SD_ID':     SD_ID,
+            'TIMESTAMP': datetime.datetime.utcnow().isoformat(),
         }
 
         super()._log(level, msg, args, exc_info, extra, stack_info)
