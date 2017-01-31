@@ -253,7 +253,7 @@ class CreateJobTest(unittest.TestCase):
         scene = create_scene()
         self.mock_get_scene.return_value = scene
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
-        self.assertEqual(call(scene, 'test-planet-api-key'), self.mock_activate_scene.call_args)
+        self.assertEqual(call(scene, 'test-planet-api-key', 'test-user-id'), self.mock_activate_scene.call_args)
 
     def test_sends_correct_payload_to_piazza_pzsvc_ossim(self):
         self.mock_get_algo.return_value = create_algorithm('pzsvc-ossim')
