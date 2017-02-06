@@ -113,7 +113,7 @@ def _install():
 def _install_if_needed():
     log = logging.getLogger(__name__)
 
-    log.info('Checking to see if installation is required')
+    log.info('Checking to see if installation is required',action='Checking for instalation')
 
     # Load SQL script
     try:
@@ -132,7 +132,7 @@ def _install_if_needed():
         raise InstallationError('schema execution failed', err)
 
     if is_installed:
-        log.info('Schema exists and will not be reinstalled')
+        log.info('Schema exists and will not be reinstalled',action='Schema exists and will not be reinstalled')
         return
 
     _install()

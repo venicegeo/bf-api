@@ -27,6 +27,8 @@ def insert(
         resolution: int,
         scene_id: str,
         sensor_name: str) -> str:
+    log = logging.getLogger(__name__)
+    log.info('Db insert scene', action='database insert record')
     query = """
         INSERT INTO __beachfront__scene (scene_id, captured_on, catalog_uri, cloud_cover, geometry, resolution, sensor_name)
         VALUES (%(scene_id)s, %(captured_on)s, %(catalog_uri)s, %(cloud_cover)s, ST_GeomFromGeoJSON(%(geometry)s),

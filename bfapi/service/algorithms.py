@@ -55,6 +55,7 @@ class Algorithm:
 
 def list_all() -> List[Algorithm]:
     log = logging.getLogger(__name__)
+    log.info('Algorithms Serv list all algorithms', action='Serv algorithms list all ')
     try:
         log.info('Fetching beachfront services from Piazza', action='fetch services')
         services = piazza.get_services('^BF_Algo_')
@@ -84,6 +85,7 @@ def list_all() -> List[Algorithm]:
 
 def get(service_id: str) -> Algorithm:
     log = logging.getLogger(__name__)
+    log.info('Algorithms Serv get algorithms', action='Serv algorithms get')
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id, action='fetch service', actee=service_id)
         service = piazza.get_service(service_id)
