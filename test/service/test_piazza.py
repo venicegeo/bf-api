@@ -13,6 +13,7 @@
 
 import json
 import unittest.mock
+import logging
 
 from requests import ConnectionError, Response
 from requests_mock import Mocker

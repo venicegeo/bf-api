@@ -41,7 +41,7 @@ class User:
 
 def authenticate_via_api_key(api_key: str) -> User:
     log = logging.getLogger(__name__)
-    log.info('Users serv auth api key', action='Serv users auth api key')
+    log.info('Users service auth api key', action='service users auth api key')
 
     if not PATTERN_API_KEY.match(api_key):
         log.error('Cannot verify malformed API key: "%s"', api_key)
@@ -72,7 +72,7 @@ def authenticate_via_api_key(api_key: str) -> User:
 
 def authenticate_via_geoaxis(auth_code: str) -> User:
     log = logging.getLogger(__name__)
-    log.info('Users serv auth geoaxis', action='Serv users auth geoaxis')
+    log.info('Users service auth geoaxis', action='service users auth geoaxis')
 
     access_token = _request_geoaxis_access_token(auth_code)
     user_id, user_name = _fetch_geoaxis_profile(access_token)
@@ -88,7 +88,7 @@ def authenticate_via_geoaxis(auth_code: str) -> User:
 
 def get_by_id(user_id: str) -> User:
     log = logging.getLogger(__name__)
-    log.info('Users serv get by id', action='Serv users get by id')
+    log.info('Users service get by id', action='service users get by id')
 
     log.debug('Searching database for user "%s"', user_id)
     conn = db.get_connection()

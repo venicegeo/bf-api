@@ -12,7 +12,7 @@
 # specific language governing permissions and limitations under the License.
 
 from bfapi.db import Connection, ResultProxy
-
+import logging
 
 def select_user(
         conn: Connection,

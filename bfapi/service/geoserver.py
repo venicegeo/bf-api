@@ -24,7 +24,7 @@ TIMEOUT = 24
 
 def install_if_needed():
     log = logging.getLogger(__name__)
-    log.info('Geoserver Serv install if needed', action='Serv geoserver install')
+    log.info('Geoserver service install if needed', action='service geoserver install')
     log.info('Checking to see if installation is required',action='Check for required installation')
 
     is_installed = True
@@ -45,7 +45,7 @@ def install_if_needed():
 
 def install_layer(layer_id: str):
     log = logging.getLogger(__name__)
-    log.info('Geoserver Serv install layer', action='Serv geoserver install')
+    log.info('Geoserver  service install layer', action=' service geoserver install')
     log.info('Installing `%s`', layer_id)
     try:
         response = requests.post(
@@ -133,7 +133,7 @@ def install_layer(layer_id: str):
 
 def install_style(style_id: str):
     log = logging.getLogger(__name__)
-    log.info('Geoserver Serv install style', action='Serv geoserver install')
+    log.info('Geoserver  service install style', action=' service geoserver install')
     log.info('Installing `%s`', style_id)
     try:
         response = requests.post(
@@ -200,7 +200,7 @@ def install_style(style_id: str):
 
 def layer_exists(layer_id: str) -> bool:
     log = logging.getLogger(__name__)
-    log.info('Geoserver Serv layer exists', action='Serv geoserver check')
+    log.info('Geoserver  service layer exists', action=' service geoserver check')
     try:
         response = requests.get(
             'http://{}/geoserver/rest/layers/{}'.format(  # FIXME -- https please
@@ -218,7 +218,7 @@ def layer_exists(layer_id: str) -> bool:
 
 def style_exists(style_id: str) -> bool:
     log = logging.getLogger(__name__)
-    log.info('Geoserver Serv style exists', action='Serv geoserver check')
+    log.info('Geoserver  service style exists', action=' service geoserver check')
     try:
         response = requests.get(
             'http://{}/geoserver/rest/styles/{}'.format(  # FIXME -- https please

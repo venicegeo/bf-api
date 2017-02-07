@@ -13,7 +13,7 @@
 
 import json
 from datetime import datetime
-
+import logging
 from bfapi.db import Connection
 
 

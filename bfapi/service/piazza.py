@@ -12,7 +12,7 @@
 # specific language governing permissions and limitations under the License.
 
 from typing import List
-
+import logging
 import requests
 import time
 
@@ -71,7 +71,7 @@ class ServiceDescriptor:
 
 def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_id: str) -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv create trigger', action='Serv piazza create trigger')
+    log.info('Piazza service create trigger', action='service piazza create trigger')
     try:
         response = requests.post(
             'https://{}/trigger'.format(PIAZZA),
@@ -121,7 +121,7 @@ def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_
 
 def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv deploy', action='Serv piazza deploy')
+    log.info('Piazza service deploy', action='service piazza deploy')
     try:
         response = requests.post(
             'https://{}/deployment'.format(PIAZZA),
@@ -174,7 +174,7 @@ def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10)
 
 def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv execute', action='Serv piazza execute')
+    log.info('Piazza service execute', action='service piazza execute')
     try:
         response = requests.post(
             'https://{}/job'.format(PIAZZA),
@@ -217,7 +217,7 @@ def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str
 
 def get_file(data_id: str) -> requests.Response:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv get file', action='Serv piazza get file')
+    log.info('Piazza service get file', action='service piazza get file')
     try:
         response = requests.get(
             'https://{}/file/{}'.format(PIAZZA, data_id),
@@ -237,7 +237,7 @@ def get_file(data_id: str) -> requests.Response:
 
 def get_service(service_id: str) -> ServiceDescriptor:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv get service', action='Serv piazza get service')
+    log.info('Piazza service get service', action='service piazza get service')
     try:
         response = requests.get(
             'https://{}/service/{}'.format(PIAZZA, service_id),
@@ -264,7 +264,7 @@ def get_service(service_id: str) -> ServiceDescriptor:
 
 def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv get service', action='Serv piazza get service')
+    log.info('Piazza service get service', action='service piazza get service')
     try:
         response = requests.get(
             'https://{}/service'.format(PIAZZA),
@@ -295,7 +295,7 @@ def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
 
 def get_status(job_id: str) -> Status:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv get status', action='Serv piazza get status')
+    log.info('Piazza service get status', action='service piazza get status')
     try:
         response = requests.get(
             'https://{}/job/{}'.format(PIAZZA, job_id),
@@ -369,7 +369,7 @@ def get_status(job_id: str) -> Status:
 
 def get_triggers(name: str) -> list:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv get trigger', action='Serv piazza get trigger')
+    log.info('Piazza service get trigger', action='service piazza get trigger')
     try:
         response = requests.post(
             'https://{}/trigger/query'.format(PIAZZA),
@@ -411,7 +411,7 @@ def register_service(
         url: str,
         version: str = '0.0') -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza serv register service', action='Serv piazza register service')
+    log.info('Piazza service register service', action='service piazza register service')
     try:
         response = requests.post(
             'https://{}/service'.format(PIAZZA),

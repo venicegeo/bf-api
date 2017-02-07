@@ -12,7 +12,7 @@
 # specific language governing permissions and limitations under the License.
 
 from datetime import date
-
+import logging
 from bfapi.db import Connection, ResultProxy
 
 
