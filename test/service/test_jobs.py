@@ -316,6 +316,7 @@ class CreateJobTest(unittest.TestCase):
         logstream = self.create_logstream()
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
+            'INFO - Job service create',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
         ], logstream.getvalue().splitlines())
 
@@ -325,6 +326,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
+            'INFO - Job service create',
             'ERROR - Preprocessing error: algorithm `test-algo-id` does not exist',
         ], logstream.getvalue().splitlines())
 
@@ -335,6 +337,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
+            'INFO - Job service create',
             'ERROR - Preprocessing error: scene `test-scene-id` not found in catalog',
         ], logstream.getvalue().splitlines())
 
@@ -346,6 +349,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
+            'INFO - Job service create',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             'ERROR - Could not execute via Piazza: Piazza server error (HTTP 400)'
         ], logstream.getvalue().splitlines())
@@ -358,6 +362,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
+            'INFO - Job service create',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             "ERROR - Could not save job to database",
         ], logstream.getvalue().splitlines())

@@ -234,6 +234,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         logstream = self.create_logstream()
         users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
+            'INFO - Users service auth geoaxis',
             'INFO - Creating user account for "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country"',
             'INFO - User "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country" has logged in successfully',
         ], logstream.getvalue().splitlines())
@@ -245,6 +246,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         logstream = self.create_logstream()
         users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
+            'INFO - Users service auth geoaxis',
             'INFO - User "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country" has logged in successfully',
         ], logstream.getvalue().splitlines())
 
@@ -255,6 +257,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         with self.assertRaises(users.Unauthorized):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
+            'INFO - Users service auth geoaxis',
             'ERROR - GeoAxis rejected user auth code: {',
             '    "error": "invalid_grant",',
             '    "error_description": "Invalid Grant: grant has been revoked; grant_type=azc "',
@@ -268,6 +271,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         with self.assertRaises(users.Unauthorized):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
+            'INFO - Users service auth geoaxis',
             'ERROR - GeoAxis rejected access token: {',
             '    "message": "Failed in authorization",',
             '    "oicErrorCode": "IDAAS-12345"',
@@ -281,6 +285,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         with self.assertRaises(users.GeoaxisError):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
+            'INFO - Users service auth geoaxis',
             'ERROR - GeoAxis returned HTTP 500: oh noes',
         ], logstream.getvalue().splitlines())
 
@@ -291,6 +296,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         with self.assertRaises(users.GeoaxisError):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
+            'INFO - Users service auth geoaxis',
             'ERROR - GeoAxis returned HTTP 500: oh noes',
         ], logstream.getvalue().splitlines())
 
@@ -303,6 +309,7 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
+            'INFO - Users service auth geoaxis',
             'INFO - Creating user account for "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country"',
             'ERROR - Could not save user account "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country" to database',
         ], logstream.getvalue().splitlines())
@@ -377,7 +384,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         logstream = self.create_logstream()
         users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
-            # Intentionally blank
+            'INFO - Users service auth api key'
         ], logstream.getvalue().splitlines())
 
     def test_logs_failure_from_unauthorized_api_key(self):
@@ -386,6 +393,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         with self.assertRaises(users.Unauthorized):
             users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
+            'INFO - Users service auth api key',
             'ERROR - Unauthorized API key "0123456789abcdef0123456789abcdef"'
         ], logstream.getvalue().splitlines())
 
@@ -395,6 +403,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         with self.assertRaises(users.MalformedAPIKey):
             users.authenticate_via_api_key('definitely not correctly formed')
         self.assertEqual([
+            'INFO - Users service auth api key',
             'ERROR - Cannot verify malformed API key: "definitely not correctly formed"'
         ], logstream.getvalue().splitlines())
 
@@ -404,6 +413,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
+            'INFO - Users service auth api key',
             """ERROR - Database query for API key "0123456789abcdef0123456789abcdef" failed""",
         ], logstream.getvalue().splitlines())
 
@@ -473,6 +483,7 @@ class GetByIdTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             users.get_by_id('test-user-id')
         self.assertEqual([
+            'INFO - Users service get by id',
             """ERROR - Database query for user ID "test-user-id" failed""",
         ], logstream.getvalue().splitlines())
 
