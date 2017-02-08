@@ -21,13 +21,13 @@ class DeleteJobUserTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class ExistsTest(unittest.TestCase):
@@ -35,13 +35,13 @@ class ExistsTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class InsertDetectionTest(unittest.TestCase):
@@ -49,13 +49,13 @@ class InsertDetectionTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class InsertJobTest(unittest.TestCase):
@@ -63,13 +63,13 @@ class InsertJobTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class InsertJobFailureTest(unittest.TestCase):
@@ -77,13 +77,13 @@ class InsertJobFailureTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class InsertJobUserTest(unittest.TestCase):
@@ -91,13 +91,13 @@ class InsertJobUserTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class SelectJobTest(unittest.TestCase):
@@ -105,13 +105,13 @@ class SelectJobTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class SelectJobsForInputsTest(unittest.TestCase):
@@ -119,13 +119,13 @@ class SelectJobsForInputsTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class SelectJobsForProductlineTest(unittest.TestCase):
@@ -133,13 +133,13 @@ class SelectJobsForProductlineTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class SelectJobsForSceneTest(unittest.TestCase):
@@ -147,13 +147,13 @@ class SelectJobsForSceneTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class SelectJobsForUserTest(unittest.TestCase):
@@ -161,13 +161,13 @@ class SelectJobsForUserTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class SelectSummaryForStatusTest(unittest.TestCase):
@@ -175,13 +175,13 @@ class SelectSummaryForStatusTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class UpdateStatusTest(unittest.TestCase):
@@ -189,10 +189,10 @@ class UpdateStatusTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')

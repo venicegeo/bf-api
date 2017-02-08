@@ -20,7 +20,6 @@ from test import helpers
 from bfapi.db import DatabaseError
 from bfapi.service import productlines
 from bfapi.service.algorithms import Algorithm, NotFound, ValidationError
-from bfapi.service.jobs import Job
 
 DATE_START = datetime.utcfromtimestamp(1400000000)
 DATE_STOP = datetime.utcfromtimestamp(1500000000)
@@ -460,25 +459,6 @@ def create_algorithm():
         name='test-algo-name',
         service_id='test-algo-id',
         version='test-algo-version',
-    )
-
-
-def create_job(job_id: str = 'test-job-id'):
-    return Job(
-        algorithm_name='test-algo-name',
-        algorithm_version='test-algo-version',
-        created_by='test-created-by',
-        created_on=datetime.utcnow(),
-        geometry={},
-        job_id=job_id,
-        name='test-job-name',
-        time_of_collect=datetime.utcnow(),
-        scene_sensor_name='test-scene-sensor-name',
-        scene_id='test-scene-id',
-        status='test-status',
-        tide=5.4321,
-        tide_min_24h=-10.0,
-        tide_max_24h=10.0,
     )
 
 
