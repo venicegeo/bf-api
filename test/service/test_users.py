@@ -11,9 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import io
 import json
-import logging
 import unittest
 from datetime import datetime
 from unittest.mock import patch
@@ -21,19 +19,19 @@ from unittest.mock import patch
 import requests
 import requests_mock as rm
 
+from test import helpers
+
 from bfapi.db import DatabaseError
 from bfapi.service import users
-from test import helpers
 
 API_KEY = '0123456789abcdef0123456789abcdef'
 
 
 class AuthenticateViaGeoaxisTest(unittest.TestCase):
     def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.users')
-        self._logger.disabled = True
         self._mockdb = helpers.mock_database()
 
+        self.logger = helpers.get_logger('bfapi.service.users')
         self.mock_insert_user = self.create_mock('bfapi.db.users.insert_user')
         self.mock_get_by_id = self.create_mock('bfapi.service.users.get_by_id')
         self.mock_requests = rm.Mocker()  # type: rm.Mocker
@@ -42,25 +40,12 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def create_mock(self, target_name):
         patcher = patch(target_name)
         self.addCleanup(patcher.stop)
         return patcher.start()
-
-    def create_logstream(self) -> io.StringIO:
-        def cleanup():
-            self._logger.propagate = True
-
-        self._logger.propagate = False
-        self._logger.disabled = False
-        stream = io.StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-        self._logger.addHandler(handler)
-        self.addCleanup(cleanup)
-        return stream
 
     def test_calls_correct_url_for_token_request(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)
@@ -231,29 +216,26 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text=RESPONSE_GEOAXIS_PROFILE)
         self.mock_get_by_id.return_value = None
-        logstream = self.create_logstream()
         users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
             'INFO - Users service auth geoaxis',
             'INFO - Creating user account for "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country"',
             'INFO - User "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country" has logged in successfully',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_success_for_existing_user(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text=RESPONSE_GEOAXIS_PROFILE)
         self.mock_get_by_id.return_value = create_user_db_record()
-        logstream = self.create_logstream()
         users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
             'INFO - Users service auth geoaxis',
             'INFO - User "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country" has logged in successfully',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_failure_when_geoaxis_denies_token_request(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_DENIED, status_code=401)
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text=RESPONSE_GEOAXIS_PROFILE)
-        logstream = self.create_logstream()
         with self.assertRaises(users.Unauthorized):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
@@ -262,12 +244,11 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
             '    "error": "invalid_grant",',
             '    "error_description": "Invalid Grant: grant has been revoked; grant_type=azc "',
             '}',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_failure_when_geoaxis_denies_profile_request(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text=RESPONSE_GEOAXIS_PROFILE_UNAUTHORIZED, status_code=401)
-        logstream = self.create_logstream()
         with self.assertRaises(users.Unauthorized):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
@@ -276,73 +257,57 @@ class AuthenticateViaGeoaxisTest(unittest.TestCase):
             '    "message": "Failed in authorization",',
             '    "oicErrorCode": "IDAAS-12345"',
             '}',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_failure_when_geoaxis_throws_during_token_request(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text='oh noes', status_code=500)
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text=RESPONSE_GEOAXIS_PROFILE)
-        logstream = self.create_logstream()
         with self.assertRaises(users.GeoaxisError):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
             'INFO - Users service auth geoaxis',
             'ERROR - GeoAxis returned HTTP 500: oh noes',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_failure_when_geoaxis_throws_during_profile_request(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text='oh noes', status_code=500)
-        logstream = self.create_logstream()
         with self.assertRaises(users.GeoaxisError):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
             'INFO - Users service auth geoaxis',
             'ERROR - GeoAxis returned HTTP 500: oh noes',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_failure_from_database_insert(self):
         self.mock_requests.post('/ms_oauth/oauth2/endpoints/oauthservice/tokens', text=RESPONSE_GEOAXIS_TOKEN_ISSUED)
         self.mock_requests.get('/ms_oauth/resources/userprofile/me', text=RESPONSE_GEOAXIS_PROFILE)
         self.mock_get_by_id.return_value = None
         self.mock_insert_user.side_effect = helpers.create_database_error()
-        logstream = self.create_logstream()
         with self.assertRaises(DatabaseError):
             users.authenticate_via_geoaxis('test-auth-code')
         self.assertEqual([
             'INFO - Users service auth geoaxis',
             'INFO - Creating user account for "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country"',
             'ERROR - Could not save user account "cn=test-commonname, OU=test-org-unit, O=test-org, C=test-country" to database',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
 
 class AuthenticateViaApiKeyTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.users')
-        self._logger.disabled = True
+
+        self.logger = helpers.get_logger('bfapi.service.users')
         self.mock_select_user_by_api_key = self.create_mock('bfapi.db.users.select_user_by_api_key')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def create_mock(self, target_name):
         patcher = patch(target_name)
         self.addCleanup(patcher.stop)
         return patcher.start()
-
-    def create_logstream(self) -> io.StringIO:
-        def cleanup():
-            self._logger.propagate = True
-
-        self._logger.propagate = False
-        self._logger.disabled = False
-        stream = io.StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-        self._logger.addHandler(handler)
-        self.addCleanup(cleanup)
-        return stream
 
     def test_returns_a_user(self):
         self.mock_select_user_by_api_key.return_value.fetchone.return_value = create_user_db_record()
@@ -381,71 +346,54 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
 
     def test_logs_success(self):
         self.mock_select_user_by_api_key.return_value.fetchone.return_value = create_user_db_record()
-        logstream = self.create_logstream()
         users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
-            'INFO - Users service auth api key'
-        ], logstream.getvalue().splitlines())
+            'INFO - Users service auth api key',
+        ], self.logger.lines)
 
     def test_logs_failure_from_unauthorized_api_key(self):
         self.mock_select_user_by_api_key.return_value.fetchone.return_value = None
-        logstream = self.create_logstream()
         with self.assertRaises(users.Unauthorized):
             users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
             'INFO - Users service auth api key',
             'ERROR - Unauthorized API key "0123456789abcdef0123456789abcdef"'
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_failure_from_malformed_api_key(self):
         self.mock_select_user_by_api_key.return_value.fetchone.return_value = None
-        logstream = self.create_logstream()
         with self.assertRaises(users.MalformedAPIKey):
             users.authenticate_via_api_key('definitely not correctly formed')
         self.assertEqual([
             'INFO - Users service auth api key',
             'ERROR - Cannot verify malformed API key: "definitely not correctly formed"'
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_failure_from_database_select(self):
         self.mock_select_user_by_api_key.side_effect = helpers.create_database_error()
-        logstream = self.create_logstream()
         with self.assertRaises(DatabaseError):
             users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
             'INFO - Users service auth api key',
             """ERROR - Database query for API key "0123456789abcdef0123456789abcdef" failed""",
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
 
 class GetByIdTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.users')
-        self._logger.disabled = True
+
+        self.logger = helpers.get_logger('bfapi.service.users')
         self.mock_select_user = self.create_mock('bfapi.db.users.select_user')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def create_mock(self, target_name):
         patcher = patch(target_name)
         self.addCleanup(patcher.stop)
         return patcher.start()
-
-    def create_logstream(self) -> io.StringIO:
-        def cleanup():
-            self._logger.propagate = True
-
-        self._logger.propagate = False
-        self._logger.disabled = False
-        stream = io.StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-        self._logger.addHandler(handler)
-        self.addCleanup(cleanup)
-        return stream
 
     def test_throws_when_database_query_fails(self):
         self.mock_select_user.side_effect = helpers.create_database_error()
@@ -479,13 +427,12 @@ class GetByIdTest(unittest.TestCase):
 
     def test_logs_database_failure_during_select(self):
         self.mock_select_user.side_effect = helpers.create_database_error()
-        logstream = self.create_logstream()
         with self.assertRaises(DatabaseError):
             users.get_by_id('test-user-id')
         self.assertEqual([
             'INFO - Users service get by id',
             """ERROR - Database query for user ID "test-user-id" failed""",
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
 
 #

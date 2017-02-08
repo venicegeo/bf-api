@@ -11,9 +11,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import io
 import json
-import logging
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import call, patch, Mock
@@ -34,8 +32,7 @@ class CreateJobTest(unittest.TestCase):
 
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
         self.mock_requests = rm.Mocker()  # type: rm.Mocker
         self.mock_requests.start()
@@ -49,20 +46,7 @@ class CreateJobTest(unittest.TestCase):
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
-
-    def create_logstream(self) -> io.StringIO:
-        def cleanup():
-            self._logger.propagate = True
-
-        self._logger.propagate = False
-        self._logger.disabled = False
-        stream = io.StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-        self._logger.addHandler(handler)
-        self.addCleanup(cleanup)
-        return stream
+        self.logger.destroy()
 
     def create_mock(self, target_name):
         patcher = patch(target_name)
@@ -313,59 +297,54 @@ class CreateJobTest(unittest.TestCase):
     def test_logs_creation_success(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
-        logstream = self.create_logstream()
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
             'INFO - Job service create',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_creation_failure_during_algorithm_retrieval(self):
         self.mock_get_algo.side_effect = algorithms.NotFound('test-algo-id')
-        logstream = self.create_logstream()
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
             'INFO - Job service create',
             'ERROR - Preprocessing error: algorithm `test-algo-id` does not exist',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_creation_failure_during_scene_retrieval(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.side_effect = scenes.NotFound('test-scene-id')
-        logstream = self.create_logstream()
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
             'INFO - Job service create',
             'ERROR - Preprocessing error: scene `test-scene-id` not found in catalog',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_creation_failure_during_execution(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_execute.side_effect = piazza.ServerError(400)
-        logstream = self.create_logstream()
         with self.assertRaises(piazza.ServerError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
             'INFO - Job service create',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             'ERROR - Could not execute via Piazza: Piazza server error (HTTP 400)'
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_creation_failure_during_database_insert(self):
         self.mock_get_algo.return_value = create_algorithm()
         self.mock_get_scene.return_value = create_scene()
         self.mock_insert_job.side_effect = helpers.create_database_error()
-        logstream = self.create_logstream()
         with self.assertRaises(DatabaseError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
             'INFO - Job service create',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             "ERROR - Could not save job to database",
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_throws_when_piazza_throws(self):
         self.mock_get_algo.return_value = create_algorithm()
@@ -411,12 +390,11 @@ class CreateJobTest(unittest.TestCase):
 class ForgetJobTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_deletes_job_user_record(self, _, mock_delete: Mock):
         jobs.forget('test-user-id', 'test-job-id')
@@ -441,12 +419,11 @@ class ForgetJobTest(unittest.TestCase):
 class GetAllJobsTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_returns_a_list_of_jobs(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
@@ -556,12 +533,11 @@ class GetAllJobsTest(unittest.TestCase):
 class GetDetectionsTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_returns_a_stringified_feature_collection(self, _, mock_select_detections: Mock):
         mock_select_detections.return_value.scalar.return_value = '{"type":"FeatureCollection","features":[]}'
@@ -600,12 +576,11 @@ class GetDetectionsTest(unittest.TestCase):
 class GetJobTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_returns_job(self, mock_select: Mock, _):
         mock_select.return_value.fetchone.return_value = create_job_db_record()
@@ -702,12 +677,11 @@ class GetJobTest(unittest.TestCase):
 class GetByProductlineTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_returns_a_list_of_jobs(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
@@ -821,12 +795,11 @@ class GetByProductlineTest(unittest.TestCase):
 class GetBySceneTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_returns_a_list_of_jobs(self, mock: Mock):
         mock.return_value.fetchall.return_value = [create_job_db_record()]
@@ -935,13 +908,12 @@ class GetBySceneTest(unittest.TestCase):
 class StartWorkerTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
     def tearDown(self):
         jobs.stop_worker()
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_module_does_not_start_worker_until_invoked(self, _):
         self.assertIsNone(jobs._worker)
@@ -972,12 +944,11 @@ class StartWorkerTest(unittest.TestCase):
 class StopWorkerTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.service.jobs')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_stops_worker(self, _):
         jobs.start_worker()
@@ -1001,9 +972,8 @@ class WorkerRunTest(unittest.TestCase):
 
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.jobs.worker')
-        self._logger.disabled = True
-        self._logger_for_module = logging.getLogger('bfapi.service.jobs')
+        self.logger = helpers.get_logger('bfapi.service.jobs.worker')
+        self._logger_for_module = helpers.get_logger('bfapi.service.jobs')
         self._logger_for_module.disabled = True
 
         self.mock_sleep = self.create_mock('time.sleep')
@@ -1018,21 +988,8 @@ class WorkerRunTest(unittest.TestCase):
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
+        self.logger.destroy()
         self._logger_for_module.disabled = False
-
-    def create_logstream(self) -> io.StringIO:
-        def cleanup():
-            self._logger.propagate = True
-
-        self._logger.propagate = False
-        self._logger.disabled = False
-        stream = io.StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-        self._logger.addHandler(handler)
-        self.addCleanup(cleanup)
-        return stream
 
     def create_mock(self, target_name):
         patcher = patch(target_name)
@@ -1073,18 +1030,16 @@ class WorkerRunTest(unittest.TestCase):
         self.assertEqual(call(1234), self.mock_sleep.call_args)
 
     def test_logs_empty_cycles(self):
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
             'INFO - Nothing to do; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_jobs_failing_during_execution(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary()]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_ERROR)
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1092,14 +1047,13 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> polled (Error; age=7 days, 12:34:56)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_jobs_failing_during_geometry_resolution(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_SUCCESS, data_id='test-execution-output-id')
         self.mock_getfile.side_effect = piazza.ServerError(404)
 
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1109,7 +1063,7 @@ class WorkerRunTest(unittest.TestCase):
             'ERROR - <001/test-job-id> Could not resolve detections data ID: during postprocessing, could not fetch execution output: Piazza server error (HTTP 404)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_jobs_failing_during_geometry_retrieval(self):
         def getfile(id_):
@@ -1121,7 +1075,6 @@ class WorkerRunTest(unittest.TestCase):
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_SUCCESS, data_id='test-execution-output-id')
         self.mock_getfile.side_effect = getfile
 
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1132,7 +1085,7 @@ class WorkerRunTest(unittest.TestCase):
             'ERROR - <001/test-job-id> Could not fetch data ID <test-detections-id>: Piazza server error (HTTP 404)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_jobs_failing_during_geometry_insertion(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
@@ -1141,7 +1094,6 @@ class WorkerRunTest(unittest.TestCase):
         self.mock_getfile.return_value.text = 'lorem ipsum'
         self.mock_insert_detections.side_effect = helpers.create_database_error()
 
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1153,12 +1105,11 @@ class WorkerRunTest(unittest.TestCase):
             'ERROR - <001/test-job-id> Could not save status and detections to database',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_jobs_that_are_still_running(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=timedelta(minutes=20))]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_RUNNING)
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1166,14 +1117,13 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> polled (Running; age=0:20:00)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_jobs_that_succeed(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary()]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_SUCCESS, data_id='test-execution-output-id')
         self.mock_getfile.return_value.json.return_value = create_execution_output()
         self.mock_getfile.return_value.text = 'X' * 2048000
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1184,12 +1134,11 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - <001/test-job-id> Saving detections to database (2.0MB)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_jobs_that_time_out(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_RUNNING)
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1198,12 +1147,11 @@ class WorkerRunTest(unittest.TestCase):
             'WARNING - <001/test-job-id> appears to have stalled and will no longer be tracked',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_piazza_server_errors(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.side_effect = piazza.ServerError(500)
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1211,12 +1159,11 @@ class WorkerRunTest(unittest.TestCase):
             'ERROR - <001/test-job-id> call to Piazza failed: Piazza server error (HTTP 500)',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_piazza_response_parsing_errors(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.side_effect = piazza.InvalidResponse('test-error', 'lorem ipsum')
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1224,12 +1171,11 @@ class WorkerRunTest(unittest.TestCase):
             'ERROR - <001/test-job-id> call to Piazza failed: invalid Piazza response: test-error',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_piazza_auth_failures(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary(age=ONE_WEEK)]
         self.mock_getstatus.side_effect = piazza.Unauthorized()
-        logstream = self.create_logstream()
         worker = self.create_worker()
         worker.run()
         self.assertEqual([
@@ -1237,7 +1183,7 @@ class WorkerRunTest(unittest.TestCase):
             'ERROR - <001/test-job-id> credentials rejected during polling!',
             'INFO - Cycle complete; next run at {:%TZ}'.format(datetime.utcnow()),
             'INFO - Stopped',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_throws_when_database_throws_during_discovery(self):
         self.mock_select_jobs.side_effect = helpers.create_database_error()
