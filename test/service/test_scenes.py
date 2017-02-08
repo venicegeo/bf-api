@@ -12,7 +12,6 @@
 # specific language governing permissions and limitations under the License.
 
 import json
-import logging
 import unittest
 from datetime import datetime
 from unittest.mock import patch
@@ -28,13 +27,6 @@ from bfapi.service import scenes
 
 @rm.Mocker()
 class ActivateSceneTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.scenes')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
     def create_mock(self, target_name, **kwargs):
         patcher = patch(target_name, **kwargs)
         self.addCleanup(patcher.stop)
@@ -123,8 +115,6 @@ class CreateDownloadURLTest(unittest.TestCase):
 class GetSceneTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.scenes')
-        self._logger.disabled = True
 
         self.mock_requests = rm.Mocker()  # type: rm.Mocker
         self.mock_requests.start()
@@ -132,7 +122,6 @@ class GetSceneTest(unittest.TestCase):
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
 
     def test_calls_correct_url_for_planetscope_scene(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)

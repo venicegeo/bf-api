@@ -162,3 +162,4 @@ cf set-env bf-api PIAZZA_API_KEY <valid Piazza API key>
 | `CATALOG`           | Overrides the Beachfront Image Catalog hostname |
 | `SECRET_KEY`        | Overrides the randomly-generated secret key used by Flask for session I/O |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
+| `MUTE_LOGS`         | Set to `1` to mute the logs (happens by default in test mode) |

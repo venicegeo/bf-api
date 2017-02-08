@@ -15,6 +15,7 @@ import flask
 from flask_cors import CORS
 
 from bfapi import config, db, middleware, routes, service
+from bfapi import DEBUG_MODE, MUTE_LOGS
 
 FALLBACK_MIMETYPE = 'text/plain'
 
@@ -61,6 +62,14 @@ def banner():
         if not key.isupper() or 'PASSWORD' in key:
             continue
         configurations.append('{key:>38} : {value}'.format(key=key, value=value))
+
+    warnings = []
+    if DEBUG_MODE:
+        warnings.append('  \u26A0  WARNING: SERVER IS RUNNING IN DEBUG MODE\n')
+
+    if MUTE_LOGS:
+        warnings.append('  \u26A0  WARNING: LOGS ARE MUTED\n')
+
     print(
         '-' * 120,
         '',
@@ -69,13 +78,14 @@ def banner():
         '',
         *configurations,
         '',
+        *warnings,
         '-' * 120,
         sep='\n',
         flush=True
     )
 
 
-def init(app):
+def init(app: flask.Flask):
     banner()
     config.validate()
     db.init()

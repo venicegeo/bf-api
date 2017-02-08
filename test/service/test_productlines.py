@@ -11,7 +11,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import logging
 import unittest
 from datetime import datetime
 from unittest.mock import patch, MagicMock
@@ -33,12 +32,9 @@ class CreateProductlineTest(unittest.TestCase):
 
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.productlines')
-        self._logger.disabled = True
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
 
     def test_returns_productline(self, _):
         record = productlines.create_productline(
@@ -315,15 +311,12 @@ class CreateProductlineTest(unittest.TestCase):
 class DeleteProductLineTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.productlines')
-        self._logger.disabled = True
 
         self.mock_delete = self.create_mock('bfapi.db.productlines.delete_productline')
         self.mock_select = self.create_mock('bfapi.db.productlines.select_productline')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
 
     def create_mock(self, target_name):
         patcher = patch(target_name)
@@ -366,12 +359,9 @@ class DeleteProductLineTest(unittest.TestCase):
 class GetAllTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.productlines')
-        self._logger.disabled = True
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
 
     def test_returns_list_of_productlines(self, mock: MagicMock):
         mock.return_value.fetchall.return_value = [create_productline_db_record()]

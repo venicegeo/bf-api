@@ -1,3 +1,4 @@
+MUTE_LOGS=1
 GEOAXIS='test-geoaxis.test.localdomain'
 GEOAXIS_CLIENT_ID='test-geoaxis-client-id'
 GEOAXIS_SECRET='test-geoaxis-secret'
