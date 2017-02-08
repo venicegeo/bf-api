@@ -12,12 +12,14 @@
 # specific language governing permissions and limitations under the License.
 
 from bfapi.db import Connection, ResultProxy
-
+import logging
 
 def select_user(
         conn: Connection,
         *,
         user_id: str) -> ResultProxy:
+    log = logging.getLogger(__name__)
+    log.info('Db select user', action='database query record')
     query = """
         SELECT u.user_id, u.user_name, u.api_key, u.created_on
           FROM __beachfront__user u
@@ -33,6 +35,8 @@ def select_user_by_api_key(
         conn: Connection,
         *,
         api_key: str) -> ResultProxy:
+    log = logging.getLogger(__name__)
+    log.info('Db select user by api', action='database query record')
     query = """
         SELECT u.user_id, u.user_name, u.api_key, u.created_on
           FROM __beachfront__user u
@@ -50,6 +54,8 @@ def insert_user(
         user_id: str,
         user_name: str,
         api_key: str) -> None:
+    log = logging.getLogger(__name__)
+    log.info('Db insert user', action='database insert record')
     query = """
         INSERT INTO __beachfront__user (user_id, user_name, api_key)
         VALUES (%(user_id)s, %(user_name)s, %(api_key)s)

@@ -11,12 +11,12 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import io
-import logging
 import unittest
 from unittest.mock import call, patch
 
 import flask
+
+from test import helpers
 
 from bfapi.service import users
 from bfapi import middleware
@@ -60,15 +60,9 @@ class ApplyDefaultResponseHeadersTest(unittest.TestCase):
 
 class AuthFilterTest(unittest.TestCase):
     def setUp(self):
-        self._logger = logging.getLogger('bfapi.middleware')
-        self._logger.disabled = True
-
         self.mock_authenticate = self.create_mock('bfapi.service.users.authenticate_via_api_key', side_effect=create_user)
         self.request = self.create_mock('flask.request', spec=flask.Request)
         self.session = self.create_mock('flask.session', new={})
-
-    def tearDown(self):
-        self._logger.disabled = False
 
     def create_mock(self, target_name, **kwargs):
         patcher = patch(target_name, **kwargs)
@@ -162,9 +156,7 @@ class CSRFFilterTest(unittest.TestCase):
     maxDiff = 4096
 
     def setUp(self):
-        self._logger = logging.getLogger('bfapi.middleware')
-        self._logger.disabled = True
-
+        self.logger = helpers.get_logger('bfapi.middleware')
         self.request = self.create_mock('flask.request',
                                         spec=flask.Request,
                                         headers={},
@@ -174,25 +166,12 @@ class CSRFFilterTest(unittest.TestCase):
                                         is_xhr=False)
 
     def tearDown(self):
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def create_mock(self, target_name, **kwargs):
         patcher = patch(target_name, **kwargs)
         self.addCleanup(patcher.stop)
         return patcher.start()
-
-    def create_logstream(self) -> io.StringIO:
-        def cleanup():
-            self._logger.propagate = True
-
-        self._logger.propagate = False
-        self._logger.disabled = False
-        stream = io.StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-        self._logger.addHandler(handler)
-        self.addCleanup(cleanup)
-        return stream
 
     def test_allows_non_cors_requests(self):
         endpoints = (
@@ -298,7 +277,6 @@ class CSRFFilterTest(unittest.TestCase):
             self.assertEqual(('Access Denied: CORS request validation failed', 403), response)
 
     def test_logs_rejection_of_cors_requests_from_unknown_origin(self):
-        logstream = self.create_logstream()
         origins = (
             'http://beachfront.geointservices.io',  # Not HTTPS
             'http://bf-swagger.geointservices.io',  # Not HTTPS
@@ -318,10 +296,9 @@ class CSRFFilterTest(unittest.TestCase):
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://instaspotifriendspacebooksterifygram.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.geointservices.io.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.geointservices.io.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_rejection_of_cors_preflights_from_unknown_origin(self):
-        logstream = self.create_logstream()
         origins = (
             'http://beachfront.geointservices.io',  # Not HTTPS
             'http://bf-swagger.geointservices.io',  # Not HTTPS
@@ -342,10 +319,9 @@ class CSRFFilterTest(unittest.TestCase):
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`http://instaspotifriendspacebooksterifygram.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://beachfront.geointservices.io.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.geointservices.io.totallynotaphishingattempt.com` referrer=`None` ip=`1.2.3.4` is_xhr=`True`',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_rejection_of_cors_requests_not_marked_as_xhr(self):
-        logstream = self.create_logstream()
         origins = AUTHORIZED_ORIGINS
         for origin in origins:
             self.request.reset_mock()
@@ -365,10 +341,9 @@ class CSRFFilterTest(unittest.TestCase):
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.stage.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://bf-swagger.arbitrary.subdomain.geointservices.io` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`https://localhost:8080` referrer=`None` ip=`1.2.3.4` is_xhr=`False`',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
     def test_logs_rejection_of_cors_requests_that_look_spoofed(self):
-        logstream = self.create_logstream()
         origins = AUTHORIZED_ORIGINS
         for origin in origins:
             self.request.reset_mock()
@@ -389,13 +364,12 @@ class CSRFFilterTest(unittest.TestCase):
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.stage.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://bf-swagger.arbitrary.subdomain.geointservices.io` ip=`1.2.3.4` is_xhr=`False`',
             'WARNING - Possible CSRF attempt: endpoint=`/protected` origin=`None` referrer=`https://localhost:8080` ip=`1.2.3.4` is_xhr=`False`',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
 
 class HTTPSFilterTest(unittest.TestCase):
     def setUp(self):
-        self._logger = logging.getLogger('bfapi.middleware')
-        self._logger.disabled = True
+        self.logger = helpers.get_logger('bfapi.middleware')
 
         self.request = self.create_mock('flask.request', path='/test-path', referrer='http://test-referrer')
 
@@ -404,21 +378,8 @@ class HTTPSFilterTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
-    def create_logstream(self) -> io.StringIO:
-        def cleanup():
-            self._logger.propagate = True
-
-        self._logger.propagate = False
-        self._logger.disabled = False
-        stream = io.StringIO()
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-        self._logger.addHandler(handler)
-        self.addCleanup(cleanup)
-        return stream
-
     def tearDown(self):
-        self._logger.disabled = False
+        self.logger.destroy()
 
     def test_rejects_non_https_requests(self):
         self.request.is_secure = False
@@ -427,11 +388,10 @@ class HTTPSFilterTest(unittest.TestCase):
 
     def test_logs_rejection(self):
         self.request.is_secure = False
-        logstream = self.create_logstream()
         middleware.https_filter()
         self.assertEqual([
             'WARNING - Rejecting non-HTTPS request: endpoint=`/test-path` referrer=`http://test-referrer`',
-        ], logstream.getvalue().splitlines())
+        ], self.logger.lines)
 
 
 #

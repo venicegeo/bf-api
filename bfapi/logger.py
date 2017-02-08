@@ -14,8 +14,8 @@
 import datetime
 import os
 import logging.config
-
 import sys
+
 
 ACTOR_SYSTEM = 'SYSTEM'
 APP_NAME     = 'beachfront'
@@ -39,7 +39,7 @@ PRI_CODES = {
 }
 
 
-def init(debug: bool = False):
+def init(*, debug: bool, muted: bool):
     logging.basicConfig(
         format=FORMAT,
         level=logging.DEBUG if debug else logging.INFO,
@@ -47,6 +47,11 @@ def init(debug: bool = False):
         style='{',
     )
     logging.setLoggerClass(AuditableLogger)
+
+    # Prevent spamming test outputs
+    if muted:
+        logging.root.handlers = [logging.NullHandler()]
+
     log = logging.getLogger(__name__)
     log.debug('Initialized')
 

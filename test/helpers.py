@@ -11,8 +11,10 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import typing
+import io
+import logging
 import unittest.mock
+from typing import List
 
 import sqlalchemy.engine as _sqlalchemyengine
 import sqlalchemy.exc as _sqlalchemyexc
@@ -30,16 +32,37 @@ def mock_database():
     return mock
 
 
+def get_logger(name: str, fmt: str = '%(levelname)s - %(message)s'):
+    wrapper = LoggerWrapper(name, fmt)
+    wrapper.install()
+    return wrapper
+
+
+class LoggerWrapper:
+    def __init__(self, name: str, fmt: str):
+        self._stream = io.StringIO()
+        self._logger = logging.getLogger(name)
+        self._handler = logging.StreamHandler(self._stream)
+        self._handler.setFormatter(logging.Formatter(fmt))
+
+    def install(self):
+        self._logger.handlers.clear()
+        self._logger.addHandler(self._handler)
+
+    def destroy(self):
+        self._logger.handlers.clear()
+
+    @property
+    def lines(self) -> List[str]:
+        return self._stream.getvalue().splitlines()
+
+
 class MockDBConnection(unittest.mock.Mock):
     def __init__(self, *args, **kwargs):
         super().__init__(spec=_sqlalchemyengine.Connection, *args, **kwargs)
         self._original_get_connection = None
         self._original_print_diagnostics = None
-        self.transactions = []  # type: typing.List[unittest.mock.Mock]
-
-    #
-    # Lifecycle
-    #
+        self.transactions = []  # type: List[unittest.mock.Mock]
 
     def begin(self):
         transaction = unittest.mock.Mock(spec=_sqlalchemyengine.Transaction)
@@ -56,10 +79,6 @@ class MockDBConnection(unittest.mock.Mock):
         if self._original_get_connection:
             bfapi.db.get_connection = self._original_get_connection
             bfapi.db.print_diagnostics = self._original_print_diagnostics
-
-    #
-    # Assertion Helpers
-    #
 
     @property
     def executed(self):

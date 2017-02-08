@@ -11,7 +11,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import logging
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -20,13 +19,6 @@ from bfapi.service import algorithms, piazza
 
 @patch('bfapi.service.piazza.get_services')
 class ListAllTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.algorithms')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
     def test_requests_algorithms_from_piazza(self, mock: MagicMock):
         algorithms.list_all()
         self.assertEqual(('^BF_Algo_',), mock.call_args[0])
@@ -118,13 +110,6 @@ class ListAllTest(unittest.TestCase):
 
 @patch('bfapi.service.piazza.get_service')
 class GetTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.algorithms')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
     def test_requests_algorithms_from_piazza(self, mock: MagicMock):
         mock.return_value = create_service()
         algorithms.get('test-service-id')

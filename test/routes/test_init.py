@@ -11,7 +11,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import logging
 import unittest
 from unittest.mock import call, patch
 
@@ -45,16 +44,10 @@ class LoginStartCheckTest(unittest.TestCase):
 
 class LoginTest(unittest.TestCase):
     def setUp(self):
-        self._logger = logging.getLogger('bfapi.routes')
-        self._logger.disabled = True
-
         self.mock_authenticate = self.create_mock('bfapi.service.users.authenticate_via_geoaxis', return_value=None)
         self.mock_redirect = self.create_mock('flask.redirect')
         self.request = self.create_mock('flask.request', path='/login', args={})
         self.session = self.create_mock('flask.session', spec=dict)
-
-    def tearDown(self):
-        self._logger.disabled = False
 
     def create_mock(self, target, **kwargs):
         patcher = patch(target, **kwargs)
@@ -111,14 +104,8 @@ class LoginTest(unittest.TestCase):
 
 class LogoutTest(unittest.TestCase):
     def setUp(self):
-        self._logger = logging.getLogger('bfapi.routes')
-        self._logger.disabled = True
-
         self.session = self.create_mock('flask.session', spec=dict)
         self.request = self.create_mock('flask.request')
-
-    def tearDown(self):
-        self._logger.disabled = False
 
     def create_mock(self, target, **kwargs):
         patcher = patch(target, **kwargs)

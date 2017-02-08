@@ -21,13 +21,13 @@ class SelectUserTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class SelectUserByApiKeyTest(unittest.TestCase):
@@ -35,13 +35,13 @@ class SelectUserByApiKeyTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
 
 class InsertOrUpdateUserTest(unittest.TestCase):
@@ -49,10 +49,10 @@ class InsertOrUpdateUserTest(unittest.TestCase):
         self.conn = unittest.mock.Mock()
 
     def test_sends_correct_query(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_sends_correct_parameters(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')
 
     def test_throws_when_connection_throws(self):
-        self.skipTest('Not implemented')
+        self.skipTest('Not yet implemented')

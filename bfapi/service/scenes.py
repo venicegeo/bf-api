@@ -78,6 +78,7 @@ class Scene:
 
 def activate(scene: Scene, planet_api_key: str, user_id: str) -> Optional[str]:
     log = logging.getLogger(__name__)
+    log.info('Scenes service activate scene', action='service scenes activate scene')
 
     if scene.status == STATUS_ACTIVE:
         return scene.geotiff_multispectral
@@ -110,6 +111,8 @@ def activate(scene: Scene, planet_api_key: str, user_id: str) -> Optional[str]:
 def create_download_url(scene_id: str, planet_api_key: str = '') -> str:
     # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
     # FIXME -- hopefully this endpoint can move into the IA Broker eventually
+    log = logging.getLogger(__name__)
+    log.info('Scenes service create download url', action='service scenes create download url')
     return 'https://bf-api.{}/v0/scene/{}.TIF?planet_api_key={}'.format(
         DOMAIN,
         scene_id,
@@ -120,6 +123,7 @@ def create_download_url(scene_id: str, planet_api_key: str = '') -> str:
 
 def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene:
     log = logging.getLogger(__name__)
+    log.info('Scenes service get scene', action='service scenes get scene')
 
     platform, external_id = _parse_scene_id(scene_id)
 

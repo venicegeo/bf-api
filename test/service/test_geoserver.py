@@ -11,7 +11,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import logging
 import unittest
 import xml.etree.ElementTree as et
 from unittest.mock import patch
@@ -26,13 +25,6 @@ XMLNS = {'sld': 'http://www.opengis.net/sld'}
 
 @rm.Mocker()
 class InstallIfNeededTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.geoserver')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
     def test_calls_correct_urls(self, m: rm.Mocker):
         m.get('/geoserver/rest/layers/bfdetections')
         m.get('/geoserver/rest/styles/bfdetections')
@@ -65,13 +57,6 @@ class InstallIfNeededTest(unittest.TestCase):
 
 @rm.Mocker()
 class InstallLayerTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.geoserver')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
     def test_calls_correct_url(self, m: rm.Mocker):
         m.post('/geoserver/rest/workspaces/piazza/datastores/piazza/featuretypes')
         geoserver.install_layer('test-layer-id')
@@ -93,8 +78,8 @@ class InstallLayerTest(unittest.TestCase):
         self.assertEqual('180.0', xml.findtext('./nativeBoundingBox/maxx'))
         self.assertEqual('90.0', xml.findtext('./nativeBoundingBox/maxy'))
         self.assertEqual('test-layer-id', xml.findtext('./metadata/entry[@key="JDBC_VIRTUAL_TABLE"]/virtualTable/name'))
-        self.assertRegex(xml.findtext('./metadata/entry[@key="JDBC_VIRTUAL_TABLE"]/virtualTable/sql'),
-                         r'SELECT \* FROM \w+')
+        self.assertIn('SELECT * FROM __beachfront__geoserver',
+                      xml.findtext('./metadata/entry[@key="JDBC_VIRTUAL_TABLE"]/virtualTable/sql'))
 
     def test_throws_on_http_error(self, m: rm.Mocker):
         m.post('/geoserver/rest/workspaces/piazza/datastores/piazza/featuretypes', status_code=500)
@@ -110,13 +95,6 @@ class InstallLayerTest(unittest.TestCase):
 
 @rm.Mocker()
 class InstallStyleTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.geoserver')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
     def test_calls_correct_url_when_creating_sld(self, m: rm.Mocker):
         m.post('/geoserver/rest/styles')
         m.put('/geoserver/rest/layers/bfdetections')
@@ -185,13 +163,6 @@ class InstallStyleTest(unittest.TestCase):
 
 @rm.Mocker()
 class LayerExistsTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.geoserver')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
     def test_calls_correct_url(self, m: rm.Mocker):
         m.get('/geoserver/rest/layers/test-layer-id')
         geoserver.layer_exists('test-layer-id')
@@ -219,13 +190,6 @@ class LayerExistsTest(unittest.TestCase):
 
 @rm.Mocker()
 class StyleExistsTest(unittest.TestCase):
-    def setUp(self):
-        self._logger = logging.getLogger('bfapi.service.geoserver')
-        self._logger.disabled = True
-
-    def tearDown(self):
-        self._logger.disabled = False
-
     def test_calls_correct_url(self, m: rm.Mocker):
         m.get('/geoserver/rest/styles/test-style-id')
         geoserver.style_exists('test-style-id')

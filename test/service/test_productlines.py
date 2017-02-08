@@ -11,7 +11,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-import logging
 import unittest
 from datetime import datetime
 from unittest.mock import patch, MagicMock
@@ -21,7 +20,6 @@ from test import helpers
 from bfapi.db import DatabaseError
 from bfapi.service import productlines
 from bfapi.service.algorithms import Algorithm, NotFound, ValidationError
-from bfapi.service.jobs import Job
 
 DATE_START = datetime.utcfromtimestamp(1400000000)
 DATE_STOP = datetime.utcfromtimestamp(1500000000)
@@ -33,12 +31,9 @@ class CreateProductlineTest(unittest.TestCase):
 
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.productlines')
-        self._logger.disabled = True
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
 
     def test_returns_productline(self, _):
         record = productlines.create_productline(
@@ -315,15 +310,12 @@ class CreateProductlineTest(unittest.TestCase):
 class DeleteProductLineTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.productlines')
-        self._logger.disabled = True
 
         self.mock_delete = self.create_mock('bfapi.db.productlines.delete_productline')
         self.mock_select = self.create_mock('bfapi.db.productlines.select_productline')
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
 
     def create_mock(self, target_name):
         patcher = patch(target_name)
@@ -366,12 +358,9 @@ class DeleteProductLineTest(unittest.TestCase):
 class GetAllTest(unittest.TestCase):
     def setUp(self):
         self._mockdb = helpers.mock_database()
-        self._logger = logging.getLogger('bfapi.service.productlines')
-        self._logger.disabled = True
 
     def tearDown(self):
         self._mockdb.destroy()
-        self._logger.disabled = False
 
     def test_returns_list_of_productlines(self, mock: MagicMock):
         mock.return_value.fetchall.return_value = [create_productline_db_record()]
@@ -470,25 +459,6 @@ def create_algorithm():
         name='test-algo-name',
         service_id='test-algo-id',
         version='test-algo-version',
-    )
-
-
-def create_job(job_id: str = 'test-job-id'):
-    return Job(
-        algorithm_name='test-algo-name',
-        algorithm_version='test-algo-version',
-        created_by='test-created-by',
-        created_on=datetime.utcnow(),
-        geometry={},
-        job_id=job_id,
-        name='test-job-name',
-        time_of_collect=datetime.utcnow(),
-        scene_sensor_name='test-scene-sensor-name',
-        scene_id='test-scene-id',
-        status='test-status',
-        tide=5.4321,
-        tide_min_24h=-10.0,
-        tide_max_24h=10.0,
     )
 
 

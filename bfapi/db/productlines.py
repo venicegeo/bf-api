@@ -12,7 +12,7 @@
 # specific language governing permissions and limitations under the License.
 
 from datetime import date
-
+import logging
 from bfapi.db import Connection, ResultProxy
 
 
@@ -20,6 +20,8 @@ def delete_productline(
         conn: Connection,
         *,
         productline_id: str) -> ResultProxy:
+    log = logging.getLogger(__name__)
+    log.info('Db delete productline', action='database delete record')
     query = """
         UPDATE __beachfront__productline
            SET deleted = TRUE
@@ -45,6 +47,8 @@ def insert_productline(
         start_on: date,
         stop_on: date = None,
         user_id: str) -> ResultProxy:
+    log = logging.getLogger(__name__)
+    log.info('Db insert productline', action='database insert record')
     query = """
         INSERT INTO __beachfront__productline (productline_id, algorithm_id, algorithm_name, category, created_by, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on, bbox)
         VALUES (%(productline_id)s, %(algorithm_id)s, %(algorithm_name)s, %(category)s, %(user_id)s, %(max_cloud_cover)s, %(name)s, %(user_id)s, %(spatial_filter_id)s, %(start_on)s, %(stop_on)s, ST_MakeEnvelope(%(min_x)s, %(min_y)s, %(max_x)s, %(max_y)s))
@@ -74,6 +78,8 @@ def insert_productline_job(
         *,
         job_id: str,
         productline_id: str) -> ResultProxy:
+    log = logging.getLogger(__name__)
+    log.info('Db insert productline job', action='database insert record')
     query = """
         INSERT INTO __beachfront__productline_job (job_id, productline_id)
         VALUES (%(job_id)s, %(productline_id)s)
@@ -87,6 +93,8 @@ def insert_productline_job(
 
 
 def select_all(conn: Connection):
+    log = logging.getLogger(__name__)
+    log.info('Db select all', action='database query record')
     query = """
         SELECT productline_id, algorithm_id, algorithm_name, category, compute_mask, created_by,
                created_on, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on,
@@ -102,6 +110,8 @@ def select_productline(
         conn: Connection,
         *,
         productline_id: str) -> ResultProxy:
+    log = logging.getLogger(__name__)
+    log.info('Db select productline', action='database query record')
     query = """
         SELECT productline_id, algorithm_id, algorithm_name, category, compute_mask, created_by,
                created_on, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on,
@@ -125,6 +135,8 @@ def select_summary_for_scene(
         min_y: float,
         max_x: float,
         max_y: float) -> ResultProxy:
+    log = logging.getLogger(__name__)
+    log.info('Db select summary for scene', action='database query record')
     query = """
         SELECT productline_id, algorithm_id, name, owned_by
           FROM __beachfront__productline

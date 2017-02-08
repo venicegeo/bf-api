@@ -105,6 +105,7 @@ def create(
         job_name: str,
         planet_api_key: str) -> Job:
     log = logging.getLogger(__name__)
+    log.info('Job service create', action='service job create',actor=user_id)
 
     # Fetch prerequisites
     try:
@@ -197,6 +198,7 @@ def create(
 
 def forget(user_id: str, job_id: str) -> None:
     log = logging.getLogger(__name__)
+    log.info('Job  service forget', action=' service job forget',actor=user_id)
     conn = db.get_connection()
     try:
         if not db.jobs.exists(conn, job_id=job_id):
@@ -212,6 +214,7 @@ def forget(user_id: str, job_id: str) -> None:
 
 def get(user_id: str, job_id: str) -> Job:
     log = logging.getLogger(__name__)
+    log.info('Job service get', action='service job get',actor=user_id)
     conn = db.get_connection()
 
     try:
@@ -248,6 +251,7 @@ def get(user_id: str, job_id: str) -> Job:
 
 def get_all(user_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
+    log.info('Job service get all', action='service job get all',actor=user_id)
     conn = db.get_connection()
 
     try:
@@ -284,6 +288,7 @@ def get_all(user_id: str) -> List[Job]:
 
 def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     log = logging.getLogger(__name__)
+    log.info('Job  service get by productline', action=' service job get by productline')
     conn = db.get_connection()
 
     try:
@@ -318,6 +323,7 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
 
 def get_by_scene(scene_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
+    log.info('Job  service get by scene', action=' service job get by scene')
     conn = db.get_connection()
 
     try:
@@ -357,6 +363,7 @@ def get_detections(job_id: str) -> str:
     """
 
     log = logging.getLogger(__name__)
+    log.info('Job service get detections', action='service job get detections')
     conn = db.get_connection()
 
     log.info('Packaging detections for <job:%s>', job_id)
@@ -384,7 +391,8 @@ def start_worker(
         raise Error('worker already started')
 
     log = logging.getLogger(__name__)
-    log.info('Starting worker thread')
+    log.info('Job service start worker', action='service job start worker')
+    log.info('Starting worker thread', action='Worker started')
     _worker = Worker(job_ttl, interval)
     _worker.start()
 
@@ -394,6 +402,7 @@ def stop_worker():
     if not _worker:
         return
     log = logging.getLogger(__name__)
+    log.info('Job service stop worker', action='service job stop worker')
     log.info('Stopping worker thread')
     _worker.terminate()
     _worker = None

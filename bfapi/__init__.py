@@ -15,9 +15,11 @@ import os
 
 import bfapi.logger
 
-
 DEBUG_MODE = os.getenv('DEBUG_MODE') == '1'
-if DEBUG_MODE:
-    print('*' * 80, '\u26A0  SERVER IS RUNNING IN DEBUG MODE'.center(80), '*' * 80, sep='\n\n\n')
+MUTE_LOGS = os.getenv('MUTE_LOGS') == '1'
 
-bfapi.logger.init(DEBUG_MODE)
+
+bfapi.logger.init(
+    debug=DEBUG_MODE,
+    muted=MUTE_LOGS,
+)

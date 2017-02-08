@@ -103,6 +103,7 @@ def create_productline(
         stop_on: date,
         user_id: str) -> ProductLine:
     log = logging.getLogger(__name__)
+    log.info('Productline service create productline', action='service productline create productline')
     algorithm = service.algorithms.get(algorithm_id)
     productline_id = _create_id()
     log.info('Creating product line <%s>', productline_id)
@@ -147,6 +148,7 @@ def create_productline(
 
 def delete_productline(user_id: str, productline_id: str) -> None:
     log = logging.getLogger(__name__)
+    log.info('Productline service delete productline', action='service productline delete productline')
 
     conn = db.get_connection()
     try:
@@ -168,6 +170,7 @@ def delete_productline(user_id: str, productline_id: str) -> None:
 
 def get_all() -> List[ProductLine]:
     log = logging.getLogger(__name__)
+    log.info('Productline service get all', action='service productline get all')
 
     conn = db.get_connection()
     try:
