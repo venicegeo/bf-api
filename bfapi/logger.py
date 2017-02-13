@@ -21,7 +21,7 @@ ACTOR_SYSTEM = 'SYSTEM'
 APP_NAME     = 'beachfront'
 FACILITY     = 1
 FORMAT       = ('<{PRI}>1 {TIMESTAMP} {HOSTNAME} {APP_NAME} {process} {MSG_ID} '
-                '[{SD_ID} actor="{ACTOR}" action="{ACTION}" actee="{ACTEE}"] '
+                '[{SD_ID} {ACTOR} {ACTION} {ACTEE}] '
                 '({name}:{funcName}) {levelname:<5} {message}')
 HOSTNAME     = os.uname()[1].lower()
 MSG_ID       = '-'
@@ -64,18 +64,42 @@ class AuditableLogger(logging.Logger):
     def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False,
              actee='', action='', actor='', **kwargs):
 
+        #AUDIT_LEVELV_NUM = 1
+        #logging.addLevelName(AUDIT_LEVELV_NUM, "AUDIT")
+
+        if action!='':
+            action = 'action="' + action + '"'
+            #level=logging.getLevelName("AUDIT")
+            if actee!='':
+                actee = 'actee="' + actee + '"'
+            else:
+                actee = 'actee="SYSTEM"'
+            if actor!='':
+                actor = 'actor="' + actor + '"'
+            else:
+                actor = 'actor="SYSTEM"'
+        else:
+            action='SYSTEM MESSAGE NON AUDIT'
+            actor=''
+
+
+
         # Assemble RFC 5424 elements
         extra = {
             'ACTEE':     actee,
             'ACTION':    action,
-            'ACTOR':     actor or ACTOR_SYSTEM,
+            'ACTOR':     actor,
             'APP_NAME':  APP_NAME,
             'HOSTNAME':  HOSTNAME,
-            'MSG_ID':    MSG_ID,
-            'PRI':       (FACILITY << 3) | PRI_CODES.get(logging.getLevelName(level),
-                                                         PRI_CODES['NOTICE']),
-            'SD_ID':     SD_ID,
+            'MSG_ID':    MSG_ID if action!='' else '',
+            'PRI':       ((FACILITY << 3) | PRI_CODES.get(logging.getLevelName(level),
+                                                         PRI_CODES['NOTICE']))if action!='' else '',
+            'SD_ID':     SD_ID if action!='' else '',
             'TIMESTAMP': datetime.datetime.utcnow().isoformat() + 'Z',
         }
 
+
         super()._log(level, msg, args, exc_info, extra, stack_info)
+
+
+
