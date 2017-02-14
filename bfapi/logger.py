@@ -17,11 +17,10 @@ import logging.config
 import sys
 
 
-ACTOR_SYSTEM = 'SYSTEM'
 APP_NAME     = 'beachfront'
 FACILITY     = 1
-FORMAT       = ('<{PRI}>1 {TIMESTAMP} {HOSTNAME} {APP_NAME} {process} {MSG_ID} '
-                '[{SD_ID} actor="{ACTOR}" action="{ACTION}" actee="{ACTEE}"] '
+FORMAT       = ('<{PRI}>1 {TIMESTAMP} {HOSTNAME} {APP_NAME} {process} {MSG_ID}'
+                ' {SD_ELEMENT}'
                 '({name}:{funcName}) {levelname:<5} {message}')
 HOSTNAME     = os.uname()[1].lower()
 MSG_ID       = '-'
@@ -63,18 +62,32 @@ def init(*, debug: bool, muted: bool):
 class AuditableLogger(logging.Logger):
     def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False,
              actee='', action='', actor='', **kwargs):
+        sd_params = []
+        if actor:
+            sd_params.append('actor="{}"'.format(actor))
+        if action:
+            sd_params.append('action="{}"'.format(action))
+        if actee:
+            sd_params.append('actee="{}"'.format(actee))
+
+        sd_element = ''
+        if sd_params:
+            sd_element = '[{SD_ID} {SD_PARAMS}] '.format(
+                SD_ID=SD_ID,
+                SD_PARAMS=' '.join(sd_params),
+            )
 
         # Assemble RFC 5424 elements
         extra = {
             'ACTEE':     actee,
             'ACTION':    action,
-            'ACTOR':     actor or ACTOR_SYSTEM,
+            'ACTOR':     actor,
             'APP_NAME':  APP_NAME,
             'HOSTNAME':  HOSTNAME,
             'MSG_ID':    MSG_ID,
             'PRI':       (FACILITY << 3) | PRI_CODES.get(logging.getLevelName(level),
                                                          PRI_CODES['NOTICE']),
-            'SD_ID':     SD_ID,
+            'SD_ELEMENT': sd_element,
             'TIMESTAMP': datetime.datetime.utcnow().isoformat() + 'Z',
         }
 
