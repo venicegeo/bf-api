@@ -104,7 +104,7 @@ def install_layer(layer_id: str):
                         </entry>
                         <entry key="time">
                             <dimensionInfo>
-                                <enabled>true</enabled>
+                                <enabled>false</enabled>
                                 <attribute>time_of_collect</attribute>
                                 <presentation>CONTINUOUS_INTERVAL</presentation>
                                 <units>ISO8601</units>
