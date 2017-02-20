@@ -103,6 +103,8 @@ def activate(scene: Scene, planet_api_key: str, user_id: str) -> Optional[str]:
         raise CatalogError()
     except requests.HTTPError as err:
         status_code = err.response.status_code
+        if status_code == 401:
+            raise NotPermitted("activate scene")
         if status_code == 404:
             raise NotFound(scene.id)
         raise CatalogError()
@@ -142,6 +144,8 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
         raise CatalogError()
     except requests.HTTPError as err:
         status_code = err.response.status_code
+        if status_code == 401:
+            raise NotPermitted("fetch scene metadata")
         if status_code == 404:
             raise NotFound(scene_id)
         raise CatalogError()
@@ -313,6 +317,11 @@ class NotFound(Exception):
     def __init__(self, scene_id: str):
         super().__init__('scene `{}` not found in catalog'.format(scene_id))
         self.scene_id = scene_id
+
+
+class NotPermitted(Exception):
+    def __init__(self, action:str):
+        super().__init__('user is not permitted to {}'.format(action))
 
 
 class ValidationError(Exception):
