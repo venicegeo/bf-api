@@ -100,7 +100,12 @@ class ActivateSceneTest(unittest.TestCase):
         m.get('/planet/activate/planetscope/test-scene-id', status_code=404, text='wat')
         with self.assertRaises(scenes.NotFound):
             scenes.activate(scene, 'test-planet-api-key', 'test-user-id')
-
+            
+    def test_throws_when_not_permitted(self, m: rm.Mocker):
+        scene = create_scene()
+        m.get('/planet/activate/planetscope/test-scene-id', status_code=401, text='oopsie')
+        with self.assertRaises(scenes.NotPermitted):
+            scenes.activate(scene, 'test-planet-api-key', 'test-user-id')
 
 class CreateDownloadURLTest(unittest.TestCase):
     def test_returns_correct_url(self):
@@ -213,6 +218,11 @@ class GetSceneTest(unittest.TestCase):
     def test_throws_when_scene_does_not_exist(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', status_code=404, text='wat')
         with self.assertRaises(scenes.NotFound):
+            scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
+            
+    def test_throws_when_not_permitted(self, m: rm.Mocker):
+        self.mock_requests.get('/planet/planetscope/test-scene-id', status_code=401, text='oopsie')
+        with self.assertRaises(scenes.NotPermitted):
             scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
 
     def test_throws_when_scene_id_is_malformed(self):
