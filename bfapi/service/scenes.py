@@ -102,7 +102,7 @@ def activate(scene: Scene, planet_api_key: str, user_id: str) -> Optional[str]:
     except requests.ConnectionError:
         raise CatalogError()
     except requests.HTTPError as err:
-        log.debug('Http error on scene activation; status code `%d`', err.response.status_code)
+        log.info('Http error on scene activation; status code `%d`', err.response.status_code)
         status_code = err.response.status_code
         if status_code == 401:
             raise NotPermitted("activate scene")
@@ -144,7 +144,7 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
     except requests.ConnectionError:
         raise CatalogError()
     except requests.HTTPError as err:
-        log.debug('Http error on scene get; status code `%d`', err.response.status_code)
+        log.info('Http error on scene get; status code `%d`', err.response.status_code)
         status_code = err.response.status_code
         if status_code == 401:
             raise NotPermitted("fetch scene metadata")
