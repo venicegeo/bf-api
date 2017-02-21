@@ -117,6 +117,7 @@ def create(
             scenes.MalformedSceneID,
             scenes.CatalogError,
             scenes.NotFound,
+            scenes.NotPermitted,
             scenes.ValidationError) as err:
         log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
