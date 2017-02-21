@@ -220,7 +220,7 @@ class GetSceneTest(unittest.TestCase):
         with self.assertRaises(scenes.NotFound):
             scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
             
-    def test_throws_when_not_permitted(self, m: rm.Mocker):
+    def test_throws_when_not_permitted(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', status_code=401, text='oopsie')
         with self.assertRaises(scenes.NotPermitted):
             scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
