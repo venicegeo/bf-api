@@ -321,14 +321,14 @@ class GetSceneTest(unittest.TestCase):
 
     def test_throws_when_scene_has_invalid_tide_min(self):
         mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
-        mangled_scene['properties']['24hrMinTide'] = 'whee'
+        mangled_scene['properties']['MinimumTide24Hours'] = 'whee'
         self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
         with self.assertRaises(scenes.ValidationError):
             scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
 
     def test_throws_when_scene_has_invalid_tide_max(self):
         mangled_scene = json.loads(RESPONSE_SCENE_ACTIVE)
-        mangled_scene['properties']['24hrMaxTide'] = 'whee'
+        mangled_scene['properties']['MaximumTide24Hours'] = 'whee'
         self.mock_requests.get('/planet/planetscope/test-scene-id', json=mangled_scene)
         with self.assertRaises(scenes.ValidationError):
             scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
@@ -400,8 +400,8 @@ RESPONSE_SCENE_ACTIVE = """{
     ]
   },
   "properties": {
-    "24hrMaxTide": 1.0,
-    "24hrMinTide": 0.0,
+    "MaximumTide24Hours": 1.0,
+    "MinimumTide24Hours": 0.0,
     "CurrentTide": 0.5,
     "acquiredDate": "2017-01-20T00:00:00Z",
     "cloudCover": 1.47,
@@ -454,8 +454,8 @@ RESPONSE_SCENE_INACTIVE = """{
     ]
   },
   "properties": {
-    "24hrMaxTide": 1.0,
-    "24hrMinTide": 0.0,
+    "MaximumTide24Hours": 1.0,
+    "MinimumTide24Hours": 0.0,
     "CurrentTide": 0.5,
     "acquiredDate": "2017-01-20T00:00:00Z",
     "cloudCover": 1.47,

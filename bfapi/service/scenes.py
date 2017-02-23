@@ -253,22 +253,22 @@ def _extract_tide(scene_id: str, feature: dict) -> float:
 
 
 def _extract_tide_min(scene_id: str, feature: dict) -> float:
-    value = feature['properties'].get('24hrMinTide')
+    value = feature['properties'].get('MinimumTide24Hours')
     if value is not None:
         try:
             value = round(value, 5)
         except:
-            raise ValidationError(scene_id, '`24hrMinTide` is not a float')
+            raise ValidationError(scene_id, '`MinimumTide24Hours` is not a float')
     return value
 
 
 def _extract_tide_max(scene_id: str, feature: dict) -> float:
-    value = feature['properties'].get('24hrMaxTide')
+    value = feature['properties'].get('MaximumTide24Hours')
     if value is not None:
         try:
             value = round(value, 5)
         except:
-            raise ValidationError(scene_id, '`24hrMaxTide` is not a float')
+            raise ValidationError(scene_id, '`MaximumTide24Hours` is not a float')
     return value
 
 
