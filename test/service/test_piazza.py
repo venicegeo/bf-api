@@ -102,7 +102,7 @@ class CreateTriggerTest(unittest.TestCase):
 
     def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.post') as mock:
-            mock.side_effect = ConnectionError()
+            mock.side_effect = ConnectionError(request=unittest.mock.Mock())
             with self.assertRaises(piazza.Unreachable):
                 piazza.create_trigger(
                     data_inputs={'foo': 'bar'},
@@ -217,7 +217,7 @@ class DeployTest(unittest.TestCase):
 
     def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.post') as stub:
-            stub.side_effect = ConnectionError()
+            stub.side_effect = ConnectionError(request=unittest.mock.Mock())
             with self.assertRaises(piazza.Unreachable):
                 piazza.deploy(data_id='test-data-id', poll_interval=0, max_poll_attempts=2)
 
@@ -294,7 +294,7 @@ class ExecuteTest(unittest.TestCase):
 
     def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.post') as stub:
-            stub.side_effect = ConnectionError()
+            stub.side_effect = ConnectionError(request=unittest.mock.Mock())
             with self.assertRaises(piazza.Unreachable):
                 piazza.execute('test-service-id', {})
 
@@ -352,7 +352,7 @@ class GetFileTest(unittest.TestCase):
 
     def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.get') as stub:
-            stub.side_effect = ConnectionError()
+            stub.side_effect = ConnectionError(request=unittest.mock.Mock())
             with self.assertRaises(piazza.Unreachable):
                 piazza.get_file('test-data-id')
 
@@ -442,7 +442,7 @@ class GetStatusTest(unittest.TestCase):
 
     def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.get') as stub:
-            stub.side_effect = ConnectionError()
+            stub.side_effect = ConnectionError(request=unittest.mock.Mock())
             with self.assertRaises(piazza.Unreachable):
                 piazza.get_status('test-job-id')
 
@@ -541,7 +541,7 @@ class GetServiceTest(unittest.TestCase):
 
     def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.get') as stub:
-            stub.side_effect = ConnectionError()
+            stub.side_effect = ConnectionError(request=unittest.mock.Mock())
             with self.assertRaises(piazza.Unreachable):
                 piazza.get_service(service_id='test-id')
 
@@ -636,7 +636,7 @@ class GetServicesTest(unittest.TestCase):
 
     def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.get') as stub:
-            stub.side_effect = ConnectionError()
+            stub.side_effect = ConnectionError(request=unittest.mock.Mock())
             with self.assertRaises(piazza.Unreachable):
                 piazza.get_services(pattern='^test-pattern$')
 
@@ -855,7 +855,7 @@ class RegisterServiceTest(unittest.TestCase):
 
     def test_throws_when_piazza_is_unreachable(self, _):
         with unittest.mock.patch('requests.post') as mock:
-            mock.side_effect = ConnectionError()
+            mock.side_effect = ConnectionError(request=unittest.mock.Mock())
             with self.assertRaises(piazza.Unreachable):
                 piazza.register_service(
                     contract_url='test-contract-url',

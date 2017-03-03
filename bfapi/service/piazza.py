@@ -100,7 +100,8 @@ def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_
             },
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -134,7 +135,8 @@ def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10)
             },
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -196,7 +198,8 @@ def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str
             },
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -225,7 +228,8 @@ def get_file(data_id: str) -> requests.Response:
             auth=(PIAZZA_API_KEY, ''),
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -245,7 +249,8 @@ def get_service(service_id: str) -> ServiceDescriptor:
             auth=(PIAZZA_API_KEY, ''),
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -276,7 +281,8 @@ def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
             },
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -303,7 +309,8 @@ def get_status(job_id: str) -> Status:
             auth=(PIAZZA_API_KEY, ''),
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -384,7 +391,8 @@ def get_triggers(name: str) -> list:
             },
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -433,7 +441,8 @@ def register_service(
             },
         )
         response.raise_for_status()
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
         raise Unreachable()
     except requests.HTTPError as err:
         status_code = err.response.status_code
@@ -512,15 +521,6 @@ class InvalidResponse(Error):
     def __init__(self, message: str, response_text: str):
         super().__init__('invalid Piazza response: ' + message)
         self.response_text = response_text
-
-
-class MalformedCredentials(Error):
-    def __init__(self, err: Exception = None):
-        message = 'malformed Piazza credentials'
-        if err:
-            message += ': {}'.format(err)
-        super().__init__(message)
-        self.original_error = err
 
 
 class ServerError(Error):
