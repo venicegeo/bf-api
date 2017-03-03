@@ -66,11 +66,14 @@ def _getservices() -> dict:
         _errors.append('VCAP_SERVICES cannot be blank')
         return services
 
+    vcap_dict = json.loads(vcap_services)
+
     try:
-        for user_service in json.loads(vcap_services)['user-provided']:
-            path.append(user_service['name'])
-            collect(user_service)
-            path.pop()
+        for key in vcap_dict.keys():
+            for user_service in vcap_dict[key]:
+                path.append(user_service['name'])
+                collect(user_service)
+                path.pop()
     except TypeError as err:
         _errors.append('In VCAP_SERVICES: encountered malformed entry: {}'.format(err))
     except KeyError as err:
