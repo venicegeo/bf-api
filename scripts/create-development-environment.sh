@@ -9,11 +9,11 @@ create_dev_root() {
         if [ $FORCE ]; then
             rm -rf $DEV_ROOT
         else
-            echo "create_dev_root: '$DEV_ROOT' already exists.  To recreate, try running '$0 --force'."
+            echo -e "\n$FUNCNAME: '$DEV_ROOT' already exists.  To recreate, try running '$0 --force'."
             exit 1
         fi
     fi
-    echo "Creating $DEV_ROOT"
+    echo -e "\n$FUNCNAME: Creating $DEV_ROOT"
     mkdir -p $DEV_ROOT
     if ! grep -E "\\b$DEV_ROOT\\b" .gitignore >/dev/null; then
         echo "Adding $DEV_ROOT to .gitignore"
@@ -22,9 +22,9 @@ create_dev_root() {
 }
 
 create_environment_vars() {
-    local _filepath=$DEV_ROOT/environment-vars.sh
-    echo "Creating ${_filepath}"
-    sed <<'EOT' | sed -E 's/^        //' > $_filepath
+    local filepath=$DEV_ROOT/environment-vars.sh
+    echo -e "\n$FUNCNAME: Creating $filepath"
+    cat <<'EOT' | sed -E 's/^        //' > $filepath
         export GEOAXIS=
         export GEOAXIS_CLIENT_ID=
         export GEOAXIS_SECRET=
@@ -61,31 +61,52 @@ EOT
 }
 
 create_ssl_certs() {
-    local _filepath_pem=$DEV_ROOT/ssl-certificate.pem
-    local _filepath_key=$DEV_ROOT/ssl-certificate.key
-    local _filepath_keystore=$DEV_ROOT/ssl-certificate.pkcs12
-    local _extensions="
-        [beachfront_extensions]
-        subjectAltName=DNS:localhost,DNS:localhost.localdomain
-    "
-    echo "Creating ${_filepath_pem}"
-    echo "Creating ${_filepath_key}"
+    local key_filepath=$DEV_ROOT/ssl-certificate.key
+    local cert_filepath=$DEV_ROOT/ssl-certificate.pem
+    local keystore=$DEV_ROOT/ssl-certificate.pkcs12
+
+    echo -e "\n$FUNCNAME: Creating $key_filepath"
+    openssl genrsa -out $key_filepath 2048 \
+        2>&1 |indent_stream
+
+    echo -e "\n$FUNCNAME: Creating $cert_filepath"
     openssl req \
-      -newkey rsa:2048 -nodes -keyout $_filepath_key \
-      -x509 -days 99999 -out $_filepath_pem \
-      -extensions beachfront_extensions \
-      -config <(cat /etc/ssl/openssl.cnf; printf "$_extensions") \
-      -subj "/C=US/ST=Unknown/L=Unknown/O=Beachfront/OU=Development/CN=localhost" \
-      -passin pass:secret \
-      -passout pass:secret \
-      2>&1 |indent_stream
-    echo "Creating ${_filepath_keystore}"
+        -x509 \
+        -new \
+        -key $key_filepath \
+        -out $cert_filepath \
+        -config <(echo '
+            [req]
+                default_bits           = 2048
+                default_md             = sha256
+                default_days           = 3652
+                prompt                 = no
+                distinguished_name     = req_distinguished_name
+
+            [req_distinguished_name]
+                countryName            = "US"
+                stateOrProvinceName    = "VA"
+                localityName           = "Unknown"
+                organizationName       = "Beachfront"
+                organizationalUnitName = "Development"
+                commonName             = "Beachfront Development Server (localhost)"
+
+            [Beachfront]
+                basicConstraints       = CA:true, pathlen:0
+                subjectAltName         = DNS:localhost, DNS:localhost.localdomain
+        ') \
+        -extensions Beachfront \
+        2>&1 |indent_stream
+
+    echo -e "\n$FUNCNAME: Creating $keystore"
     openssl pkcs12 \
-      -inkey $_filepath_key -in $_filepath_pem \
-      -export -out $_filepath_keystore \
-      -passin pass:secret \
-      -passout pass:secret \
-      2>&1 |indent_stream
+        -export \
+        -nodes \
+        -inkey $key_filepath \
+        -in $cert_filepath \
+        -out $keystore \
+        -passout pass:secret \
+        2>&1 |indent_stream
 }
 
 create_virtualenv() {
@@ -93,16 +114,16 @@ create_virtualenv() {
         if [ $FORCE ]; then
             rm -rf $VIRTUALENV_ROOT
         else
-            echo "create_virtualenv: '$VIRTUALENV_ROOT' already exists.  To recreate, try running '$0 --force'."
+            echo -e "\n$FUNCNAME: '$VIRTUALENV_ROOT' already exists.  To recreate, try running '$0 --force'."
             exit 1
         fi
     fi
-    if ! which python3.5 >/dev/null; then
-        echo "create_virtualenv: Cannot proceed; Python 3.5 is missing"
+    if ! (which python3 && python3 -c 'import sys; assert sys.version_info >= (3, 5, 0)') >/dev/null 2>&1; then
+        echo -e "\n$FUNCNAME: Python 3.5.0 or higher must be installed first"
         exit 1
     fi
-    echo "Creating $VIRTUALENV_ROOT (virtual environment)"
-    virtualenv --python=python3.5 $VIRTUALENV_ROOT |indent_stream
+    echo -e "\n$FUNCNAME: Creating $VIRTUALENV_ROOT (virtual environment)"
+    python3 -m venv $VIRTUALENV_ROOT |indent_stream
     . $VIRTUALENV_ROOT/bin/activate
     pip install -r requirements.txt |indent_stream
     deactivate
@@ -118,7 +139,7 @@ indent_stream() {
 
 cd $(dirname $(dirname $0))  # Return to root
 
-create_virtualenv
+# create_virtualenv
 create_dev_root
 create_ssl_certs
-create_environment_vars
+# create_environment_vars
