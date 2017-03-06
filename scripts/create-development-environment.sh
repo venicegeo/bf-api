@@ -75,11 +75,10 @@ create_ssl_certs() {
         -new \
         -key $key_filepath \
         -out $cert_filepath \
+        -days 3652 \
         -config <(echo '
             [req]
-                default_bits           = 2048
                 default_md             = sha256
-                default_days           = 3652
                 prompt                 = no
                 distinguished_name     = req_distinguished_name
 
@@ -92,7 +91,7 @@ create_ssl_certs() {
                 commonName             = "Beachfront Development Server (localhost)"
 
             [Beachfront]
-                basicConstraints       = CA:true, pathlen:0
+                basicConstraints       = CA:false
                 subjectAltName         = DNS:localhost, DNS:localhost.localdomain
         ') \
         -extensions Beachfront \
