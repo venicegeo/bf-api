@@ -139,7 +139,7 @@ indent_stream() {
 
 cd $(dirname $(dirname $0))  # Return to root
 
-# create_virtualenv
+create_virtualenv
 create_dev_root
 create_ssl_certs
-# create_environment_vars
+create_environment_vars
