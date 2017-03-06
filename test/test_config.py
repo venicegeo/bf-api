@@ -111,11 +111,10 @@ class ConfigureGetServices(unittest.TestCase):
 
     def setUp(self):
         self._VCAP_SERVICES = os.getenv('VCAP_SERVICES')
-        self._original_errors = config._errors
 
     def tearDown(self):
         self.override(self._VCAP_SERVICES)
-        config._errors = self._original_errors
+        config._errors = []
 
     def override(self, value):
         if value is None:
@@ -152,6 +151,14 @@ class ConfigureGetServices(unittest.TestCase):
                     }
                   }
                 }
+              ],
+              "random arbitrary top-level key": [
+                {
+                  "name": "test-service-3",
+                  "credentials": {
+                    "applesauce": "test-applesauce"
+                  }
+                }
               ]
             }
             """)
@@ -167,6 +174,8 @@ class ConfigureGetServices(unittest.TestCase):
                 'test-service-2.name': 'test-service-2',
                 'test-service-2.lorem': 'ipsum',
                 'test-service-2.some.arbitrarily.nested': 'value',
+                'test-service-3.name': 'test-service-3',
+                'test-service-3.credentials.applesauce': 'test-applesauce',
             },
             config._getservices())
 
@@ -178,7 +187,8 @@ class ConfigureGetServices(unittest.TestCase):
     def test_flags_error_if_VCAP_SERVICES_is_malformed(self):
         self.override('lolwut')
         config._getservices()
-        self.assertIn('VCAP_SERVICES cannot be blank', config._errors)
+        self.assertIn('In VCAP_SERVICES: invalid JSON: Expecting value: line 1 column 1 (char 0)',
+                      config._errors)
 
     def test_flags_error_if_service_name_is_missing(self):
         self.override(
@@ -191,20 +201,5 @@ class ConfigureGetServices(unittest.TestCase):
               ]
             }
             """)
-        self.assertIn('VCAP_SERVICES cannot be blank', config._errors)
         self.assertEqual({}, config._getservices())
-
-    def test_flags_error_if_user_services_are_absent(self):
-        self.override(
-            """
-            {
-              "lolwut-provided": [
-                {
-                  "name": "test-service-2",
-                  "lorem": "ipsum"
-                }
-              ]
-            }
-            """)
-        self.assertIn('VCAP_SERVICES cannot be blank', config._errors)
-        self.assertEqual({}, config._getservices())
+        self.assertIn("In VCAP_SERVICES: some entry is missing property 'name'", config._errors)

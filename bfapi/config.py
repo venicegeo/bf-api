@@ -76,7 +76,9 @@ def _getservices() -> dict:
     except TypeError as err:
         _errors.append('In VCAP_SERVICES: encountered malformed entry: {}'.format(err))
     except KeyError as err:
-        _errors.append('In VCAP_SERVICES: some entry is missing property `{}`'.format(err))
+        _errors.append('In VCAP_SERVICES: some entry is missing property {}'.format(err))
+    except json.JSONDecodeError as err:
+        _errors.append('In VCAP_SERVICES: invalid JSON: {}'.format(err))
     except Exception as err:
         _errors.append('In _getservices: {}'.format(err))
     return services
