@@ -67,14 +67,18 @@ def _getservices() -> dict:
         return services
 
     try:
-        for user_service in json.loads(vcap_services)['user-provided']:
-            path.append(user_service['name'])
-            collect(user_service)
-            path.pop()
+        vcap_dict = json.loads(vcap_services)
+        for key in vcap_dict.keys():
+            for user_service in vcap_dict[key]:
+                path.append(user_service['name'])
+                collect(user_service)
+                path.pop()
     except TypeError as err:
         _errors.append('In VCAP_SERVICES: encountered malformed entry: {}'.format(err))
     except KeyError as err:
-        _errors.append('In VCAP_SERVICES: some entry is missing property `{}`'.format(err))
+        _errors.append('In VCAP_SERVICES: some entry is missing property {}'.format(err))
+    except json.JSONDecodeError as err:
+        _errors.append('In VCAP_SERVICES: invalid JSON: {}'.format(err))
     except Exception as err:
         _errors.append('In _getservices: {}'.format(err))
     return services
