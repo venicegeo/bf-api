@@ -66,9 +66,8 @@ def _getservices() -> dict:
         _errors.append('VCAP_SERVICES cannot be blank')
         return services
 
-    vcap_dict = json.loads(vcap_services)
-
     try:
+        vcap_dict = json.loads(vcap_services)
         for key in vcap_dict.keys():
             for user_service in vcap_dict[key]:
                 path.append(user_service['name'])
