@@ -625,7 +625,7 @@ def _save_execution_error(job_id: str, execution_step: str, error_message: str, 
 
 def _serialize_dt(dt: datetime = None) -> str:
     if dt is not None:
-        return dt.isoformat() + '+00:00'
+        return dt.isoformat()
 
 
 #
