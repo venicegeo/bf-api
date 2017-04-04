@@ -577,8 +577,7 @@ def _create_algorithm_cli_cmd(
             ' '.join(['-i ' + filename for filename in geotiff_filenames]),
             band_flag,
             '--basename shoreline',
-            '--smooth 1.0',
-            '--coastmask'
+            '--smooth 1.0'
         ])
     else:
         error_message = 'unknown algorithm interface "' + algo_interface + '".'
