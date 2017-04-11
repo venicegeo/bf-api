@@ -1191,7 +1191,7 @@ class WorkerRunTest(unittest.TestCase):
         worker.run()
         self.assertEqual([
             'ERROR - Could not list running jobs',
-            "WARNING - Worker error, retrying (1/3); Error: (builtins.Exception) test-error [SQL: 'test-query']",
+            "WARNING - Recovered from failure (attempt 1 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
             'INFO - Stopped',
         ], self.logger.lines)
 
@@ -1204,7 +1204,7 @@ class WorkerRunTest(unittest.TestCase):
         self.assertEqual([
             'INFO - Begin cycle for 1 records',
             'INFO - <001/test-job-id> polled (Cancelled; age=7 days, 12:34:56)',
-            "WARNING - Worker error, retrying (1/3); Error: (builtins.Exception) test-error [SQL: 'test-query']",
+            "WARNING - Recovered from failure (attempt 1 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
             'INFO - Stopped',
         ], self.logger.lines)
 
@@ -1215,13 +1215,13 @@ class WorkerRunTest(unittest.TestCase):
             worker.run()
         self.assertEqual([
             'ERROR - Could not list running jobs',
-            "WARNING - Worker error, retrying (1/3); Error: (builtins.Exception) test-error [SQL: 'test-query']",
+            "WARNING - Recovered from failure (attempt 1 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
             'ERROR - Could not list running jobs',
-            "WARNING - Worker error, retrying (2/3); Error: (builtins.Exception) test-error [SQL: 'test-query']",
+            "WARNING - Recovered from failure (attempt 2 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
             'ERROR - Could not list running jobs',
-            "WARNING - Worker error, retrying (3/3); Error: (builtins.Exception) test-error [SQL: 'test-query']",
+            "WARNING - Recovered from failure (attempt 3 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
             'ERROR - Could not list running jobs',
-            "ERROR - Worker failed more than 3 times; failing permanently",
+            "ERROR - Worker failed more than 3 times and will not be recovered",
         ], self.logger.lines)
 
     def test_updates_status_for_job_failing_during_execution(self):

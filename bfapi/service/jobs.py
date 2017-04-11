@@ -430,13 +430,13 @@ class Worker(threading.Thread):
             try:
                 self._run_cycle()
                 failures = 0
-            except Exception as e:
+            except Exception as err:
                 failures += 1
                 if failures > JOB_WORKER_MAX_RETRIES:
-                    self._log.error('Worker failed more than %d times; failing permanently' % JOB_WORKER_MAX_RETRIES)
-                    raise e
+                    self._log.error('Worker failed more than %d times and will not be recovered', JOB_WORKER_MAX_RETRIES)
+                    raise err
                 else:
-                    self._log.warning('Worker error, retrying (%d/%d); Error: %s' % (failures, JOB_WORKER_MAX_RETRIES, e))
+                    self._log.warning('Recovered from failure (attempt %d of %d); %s: %s', failures, JOB_WORKER_MAX_RETRIES, err.__class__.__name__, err)
             time.sleep(self._interval.total_seconds())
 
         self._log.info('Stopped')
@@ -459,8 +459,6 @@ class Worker(threading.Thread):
             for i, row in enumerate(rows, start=1):
                 self._updater(row['job_id'], row['age'], i)
             self._log.info('Cycle complete; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
-
-
 
     def _updater(self, job_id: str, age: timedelta, index: int):
         log = self._log
