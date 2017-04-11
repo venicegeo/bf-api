@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 from bfapi import db
-from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL
+from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, JOB_WORKER_MAX_RETRIES
 from bfapi.service import algorithms, scenes, piazza
 
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
@@ -425,28 +425,42 @@ class Worker(threading.Thread):
         self._terminated = True
 
     def run(self):
+        failures = 0
         while not self.is_terminated():
-            conn = db.get_connection()
             try:
-                rows = db.jobs.select_outstanding_jobs(conn).fetchall()
-            except db.DatabaseError as err:
-                self._log.error('Could not list running jobs')
-                db.print_diagnostics(err)
-                raise
-            finally:
-                conn.close()
-
-            if not rows:
-                self._log.info('Nothing to do; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
-            else:
-                self._log.info('Begin cycle for %d records', len(rows))
-                for i, row in enumerate(rows, start=1):
-                    self._updater(row['job_id'], row['age'], i)
-                self._log.info('Cycle complete; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
-
+                self._run_cycle()
+                failures = 0
+            except Exception as e:
+                failures += 1
+                if failures > JOB_WORKER_MAX_RETRIES:
+                    self._log.error('Worker failed more than %d times; failing permanently' % JOB_WORKER_MAX_RETRIES)
+                    raise e
+                else:
+                    self._log.warning('Worker error, retrying (%d/%d); Error: %s' % (failures, JOB_WORKER_MAX_RETRIES, e))
             time.sleep(self._interval.total_seconds())
 
         self._log.info('Stopped')
+
+    def _run_cycle(self):
+        conn = db.get_connection()
+        try:
+            rows = db.jobs.select_outstanding_jobs(conn).fetchall()
+        except db.DatabaseError as err:
+            self._log.error('Could not list running jobs')
+            db.print_diagnostics(err)
+            raise
+        finally:
+            conn.close()
+
+        if not rows:
+            self._log.info('Nothing to do; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
+        else:
+            self._log.info('Begin cycle for %d records', len(rows))
+            for i, row in enumerate(rows, start=1):
+                self._updater(row['job_id'], row['age'], i)
+            self._log.info('Cycle complete; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
+
+
 
     def _updater(self, job_id: str, age: timedelta, index: int):
         log = self._log
@@ -477,6 +491,7 @@ class Worker(threading.Thread):
                 _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)
                 return
 
+            raise Exception('oops pending')
             conn = db.get_connection()
             try:
                 db.jobs.update_status(conn, job_id=job_id, status=status.status)
@@ -493,6 +508,7 @@ class Worker(threading.Thread):
                 _save_execution_error(job_id, STEP_PROCESSING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
                 return
 
+            raise Exception('oops running')
             conn = db.get_connection()
             try:
                 db.jobs.update_status(conn, job_id=job_id, status=status.status)
