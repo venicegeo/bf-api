@@ -433,8 +433,8 @@ class Worker(threading.Thread):
             except Exception as err:
                 failures += 1
                 if failures > JOB_WORKER_MAX_RETRIES:
-                    self._log.error('Worker failed more than %d times and will not be recovered', JOB_WORKER_MAX_RETRIES)
-                    raise err
+                    self._log.exception('Worker failed more than %d times and will not be recovered', JOB_WORKER_MAX_RETRIES)
+                    break
                 else:
                     self._log.warning('Recovered from failure (attempt %d of %d); %s: %s', failures, JOB_WORKER_MAX_RETRIES, err.__class__.__name__, err)
             time.sleep(self._interval.total_seconds())

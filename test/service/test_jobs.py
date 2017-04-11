@@ -1210,9 +1210,8 @@ class WorkerRunTest(unittest.TestCase):
 
     def test_worker_retry_then_permanent_fail(self):
         self.mock_select_jobs.side_effect = helpers.create_database_error()
-        with self.assertRaises(DatabaseError):
-            worker = self.create_worker(max_cycles=4)
-            worker.run()
+        worker = self.create_worker(max_cycles=4)
+        worker.run()
         self.assertEqual([
             'ERROR - Could not list running jobs',
             "WARNING - Recovered from failure (attempt 1 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
@@ -1222,7 +1221,16 @@ class WorkerRunTest(unittest.TestCase):
             "WARNING - Recovered from failure (attempt 3 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
             'ERROR - Could not list running jobs',
             "ERROR - Worker failed more than 3 times and will not be recovered",
-        ], self.logger.lines)
+
+            # Start stack trace truncation
+            'Traceback (most recent call last):',
+        ], self.logger.lines[0:9])
+        self.assertEqual([
+            "sqlalchemy.exc.DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
+            # End stack trace truncation
+
+            'INFO - Stopped',
+        ], self.logger.lines[-2:])
 
     def test_updates_status_for_job_failing_during_execution(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary()]
