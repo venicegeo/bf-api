@@ -1185,19 +1185,52 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - Stopped',
         ], self.logger.lines)
 
-    def test_throws_when_database_throws_during_discovery(self):
+    def test_report_error_and_retry_when_database_throws_during_discovery(self):
         self.mock_select_jobs.side_effect = helpers.create_database_error()
-        with self.assertRaises(DatabaseError):
-            worker = self.create_worker()
-            worker.run()
+        worker = self.create_worker()
+        worker.run()
+        self.assertEqual([
+            'ERROR - Could not list running jobs',
+            "WARNING - Recovered from failure (attempt 1 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
+            'INFO - Stopped',
+        ], self.logger.lines)
 
-    def test_throws_when_database_throws_during_update(self):
+    def test_report_error_and_retry_when_database_throws_during_update(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary()]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_CANCELLED)
         self.mock_update_status.side_effect = helpers.create_database_error()
-        with self.assertRaises(DatabaseError):
-            worker = self.create_worker()
-            worker.run()
+        worker = self.create_worker()
+        worker.run()
+        self.assertEqual([
+            'INFO - Begin cycle for 1 records',
+            'INFO - <001/test-job-id> polled (Cancelled; age=7 days, 12:34:56)',
+            "WARNING - Recovered from failure (attempt 1 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
+            'INFO - Stopped',
+        ], self.logger.lines)
+
+    def test_worker_retry_then_permanent_fail(self):
+        self.mock_select_jobs.side_effect = helpers.create_database_error()
+        worker = self.create_worker(max_cycles=4)
+        worker.run()
+        self.assertEqual([
+            'ERROR - Could not list running jobs',
+            "WARNING - Recovered from failure (attempt 1 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
+            'ERROR - Could not list running jobs',
+            "WARNING - Recovered from failure (attempt 2 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
+            'ERROR - Could not list running jobs',
+            "WARNING - Recovered from failure (attempt 3 of 3); DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
+            'ERROR - Could not list running jobs',
+            "ERROR - Worker failed more than 3 times and will not be recovered",
+
+            # Start stack trace truncation
+            'Traceback (most recent call last):',
+        ], self.logger.lines[0:9])
+        self.assertEqual([
+            "sqlalchemy.exc.DatabaseError: (builtins.Exception) test-error [SQL: 'test-query']",
+            # End stack trace truncation
+
+            'INFO - Stopped',
+        ], self.logger.lines[-2:])
 
     def test_updates_status_for_job_failing_during_execution(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary()]

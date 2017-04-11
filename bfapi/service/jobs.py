@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 from bfapi import db
-from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL
+from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, JOB_WORKER_MAX_RETRIES
 from bfapi.service import algorithms, scenes, piazza
 
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
@@ -425,28 +425,40 @@ class Worker(threading.Thread):
         self._terminated = True
 
     def run(self):
+        failures = 0
         while not self.is_terminated():
-            conn = db.get_connection()
             try:
-                rows = db.jobs.select_outstanding_jobs(conn).fetchall()
-            except db.DatabaseError as err:
-                self._log.error('Could not list running jobs')
-                db.print_diagnostics(err)
-                raise
-            finally:
-                conn.close()
-
-            if not rows:
-                self._log.info('Nothing to do; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
-            else:
-                self._log.info('Begin cycle for %d records', len(rows))
-                for i, row in enumerate(rows, start=1):
-                    self._updater(row['job_id'], row['age'], i)
-                self._log.info('Cycle complete; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
-
+                self._run_cycle()
+                failures = 0
+            except Exception as err:
+                failures += 1
+                if failures > JOB_WORKER_MAX_RETRIES:
+                    self._log.exception('Worker failed more than %d times and will not be recovered', JOB_WORKER_MAX_RETRIES)
+                    break
+                else:
+                    self._log.warning('Recovered from failure (attempt %d of %d); %s: %s', failures, JOB_WORKER_MAX_RETRIES, err.__class__.__name__, err)
             time.sleep(self._interval.total_seconds())
 
         self._log.info('Stopped')
+
+    def _run_cycle(self):
+        conn = db.get_connection()
+        try:
+            rows = db.jobs.select_outstanding_jobs(conn).fetchall()
+        except db.DatabaseError as err:
+            self._log.error('Could not list running jobs')
+            db.print_diagnostics(err)
+            raise
+        finally:
+            conn.close()
+
+        if not rows:
+            self._log.info('Nothing to do; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
+        else:
+            self._log.info('Begin cycle for %d records', len(rows))
+            for i, row in enumerate(rows, start=1):
+                self._updater(row['job_id'], row['age'], i)
+            self._log.info('Cycle complete; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
 
     def _updater(self, job_id: str, age: timedelta, index: int):
         log = self._log
