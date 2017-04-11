@@ -491,7 +491,6 @@ class Worker(threading.Thread):
                 _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)
                 return
 
-            raise Exception('oops pending')
             conn = db.get_connection()
             try:
                 db.jobs.update_status(conn, job_id=job_id, status=status.status)
@@ -508,7 +507,6 @@ class Worker(threading.Thread):
                 _save_execution_error(job_id, STEP_PROCESSING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
                 return
 
-            raise Exception('oops running')
             conn = db.get_connection()
             try:
                 db.jobs.update_status(conn, job_id=job_id, status=status.status)
