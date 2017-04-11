@@ -1208,6 +1208,22 @@ class WorkerRunTest(unittest.TestCase):
             'INFO - Stopped',
         ], self.logger.lines)
 
+    def test_worker_retry_then_permanent_fail(self):
+        self.mock_select_jobs.side_effect = helpers.create_database_error()
+        with self.assertRaises(DatabaseError):
+            worker = self.create_worker(max_cycles=4)
+            worker.run()
+        self.assertEqual([
+            'ERROR - Could not list running jobs',
+            "WARNING - Worker error, retrying (1/3); Error: (builtins.Exception) test-error [SQL: 'test-query']",
+            'ERROR - Could not list running jobs',
+            "WARNING - Worker error, retrying (2/3); Error: (builtins.Exception) test-error [SQL: 'test-query']",
+            'ERROR - Could not list running jobs',
+            "WARNING - Worker error, retrying (3/3); Error: (builtins.Exception) test-error [SQL: 'test-query']",
+            'ERROR - Could not list running jobs',
+            "ERROR - Worker failed more than 3 times; failing permanently",
+        ], self.logger.lines)
+
     def test_updates_status_for_job_failing_during_execution(self):
         self.mock_select_jobs.return_value.fetchall.return_value = [create_job_db_summary()]
         self.mock_getstatus.return_value = piazza.Status(piazza.STATUS_ERROR)
