@@ -29,10 +29,11 @@ sudo service tomcat7 restart
 
 # Create the development environment. Ensure proper EOL encoding (thank you Windows)
 sudo apt-get -y install dos2unix
-dos2unix /vagrant/scripts/create-development-environment.sh
-dos2unix /vagrant/scripts/run-in-development-mode.sh
+find /vagrant -type f -print0 | xargs -0 dos2unix
 /vagrant/scripts/create-development-environment.sh
-dos2unix /vagrant/.dev/environment-vars.sh
+
+# Run Tests
+/vagrant/scripts/test.sh
 
 # Start the application
 /vagrant/scripts/run-in-development-mode.sh
