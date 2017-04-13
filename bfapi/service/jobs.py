@@ -322,7 +322,7 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     return jobs
 
 
-def get_identical_jobs(scene_id: str, algorithm_id: str) -> List[Job]:
+def get_existing_redundant_job(user_id: str, scene_id: str, algorithm_id: str) -> Job:
     log = logging.getLogger(__name__)
     log.info('Job  services get by scene and algorithm', action=' service job get by scene and algorithm')
     conn = db.get_connection()
@@ -330,15 +330,33 @@ def get_identical_jobs(scene_id: str, algorithm_id: str) -> List[Job]:
     try:
         cursor = db.jobs.select_for_existing_jobs(conn, scene_id=scene_id, algorithm_id=algorithm_id)
     except db.DatabaseError as err:
-        log.error('Could not list jobs for <scene:%s> and <algorithm:%s>', scene_id, algorithm_id)
+        log.error('Could not check for identical jobs for <scene:%s> and <algorithm:%s>', scene_id, algorithm_id)
         db.print_diagnostics(err)
         raise err
     finally:
         conn.close()
 
-    jobs = []
-    for row in cursor.fetchall():
-        jobs.append(Job(
+    # Check if any identical Jobs matched
+    if cursor.rowcount > 0:
+        # Add this Job to the Jobs table of the user
+        row = cursor.fetchone():
+        try:
+            transaction = conn.begin()
+            db.jobs.insert_job_user(
+                conn,
+                job_id=row['job_id'],
+                user_id=user_id,
+            )
+            transaction.commit()
+        except db.DatabaseError as err:
+            log.error('Could not add existing job %s to user table for user "%s"', row['job_id'], user_id)
+            db.print_diagnostics(err)
+            raise
+        finally:
+            conn.close()
+        # Return the Job Metadata
+
+        job = Job(
             algorithm_name=row['algorithm_name'],
             algorithm_version=row['algorithm_version'],
             created_by=row['created_by'],
@@ -353,8 +371,13 @@ def get_identical_jobs(scene_id: str, algorithm_id: str) -> List[Job]:
             tide=row['tide'],
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
-        ))
-    return jobs
+        )
+
+        return job
+    else:
+        # No identical jobs matched
+        return None
+
 
 def get_by_scene(scene_id: str) -> List[Job]:
     log = logging.getLogger(__name__)

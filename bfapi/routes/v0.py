@@ -61,14 +61,16 @@ def create_job():
         return 'Invalid input: {}'.format(err), 400
 
     try:
-        # Does this result exist already - check existing Jobs
-        existingJobs = _jobs.get_identical_jobs(scene_id=scene_id, algorithm_id=service_id)
-        isExisting = True if len(existingJobs) > 0 else False
-        if isExisting:
-            # Return that existing Job reference back to the user
-            record = existingJobs[0]
+        # Does this result exist already?lG get any existing Jobs that match.
+        existingJob = _jobs.get_existing_redundant_job(
+            user_id=flask.request.user.user_id, 
+            scene_id=scene_id,
+            algorithm_id=service_id)
+        if existingJob is not None:
+            # A Job exists already. Return this. 
+            record = existingJob
         else:
-            # New, unique job. Create anew
+            # New job must be created
             record = _jobs.create(
                 user_id=flask.request.user.user_id,
                 service_id=service_id,
@@ -82,7 +84,7 @@ def create_job():
         return 'A database error prevents job execution', 500
     return flask.jsonify({
         'job': record.serialize(),
-    }), 200 if isExisting else 201
+    }), 200 if existingJob is not None else 201
 
 
 def download_geojson(job_id: str):
