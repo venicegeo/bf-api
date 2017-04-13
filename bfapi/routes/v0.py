@@ -61,13 +61,20 @@ def create_job():
         return 'Invalid input: {}'.format(err), 400
 
     try:
-        record = _jobs.create(
-            user_id=flask.request.user.user_id,
-            service_id=service_id,
-            scene_id=scene_id,
-            job_name=job_name.strip(),
-            planet_api_key=planet_api_key,
-        )
+        # Does this result exist already - check existing Jobs
+        existingJobs = _jobs.get_identical_jobs(scene_id=scene_id, algorithm_id=service_id)
+        if len(existingJobs) > 0:
+            # Return that existing Job reference back to the user
+            record = existingJobs[0]
+        else:
+            # New, unique job. Create anew
+            record = _jobs.create(
+                user_id=flask.request.user.user_id,
+                service_id=service_id,
+                scene_id=scene_id,
+                job_name=job_name.strip(),
+                planet_api_key=planet_api_key,
+            )
     except _jobs.PreprocessingError as err:
         return 'Cannot execute: {}'.format(err), 500
     except DatabaseError:

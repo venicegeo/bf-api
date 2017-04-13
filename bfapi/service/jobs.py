@@ -322,6 +322,40 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     return jobs
 
 
+def get_identical_jobs(scene_id: str, algorithm_id: str) -> List[Job]:
+    log = logging.getLogger(__name__)
+    log.info('Job  services get by scene and algorithm', action=' service job get by scene and algorithm')
+    conn = db.get_connection()
+
+    try:
+        cursor = db.jobs.select_for_existing_jobs(conn, scene_id=scene_id, algorithm_id=algorithm_id)
+    except db.DatabaseError as err:
+        log.error('Could not list jobs for <scene:%s> and <algorithm:%s>', scene_id, algorithm_id)
+        db.print_diagnostics(err)
+        raise err
+    finally:
+        conn.close()
+
+    jobs = []
+    for row in cursor.fetchall():
+        jobs.append(Job(
+            algorithm_name=row['algorithm_name'],
+            algorithm_version=row['algorithm_version'],
+            created_by=row['created_by'],
+            created_on=row['created_on'],
+            geometry=json.loads(row['geometry']),
+            job_id=row['job_id'],
+            name=row['name'],
+            scene_time_of_collect=row['captured_on'],
+            scene_sensor_name=row['sensor_name'],
+            scene_id=row['scene_id'],
+            status=row['status'],
+            tide=row['tide'],
+            tide_min_24h=row['tide_min_24h'],
+            tide_max_24h=row['tide_max_24h'],
+        ))
+    return jobs
+
 def get_by_scene(scene_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
     log.info('Job  service get by scene', action=' service job get by scene')
