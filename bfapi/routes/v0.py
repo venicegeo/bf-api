@@ -63,7 +63,8 @@ def create_job():
     try:
         # Does this result exist already - check existing Jobs
         existingJobs = _jobs.get_identical_jobs(scene_id=scene_id, algorithm_id=service_id)
-        if len(existingJobs) > 0:
+        isExisting = True if len(existingJobs) > 0 else False
+        if isExisting:
             # Return that existing Job reference back to the user
             record = existingJobs[0]
         else:
@@ -81,7 +82,7 @@ def create_job():
         return 'A database error prevents job execution', 500
     return flask.jsonify({
         'job': record.serialize(),
-    }), 201
+    }), 200 if isExisting else 201
 
 
 def download_geojson(job_id: str):
