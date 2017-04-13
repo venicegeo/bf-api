@@ -272,6 +272,7 @@ def select_for_existing_jobs(
         conn: Connection,
         *,
         algorithm_id: str,
+        algorithm_version: str,
         scene_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
     log.info('Db select jobs for scene and algorithm', action='database select record')
@@ -281,12 +282,14 @@ def select_for_existing_jobs(
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
          WHERE j.scene_id = %(scene_id)s
-           AND algorithm_id = %(algorithm_id)s
+           AND j.algorithm_id = %(algorithm_id)s
+           AND j.algorithm_version = %(algorithm_version)s
            AND j.status IN ('Submitted', 'Running', 'Success')
         ORDER BY created_on DESC
         """
     params = {
         'algorithm_id': algorithm_id,
+        'algorithm_version': algorithm_version,
         'scene_id': scene_id,
     }
     return conn.execute(query, params)

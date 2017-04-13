@@ -322,21 +322,34 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     return jobs
 
 
-def get_existing_redundant_job(user_id: str, scene_id: str, algorithm_id: str) -> Job:
+def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str) -> Job:
     log = logging.getLogger(__name__)
     log.info('Job  services get by scene and algorithm', action=' service job get by scene and algorithm')
     conn = db.get_connection()
 
+    # Fetch algorithm to compare version numbers
     try:
-        cursor = db.jobs.select_for_existing_jobs(conn, scene_id=scene_id, algorithm_id=algorithm_id)
+        algorithm = algorithms.get(service_id)
+    except (algorithms.NotFound,
+            algorithms.ValidationError) as err:
+        log.error('Could not find algorithm: %s', err)
+        raise PreprocessingError(err)
+
+    # Query for existing jobs
+    try:
+        cursor = db.jobs.select_for_existing_jobs(conn, 
+            scene_id=scene_id, 
+            algorithm_id=service_id, 
+            algorithm_version=algorithm.version
+        )
     except db.DatabaseError as err:
-        log.error('Could not check for identical jobs for <scene:%s> and <algorithm:%s>', scene_id, algorithm_id)
+        log.error('Could not check for identical jobs for <scene:%s> and <service:%s>', scene_id, service_id)
         db.print_diagnostics(err)
         raise err
     finally:
         conn.close()
 
-    # Check if any identical Jobs matched
+    # if any identical Jobs matched
     if cursor.rowcount > 0:
         # Add this Job to the Jobs table of the user
         row = cursor.fetchone():
@@ -354,9 +367,9 @@ def get_existing_redundant_job(user_id: str, scene_id: str, algorithm_id: str) -
             raise
         finally:
             conn.close()
-        # Return the Job Metadata
 
-        job = Job(
+        # Return the Job Metadata
+        return Job(
             algorithm_name=row['algorithm_name'],
             algorithm_version=row['algorithm_version'],
             created_by=row['created_by'],
@@ -372,8 +385,6 @@ def get_existing_redundant_job(user_id: str, scene_id: str, algorithm_id: str) -
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
         )
-
-        return job
     else:
         # No identical jobs matched
         return None

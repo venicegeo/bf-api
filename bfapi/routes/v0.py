@@ -65,7 +65,7 @@ def create_job():
         existingJob = _jobs.get_existing_redundant_job(
             user_id=flask.request.user.user_id, 
             scene_id=scene_id,
-            algorithm_id=service_id)
+            service_id=service_id)
         if existingJob is not None:
             # A Job exists already. Return this. 
             record = existingJob
