@@ -352,7 +352,7 @@ def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str) -> 
     # if any identical Jobs matched
     if cursor.rowcount > 0:
         # Add this Job to the Jobs table of the user
-        row = cursor.fetchone():
+        row = cursor.fetchone()
         try:
             transaction = conn.begin()
             db.jobs.insert_job_user(
