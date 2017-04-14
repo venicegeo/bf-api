@@ -41,4 +41,4 @@ find /vagrant -type f -print0 | xargs -0 dos2unix
 # Run Tests
 /vagrant/scripts/test.sh
 # Start the application
-/vagrant/scripts/run-in-development-mode.sh
+#/vagrant/scripts/run-in-development-mode.sh
