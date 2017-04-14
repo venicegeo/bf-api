@@ -10,8 +10,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 		bfapi.vm.hostname = "bf-api.dev"
 		bfapi.vm.provision :shell, path: "vagrant/vagrant-bootstrap.sh"
 		bfapi.vm.network "forwarded_port", guest: 80, host: 8089
+		bfapi.vm.network "forwarded_port", guest: 5432, host: 5432
 		bfapi.vm.provider "virtualbox" do |vb|
-	      vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+	      vb.customize [
+	      	"modifyvm", :id,
+	      	"--natdnshostresolver1", "on",
+	      	"--memory", "2048"
+	      ]
 		end
 	end
 	
