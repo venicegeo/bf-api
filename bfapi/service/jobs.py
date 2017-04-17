@@ -323,6 +323,9 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
 
 
 def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str) -> Job:
+    if BLOCK_REDUNDANT_JOB_CHECK:
+        return None
+    
     log = logging.getLogger(__name__)
     log.info('Job  services get by scene and algorithm', action=' service job get by scene and algorithm')
     conn = db.get_connection()
