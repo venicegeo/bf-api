@@ -115,3 +115,5 @@ POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
 GEOSERVER_HOST = _services.get('pz-geoserver-efs.credentials.host')
 GEOSERVER_USERNAME = _services.get('pz-geoserver-efs.credentials.username')
 GEOSERVER_PASSWORD = _services.get('pz-geoserver-efs.credentials.password')
+
+BLOCK_REDUNDANT_JOB_CHECK = os.getenv('BLOCK_REDUNDANT_JOB_CHECK', "False") == "True"
