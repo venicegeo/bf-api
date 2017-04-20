@@ -228,7 +228,6 @@ class GetSceneTest(unittest.TestCase):
     def test_throws_when_scene_id_is_malformed(self):
         malformed_ids = (
             'lolwut',
-            'landsat:LC80110632016220LGN00',
             'planetnope:foobar',
         )
         for malformed_id in malformed_ids:

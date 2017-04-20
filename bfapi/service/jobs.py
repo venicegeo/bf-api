@@ -591,6 +591,8 @@ def _create_algorithm_cli_cmd(
             band_flag = '--bands 2 4'
         elif scene_platform == scenes.PLATFORM_RAPIDEYE:
             band_flag = '--bands 2 5'
+        elif scene_platform == scenes.PLATFORM_LANDSAT:
+            band_flag = '--bands 1 1'
         return ' '.join([
             ' '.join(['-i ' + filename for filename in geotiff_filenames]),
             band_flag,
