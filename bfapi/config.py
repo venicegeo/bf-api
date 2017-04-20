@@ -86,11 +86,9 @@ def _getservices() -> dict:
 
 DOMAIN = os.getenv('DOMAIN', 'localdomain')
 
-_normalized_domain = DOMAIN.replace('int.', 'stage.')
-
-PIAZZA       = os.getenv('PIAZZA', 'piazza.' + _normalized_domain)
-CATALOG      = os.getenv('CATALOG', 'bf-ia-broker.' + _normalized_domain)
-UI           = os.getenv('UI', 'beachfront.' + _normalized_domain)
+PIAZZA       = os.getenv('PIAZZA', 'piazza.' + DOMAIN)
+CATALOG      = os.getenv('CATALOG', 'bf-ia-broker.' + DOMAIN)
+UI           = os.getenv('UI', 'beachfront.' + DOMAIN)
 
 PIAZZA_API_KEY = os.getenv('PIAZZA_API_KEY')
 SECRET_KEY     = os.getenv('SECRET_KEY', os.urandom(24).hex())
