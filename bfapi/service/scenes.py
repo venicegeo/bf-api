@@ -154,7 +154,7 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
 
     feature = response.json()
 
-    # TODO: It's likely that Ia-broker will want to move towards a more generic interface for
+    # TODO: It's likely that ia-broker will want to move towards a more generic interface for
     # describing the activation process of data using language not specific to any provider.
     # Until then, switch on the platform name
     if platform in ('rapideye', 'planetscope'): 

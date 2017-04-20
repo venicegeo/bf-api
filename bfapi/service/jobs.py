@@ -122,9 +122,15 @@ def create(
         log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
 
-    # Determine GeoTIFF URLs
-    geotiff_filenames = ['multispectral.TIF']
-    geotiff_urls = [scenes.create_download_url(scene.id, planet_api_key)]
+    # Determine GeoTIFF URLs.
+    if scene.platform in ('rapideye', 'planetscope'): 
+        geotiff_filenames = ['multispectral.TIF']
+        geotiff_urls = [scenes.create_download_url(scene.id, planet_api_key)]
+    elif scene.platform in ('landsat'):
+        geotiff_filenames = ['coastal.TIF', 'swir1.TIF']
+        geotiff_urls = [scene.geotiff_coastal, scene.geotiff_swir1]
+    else:
+        raise PreprocessingError('Unexpected platform')
 
     # Dispatch to Piazza
     try:
