@@ -117,12 +117,12 @@ create_virtualenv() {
             exit 1
         fi
     fi
-    if ! (which python3 && python3 -c 'import sys; assert sys.version_info >= (3, 5, 0)') >/dev/null 2>&1; then
+    if ! (which python3.5 && python3.5 -c 'import sys; assert sys.version_info >= (3, 5, 0)') >/dev/null 2>&1; then
         echo -e "\n$FUNCNAME: Python 3.5.0 or higher must be installed first"
         exit 1
     fi
     echo -e "\n$FUNCNAME: Creating $VIRTUALENV_ROOT (virtual environment)"
-    python3 -m venv $VIRTUALENV_ROOT |indent_stream
+    virtualenv --python=python3.5 $VIRTUALENV_ROOT --always-copy |indent_stream
     . $VIRTUALENV_ROOT/bin/activate
     pip install -r requirements.txt |indent_stream
     deactivate

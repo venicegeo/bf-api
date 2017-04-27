@@ -10,7 +10,7 @@ report
 manifest.int.yml
 manifest.stage.yml
 manifest.prod.yml
-
+.vagrant
 .project
-
 .pydevproject
+.dev
