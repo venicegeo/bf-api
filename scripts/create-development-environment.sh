@@ -49,10 +49,10 @@ create_environment_vars() {
             {
               "name": "pz-geoserver-efs",
               "credentials": {
-                "host": "localhost:8443",
-                "username": "beachfront",
-                "password": "secret",
-                "port": "8443"
+                "host": "localhost:8080",
+                "username": "admin",
+                "password": "geoserver",
+                "port": "8080"
               }
             }
           ]
