@@ -9,6 +9,9 @@ for the Beachfront front-end.
 Python, GeoServer, PostgreSQL, and PostGIS. For this reason, a Vagrant setup is
 available, and outlined below.
 
+> **Without Vagrant.** If you would rather not use Vagrant to manage
+  your development instance, check the [vagrant-bootstrap.sh](vagrant/vagrant-bootstrap.sh) file for the setup procedure and adapt it as necessary for your system.
+
 ### 1. Install dependencies
 
 If you have not already done so, install Vagrant directly (not via your package
