@@ -62,6 +62,10 @@ Configure the following environment variables in `.dev/environment-vars.sh`, as 
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
 | `MUTE_LOGS`         | Set to `1` to mute the logs (happens by default in test mode) |
 
+Restart the instance to make it take account of the environment variables:
+
+    $ vagrant reload
+
 ### 4. Test the instance
 
 Check if everything is OK by querying the Vagrant-forwarded port for `bf-api`.
@@ -91,7 +95,7 @@ The Gunicorn server is configured with auto-reloading, so any changes
 should trigger a reload of the server. However, if you need to hard-reload the
 server, use the following command:
 
-    $ vagrant halt; vagrant up
+    $ vagrant reload
 
 ### Manually run the server to see standard output
 
