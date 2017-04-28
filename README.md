@@ -38,11 +38,6 @@ They will be important for accessing the services in the virtual machine.
 
 ### 3. Set up your environment variables
 
-Connect to the virtual machine and navigate to the source repository:
-
-    $ vagrant ssh
-    $ cd /vagrant
-
 > If you are using an instance of the `bf-api` repository that already was set
   up to run without vagrant, you will need to re-build your development environment
   variables. Clear them by running:
@@ -66,8 +61,6 @@ Configure the following environment variables in `.dev/environment-vars.sh`, as 
 | `SECRET_KEY`        | Overrides the randomly-generated secret key used by Flask for session I/O |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
 | `MUTE_LOGS`         | Set to `1` to mute the logs (happens by default in test mode) |
-
-You can exit the Vagrant connection afterward.
 
 ### 4. Test the instance
 
