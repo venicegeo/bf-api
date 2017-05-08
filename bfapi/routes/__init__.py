@@ -47,7 +47,6 @@ def login():
     except users.Error:
         return 'Cannot log in: an internal error prevents authentication', 500
 
-    flask.session.permanent = True
     flask.session['api_key'] = user.api_key
 
     # Send user back to the UI
