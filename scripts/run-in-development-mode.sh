@@ -18,7 +18,7 @@ if [ "${PORT}" == "" ]; then
 fi
 
 gunicorn bfapi.server:server \
-  -b localhost:${PORT} \
+  -b 0.0.0.0:${PORT} \
   --threads 5 \
   --keyfile .dev/ssl-certificate.key \
   --certfile .dev/ssl-certificate.pem \
