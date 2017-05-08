@@ -24,9 +24,10 @@ from bfapi import db
 from bfapi.config import CATALOG, DOMAIN
 
 
-PATTERN_SCENE_ID = re.compile(r'^(planetscope|rapideye):[\w_-]+$')
+PATTERN_SCENE_ID = re.compile(r'^(planetscope|rapideye|landsat):[\w_-]+$')
 PLATFORM_PLANETSCOPE = 'planetscope'
 PLATFORM_RAPIDEYE = 'rapideye'
+PLATFORM_LANDSAT = 'landsat'
 STATUS_ACTIVE = 'active'
 STATUS_ACTIVATING = 'activating'
 STATUS_INACTIVE = 'inactive'
@@ -154,11 +155,23 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
 
     feature = response.json()
 
-    status = _extract_status(scene_id, feature)
-
-    geotiff_multispectral = feature['properties'].get('location')
-    if status == STATUS_ACTIVE and not geotiff_multispectral:
-        raise ValidationError(scene_id, 'Scene is activated but missing GeoTIFF URL')
+    # TODO: It's likely that ia-broker will want to move towards a more generic interface for
+    # describing the activation process of data using language not specific to any provider.
+    # Until then, switch on the platform name
+    geotiff_multispectral, geotiff_coastal, geotiff_swir1 = None, None, None
+    if platform in ('rapideye', 'planetscope'): 
+        status = _extract_status(scene_id, feature)
+        geotiff_multispectral = feature['properties'].get('location')
+        if status == STATUS_ACTIVE and not geotiff_multispectral:
+            raise ValidationError(scene_id, 'Scene is activated but missing GeoTIFF URL')
+    elif platform in ('landsat'):
+        geotiff_coastal = feature['properties'].get('bands').get('coastal')
+        geotiff_swir1 = feature['properties'].get('bands').get('swir1')
+        if not geotiff_coastal or not geotiff_swir1:
+            raise ValidationError(scene_id, 'Scene is missing Required Bands')
+        status = STATUS_ACTIVE
+    else:
+        raise ValidationError(scene_id, 'Unrecognized platform type')
 
     scene = Scene(
         scene_id=scene_id,
@@ -167,6 +180,8 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
         cloud_cover=_extract_cloud_cover(scene_id, feature),
         geometry=_extract_geometry(scene_id, feature),
         geotiff_multispectral=geotiff_multispectral,
+        geotiff_coastal=geotiff_coastal,
+        geotiff_swir1=geotiff_swir1,
         platform=platform,
         resolution=_extract_resolution(scene_id, feature),
         sensor_name=_extract_sensor_name(scene_id, feature),

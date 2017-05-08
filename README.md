@@ -163,3 +163,12 @@ cf set-env bf-api PIAZZA_API_KEY <valid Piazza API key>
 | `SECRET_KEY`        | Overrides the randomly-generated secret key used by Flask for session I/O |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
 | `MUTE_LOGS`         | Set to `1` to mute the logs (happens by default in test mode) |
+
+
+### 6. Vagrant Script
+
+bf-api contains a series of Vagrant scripts which provide a single-step automated method for execution.  This also aids Windows users who are unable to run shell scripts, or run a gunicorn application. 
+
+With Vagrant installed, simply execute the `vagrant up` command from the root directory of this project. The `vagrant/vagrant-bootstrap.sh` file is what is executed on the guest machine. This file can also be used as a reference to what exact steps are taken in order to run the bf-api. 
+
+This Vagrant setup will install PostGres and GeoServer along with bf-api, and is intended to be a completely enclosed deployment for bf-api that one could connect the bf-ui to for local development purposes.
