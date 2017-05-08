@@ -92,7 +92,6 @@ def init(app: flask.Flask):
 
     app.secret_key = config.SECRET_KEY
     app.response_class.default_mimetype = FALLBACK_MIMETYPE
-    app.permanent_session_lifetime = config.SESSION_TTL
 
     install_service_assets()
     apply_middlewares(app)
