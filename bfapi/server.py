@@ -25,7 +25,7 @@ def apply_middlewares(app: flask.Flask):
     app.before_request(middleware.csrf_filter)
     app.before_request(middleware.auth_filter)
     app.after_request(middleware.apply_default_response_headers)
-    app.after_request(middleware.check_if_session_extends)
+    app.after_request(middleware.strip_cookie_headers)
 
     CORS(app,
          origins=middleware.PATTERNS_AUTHORIZED_ORIGINS,
@@ -42,6 +42,7 @@ def attach_routes(app: flask.Flask):
 
     # Protected endpoints
     app.add_url_rule(methods=['GET'], rule='/logout', view_func=routes.logout)
+    app.add_url_rule(methods=['GET'], rule='/keepalive', view_func=routes.keepalive)
     app.add_url_rule(methods=['GET'], rule='/v0/user', view_func=routes.v0.get_user_data)
     app.add_url_rule(methods=['GET'], rule='/v0/algorithm', view_func=routes.v0.list_algorithms)
     app.add_url_rule(methods=['GET'], rule='/v0/algorithm/<service_id>', view_func=routes.v0.get_algorithm)
