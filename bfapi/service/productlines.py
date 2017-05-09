@@ -207,14 +207,6 @@ def get_all() -> List[ProductLine]:
 def _create_id() -> str:
     return ''.join([chr(n) for n in random.sample(range(97, 122), 16)])
 
-
-def _create_job_name(productline_name: str, scene_id: str):
-    return '/'.join([
-        re.sub(r'\W+', '_', productline_name)[0:32],  # Truncate and normalize
-        re.sub(r'^landsat:', '', scene_id),
-    ]).upper()
-
-
 def _find_existing_job_id_for_scene(scene_id: str, algorithm_id: str) -> str:
     log = logging.getLogger(__name__)
     log.debug('Searching for existing jobs for scene <%s> and algorithm <%s>', scene_id, algorithm_id)
