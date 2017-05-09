@@ -123,11 +123,14 @@ def create(
         raise PreprocessingError(err)
 
     # Determine GeoTIFF URLs.
-    if scene.platform in ('rapideye', 'planetscope'): 
+    if scene.platform in (scenes.PLATFORM_RAPIDEYE, scenes.PLATFORM_PLANETSCOPE):
         geotiff_filenames = ['multispectral.TIF']
         geotiff_urls = [scenes.create_download_url(scene.id, planet_api_key)]
-    elif scene.platform in ('landsat'):
+    elif scene.platform == scenes.PLATFORM_LANDSAT:
         geotiff_filenames = ['coastal.TIF', 'swir1.TIF']
+        geotiff_urls = [scene.geotiff_coastal, scene.geotiff_swir1]
+    elif scene.platform == scenes.PLATFORM_SENTINEL:
+        geotiff_filenames = ['coastal.JP2', 'swir1.JP2']
         geotiff_urls = [scene.geotiff_coastal, scene.geotiff_swir1]
     else:
         raise PreprocessingError('Unexpected platform')
@@ -591,7 +594,7 @@ def _create_algorithm_cli_cmd(
             band_flag = '--bands 2 4'
         elif scene_platform == scenes.PLATFORM_RAPIDEYE:
             band_flag = '--bands 2 5'
-        elif scene_platform == scenes.PLATFORM_LANDSAT:
+        elif scene_platform in (scenes.PLATFORM_LANDSAT, scenes.PLATFORM_SENTINEL):
             band_flag = '--bands 1 1'
         return ' '.join([
             ' '.join(['-i ' + filename for filename in geotiff_filenames]),
