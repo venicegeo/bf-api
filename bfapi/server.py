@@ -25,6 +25,7 @@ def apply_middlewares(app: flask.Flask):
     app.before_request(middleware.csrf_filter)
     app.before_request(middleware.auth_filter)
     app.after_request(middleware.apply_default_response_headers)
+    app.after_request(middleware.check_if_session_extends)
 
     CORS(app,
          origins=middleware.PATTERNS_AUTHORIZED_ORIGINS,
