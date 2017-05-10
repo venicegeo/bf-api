@@ -32,6 +32,8 @@ PATTERNS_PUBLIC_ENDPOINTS = (
     re.compile(r'^/v0/scene/[^/]+.TIF$'),
 )
 
+ENDPOINTS_DO_NOT_EXTEND_SESSION = ['/v0/job', '/v0/productline']
+
 
 def apply_default_response_headers(response: flask.Response) -> flask.Response:
     response.headers.setdefault('X-Frame-Options', 'DENY')
@@ -43,8 +45,7 @@ def apply_default_response_headers(response: flask.Response) -> flask.Response:
 
 def strip_cookie_headers(response: flask.Response) -> flask.Response:
     # do not extend life of Flask session on automated status checks
-    statusRequestPaths = ['/v0/job', '/v0/productline']
-    if flask.request.method == 'GET' and flask.request.script_root in statusRequestPaths:
+    if flask.request.method == 'GET' and flask.request.script_root in ENDPOINTS_DO_NOT_EXTEND_SESSION:
         response.headers.remove('Set-Cookie')
     return response
 
