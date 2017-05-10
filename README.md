@@ -100,14 +100,20 @@ server, use the following command:
 
     $ vagrant reload
 
-### Manually run the server to see standard output
-
-In order to do this, you must connect to the Vagrant machine, shut down the
-background (provisioned) server, and run it manually:
+### Manually run the server
 
     $ vagrant ssh
     $ killall gunicorn
     $ /vagrant/scripts/run-in-development-mode.sh
+
+### Running with a local mocked GeoAxis authentication server
+
+This is necessary for the Beachfront UI to work properly in a development
+environment. Setting the `FAKE_GEOAXIS` environment variable tells Vagrant to
+clone and load [fake_geoaxis](https://github.com/venicegeo/fake_geoaxis)
+alongside the `bf-api`. You can do this with a reload:
+
+    $ FAKE_GEOAXIS=true vagrant reload
 
 ## Deploying
 
