@@ -122,29 +122,29 @@ def create(
         log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
 
-    # Determine GeoTIFF URLs.
+    # Determine scene URLs.
     if scene.platform in (scenes.PLATFORM_RAPIDEYE, scenes.PLATFORM_PLANETSCOPE):
-        geotiff_filenames = ['multispectral.TIF']
-        geotiff_urls = [scenes.create_download_url(scene.id, planet_api_key)]
+        scene_filenames = ['multispectral.TIF']
+        scene_urls = [scenes.create_download_url(scene.id, planet_api_key)]
     elif scene.platform == scenes.PLATFORM_LANDSAT:
-        geotiff_filenames = ['coastal.TIF', 'swir1.TIF']
-        geotiff_urls = [scene.geotiff_coastal, scene.geotiff_swir1]
+        scene_filenames = ['coastal.TIF', 'swir1.TIF']
+        scene_urls = [scene.image_coastal, scene.image_swir1]
     elif scene.platform == scenes.PLATFORM_SENTINEL:
-        geotiff_filenames = ['coastal.JP2', 'swir1.JP2']
-        geotiff_urls = [scene.geotiff_coastal, scene.geotiff_swir1]
+        scene_filenames = ['coastal.JP2', 'swir1.JP2']
+        scene_urls = [scene.image_coastal, scene.image_swir1]
     else:
         raise PreprocessingError('Unexpected platform')
 
     # Dispatch to Piazza
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
-        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, geotiff_filenames, scene.platform)
+        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, scene_filenames, scene.platform)
         job_id = piazza.execute(algorithm.service_id, {
             'body': {
                 'content': json.dumps({
                     'cmd': cli_cmd,
-                    'inExtFiles': geotiff_urls,
-                    'inExtNames': geotiff_filenames,
+                    'inExtFiles': scene_urls,
+                    'inExtNames': scene_filenames,
                     'outGeoJson': ['shoreline.geojson'],
                     'userID': user_id,
                 }),
@@ -575,13 +575,13 @@ class Worker(threading.Thread):
 
 def _create_algorithm_cli_cmd(
         algo_interface: str,
-        geotiff_filenames: list,
+        image_filenames: list,
         scene_platform: str) -> str:
     log = logging.getLogger(__name__)
     if algo_interface == 'pzsvc-ossim':
         return ' '.join([
             'shoreline',
-            '--image ' + ','.join(geotiff_filenames),
+            '--image ' + ','.join(image_filenames),
             '--projection geo-scaled',
             '--threshold 0.5',
             '--tolerance 0.075',
@@ -596,7 +596,7 @@ def _create_algorithm_cli_cmd(
         elif scene_platform in (scenes.PLATFORM_LANDSAT, scenes.PLATFORM_SENTINEL):
             band_flag = '--bands 1 1'
         return ' '.join([
-            ' '.join(['-i ' + filename for filename in geotiff_filenames]),
+            ' '.join(['-i ' + filename for filename in image_filenames]),
             band_flag,
             '--basename shoreline',
             '--smooth 1.0'

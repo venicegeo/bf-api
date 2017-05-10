@@ -238,7 +238,7 @@ def get_user_data():
 
 # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 # FIXME -- hopefully this can move into the IA Broker eventually
-def forward_to_geotiff(scene_id: str):
+def forward_to_scene(scene_id: str):
     planet_api_key = flask.request.args.get('planet_api_key')
     if not planet_api_key:
         return 'Missing `planet_api_key` parameter', 400
@@ -247,15 +247,15 @@ def forward_to_geotiff(scene_id: str):
     user_id = user.user_id if user else None
     try:
         scene = _scenes.get(scene_id, planet_api_key)
-        geotiff_url = _scenes.activate(scene, planet_api_key, user_id)
+        scene_url = _scenes.activate(scene, planet_api_key, user_id)
     except _scenes.NotFound:
         return 'Cannot download: Scene `{}` not found'.format(scene_id), 404
     except (_scenes.CatalogError,
             _scenes.MalformedSceneID) as err:
         return 'Cannot download: {}'.format(err), 500
 
-    if geotiff_url:
-        return flask.redirect(geotiff_url)
+    if scene_url:
+        return flask.redirect(scene_url)
 
     return """
         <h1>GeoTIFF for <code>{scene_id}</code> is activating</h1>

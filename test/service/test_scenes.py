@@ -71,10 +71,10 @@ class ActivateSceneTest(unittest.TestCase):
     def test_returns_multispectral_url_if_activated(self, m: rm.Mocker):
         scene = create_scene()
         scene.status = scenes.STATUS_ACTIVE
-        scene.geotiff_multispectral = 'test-geotiff-multispectral-url'
+        scene.image_multispectral = 'test-image-multispectral-url'
         m.get('/planet/activate/planetscope/test-scene-id', text='')
         url = scenes.activate(scene, 'test-planet-api-key', 'test-user-id')
-        self.assertEqual('test-geotiff-multispectral-url', url)
+        self.assertEqual('test-image-multispectral-url', url)
 
     def test_returns_nothing_if_activated(self, m: rm.Mocker):
         scene = create_scene()
@@ -100,7 +100,7 @@ class ActivateSceneTest(unittest.TestCase):
         m.get('/planet/activate/planetscope/test-scene-id', status_code=404, text='wat')
         with self.assertRaises(scenes.NotFound):
             scenes.activate(scene, 'test-planet-api-key', 'test-user-id')
-            
+
     def test_throws_when_not_permitted(self, m: rm.Mocker):
         scene = create_scene()
         m.get('/planet/activate/planetscope/test-scene-id', status_code=401, text='oopsie')
@@ -110,11 +110,11 @@ class ActivateSceneTest(unittest.TestCase):
 class CreateDownloadURLTest(unittest.TestCase):
     def test_returns_correct_url(self):
         url = scenes.create_download_url('test-scene-id', 'test-planet-api-key')
-        self.assertEqual('https://bf-api.test.localdomain/v0/scene/test-scene-id.TIF?planet_api_key=test-planet-api-key', url)
+        self.assertEqual('https://bf-api.test.localdomain/v0/scene/test-scene-id?planet_api_key=test-planet-api-key', url)
 
     def test_accepts_blank_planet_api_key(self):
         url = scenes.create_download_url('test-scene-id')
-        self.assertEqual('https://bf-api.test.localdomain/v0/scene/test-scene-id.TIF?planet_api_key=', url)
+        self.assertEqual('https://bf-api.test.localdomain/v0/scene/test-scene-id?planet_api_key=', url)
 
 
 class GetSceneTest(unittest.TestCase):
@@ -172,22 +172,22 @@ class GetSceneTest(unittest.TestCase):
                            [115.78907135188213, 26.67939763560932]]],
                          scene.geometry.get('coordinates'))
 
-    def test_returns_correct_geotiff_multispectral_url_for_active_scene(self):
+    def test_returns_correct_image_multispectral_url_for_active_scene(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_ACTIVE)
         scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
-        self.assertEqual('test-location', scene.geotiff_multispectral)
+        self.assertEqual('test-location', scene.image_multispectral)
 
-    def test_returns_correct_geotiff_multispectral_url_for_inactive_scene(self):
+    def test_returns_correct_image_multispectral_url_for_inactive_scene(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
         scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
-        self.assertIsNone(scene.geotiff_multispectral)
+        self.assertIsNone(scene.image_multispectral)
 
-    def test_returns_correct_geotiff_single_band_urls(self):
+    def test_returns_correct_image_single_band_urls(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
         scene = scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
         # FIXME -- if Planet's API ever offers Landsat retrieval...
-        self.assertIsNone(scene.geotiff_coastal)
-        self.assertIsNone(scene.geotiff_swir1)
+        self.assertIsNone(scene.image_coastal)
+        self.assertIsNone(scene.image_swir1)
 
     def test_returns_correct_resolution(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', text=RESPONSE_SCENE_INACTIVE)
@@ -219,7 +219,7 @@ class GetSceneTest(unittest.TestCase):
         self.mock_requests.get('/planet/planetscope/test-scene-id', status_code=404, text='wat')
         with self.assertRaises(scenes.NotFound):
             scenes.get('planetscope:test-scene-id', 'test-planet-api-key')
-            
+
     def test_throws_when_not_permitted(self):
         self.mock_requests.get('/planet/planetscope/test-scene-id', status_code=401, text='oopsie')
         with self.assertRaises(scenes.NotPermitted):
