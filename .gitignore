@@ -14,3 +14,7 @@ manifest.prod.yml
 .project
 .pydevproject
 .dev
+.fake_geoaxis
+.python-version
+.python_version
+*.log
