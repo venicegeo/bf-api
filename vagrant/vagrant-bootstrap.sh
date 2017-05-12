@@ -23,10 +23,9 @@ sudo apt-get -y install openjdk-8-jdk tomcat7 unzip
 # Ensure Tomcat is pointing to JDK8
 sudo echo 'JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64' >> /etc/default/tomcat7
 # Download and Install
-wget --no-verbose http://sourceforge.net/projects/geoserver/files/GeoServer/2.8.2/geoserver-2.8.2-war.zip
+wget http://sourceforge.net/projects/geoserver/files/GeoServer/2.8.2/geoserver-2.8.2-war.zip
 unzip geoserver-2.8.2-war.zip geoserver.war
 sudo mv geoserver.war /var/lib/tomcat7/webapps/
-
 sudo service tomcat7 restart
 # Create Workspace
 sudo curl http://localhost:8080/geoserver/rest/workspaces --user admin:geoserver --header "Content-Type:application/xml" -d "<workspace><name>piazza</name></workspace>"
@@ -39,5 +38,7 @@ find /vagrant -type f -print0 | xargs -0 dos2unix
 
 # Create environment
 /vagrant/scripts/create-development-environment.sh
-
-exit 0
+# Run Tests
+/vagrant/scripts/test.sh
+# Start the application
+/vagrant/scripts/run-in-development-mode.sh
