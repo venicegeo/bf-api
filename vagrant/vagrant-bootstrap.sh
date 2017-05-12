@@ -36,9 +36,8 @@ sudo curl http://localhost.dev:8080/geoserver/rest/workspaces/piazza/datastores 
 sudo apt-get -y install dos2unix
 find /vagrant -type f -print0 | xargs -0 dos2unix
 
+echo "Creating development environment..."
 # Create environment
 /vagrant/scripts/create-development-environment.sh
-# Run Tests
-/vagrant/scripts/test.sh
-# Start the application
-/vagrant/scripts/run-in-development-mode.sh
+
+exit 0
