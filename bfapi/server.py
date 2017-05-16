@@ -25,7 +25,6 @@ def apply_middlewares(app: flask.Flask):
     app.before_request(middleware.csrf_filter)
     app.before_request(middleware.auth_filter)
     app.after_request(middleware.apply_default_response_headers)
-    app.after_request(middleware.strip_cookie_headers)
 
     CORS(app,
          origins=middleware.PATTERNS_AUTHORIZED_ORIGINS,
@@ -94,8 +93,6 @@ def init(app: flask.Flask):
 
     app.secret_key = config.SECRET_KEY
     app.response_class.default_mimetype = FALLBACK_MIMETYPE
-    app.permanent_session_lifetime = config.SESSION_TTL
-    app.session_refresh_each_request = False
 
     install_service_assets()
     apply_middlewares(app)

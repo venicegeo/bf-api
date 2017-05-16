@@ -43,15 +43,6 @@ def apply_default_response_headers(response: flask.Response) -> flask.Response:
     return response
 
 
-def strip_cookie_headers(response: flask.Response) -> flask.Response:
-    # do not extend life of Flask session on automated status checks
-    if flask.request.method == 'GET' and flask.request.path in ENDPOINTS_DO_NOT_EXTEND_SESSION:
-        flask.session.modified = False
-    elif flask.request.method != 'OPTIONS':
-        flask.session.modified = True
-    return response
-
-
 def auth_filter():
     log = logging.getLogger(__name__)
     request = flask.request
