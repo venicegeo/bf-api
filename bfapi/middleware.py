@@ -45,7 +45,7 @@ def apply_default_response_headers(response: flask.Response) -> flask.Response:
 
 def strip_cookie_headers(response: flask.Response) -> flask.Response:
     # do not extend life of Flask session on automated status checks
-    if flask.request.method == 'GET' and flask.request.script_root in ENDPOINTS_DO_NOT_EXTEND_SESSION:
+    if flask.request.method == 'GET' and flask.request.path in ENDPOINTS_DO_NOT_EXTEND_SESSION:
         response.headers.remove('Set-Cookie')
     return response
 
