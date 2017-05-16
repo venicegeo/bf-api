@@ -80,7 +80,7 @@ class LoginTest(unittest.TestCase):
         self.mock_authenticate.return_value = create_user()
         self.request.args = {'code': 'test-auth-code'}
         routes.login()
-        self.assertTrue(self.session.permanent)
+        self.assertFalse(self.session.permanent)
 
     def test_redirects_to_ui_url_on_auth_success(self):
         self.mock_authenticate.return_value = create_user()
