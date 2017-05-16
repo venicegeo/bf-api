@@ -54,7 +54,7 @@ def create_job():
         job_name = _get_string(payload, 'name', max_length=100)
         planet_api_key = _get_string(payload, 'planet_api_key', max_length=64)
         service_id = _get_string(payload, 'algorithm_id', max_length=64)
-        scene_id = _get_string(payload, 'scene_id', max_length=64)
+        scene_id = _get_string(payload, 'scene_id', max_length=100)
     except JSONDecodeError:
         return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
