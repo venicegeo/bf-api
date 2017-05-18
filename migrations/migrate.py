@@ -78,17 +78,16 @@ def get_migrations_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 def get_liquibase_location(path):
-    path = path or './liquibase/liquibase'
-    return os.path.normpath(os.path.join(get_migrations_dir(), path))
+    path = path or os.path.join(get_migrations_dir(), './liquibase/liquibase')
+    return os.path.normpath(path)
 
 def get_changelog_location(path):
-    path = path or './changelog.xml'
-    thisfile = os.path.abspath(__file__)
-    thisdir, _ = os.path.split(thisfile)
-    return os.path.normpath(os.path.join(get_migrations_dir(), path))
+    path = path or os.path.join(get_migrations_dir(), './changelog.xml')
+    return os.path.normpath(path)
 
 def get_postgresql_jar(path):
-    return path or os.path.normpath(os.path.join(get_migrations_dir(), 'postgresql.jar'))
+    path = path or os.path.join(get_migrations_dir(), './postgresql.jar')
+    return os.path.normpath(path)
 
 def run_liquibase(liquibase_path, changelog_path, classpath, config, lb_args=[], dry=False):
     log("Using changelog at:", changelog_path)
