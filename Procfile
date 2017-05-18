@@ -1,1 +1,1 @@
-web: gunicorn bfapi.server:server --threads 5 -b 0.0.0.0:$PORT
+web: scripts/cf-migrate-and-run.sh $PORT

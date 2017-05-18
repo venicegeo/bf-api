@@ -6,7 +6,7 @@ applications:
   memory: 1G
   disk_quota: 1G
   instances: 1
-  buildpack: python_buildpack
+  buildpack: "https://github.com/cloudfoundry/python-buildpack#v1.5.18"
   services:
     - pz-postgres
     - pz-geoserver-efs
@@ -16,6 +16,6 @@ applications:
     GEOAXIS_SECRET: __GEOAXIS_SECRET__
     PIAZZA_API_KEY: 3c4961df-5153-4e86-9f80-a018a8badfa6
     DOMAIN: dev.geointservices.io
-    UI: localhost:8080
+    UI: beachfront.dev.geointservices.io
     CATALOG: bf-ia-broker.dev.geointservices.io
     PIAZZA: piazza.int.geointservices.io
