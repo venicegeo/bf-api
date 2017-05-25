@@ -21,7 +21,7 @@ def delete_job_user(
         job_id: str,
         user_id: str) -> bool:
     log = logging.getLogger(__name__)
-    log.info('Db delete job user', action='database delete record')
+    log.info('Db delete job "%s" user "%s"' job_id, user_id, action='database delete record')
     query = """
         DELETE FROM __beachfront__job_user
         WHERE job_id = %(job_id)s
@@ -54,7 +54,7 @@ def insert_detection(
         feature_collection: str) -> None:
     # FIXME -- I know we can do better than this...
     log = logging.getLogger(__name__)
-    log.info('Db insert detection', action='database insert record')
+    log.info('Db insert detection for job "%s"', job_id, action='database insert record')
     query = """
         INSERT INTO __beachfront__detection (job_id, feature_id, geometry)
         SELECT %(job_id)s AS job_id,
@@ -85,7 +85,7 @@ def insert_job(
         user_id: str) -> None:
 
     log = logging.getLogger(__name__)
-    log.info('Db insert job', action='database insert record')
+    log.info('Db insert job "%s" for user "%s"', job_id, user_id, action='database insert record')
     query = """
         INSERT INTO __beachfront__job (job_id, algorithm_id, algorithm_name, algorithm_version, created_by, name,
                                        scene_id, status, tide, tide_min_24h, tide_max_24h)
@@ -115,7 +115,7 @@ def insert_job_failure(
         execution_step: str,
         job_id: str) -> None:
     log = logging.getLogger(__name__)
-    log.info('Db insert job failure', action='database insert record')
+    log.info('Db insert job failure for job "%s"', job_id, action='database insert record')
     query = """
         INSERT INTO __beachfront__job_error (job_id, error_message, execution_step)
         VALUES (%(job_id)s, %(error_message)s, %(execution_step)s)
@@ -134,7 +134,7 @@ def insert_job_user(
         job_id: str,
         user_id: str) -> None:
     log = logging.getLogger(__name__)
-    log.info('Db job user', action='database insert record')
+    log.info('Db job "%s" for user "%s" created', job_id, user_id, action='database insert record')
     query = """
         INSERT INTO __beachfront__job_user (job_id, user_id)
         VALUES (%(job_id)s, %(user_id)s)
@@ -153,7 +153,7 @@ def select_detections(
         job_id: str) -> ResultProxy:
     # Construct the GeoJSON directly where the data lives
     log = logging.getLogger(__name__)
-    log.info('Db select detection', action='database query record')
+    log.info('Db select detection for job "%s"', job_id, action='database query record')
     query = """
         SELECT to_json(fc)::text AS "feature_collection"
           FROM (SELECT 'FeatureCollection' AS "type",
@@ -179,7 +179,7 @@ def select_job(
         *,
         job_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select job', action='database query record')
+    log.info('Db select job "%s"', job_id, action='database query record')
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                e.error_message, e.execution_step,
@@ -201,7 +201,7 @@ def select_jobs_for_inputs(
         algorithm_id: str,
         scene_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select jobs for inputs', action='database query record')
+    log.info('Db select jobs for scene "%s" and algorithm "%s"' scene_id, algorithm_id, action='database query record')
     query = """
         SELECT job_id,
                CASE status
@@ -228,7 +228,7 @@ def select_jobs_for_productline(
         productline_id: str,
         since: datetime) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select jobs for productline', action='database query record')
+    log.info('Db select jobs for productline "%s"', productline_id, action='database query record')
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
@@ -252,7 +252,7 @@ def select_jobs_for_scene(
         *,
         scene_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select jobs for scene', action='database select record')
+    log.info('Db select jobs for scene "%s"', scene_id, action='database select record')
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
@@ -273,7 +273,7 @@ def select_jobs_for_user(
         *,
         user_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select jobs for users', action='database query record')
+    log.info('Db select jobs for user "%s"', user_id, action='database query record')
     query = """
         SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
                e.error_message, e.execution_step,
@@ -310,7 +310,7 @@ def update_status(
         job_id: str,
         status: str) -> None:
     log = logging.getLogger(__name__)
-    log.info('Db update status', action='database update record')
+    log.info('Db update status to "%s" for job "%s"', status, job_id, action='database update record')
     query = """
         UPDATE __beachfront__job
            SET status = %(status)s

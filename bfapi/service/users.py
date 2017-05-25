@@ -44,22 +44,21 @@ def authenticate_via_api_key(api_key: str) -> User:
     log.info('Users service auth api key', action='service users auth api key')
 
     if not PATTERN_API_KEY.match(api_key):
-        log.error('Cannot verify malformed API key: "%s"', api_key)
+        log.error('Cannot verify malformed API key.')
         raise MalformedAPIKey()
 
-    log.debug('Checking "%s"', api_key)
     conn = db.get_connection()
     try:
         row = db.users.select_user_by_api_key(conn, api_key=api_key).fetchone()
     except db.DatabaseError as err:
-        log.error('Database query for API key "%s" failed', api_key)
+        log.error('Database query for API key failed')
         db.print_diagnostics(err)
         raise
     finally:
         conn.close()
 
     if not row:
-        log.error('Unauthorized API key "%s"', api_key)
+        log.error('Unauthorized API key provided')
         raise Unauthorized('Beachfront API key is not active')
 
     return User(
