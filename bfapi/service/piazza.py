@@ -71,7 +71,7 @@ class ServiceDescriptor:
 
 def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_id: str) -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza service create trigger', action='service piazza create trigger')
+    log.info('Piazza service create trigger for event "%s"', event_type_id, action='service piazza create trigger')
     try:
         response = requests.post(
             'https://{}/trigger'.format(PIAZZA),
@@ -122,7 +122,7 @@ def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_
 
 def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza service deploy', action='service piazza deploy')
+    log.info('Piazza service deploy data "%s"', data_id, action='service piazza deploy')
     try:
         response = requests.post(
             'https://{}/deployment'.format(PIAZZA),
@@ -176,7 +176,7 @@ def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10)
 
 def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza service execute', action='service piazza execute')
+    log.info('Piazza service execute service "%s"', service_id, action='service piazza execute')
     try:
         response = requests.post(
             'https://{}/job'.format(PIAZZA),
@@ -220,7 +220,7 @@ def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str
 
 def get_file(data_id: str) -> requests.Response:
     log = logging.getLogger(__name__)
-    log.info('Piazza service get file', action='service piazza get file')
+    log.info('Piazza service get file for data "%s"', data_id, action='service piazza get file')
     try:
         response = requests.get(
             'https://{}/file/{}'.format(PIAZZA, data_id),
@@ -241,7 +241,7 @@ def get_file(data_id: str) -> requests.Response:
 
 def get_service(service_id: str) -> ServiceDescriptor:
     log = logging.getLogger(__name__)
-    log.info('Piazza service get service', action='service piazza get service')
+    log.info('Piazza service get service "%s"', service_id, action='service piazza get service')
     try:
         response = requests.get(
             'https://{}/service/{}'.format(PIAZZA, service_id),
@@ -301,7 +301,7 @@ def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
 
 def get_status(job_id: str) -> Status:
     log = logging.getLogger(__name__)
-    log.info('Piazza service get status', action='service piazza get status')
+    log.info('Piazza service get status for job "%s"', job_id , action='service piazza get status')
     try:
         response = requests.get(
             'https://{}/job/{}'.format(PIAZZA, job_id),

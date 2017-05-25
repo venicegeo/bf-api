@@ -61,6 +61,8 @@ def authenticate_via_api_key(api_key: str) -> User:
         log.error('Unauthorized API key provided')
         raise Unauthorized('Beachfront API key is not active')
 
+    log.info('Users service authenticated user "%s"', row['user_id'])
+
     return User(
         user_id=row['user_id'],
         api_key=row['api_key'],
@@ -87,7 +89,7 @@ def authenticate_via_geoaxis(auth_code: str) -> User:
 
 def get_by_id(user_id: str) -> User:
     log = logging.getLogger(__name__)
-    log.info('Users service get by id', action='service users get by id')
+    log.info('Users service get by id "%s"', user_id, action='service users get by id')
 
     log.debug('Searching database for user "%s"', user_id)
     conn = db.get_connection()

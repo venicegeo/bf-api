@@ -85,7 +85,7 @@ def list_all() -> List[Algorithm]:
 
 def get(service_id: str) -> Algorithm:
     log = logging.getLogger(__name__)
-    log.info('Algorithms service get algorithms', action=' service algorithms get')
+    log.info('Algorithms service get algorithm "%s"', service_id, action=' service algorithms get')
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id, action='fetch service', actee=service_id)
         service = piazza.get_service(service_id)

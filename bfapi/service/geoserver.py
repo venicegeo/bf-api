@@ -45,8 +45,8 @@ def install_if_needed():
 
 def install_layer(layer_id: str):
     log = logging.getLogger(__name__)
-    log.info('Geoserver  service install layer', action=' service geoserver install')
-    log.info('Installing `%s`', layer_id)
+    log.info('Geoserver service install layer "%s"', layer_id, action=' service geoserver install')
+
     try:
         response = requests.post(
             'http://{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(  # FIXME -- https please?
@@ -133,8 +133,7 @@ def install_layer(layer_id: str):
 
 def install_style(style_id: str):
     log = logging.getLogger(__name__)
-    log.info('Geoserver  service install style', action=' service geoserver install')
-    log.info('Installing `%s`', style_id)
+    log.info('Geoserver  service install style "%s"', style_id, action=' service geoserver install')
     try:
         response = requests.post(
             'http://{}/geoserver/rest/styles'.format(  # FIXME -- https please?
@@ -200,7 +199,7 @@ def install_style(style_id: str):
 
 def layer_exists(layer_id: str) -> bool:
     log = logging.getLogger(__name__)
-    log.info('Geoserver  service layer exists', action=' service geoserver check')
+    log.info('Geoserver  check if service layer "%s" exists', layer_id, action=' service geoserver check')
     try:
         response = requests.get(
             'http://{}/geoserver/rest/layers/{}'.format(  # FIXME -- https please
@@ -218,7 +217,7 @@ def layer_exists(layer_id: str) -> bool:
 
 def style_exists(style_id: str) -> bool:
     log = logging.getLogger(__name__)
-    log.info('Geoserver  service style exists', action=' service geoserver check')
+    log.info('Geoserver  check if service style exists "%s"', style_id, action=' service geoserver check')
     try:
         response = requests.get(
             'http://{}/geoserver/rest/styles/{}'.format(  # FIXME -- https please
