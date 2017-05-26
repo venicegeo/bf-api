@@ -21,7 +21,7 @@ def delete_job_user(
         job_id: str,
         user_id: str) -> bool:
     log = logging.getLogger(__name__)
-    log.info('Db delete job "%s" user "%s"' job_id, user_id, action='database delete record')
+    log.info('Db delete job "%s" user "%s"', job_id, user_id, action='database delete record')
     query = """
         DELETE FROM __beachfront__job_user
         WHERE job_id = %(job_id)s
@@ -201,7 +201,7 @@ def select_jobs_for_inputs(
         algorithm_id: str,
         scene_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select jobs for scene "%s" and algorithm "%s"' scene_id, algorithm_id, action='database query record')
+    log.info('Db select jobs for scene "%s" and algorithm "%s"', scene_id, algorithm_id, action='database query record')
     query = """
         SELECT job_id,
                CASE status
