@@ -105,7 +105,7 @@ def create(
         job_name: str,
         planet_api_key: str) -> Job:
     log = logging.getLogger(__name__)
-    log.info('Job service create', action='service job create',actor=user_id)
+    log.info('Job service initiate create job "%s" for user "%s" for scene "%s"', job_name, user_id, scene_id, action='service job create',actor=user_id)
 
     # Fetch prerequisites
     try:
@@ -205,7 +205,7 @@ def create(
 
 def forget(user_id: str, job_id: str) -> None:
     log = logging.getLogger(__name__)
-    log.info('Job  service forget', action=' service job forget',actor=user_id)
+    log.info('Job  service forget job "%s" for user "%s"', job_id, user_id, action=' service job forget',actor=user_id)
     conn = db.get_connection()
     try:
         if not db.jobs.exists(conn, job_id=job_id):
@@ -221,7 +221,7 @@ def forget(user_id: str, job_id: str) -> None:
 
 def get(user_id: str, job_id: str) -> Job:
     log = logging.getLogger(__name__)
-    log.info('Job service get', action='service job get',actor=user_id)
+    log.info('Job service get job "%s" for user "%s"', job_id, user_id, action='service job get',actor=user_id)
     conn = db.get_connection()
 
     try:
@@ -258,7 +258,7 @@ def get(user_id: str, job_id: str) -> Job:
 
 def get_all(user_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
-    log.info('Job service get all', action='service job get all',actor=user_id)
+    log.info('Job service get all jobs for user "%s"', user_id, action='service job get all',actor=user_id)
     conn = db.get_connection()
 
     try:
@@ -295,7 +295,7 @@ def get_all(user_id: str) -> List[Job]:
 
 def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     log = logging.getLogger(__name__)
-    log.info('Job  service get by productline', action=' service job get by productline')
+    log.info('Job  service get by productline "%s"', productline_id, action=' service job get by productline')
     conn = db.get_connection()
 
     try:
@@ -330,7 +330,7 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
 
 def get_by_scene(scene_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
-    log.info('Job  service get by scene', action=' service job get by scene')
+    log.info('Job  service get by scene "%s"', scene_id, action=' service job get by scene')
     conn = db.get_connection()
 
     try:
@@ -370,10 +370,9 @@ def get_detections(job_id: str) -> str:
     """
 
     log = logging.getLogger(__name__)
-    log.info('Job service get detections', action='service job get detections')
+    log.info('Job service get detections for job "%s"', job_id, action='service job get detections')
     conn = db.get_connection()
 
-    log.info('Packaging detections for <job:%s>', job_id)
     try:
         if not db.jobs.exists(conn, job_id=job_id):
             raise NotFound(job_id)

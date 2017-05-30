@@ -68,6 +68,7 @@ def auth_filter():
     try:
         log.debug('Attaching user to request context')
         request.user = users.authenticate_via_api_key(api_key)
+        log.info('User "%s" successfully authenticated request to endpoint "%s"', request.user.name, request.path)
     except users.Unauthorized as err:
         return str(err), 401
     except users.MalformedAPIKey:

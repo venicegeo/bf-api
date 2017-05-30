@@ -21,7 +21,7 @@ def delete_productline(
         *,
         productline_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db delete productline', action='database delete record')
+    log.info('Db delete productline "%s"', productline_id, action='database delete record')
     query = """
         UPDATE __beachfront__productline
            SET deleted = TRUE
@@ -48,7 +48,7 @@ def insert_productline(
         stop_on: date = None,
         user_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db insert productline', action='database insert record')
+    log.info('Db insert productline "%s" for user "%s"', productline_id, user_id, action='database insert record')
     query = """
         INSERT INTO __beachfront__productline (productline_id, algorithm_id, algorithm_name, category, created_by, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on, bbox)
         VALUES (%(productline_id)s, %(algorithm_id)s, %(algorithm_name)s, %(category)s, %(user_id)s, %(max_cloud_cover)s, %(name)s, %(user_id)s, %(spatial_filter_id)s, %(start_on)s, %(stop_on)s, ST_MakeEnvelope(%(min_x)s, %(min_y)s, %(max_x)s, %(max_y)s))
@@ -79,7 +79,7 @@ def insert_productline_job(
         job_id: str,
         productline_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db insert productline job', action='database insert record')
+    log.info('Db insert job "%s" for productline "%s"', job_id, productline_id, action='database insert record')
     query = """
         INSERT INTO __beachfront__productline_job (job_id, productline_id)
         VALUES (%(job_id)s, %(productline_id)s)
@@ -111,7 +111,7 @@ def select_productline(
         *,
         productline_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select productline', action='database query record')
+    log.info('Db select productline "%s"', productline_id, action='database query record')
     query = """
         SELECT productline_id, algorithm_id, algorithm_name, category, compute_mask, created_by,
                created_on, max_cloud_cover, name, owned_by, spatial_filter_id, start_on, stop_on,

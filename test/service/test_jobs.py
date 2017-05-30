@@ -299,7 +299,7 @@ class CreateJobTest(unittest.TestCase):
         self.mock_get_scene.return_value = create_scene()
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
-            'INFO - Job service create',
+            'INFO - Job service initiate create job "test-name" for user "test-user-id" for scene "test-scene-id"',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
         ], self.logger.lines)
 
@@ -308,7 +308,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
-            'INFO - Job service create',
+            'INFO - Job service initiate create job "test-name" for user "test-user-id" for scene "test-scene-id"',
             'ERROR - Preprocessing error: algorithm `test-algo-id` does not exist',
         ], self.logger.lines)
 
@@ -318,7 +318,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(jobs.PreprocessingError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
-            'INFO - Job service create',
+            'INFO - Job service initiate create job "test-name" for user "test-user-id" for scene "test-scene-id"',
             'ERROR - Preprocessing error: scene `test-scene-id` not found in catalog',
         ], self.logger.lines)
 
@@ -329,7 +329,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(piazza.ServerError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
-            'INFO - Job service create',
+            'INFO - Job service initiate create job "test-name" for user "test-user-id" for scene "test-scene-id"',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             'ERROR - Could not execute via Piazza: Piazza server error (HTTP 400)'
         ], self.logger.lines)
@@ -341,7 +341,7 @@ class CreateJobTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             jobs.create('test-user-id', 'test-scene-id', 'test-algo-id', 'test-name', 'test-planet-api-key')
         self.assertEqual([
-            'INFO - Job service create',
+            'INFO - Job service initiate create job "test-name" for user "test-user-id" for scene "test-scene-id"',
             'INFO - Dispatching <scene:test-scene-id> to <algo:test-algo-name>',
             "ERROR - Could not save job to database",
         ], self.logger.lines)

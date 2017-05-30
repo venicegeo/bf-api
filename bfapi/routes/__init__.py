@@ -71,7 +71,7 @@ def logout():
     log = logging.getLogger(__name__)
 
     flask.session.clear()
-    log.info('Logged out', actor=flask.request.user.user_id, action='log out')
+    log.info('Logged out user "%s"', flask.request.user.user_id, actor=flask.request.user.user_id, action='log out')
     return flask.redirect('https://{}/oam/server/logout'.format(GEOAXIS))
 
 
