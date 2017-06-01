@@ -2,6 +2,7 @@
 applications:
 - name: bf-api
   host: bf-api
+  path: bf-api.zip
   domain: dev.geointservices.io
   memory: 1G
   disk_quota: 1G

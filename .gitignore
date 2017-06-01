@@ -13,12 +13,7 @@ manifest.prod.yml
 .vagrant
 .project
 .pydevproject
-.dev
 .python-version
 vagrant-bfapi.log
-
-.dev
-
-.dev
-
-.dev
+migrations/vendor
+vendor
