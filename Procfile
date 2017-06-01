@@ -1,1 +1,1 @@
-web: scripts/cf-migrate-and-run.sh $PORT
+web: sh scripts/cf-migrate-and-run.sh $PORT

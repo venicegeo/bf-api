@@ -28,7 +28,8 @@ def parse_args() -> Namespace:
     group.add_argument("-q", "--quiet", action="store_true")
     parser.add_argument('-i', '--interactive', action='store_true')
     parser.add_argument('--changelog', type=str, default=None)
-    parser.add_argument('--liquibase', type=str, default=None)
+    parser.add_argument('--liquibase', type=str, default=None,
+                        help='Path to liquibase runnable JAR')
     parser.add_argument('--classpath', type=str, default=None,
                         help='Java classpath to pass to Liquibase')
     parser.add_argument('--dry-run', action='store_true', dest='dry',
@@ -78,7 +79,7 @@ def get_migrations_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 def get_liquibase_location(path):
-    path = path or os.path.join(get_migrations_dir(), './liquibase/liquibase')
+    path = path or os.path.join(get_migrations_dir(), './liquibase.jar')
     return os.path.normpath(path)
 
 def get_changelog_location(path):
@@ -94,7 +95,7 @@ def run_liquibase(liquibase_path, changelog_path, classpath, config, lb_args=[],
     if not os.path.exists(changelog_path):
         log("Changelog missing! Create it or specify it using --changelog", error=True)
         sys.exit(1)
-    log("Using Liquibase binary at:", liquibase_path)
+    log("Using Liquibase at:", liquibase_path)
     if not os.path.exists(liquibase_path):
         log("Liquibase executable missing! Put it at the expected location or "
             "specify it using --liquibase", error=True)
@@ -104,7 +105,8 @@ def run_liquibase(liquibase_path, changelog_path, classpath, config, lb_args=[],
     if not lb_args:
         log("No Liquibase args specified; it will likely complain about this", error=True)
 
-    cmd = [liquibase_path,
+    cmd = ['java',
+        '-jar', liquibase_path,
         '--changeLogFile=' + changelog_path,
         '--username=' + config['username'],
         '--password=' + config['password'],
