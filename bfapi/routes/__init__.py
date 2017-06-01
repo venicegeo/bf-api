@@ -47,7 +47,7 @@ def login():
     except users.Error:
         return 'Cannot log in: an internal error prevents authentication', 500
 
-    flask.session.permanent = True
+    flask.session.permanent = False
     flask.session['api_key'] = user.api_key
 
     # Send user back to the UI
@@ -72,4 +72,10 @@ def logout():
 
     flask.session.clear()
     log.info('Logged out', actor=flask.request.user.user_id, action='log out')
-    return 'You have been logged out'
+    return flask.redirect('https://{}/oam/server/logout'.format(GEOAXIS))
+
+
+def keepalive():
+    return flask.jsonify({
+        'keepalive': 'true'
+    })
