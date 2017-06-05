@@ -128,7 +128,7 @@ def create_download_url(scene_id: str, planet_api_key: str = '') -> str:
 
 def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene:
     log = logging.getLogger(__name__)
-    log.info('Scenes service get scene', action='service scenes get scene')
+    log.info('Scenes service get scene "%s"', scene_id, action='service scenes get scene')
 
     platform, external_id = _parse_scene_id(scene_id)
 

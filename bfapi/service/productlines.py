@@ -148,7 +148,7 @@ def create_productline(
 
 def delete_productline(user_id: str, productline_id: str) -> None:
     log = logging.getLogger(__name__)
-    log.info('Productline service delete productline', action='service productline delete productline')
+    log.info('Productline service delete productline "%s"', productline_id, action='service productline delete productline')
 
     conn = db.get_connection()
     try:
