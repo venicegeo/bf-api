@@ -72,7 +72,9 @@ def logout():
 
     flask.session.clear()
     log.info('Logged out user "%s"', flask.request.user.user_id, actor=flask.request.user.user_id, action='log out')
-    return 'You have been logged out'
+    return flask.jsonify({
+        'redirect': 'https://{}/oam/server/logout'.format(GEOAXIS)
+    })
 
 
 def keepalive():
