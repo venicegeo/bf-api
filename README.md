@@ -47,14 +47,11 @@ They will be important for accessing the services in the virtual machine.
 >  
 >     scripts/create-development-environment.sh --force
 
-Configure the following environment variables in `.dev/environment-vars.sh`, as needed:
+Configure the environment variables in `.dev/environment-vars.sh`, as needed:
 
 | Variable            | Description |
 |---------------------|-------------|
 | `PIAZZA_API_KEY`    | Credentials for accessing Piazza.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
-| `GEOAXIS`           | GEOAxIS hostname.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
-| `GEOAXIS_CLIENT_ID` | GEOAxIS OAuth client ID.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
-| `GEOAXIS_SECRET`    | GEOAxIS OAuth secret.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
 | `DOMAIN`            | Overrides the domain where the other services can be found (automatically injected by Pivotal CloudFoundry) |
 | `PORT`              | Overrides the default listening port (automatically injected by Pivotal CloudFoundry) |
 | `VCAP_SERVICES`     | Overrides the default [PCF `VCAP_SERVICES`](https://docs.run.pivotal.io/devguide/deploy-apps/environment-variable.html#VCAP-SERVICES) (automatically injected by A Pivotal CloudFoundry) |
@@ -73,9 +70,9 @@ Configure the following environment variables in `.dev/environment-vars.sh`, as 
 <!-- -->
 
 > If you are running `bf-ui` on top of this instance, you will need to
-> use GeoAxis authentication. To mock this, you can use this small
-> [`fake_geoaxis`](https://github.com/venicegeo/fake_geoaxis) server
-> and point the `GEOAXIS` variable to it.
+> use an authentication server. To avoid using an external server, you can use this small
+> [`this small mock server`](https://github.com/venicegeo/fake_geoaxis) instead,
+> and point the `GEOAXIS` environment variable to it.
 
 Restart the instance to make it take account of the environment variables:
 
