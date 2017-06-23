@@ -2,7 +2,6 @@
 applications:
 - name: bf-api
   host: bf-api
-  path: bf-api.tar.gz
   memory: 1G
   disk_quota: 1G
   instances: 1
