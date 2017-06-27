@@ -107,7 +107,9 @@ node('python35') {
           "CF_HOME=.cf"
         ]) {
             withCredentials([
-              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
+              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
+              [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+              [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
             ]) {
                   sh """
                   cf api ${env.PCF_API_ENDPOINT}
@@ -118,8 +120,8 @@ node('python35') {
                   cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}
                   cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
-                  cf set-env ${appName} GEOAXIS_CLIENT_ID ${env.GEOAXIS_CLIENT_ID}
-                  cf set-env ${appName} GEOAXIS_SECRET ${env.GEOAXIS_SECRET}
+                  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
+                  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
                   cf restage ${appName}
                   cf start ${appName}
                 """
@@ -209,7 +211,9 @@ node('python35') {
           "CF_HOME=.cf"
         ]) {
             withCredentials([
-              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
+              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
+              [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+              [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
             ]) {
                   sh """
                   cf api ${env.PCF_API_ENDPOINT}
@@ -220,8 +224,8 @@ node('python35') {
                   cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
                   cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
-                  cf set-env ${appName} GEOAXIS_CLIENT_ID ${env.GEOAXIS_CLIENT_ID}
-                  cf set-env ${appName} GEOAXIS_SECRET ${env.GEOAXIS_SECRET}
+                  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
+                  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
                   cf start ${appName}
                 """
             }
