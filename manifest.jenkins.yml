@@ -5,7 +5,7 @@ applications:
   memory: 1G
   disk_quota: 1G
   instances: 1
-  buildpack: 'https://github.com/cloudfoundry/python-buildpack#v1.5.9'
+  buildpack: python-buildpack
   services:
     - pz-postgres
     - pz-geoserver-efs
