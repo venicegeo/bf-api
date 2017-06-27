@@ -5,7 +5,7 @@ applications:
   memory: 1G
   disk_quota: 1G
   instances: 1
-  buildpack: python-buildpack
+  buildpack: python_buildpack
   services:
     - pz-postgres
     - pz-geoserver-efs
