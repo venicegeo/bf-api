@@ -1,3 +1,5 @@
+#!/usr/bin/groovy
+
 node('python35') {
     def mvn = tool 'M3'
     def root = pwd()
@@ -185,7 +187,7 @@ node('python35') {
                           mkdir -p ${root}/.npmcache
                           npm install newman@2
                         """
-                        sh "sh ci/beachfront_integration_tests.sh"
+                        sh "ci/beachfront_integration_tests.sh"
                     }
                 }
             }
@@ -275,7 +277,7 @@ node('python35') {
                   "HOME=${WORKSPACE}"
                 ]) {
                     dir ("integration-tests") {
-                        sh "sh ci/beachfront_integration_tests_stage.sh"
+                        sh "ci/beachfront_integration_tests_stage.sh"
                     }
                 }
             }
