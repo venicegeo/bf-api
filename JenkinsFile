@@ -93,10 +93,9 @@ node('python35') {
         if(!fileExists('.cf')) {
             sh "mkdir -p .cf"
         }
-        def jenkins_file = "manifest.jenkins.yml"
         def piazza_api_key = ""
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
-            def keyCurl = sh(script: """curl -s https://piazza.${env.PHASE_TWO_PCF_SPACE}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
+            def keyCurl = sh(script: """curl -s https://piazza.${env.PHASE_ONE_PCF_SPACE}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
             piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
             sh """
               if [ -z $piazza_api_key ]; then
@@ -197,7 +196,6 @@ node('python35') {
         if(!fileExists('.cf')) {
             sh "mkdir -p .cf"
         }
-        def jenkins_file = "manifest.jenkins.yml"
         def piazza_api_key = ""
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
             def keyCurl = sh(script: """curl -s https://piazza.${env.PHASE_TWO_PCF_SPACE}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
