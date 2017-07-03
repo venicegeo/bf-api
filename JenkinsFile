@@ -124,8 +124,14 @@ node('python35') {
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
                   cf restage ${appName}
-                  cf start ${appName}
                 """
+                try {
+                  sh "cf start ${appName}"
+                } catch (Exception e) {
+                  //sh "cf logs --recent ${appName}"
+                  sh "cf delete ${appName} -f"
+                  error("Error during application start. Deleting ${appName} and failing the build.")
+                }
             }
         }
         withCredentials([
@@ -226,8 +232,14 @@ node('python35') {
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                  cf start ${appName}
                 """
+                try {
+                  sh "cf start ${appName}"
+                } catch (Exception e) {
+                  //sh "cf logs --recent ${appName}"
+                  sh "cf delete ${appName} -f"
+                  error("Error during application start. Deleting ${appName} and failing the build.")
+                }
             }
         }
         withCredentials([
