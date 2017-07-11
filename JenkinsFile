@@ -192,7 +192,7 @@ node('python35') {
                           mkdir -p ${root}/.npmcache
                           npm install newman@2
                         """
-                        sh "ci/beachfront_integration_tests.sh"
+                        sh "sh ci/beachfront_integration_tests.sh"
                     }
                 }
             }
@@ -287,7 +287,7 @@ node('python35') {
                   "HOME=${WORKSPACE}"
                 ]) {
                     dir ("integration-tests") {
-                        sh "ci/beachfront_integration_tests_stage.sh"
+                        sh "sh ci/beachfront_integration_tests_stage.sh"
                     }
                 }
             }
