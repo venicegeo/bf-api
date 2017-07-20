@@ -13,20 +13,27 @@ node('python35') {
         } else {
             git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
         }
+        sh """
+          python --version
+          . /opt/rh/rh-python35/enable
+          virtualenv --python=python3.5 .env
+          mkdir -p vendor
+          . .env/bin/activate
+          pip install -d vendor -r requirements.txt
+        """
     }
     
     def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
     appvers = appvers.trim()
     def appName = "bf-api-${appvers}"
     
-    if(false){
     stage("Dependency Check") {
         withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
             sh "/jslave/dependency-check/dependency-check/bin/dependency-check.sh --version"
             sh '/jslave/dependency-check/dependency-check/bin/dependency-check.sh --project "bf-api" --scan ".env" --format "XML" --enableExperimental --disableBundleAudit'
             sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
         }
-    }}
+    }
     
     stage("Fortify") {
         withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
@@ -53,7 +60,8 @@ node('python35') {
     
     stage("Archive") {
         def archiveName = "bf-api.tar.gz"
-        sh "tar -cvzf ${archiveName} bfapi sql Procfile environment.yml runtime.txt"
+        sh "tar -czf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
+        sh "tar -tvf ${archiveName}"
         // Check if exists already
         def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
         -Dmaven.repo.local="${root}/.m2/repository" \
