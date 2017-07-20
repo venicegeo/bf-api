@@ -1,8 +1,6 @@
 name: bf-api
 channels:
   - https://conda-channel.int.geointservices.io
-  - conda-forge
-  - defaults
 dependencies:
   - python=3.5.2
   - click=6.6
