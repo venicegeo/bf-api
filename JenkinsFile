@@ -38,7 +38,7 @@ node('python35') {
     
     stage("Archive") {
         def archiveName = "bf-api.tar.gz"
-        sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile environment.yml"
+        sh "tar -cvzf ${archiveName} bfapi sql Procfile environment.yml"
         // Check if exists already
         def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
         -Dmaven.repo.local="${root}/.m2/repository" \
