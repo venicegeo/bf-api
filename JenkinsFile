@@ -13,14 +13,6 @@ node('python35') {
         } else {
             git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
         }
-        sh """
-          python --version
-          . /opt/rh/rh-python35/enable
-          virtualenv --python=python3.5 .env
-          mkdir -p vendor
-          . .env/bin/activate
-          pip install -d vendor -r requirements.txt
-        """
     }
     
     def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
@@ -60,8 +52,7 @@ node('python35') {
     
     stage("Archive") {
         def archiveName = "bf-api.tar.gz"
-        sh "tar -czf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
-        sh "tar -tvf ${archiveName}"
+        sh "tar -cvzf ${archiveName} bfapi sql Procfile environment.yml runtime.txt dependency-check-report.xml"
         // Check if exists already
         def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
         -Dmaven.repo.local="${root}/.m2/repository" \
