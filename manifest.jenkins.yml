@@ -9,3 +9,5 @@ applications:
   services:
     - pz-postgres
     - pz-geoserver-efs
+  env:
+    PATH: "/home/vcap/app/.conda/envs/dep_env/bin:/bin:/usr/bin:/home/vcap/app/.cloudfoundry/0/conda/bin/"
