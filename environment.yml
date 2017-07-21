@@ -4,7 +4,6 @@ channels:
   - coastline
   - defaults
 dependencies:
-  - python=3.5.2
   - click=6.6
   - coverage=4.2
   - Flask=0.11.1
