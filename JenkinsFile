@@ -213,7 +213,7 @@ node('python35') {
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                  cf restage
+                  cf restage ${appName}
                 """
                 try {
                   sh "cf start ${appName}"
