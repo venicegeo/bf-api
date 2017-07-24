@@ -53,7 +53,7 @@ node('python35') {
             echo "Artifact version ${appvers} exists in Nexus, nothing to do"
         } else {
             // Deploy file
-            sh """mvn -X --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${archiveName} \
+            sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${archiveName} \
             -DrepositoryId=nexus \
             -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
             -DgroupId="org.venice.beachfront" \
