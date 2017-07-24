@@ -35,25 +35,9 @@ node('python35') {
         }
     }
     
-    stage("Security Scan Pass/Fail") {
-        // Query threadfix and block if any highs/crits are found
-        // TODO: Put back in
-        /*sh "mkdir -p sspf-pkg"
-        dir("./sspf-pkg") {
-            withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
-                sh "curl -L ${env.SSPF_PACKAGE} -o sspf.zip"
-                sh "unzip sspf.zip"
-                dir("./sspf-master/sspf") {
-                    sh "/bin/curl --fail --silent ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}?apiKey=${THREADFIX_KEY} | ./sspf.py"
-                }
-            }
-        }*/
-    }  
-    
     stage("Archive") {
         def archiveName = "bf-api.tar.gz"
-        sh "tar -czf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
-        sh "tar -tvf ${archiveName}"
+        sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
         // Check if exists already
         def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
         -Dmaven.repo.local="${root}/.m2/repository" \
@@ -115,7 +99,6 @@ node('python35') {
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                  cf set-env ${appName} PATH /home/vcap/app/.conda/envs/dep_env/bin:/bin:/usr/bin
                   cf restage ${appName}
                 """
                 try {
@@ -225,7 +208,6 @@ node('python35') {
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                  cf set-env ${appName} PATH /home/vcap/app/.conda/envs/dep_env/bin:/bin:/usr/bin
                   cf restage
                 """
                 try {
