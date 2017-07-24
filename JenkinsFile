@@ -64,6 +64,11 @@ node('python35') {
             -Dversion=${appvers} \
             """
         }
+        sh """
+          rm ${archiveName} requirements.txt Vagrantfile fortify* dependency-check-report.xml sonar-project.properties
+          rm -rf vagrant
+        """
+        
     }
     stage("Phase One Deploy") {
         if(!fileExists('.cf')) {
