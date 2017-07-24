@@ -65,7 +65,7 @@ node('python35') {
             """
         }
         sh """
-          rm ${archiveName} requirements.txt Vagrantfile fortify* dependency-check-report.xml sonar-project.properties
+          rm ${archiveName} Vagrantfile fortify* dependency-check-report.xml sonar-project.properties
           rm -rf vagrant
         """
         
