@@ -1,4 +1,4 @@
 #!/bin/bash
 
 APP=bf-api
-EXT=zip
+EXT=tar.gz
