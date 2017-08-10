@@ -17,8 +17,7 @@ node('python35') {
         }
     }
     
-    def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
-    appvers = appvers.trim()
+    def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true).trim()
     def appName = "bf-api-${appvers}"
     
     stage("Dependency Check") {
@@ -40,7 +39,18 @@ node('python35') {
     stage("Sonar") {
         withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
             withEnv(["HOME=${root}"]) {
-                sh "${sonar}/bin/sonar-scanner -Dsonar.sources=${root}/bfapi -Dsonar.host.url=${env.SONAR_URL} -Dsonar.projectKey=${projectId} -Dsonar.projectName=${projectId} -Dsonar.login=${USERNAME} -Dsonar.projectVersion=1.0"
+                sh """${sonar}/bin/sonar-scanner \
+                  -Dsonar.python.coverage.reportPath=report/coverage/coverage.xml
+                  -Dsonar.sources=${root}/bfapi \
+                  -Dsonar.host.url=${env.SONAR_URL} \
+                  -Dsonar.projectKey=${projectId} \
+                  -Dsonar.projectName=${projectId} \
+                  -Dsonar.language=py \
+                  -Dsonar.projectBaseDir=${root} \
+                  -Dsonar.tests=tests \
+                  -Dsonar.projectVersion=${appvers} \
+                  -Dsonar.login=${USERNAME}
+                """
             }
         }
     }
