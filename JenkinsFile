@@ -40,6 +40,7 @@ node('python35') {
     stage("Sonar") {
         withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
             withEnv(["HOME=${root}", "_JAVA_OPTIONS=-Duser.home=${root}"]) {
+                sh "ls ${sonar}"
                 sh "${sonar} -Dsonar.sources=${root} -Dsonar.host.url=${env.SONAR_URL} -Dsonar.projectKey=${projectId} -Dsonar.projectName=${projectId} -Dsonar.login=${USERNAME}"
             }
         }
