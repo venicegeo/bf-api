@@ -5,7 +5,6 @@ node('python35') {
     def root = pwd()
     def zapHome = tool 'ZAProxy_v2_5_0'
     def nodejs = tool 'NodeJS_6'
-    def sonarUrl = "https://sonar.geointservices.io"
     def projectId = "venicegeo:beachfront:bf-api"
     
     stage('Setup') {
@@ -40,7 +39,7 @@ node('python35') {
     stage("Sonar") {
         withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
             withEnv(["HOME=${root}", "_JAVA_OPTIONS=-Duser.home=${root}"]) {
-                sh "${mvn}/bin/mvn sonar:sonar -Dmaven.repo.local=${root} -Dsonar.host.url=${env.SONAR_URL} -Dsonar.projectKey=${projectId} -Dsonar.projectName=${projectId} -Dsonar.login=${USERNAME} -P nga"
+                sh "${mvn}/bin/mvn sonar:sonar -Dmaven.repo.local=${root} -Dsonar.host.url=${env.SONAR_URL} -Dsonar.projectKey=${projectId} -Dsonar.projectName=${projectId} -Dsonar.login=${USERNAME}"
             }
         }
     }
