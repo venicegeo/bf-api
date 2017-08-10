@@ -47,7 +47,7 @@ node('python35') {
                   -Dsonar.projectName=${projectId} \
                   -Dsonar.language=py \
                   -Dsonar.projectBaseDir=${root} \
-                  -Dsonar.tests=tests \
+                  -Dsonar.tests=test \
                   -Dsonar.projectVersion=${appvers} \
                   -Dsonar.login=${USERNAME}
                 """
