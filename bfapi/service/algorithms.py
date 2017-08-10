@@ -58,7 +58,7 @@ def list_all() -> List[Algorithm]:
     log.info('Algorithms service list all algorithms', action='Service algorithms list all ')
     try:
         log.info('Fetching beachfront services from Piazza', action='fetch services')
-        services = piazza.get_services('^BF_Algo_')
+        services = piazza.get_services('BF_Algo_')
     except piazza.Error as err:
         log.error('Service discovery failed: %s', err)
         raise
