@@ -40,7 +40,7 @@ node('python35') {
         withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
             withEnv(["HOME=${root}"]) {
                 sh """${sonar}/bin/sonar-scanner \
-                  -Dsonar.python.coverage.reportPath=report/coverage/coverage.xml
+                  -Dsonar.python.coverage.reportPath=report/coverage/coverage.xml \
                   -Dsonar.sources=${root}/bfapi \
                   -Dsonar.host.url=${env.SONAR_URL} \
                   -Dsonar.projectKey=${projectId} \
