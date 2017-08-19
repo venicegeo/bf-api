@@ -598,7 +598,7 @@ def _create_algorithm_cli_cmd(
             '--basename shoreline',
             '--smooth 1.0'
         ])
-    elif algo_interface == 'bfalg-shape':
+    elif algo_interface == 'pzsvc-shape-py':
         return '-f ' + geotiff_filenames[0] + ' -o shoreline.geojson'
     else:
         error_message = 'unknown algorithm interface "' + algo_interface + '".'
