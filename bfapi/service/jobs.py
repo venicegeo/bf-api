@@ -430,9 +430,11 @@ class Worker(threading.Thread):
         self._terminated = True
 
     def run(self):
+        log.info('STATUS UPDATE run self method 4444 "%s"', '1234', action='statusupdates',actor='1234')
         failures = 0
         while not self.is_terminated():
             try:
+                log.info('STATUS UPDATE 5555 "%s"', '1234', action='statusupdates',actor='1234')
                 self._run_cycle()
                 failures = 0
             except Exception as err:
@@ -447,6 +449,8 @@ class Worker(threading.Thread):
         self._log.info('Stopped')
 
     def _run_cycle(self):
+        log.info('STATUS UPDATE 6666 "%s"', '1234', action='statusupdates',actor='1234')
+        
         conn = db.get_connection()
         try:
             rows = db.jobs.select_outstanding_jobs(conn).fetchall()
@@ -462,6 +466,7 @@ class Worker(threading.Thread):
         else:
             self._log.info('Begin cycle for %d records', len(rows))
             for i, row in enumerate(rows, start=1):
+                log.info('STATUS UPDATE 7777 "%s"', '1234', action='statusupdates',actor='1234')
                 self._updater(row['job_id'], row['age'], i)
             self._log.info('Cycle complete; next run at %s', (datetime.utcnow() + self._interval).strftime(FORMAT_TIME))
 
@@ -471,6 +476,7 @@ class Worker(threading.Thread):
 
         # Get latest status
         try:
+            log.info('STATUS UPDATE 8888 "%s"', '1234', action='statusupdates',actor='1234')
             status = piazza.get_status(job_id)
         except piazza.Unauthorized:
             log.error('<%03d/%s> credentials rejected during polling!', index, job_id)
