@@ -124,7 +124,6 @@ node {
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                  cf restage ${appName}
                 """
                 try {
                   sh "cf start ${appName}"
@@ -233,7 +232,6 @@ node {
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                  cf restage ${appName}
                 """
                 try {
                   sh "cf start ${appName}"
