@@ -178,7 +178,8 @@ node {
               file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: "POSTMAN_FILE")
             ]) {
                 withEnv([
-                  "PATH+=${nodejs}/bin",
+                  "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
+                  "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}",
                   "NPM_CONFIG_CACHE=${root}/.npmcache",
                   "HOME=${WORKSPACE}"
                 ]) {
@@ -284,7 +285,9 @@ node {
                 withEnv([
                   "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
                   "PCF_SPACE=${env.PHASE_TWO_PCF_SPACE}",
+                  "NPM_CONFIG_CACHE=${root}/.npmcache",
                   "HOME=${WORKSPACE}"
+
                 ]) {
                     dir ("integration-tests") {
                         sh "sh ci/beachfront_integration_tests_stage.sh"
