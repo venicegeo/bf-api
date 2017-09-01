@@ -33,4 +33,4 @@ python migrate.py \
 PORT=$1
 PORT=${PORT:-8080}
 
-gunicorn bfapi.server:server --threads 5 -b 0.0.0.0:$PORT
+gunicorn bfapi.server:server --pythonpath .. --threads 5 -b 0.0.0.0:$PORT
