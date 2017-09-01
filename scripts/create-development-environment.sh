@@ -92,7 +92,7 @@ create_ssl_certs() {
 
             [Beachfront]
                 basicConstraints       = CA:false
-                subjectAltName         = DNS:localhost, DNS:localhost.localdomain
+                subjectAltName         = DNS:localhost, DNS:localhost.localdomain, DNS:vagranthost
         ') \
         -extensions Beachfront \
         2>&1 |indent_stream
