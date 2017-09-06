@@ -59,7 +59,8 @@ node {
 
     stage("Archive") {
         def archiveName = "bf-api.tar.gz"
-        sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
+        sh "ci/archive.sh"
+        // sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
         // Check if exists already
         def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
         -Dmaven.repo.local="${root}/.m2/repository" \
