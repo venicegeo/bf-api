@@ -54,4 +54,4 @@ requirements.txt
 runtime.txt
 "
 
-zip -r ${APP}.${EXT} ${target_files}
+tar cvfz ${APP}.${EXT} ${target_files}
