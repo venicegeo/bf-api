@@ -47,14 +47,11 @@ They will be important for accessing the services in the virtual machine.
 >  
 >     scripts/create-development-environment.sh --force
 
-Configure the following environment variables in `.dev/environment-vars.sh`, as needed:
+Configure the environment variables in `.dev/environment-vars.sh`, as needed:
 
 | Variable            | Description |
 |---------------------|-------------|
 | `PIAZZA_API_KEY`    | Credentials for accessing Piazza.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
-| `GEOAXIS`           | GEOAxIS hostname.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
-| `GEOAXIS_CLIENT_ID` | GEOAxIS OAuth client ID.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
-| `GEOAXIS_SECRET`    | GEOAxIS OAuth secret.  **This has to be provided to the deployed instance via PCF web management portal or CF CLI.** |
 | `DOMAIN`            | Overrides the domain where the other services can be found (automatically injected by Pivotal CloudFoundry) |
 | `PORT`              | Overrides the default listening port (automatically injected by Pivotal CloudFoundry) |
 | `VCAP_SERVICES`     | Overrides the default [PCF `VCAP_SERVICES`](https://docs.run.pivotal.io/devguide/deploy-apps/environment-variable.html#VCAP-SERVICES) (automatically injected by A Pivotal CloudFoundry) |
@@ -64,6 +61,18 @@ Configure the following environment variables in `.dev/environment-vars.sh`, as 
 | `SECRET_KEY`        | Overrides the randomly-generated secret key used by Flask for session I/O |
 | `DEBUG_MODE`        | Set to `1` to start the server in debug mode.  Note that this will have some fairly noisy logs. |
 | `MUTE_LOGS`         | Set to `1` to mute the logs (happens by default in test mode) |
+
+> To develop entirely locally, you may need to host some of the services that
+> the API depends on. Your host machine can be found at the IP address
+> `10.0.2.2`, so if you were to (for example) host your own `bf-ia-broker` on
+> port 8000, you would set `CATALOG=http://10.0.2.2:8000`.
+
+<!-- -->
+
+> If you are running `bf-ui` on top of this instance, you will need to
+> use an authentication server. To avoid using an external server, you can use this small
+> [`this small mock server`](https://github.com/venicegeo/fake_geoaxis) instead,
+> and point the `GEOAXIS` environment variable to it.
 
 Restart the instance to make it take account of the environment variables:
 
@@ -86,6 +95,8 @@ With `curl`, you will need to use `-k` or pass in the correct certificate.
 
 Refer to the earlier provisioned ports if 5001 is not the correct port.
 
+Running logs (stdout and stderr) are redirected to the `vagrant-bfapi.log` file.
+
 ## Local development operation
 
 ### Run unit tests
@@ -100,7 +111,7 @@ server, use the following command:
 
     $ vagrant reload
 
-### Manually run the server to see standard output
+### Manually run the server
 
 In order to do this, you must connect to the Vagrant machine, shut down the
 background (provisioned) server, and run it manually:

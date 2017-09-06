@@ -1,13 +1,13 @@
 #!/usr/bin/groovy
 
-node('python35') {
+node {
     def mvn = tool 'M3'
     def root = pwd()
     def zapHome = tool 'ZAProxy_v2_5_0'
     def nodejs = tool 'NodeJS_6'
-    def sonar = tool 'SonarQube Scanner 3.0'
+    def sonar = tool 'SonarQube Runner 2.8'
     def projectId = "venicegeo:beachfront:bf-api"
-    
+
     stage('Setup') {
         deleteDir()
         if(env.GITLAB_CREDS) {
@@ -16,48 +16,51 @@ node('python35') {
             git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
         }
     }
-    
+
     def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true).trim()
     def appName = "bf-api-${appvers}"
-    
-    stage("Dependency Check") {
-        withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
-            sh "/jslave/dependency-check/dependency-check/bin/dependency-check.sh --version"
-            sh '/jslave/dependency-check/dependency-check/bin/dependency-check.sh --project "bf-api" --scan "vendor" --format "XML" --enableExperimental --disableBundleAudit'
-            sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
-        }
-    }
-    
-    stage("Fortify") {
-        withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
-            sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./{*.py,**/*.py}"
-            sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-            sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
-        }
-    }
-    
-    stage("Sonar") {
-        withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
-            withEnv(["HOME=${root}"]) {
-                sh """${sonar}/bin/sonar-scanner \
-                  -Dsonar.python.coverage.reportPath=report/coverage/coverage.xml \
-                  -Dsonar.sources=${root}/bfapi \
-                  -Dsonar.host.url=${env.SONAR_URL} \
-                  -Dsonar.projectKey=${projectId} \
-                  -Dsonar.projectName=${projectId} \
-                  -Dsonar.language=py \
-                  -Dsonar.projectBaseDir=${root} \
-                  -Dsonar.tests=test \
-                  -Dsonar.projectVersion=${appvers} \
-                  -Dsonar.login=${USERNAME}
-                """
-            }
-        }
-    }
-    
+
+	if(!params.SKIP_SCANS) {
+		stage("Dependency Check") {
+			withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+				sh "/jslave/dependency-check/dependency-check/bin/dependency-check.sh --version"
+				sh '/jslave/dependency-check/dependency-check/bin/dependency-check.sh --project "bf-api" --scan "vendor" --format "XML" --enableExperimental --disableBundleAudit'
+				sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+			}
+		}
+
+		stage("Fortify") {
+			withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+				sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./{*.py,**/*.py}"
+				sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
+				sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+			}
+		}
+
+		stage("Sonar") {
+			withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
+				withEnv(["HOME=${root}"]) {
+					sh """${sonar}/bin/sonar-scanner \
+					  -Dsonar.python.coverage.reportPath=report/coverage/coverage.xml \
+					  -Dsonar.sources=${root}/bfapi \
+					  -Dsonar.host.url=${env.SONAR_URL} \
+					  -Dsonar.projectKey=${projectId} \
+					  -Dsonar.projectName=${projectId} \
+					  -Dsonar.language=py \
+					  -Dsonar.projectBaseDir=${root} \
+					  -Dsonar.tests=test \
+					  -Dsonar.projectVersion=${appvers} \
+					  -Dsonar.login=${USERNAME}
+					"""
+				}
+			}
+		}
+	}
+
     stage("Archive") {
         def archiveName = "bf-api.tar.gz"
-        sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
+        sh "ci/archive.sh"
+        // sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
         // Check if exists already
         def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
         -Dmaven.repo.local="${root}/.m2/repository" \
@@ -88,7 +91,7 @@ node('python35') {
           rm ${archiveName} Vagrantfile fortify* dependency-check-report.xml
           rm -rf vagrant
         """
-        
+
     }
     stage("Phase One Deploy") {
         if(!fileExists('.cf')) {
@@ -124,27 +127,28 @@ node('python35') {
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                  cf restage ${appName}
                 """
                 try {
                   sh "cf start ${appName}"
                 } catch (Exception e) {
-                  //sh "cf logs --recent ${appName}"
+                  sh "cf logs --recent ${appName}"
                   sh "cf delete ${appName} -f"
                   error("Error during application start. Deleting ${appName} and failing the build.")
                 }
             }
         }
-        withCredentials([
-          [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
-        ]) {
-            sh """
-              mkdir -p ${root}/zap-out
-              ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_ONE_PCF_DOMAIN}
-              cat ${root}/zap-out/zap.xml
-              /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
-            """
-        }
+		if(!params.SKIP_SCANS) {
+			withCredentials([
+			  [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
+			]) {
+				sh """
+				  mkdir -p ${root}/zap-out
+				  ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_ONE_PCF_DOMAIN}
+				  cat ${root}/zap-out/zap.xml
+				  /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
+				"""
+			}
+		}
         withEnv([
           "CF_HOME=.cf"
         ]) {
@@ -169,7 +173,7 @@ node('python35') {
             }
         }
     }
-        
+
     if(!params.SKIP_INTEGRATION_TESTS) {
         stage("Phase One Integration Tests") {
                         if(!fileExists("integration-tests")) {
@@ -179,7 +183,8 @@ node('python35') {
               file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: "POSTMAN_FILE")
             ]) {
                 withEnv([
-                  "PATH+=${nodejs}/bin",
+                  "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
+                  "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}",
                   "NPM_CONFIG_CACHE=${root}/.npmcache",
                   "HOME=${WORKSPACE}"
                 ]) {
@@ -233,7 +238,6 @@ node('python35') {
                   cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
                   cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
                   cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                  cf restage ${appName}
                 """
                 try {
                   sh "cf start ${appName}"
@@ -244,16 +248,18 @@ node('python35') {
                 }
             }
         }
-        withCredentials([
-          [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
-        ]) {
-            sh """
-              mkdir -p ${root}/zap-out
-              ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN}
-              cat ${root}/zap-out/zap.xml
-              /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
-            """
-        }
+		if(!params.SKIP_SCANS) {
+			withCredentials([
+			  [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
+			]) {
+				sh """
+				  mkdir -p ${root}/zap-out
+				  ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN}
+				  cat ${root}/zap-out/zap.xml
+				  /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
+				"""
+			}
+		}
         withEnv([
           "CF_HOME=.cf"
         ]) {
@@ -286,7 +292,9 @@ node('python35') {
                 withEnv([
                   "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
                   "PCF_SPACE=${env.PHASE_TWO_PCF_SPACE}",
+                  "NPM_CONFIG_CACHE=${root}/.npmcache",
                   "HOME=${WORKSPACE}"
+
                 ]) {
                     dir ("integration-tests") {
                         sh "sh ci/beachfront_integration_tests_stage.sh"

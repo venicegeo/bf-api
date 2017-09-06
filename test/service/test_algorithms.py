@@ -21,7 +21,7 @@ from bfapi.service import algorithms, piazza
 class ListAllTest(unittest.TestCase):
     def test_requests_algorithms_from_piazza(self, mock: MagicMock):
         algorithms.list_all()
-        self.assertEqual(('^BF_Algo_',), mock.call_args[0])
+        self.assertEqual(('BF_Algo_',), mock.call_args[0])
 
     def test_returns_list_of_algorithms(self, mock: MagicMock):
         mock.return_value = [create_service()]

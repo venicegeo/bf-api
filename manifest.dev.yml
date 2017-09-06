@@ -1,0 +1,22 @@
+---
+applications:
+- name: bf-api
+  host: bf-api
+  path: bf-api.zip
+  domain: dev.geointservices.io
+  memory: 1G
+  disk_quota: 1G
+  instances: 1
+  buildpack: "https://github.com/cloudfoundry/python-buildpack#v1.5.18"
+  services:
+    - pz-postgres
+    - pz-geoserver-efs
+  env:
+    GEOAXIS: fake-geoaxis.dev.geointservices.io
+    GEOAXIS_CLIENT_ID: __GEOAXIS_CLIENT_ID__
+    GEOAXIS_SECRET: __GEOAXIS_SECRET__
+    PIAZZA_API_KEY: 3c4961df-5153-4e86-9f80-a018a8badfa6
+    DOMAIN: dev.geointservices.io
+    UI: beachfront.dev.geointservices.io
+    CATALOG: bf-ia-broker.dev.geointservices.io
+    PIAZZA: piazza.int.geointservices.io

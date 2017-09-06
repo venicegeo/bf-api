@@ -24,10 +24,11 @@ from bfapi import db
 from bfapi.config import CATALOG, DOMAIN
 
 
-PATTERN_SCENE_ID = re.compile(r'^(planetscope|rapideye|landsat):[\w_-]+$')
+PATTERN_SCENE_ID = re.compile(r'^(planetscope|rapideye|landsat|sentinel):[\w_-]+$')
 PLATFORM_PLANETSCOPE = 'planetscope'
 PLATFORM_RAPIDEYE = 'rapideye'
 PLATFORM_LANDSAT = 'landsat'
+PLATFORM_SENTINEL = 'sentinel'
 STATUS_ACTIVE = 'active'
 STATUS_ACTIVATING = 'activating'
 STATUS_INACTIVE = 'inactive'
@@ -43,9 +44,9 @@ class Scene:
             *,
             capture_date: datetime,
             cloud_cover: float,
-            geotiff_coastal: str = None,
-            geotiff_multispectral: str = None,
-            geotiff_swir1: str = None,
+            image_coastal: str = None,
+            image_multispectral: str = None,
+            image_swir1: str = None,
             geometry: dict,
             platform: str,
             resolution: int,
@@ -60,9 +61,9 @@ class Scene:
         self.cloud_cover = cloud_cover
         self.id = scene_id
         self.geometry = geometry
-        self.geotiff_coastal = geotiff_coastal
-        self.geotiff_multispectral = geotiff_multispectral
-        self.geotiff_swir1 = geotiff_swir1
+        self.image_coastal = image_coastal
+        self.image_multispectral = image_multispectral
+        self.image_swir1 = image_swir1
         self.platform = platform
         self.resolution = resolution
         self.sensor_name = sensor_name
@@ -82,7 +83,7 @@ def activate(scene: Scene, planet_api_key: str, user_id: str) -> Optional[str]:
     log.info('Scenes service activate scene', action='service scenes activate scene')
 
     if scene.status == STATUS_ACTIVE:
-        return scene.geotiff_multispectral
+        return scene.image_multispectral
     elif scene.status == STATUS_ACTIVATING:
         return None
 
@@ -117,7 +118,7 @@ def create_download_url(scene_id: str, planet_api_key: str = '') -> str:
     # FIXME -- hopefully this endpoint can move into the IA Broker eventually
     log = logging.getLogger(__name__)
     log.info('Scenes service create download url', action='service scenes create download url')
-    return 'https://bf-api.{}/v0/scene/{}.TIF?planet_api_key={}'.format(
+    return 'https://bf-api.{}/v0/scene/{}?planet_api_key={}'.format(
         DOMAIN,
         scene_id,
         planet_api_key,
@@ -158,16 +159,22 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
     # TODO: It's likely that ia-broker will want to move towards a more generic interface for
     # describing the activation process of data using language not specific to any provider.
     # Until then, switch on the platform name
-    geotiff_multispectral, geotiff_coastal, geotiff_swir1 = None, None, None
-    if platform in ('rapideye', 'planetscope'): 
+    scene_multispectral, scene_coastal, scene_swir1 = None, None, None
+    if platform in (PLATFORM_RAPIDEYE, PLATFORM_PLANETSCOPE):
         status = _extract_status(scene_id, feature)
-        geotiff_multispectral = feature['properties'].get('location')
-        if status == STATUS_ACTIVE and not geotiff_multispectral:
+        scene_multispectral = feature['properties'].get('location')
+        if status == STATUS_ACTIVE and not scene_multispectral:
             raise ValidationError(scene_id, 'Scene is activated but missing GeoTIFF URL')
-    elif platform in ('landsat'):
-        geotiff_coastal = feature['properties'].get('bands').get('coastal')
-        geotiff_swir1 = feature['properties'].get('bands').get('swir1')
-        if not geotiff_coastal or not geotiff_swir1:
+    elif platform == PLATFORM_LANDSAT:
+        scene_coastal = feature['properties'].get('bands', {}).get('coastal')
+        scene_swir1 = feature['properties'].get('bands', {}).get('swir1')
+        if not scene_coastal or not scene_swir1:
+            raise ValidationError(scene_id, 'Scene is missing Required Bands')
+        status = STATUS_ACTIVE
+    elif platform == PLATFORM_SENTINEL:
+        scene_coastal = feature['properties'].get('bands', {}).get('coastal')
+        scene_swir1 = feature['properties'].get('bands', {}).get('swir1')
+        if not scene_coastal or not scene_swir1:
             raise ValidationError(scene_id, 'Scene is missing Required Bands')
         status = STATUS_ACTIVE
     else:
@@ -179,9 +186,9 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
         capture_date=_extract_capture_date(scene_id, feature),
         cloud_cover=_extract_cloud_cover(scene_id, feature),
         geometry=_extract_geometry(scene_id, feature),
-        geotiff_multispectral=geotiff_multispectral,
-        geotiff_coastal=geotiff_coastal,
-        geotiff_swir1=geotiff_swir1,
+        image_multispectral=scene_multispectral,
+        image_coastal=scene_coastal,
+        image_swir1=scene_swir1,
         platform=platform,
         resolution=_extract_resolution(scene_id, feature),
         sensor_name=_extract_sensor_name(scene_id, feature),
