@@ -58,7 +58,7 @@ node {
 	}
 
     stage("Archive") {
-        def archiveName = "bf-api.tar.gz"
+        def archiveName = "bf-api.zip"
         sh "ci/archive.sh"
         // sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
         // Check if exists already
