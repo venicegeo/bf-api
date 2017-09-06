@@ -8,11 +8,6 @@ source $root/ci/vars.sh
 
 ## Install Dependencies ########################################################
 
-# HACK -- workaround for Python 3.5 in Jenkins
-if [ $JENKINS_HOME ]; then
-    . /opt/rh/rh-python35/enable
-fi
-
 # Create or enter virtual environment
 if [ ! -f .env/bin/activate ]; then
     virtualenv --python=python3.5 .env
