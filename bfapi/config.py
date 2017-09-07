@@ -86,9 +86,10 @@ def _getservices() -> dict:
 
 DOMAIN = os.getenv('DOMAIN', 'localdomain')
 
-PIAZZA       = os.getenv('PIAZZA', 'piazza.' + DOMAIN)
-CATALOG      = os.getenv('CATALOG', 'bf-ia-broker.' + DOMAIN)
-UI           = os.getenv('UI', 'beachfront.' + DOMAIN)
+PIAZZA         = os.getenv('PIAZZA', 'piazza.' + DOMAIN)
+CATALOG        = os.getenv('CATALOG', 'bf-ia-broker.' + DOMAIN)
+UI             = os.getenv('UI', 'beachfront.' + DOMAIN)
+GPKG_CONVERTER = os.getenv('GPKG_CONVERTER', 'bf-geojson-geopkg-converter.' + DOMAIN)
 
 PIAZZA_API_KEY = os.getenv('PIAZZA_API_KEY')
 SECRET_KEY     = os.getenv('SECRET_KEY', os.urandom(24).hex())

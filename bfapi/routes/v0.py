@@ -20,7 +20,13 @@ import flask
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
-from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines, scenes as _scenes
+from bfapi.service import (
+    algorithms as _algorithms,
+    jobs as _jobs,
+    productlines as _productlines,
+    scenes as _scenes,
+    geopackage as _geopackage,
+)
 
 
 #
@@ -90,6 +96,24 @@ def download_geojson(job_id: str):
         'Content-Type': 'application/vnd.geo+json',
     }
 
+def download_geopackage(job_id: str):
+    try:
+        detections = _jobs.get_detections(job_id)
+    except _jobs.NotFound:
+        return 'Job not found', 404
+    except _jobs.Error as err:
+        return 'Cannot download: {}'.format(err), 500
+    except DatabaseError:
+        return 'A database error prevents detection download', 500
+
+    try:
+        gpkg_data = _geopackage.convert_geojson_to_geopackage(detections)
+    except _geopackage.GeoPackageError as e:
+        return str(e), 500
+
+    return gpkg_data, 200, {
+        'Content-Type': 'application/x-sqlite3',
+    }
 
 def forget_job(job_id: str):
     try:
@@ -302,7 +326,6 @@ def forward_to_scene(scene_id: str):
         'Content-Type': 'text/html',
     }
 # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-
 
 #
 # Helpers
