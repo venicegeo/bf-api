@@ -21,7 +21,7 @@ TIMEOUT = 24
 
 def convert_geojson_to_geopackage(geojson: str) -> bytes:
     log = logging.getLogger(__name__)
-    log.info('Convert GeoJSON->GeoPackage "%s"', piazza_id action=' service geopackage convert')
+    log.info('Convert GeoJSON->GeoPackage "%s"', piazza_id, action=' service geopackage convert')
 
     try:
         response = requests.get(
