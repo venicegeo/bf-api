@@ -492,74 +492,13 @@ class Worker(threading.Thread):
 
         # Determine appropriate action by status
         if status.status in (piazza.STATUS_SUBMITTED, piazza.STATUS_PENDING):
-            if age > job_ttl:
-                log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
-                _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)
-                return
-
-            conn = db.get_connection()
-            try:
-                db.jobs.update_status(conn, job_id=job_id, status=status.status)
-            except db.DatabaseError as err:
-                log.error('<%03d/%s> Could not save status to database', index, job_id)
-                db.print_diagnostics(err)
-                return
-            finally:
-                conn.close()
+            self._updater_process_pending(job_id, age, index, status)
 
         elif status.status == piazza.STATUS_RUNNING:
-            if age > job_ttl:
-                log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
-                _save_execution_error(job_id, STEP_PROCESSING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
-                return
-
-            conn = db.get_connection()
-            try:
-                db.jobs.update_status(conn, job_id=job_id, status=status.status)
-            except db.DatabaseError as err:
-                log.error('<%03d/%s> Could not save status to database', index, job_id)
-                db.print_diagnostics(err)
-                return
-            finally:
-                conn.close()
+            self._updater_process_running(job_id, age, index, status)
 
         elif status.status == piazza.STATUS_SUCCESS:
-            log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
-            try:
-                detections_data_id = _resolve_detections_data_id(status.data_id)
-            except PostprocessingError as err:
-                log.error('<%03d/%s> Could not resolve detections data ID: %s', index, job_id, err)
-                _save_execution_error(job_id, STEP_RESOLVE, str(err))
-                return
-
-            log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
-            try:
-                geojson = piazza.get_file(detections_data_id).text
-            except piazza.ServerError as err:
-                log.error('<%03d/%s> Could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
-                _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not retrieve GeoJSON from Piazza')
-                return
-
-            log.info('<%03d/%s> Saving detections to database (%0.1fMB)', index, job_id, len(geojson) / 1024000)
-            conn = db.get_connection()
-            transaction = conn.begin()
-            try:
-                db.jobs.insert_detection(conn, job_id=job_id, feature_collection=geojson)
-                db.jobs.update_status(
-                    conn,
-                    job_id=job_id,
-                    status=piazza.STATUS_SUCCESS,
-                )
-                transaction.commit()
-            except db.DatabaseError as err:
-                transaction.rollback()
-                transaction.close()
-                log.error('<%03d/%s> Could not save status and detections to database', index, job_id)
-                db.print_diagnostics(err)
-                _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
-                return
-            finally:
-                conn.close()
+            self._updater_process_success(job_id, age, index, status)
 
         elif status.status in (piazza.STATUS_ERROR, piazza.STATUS_FAIL):
             # FIXME -- use heuristics to generate a more descriptive error message
@@ -568,6 +507,84 @@ class Worker(threading.Thread):
         elif status.status == piazza.STATUS_CANCELLED:
             _save_execution_error(job_id, STEP_ALGORITHM, 'Job was cancelled', status=piazza.STATUS_CANCELLED)
 
+    def _updater_process_pending(self, job_id: str, age: timedelta, index: int, status: str):
+        log = self._log
+        job_ttl = self._job_ttl
+
+        if age > job_ttl:
+            log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
+            _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)
+            return
+
+        conn = db.get_connection()
+        try:
+            db.jobs.update_status(conn, job_id=job_id, status=status.status)
+        except db.DatabaseError as err:
+            log.error('<%03d/%s> Could not save status to database', index, job_id)
+            db.print_diagnostics(err)
+            return
+        finally:
+            conn.close()
+
+    def _updater_process_running(self, job_id: str, age: timedelta, index: int, status: str):
+        log = self._log
+        job_ttl = self._job_ttl
+
+        if age > job_ttl:
+            log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
+            _save_execution_error(job_id, STEP_PROCESSING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
+            return
+
+        conn = db.get_connection()
+        try:
+            db.jobs.update_status(conn, job_id=job_id, status=status.status)
+        except db.DatabaseError as err:
+            log.error('<%03d/%s> Could not save status to database', index, job_id)
+            db.print_diagnostics(err)
+            return
+        finally:
+            conn.close()
+
+    def _updater_process_success(self, job_id: str, age: timedelta, index: int, status: str):
+        log = self._log
+        job_ttl = self._job_ttl
+
+        log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
+        try:
+            detections_data_id = _resolve_detections_data_id(status.data_id)
+        except PostprocessingError as err:
+            log.error('<%03d/%s> Could not resolve detections data ID: %s', index, job_id, err)
+            _save_execution_error(job_id, STEP_RESOLVE, str(err))
+            return
+
+        log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
+        try:
+            geojson = piazza.get_file(detections_data_id).text
+        except piazza.ServerError as err:
+            log.error('<%03d/%s> Could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
+            _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not retrieve GeoJSON from Piazza')
+            return
+
+        log.info('<%03d/%s> Saving detections to database (%0.1fMB)', index, job_id, len(geojson) / 1024000)
+        conn = db.get_connection()
+        transaction = conn.begin()
+        try:
+            db.jobs.insert_detection(conn, job_id=job_id, feature_collection=geojson)
+            db.jobs.update_status(
+                conn,
+                job_id=job_id,
+                status=piazza.STATUS_SUCCESS,
+            )
+            transaction.commit()
+        except db.DatabaseError as err:
+            transaction.rollback()
+            transaction.close()
+            log.error('<%03d/%s> Could not save status and detections to database', index, job_id)
+            db.print_diagnostics(err)
+            _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
+            return
+        finally:
+            conn.close()
 
 #
 # Helpers
