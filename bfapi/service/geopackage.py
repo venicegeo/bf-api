@@ -24,7 +24,7 @@ def convert_geojson_to_geopackage(geojson: str) -> bytes:
     log.info('Convert GeoJSON->GeoPackage', action=' service geopackage convert')
 
     try:
-        response = requests.get(
+        response = requests.post(
             'https://{}/convert'.format(
                 GPKG_CONVERTER,
             ),
