@@ -30,6 +30,7 @@ def convert_geojson_to_geopackage(geojson: str) -> bytes:
             ),
             timeout=TIMEOUT,
             data=geojson,
+            headers={"Content-Type": "application/json"}
         )
 
         response.raise_for_status()
