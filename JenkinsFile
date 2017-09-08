@@ -87,11 +87,17 @@ node {
             -Dversion=${appvers} \
             """
         }
-        sh """
-          rm ${archiveName} Vagrantfile fortify* dependency-check-report.xml
-          rm -rf vagrant
-        """
-
+		sh """
+			rm ${archiveName} Vagrantfile
+			rm -rf vagrant
+		"""
+		try {
+			sh """
+				rm fortify* dependency-check-report.xml
+			"""
+		} catch (Exception e) {
+			// Scans were probably skipped
+		}
     }
     stage("Phase One Deploy") {
         if(!fileExists('.cf')) {
@@ -132,7 +138,7 @@ node {
                   sh "cf start ${appName}"
                 } catch (Exception e) {
                   sh "cf logs --recent ${appName}"
-                  sh "cf delete ${appName} -f"
+                  sh "cf delete ${appName} -f -r"
                   error("Error during application start. Deleting ${appName} and failing the build.")
                 }
             }
@@ -166,8 +172,8 @@ node {
                 for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
                     def legacyAppName = legacyApp.toString().trim()
                     if(legacyAppName != appName) {
-                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname ${legacyAppName}"
-                        sh "cf delete -f ${legacyAppName}"
+                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname bf-api"
+                        sh "cf delete -f ${legacyAppName} -r"
                     }
                 }
             }
@@ -243,7 +249,7 @@ node {
                   sh "cf start ${appName}"
                 } catch (Exception e) {
                   //sh "cf logs --recent ${appName}"
-                  sh "cf delete ${appName} -f"
+                  sh "cf delete ${appName} -f -r"
                   error("Error during application start. Deleting ${appName} and failing the build.")
                 }
             }
@@ -277,8 +283,8 @@ node {
                 for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
                     def legacyAppName = legacyApp.toString().trim()
                     if(legacyAppName != appName) {
-                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname ${legacyAppName}"
-                        sh "cf delete -f ${legacyAppName}"
+                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
+                        sh "cf delete -f ${legacyAppName} -r"
                     }
                 }
             }
