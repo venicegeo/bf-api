@@ -21,7 +21,7 @@ TIMEOUT = 24
 
 def convert_geojson_to_geopackage(geojson: str) -> bytes:
     log = logging.getLogger(__name__)
-    log.info('Convert GeoJSON->GeoPackage "%s"', piazza_id, action=' service geopackage convert')
+    log.info('Convert GeoJSON->GeoPackage', action=' service geopackage convert')
 
     try:
         response = requests.get(
@@ -37,8 +37,7 @@ def convert_geojson_to_geopackage(geojson: str) -> bytes:
         log.error('Cannot communicate with GeoPackage converter: %s', err)
         raise GeoPackageError()
     except requests.HTTPError as err:
-        message = 'Cannot convert Piazza object `%s`: HTTP %d on %s to %s' % (
-                  piazza_id,
+        message = 'Cannot convert Piazza object: HTTP %d on %s to %s' % (
                   err.response.status_code,
                   err.request.method,
                   err.request.url)
