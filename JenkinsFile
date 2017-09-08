@@ -87,11 +87,17 @@ node {
             -Dversion=${appvers} \
             """
         }
-        sh """
-          rm ${archiveName} Vagrantfile fortify* dependency-check-report.xml
-          rm -rf vagrant
-        """
-
+		sh """
+			rm ${archiveName} Vagrantfile
+			rm -rf vagrant
+		"""
+		try {
+			sh """
+				rm fortify* dependency-check-report.xml
+			"""
+		} catch (Exception e) {
+			// Scans were probably skipped
+		}
     }
     stage("Phase One Deploy") {
         if(!fileExists('.cf')) {
