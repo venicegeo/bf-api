@@ -275,7 +275,9 @@ def forward_to_scene(scene_id: str):
     except _scenes.NotFound:
         return 'Cannot download: Scene `{}` not found'.format(scene_id), 404
     except (_scenes.CatalogError,
-            _scenes.MalformedSceneID) as err:
+            _scenes.MalformedSceneID,
+            _scenes.UpstreamPlanetError,
+            ) as err:
         return 'Cannot download: {}'.format(err), 500
 
     if scene_url:

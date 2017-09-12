@@ -152,6 +152,8 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
             raise NotPermitted("fetch scene metadata")
         if status_code == 404:
             raise NotFound(scene_id)
+        if status_code == 502:
+            raise UpstreamPlanetError(err.response.text)
         raise CatalogError()
 
     feature = response.json()
@@ -352,3 +354,7 @@ class ValidationError(Exception):
     def __init__(self, scene_id: str, message: str):
         super().__init__('scene `{}` has invalid metadata: {}'.format(scene_id, message))
         self.scene_id = scene_id
+
+class UpstreamPlanetError(Exception):
+    def __init__(self, message: str):
+        super().__init__('error in upstream Planet API: {}'.format(message))
