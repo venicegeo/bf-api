@@ -19,7 +19,7 @@ mkdir -p vendor
 .env/bin/pip install -d vendor -r requirements.txt
 
 ## DB migration process depenendencies
-mkdir -p migrations/vendor
+#mkdir -p migrations/vendor
 
 # Liquibase 3.2.2
 #wget https://repo1.maven.org/maven2/org/liquibase/liquibase-core/3.2.2/liquibase-core-3.2.2.jar \
@@ -33,7 +33,8 @@ mkdir -p migrations/vendor
 # Java 8 u131
 #wget http://javadl.oracle.com/webapps/download/AutoDL?BundleId=220305_d54c1d3a095b4ff2b6607d096fa80163 \
 #  -O - | \
-  tar xz --directory migrations/vendor
+
+tar xz --directory migrations/vendor
 
 if [ -d migrations/vendor/jre ]; then
   rm -rf migrations/vendor/jre
