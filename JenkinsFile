@@ -37,7 +37,7 @@ node {
 			}
 		}
 
-		stage("Sonar") {
+		/*stage("Sonar") {
 			withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
 				withEnv(["HOME=${root}"]) {
 					sh """${sonar}/bin/sonar-scanner \
@@ -54,7 +54,7 @@ node {
 					"""
 				}
 			}
-		}
+		}*/
 	}
 
     stage("Archive") {
