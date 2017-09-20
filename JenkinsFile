@@ -8,7 +8,6 @@ node {
     def sonar = tool 'SonarQube Runner 2.8'
     def projectId = "venicegeo:beachfront:bf-api"
 
-
     stage('Setup') {
         deleteDir()
         if(env.GITLAB_CREDS) {
@@ -60,78 +59,7 @@ node {
 
     stage("Archive") {
         def archiveName = "bf-api.tar.gz"
-        def APP = "bf-api"
-        def EXT = "tar.gz"
-        def target_files = "bfapi migrations vendor scripts/cf-migrate-and-run.sh sql/ Procfile requirements.txt runtime.txt"
-        sh """
-			pushd `dirname ${0}`/.. > /dev/null
-			echo ${0}
-			popd > /dev/null
-
-			## Install Dependencies ########################################################
-			# Create or enter virtual environment
-			if [ ! -f .env/bin/activate ]; then
-				virtualenv .env
-			fi
-			. .env/bin/activate
-
-			# Fetch libraries
-			mkdir -p vendor
-			.env/bin/pip install -d vendor -r requirements.txt
-
-			## DB migration process depenendencies
-			mkdir -p migrations/vendor
-
-			mvn -X --settings ~/.m2/settings.xml dependency:get \
-				  -Dmaven.repo.local="${root}/migrations/vendor" \
-				  -DrepositoryId=nexus \
-				  -DartifactId=liquibase-core \
-				  -Dversion=3.2.2 \
-				  -DgroupId="org.venice.beachfront" \
-				  -Dpackaging=jar \
-				  -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
-
-			cp migrations/vendor/org/venice/beachfront/liquibase-core/3.2.2/liquibase-core-3.2.2.jar ${root}/migrations/vendor
-
-
-			mvn -X --settings ~/.m2/settings.xml dependency:get \
-				  -Dmaven.repo.local="${root}/migrations/vendor" \
-				  -DrepositoryId=nexus \
-				  -DartifactId=postgresql \
-				  -Dversion=42.0.0.jre6 \
-				  -DgroupId="org.venice.beachfront" \
-				  -Dpackaging=jar \
-				  -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
-
-			cp migrations/vendor/org/venice/beachfront/postgresql/42.0.0.jre6/postgresql-42.0.0.jre6.jar ${root}/migrations/vendor
-
-			mvn -X --settings ~/.m2/settings.xml dependency:get \
-				  -Dmaven.repo.local="${root}/migrations/vendor" \
-				  -DrepositoryId=nexus \
-				  -DartifactId=jre \
-				  -Dversion=8u131-linux \
-				  -DgroupId="org.venice.beachfront" \
-				  -Dpackaging=tar.gz \
-				  -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
-
-			cp migrations/vendor/org/venice/beachfront/jre/8u131-linux/jre-8u131-linux.tar.gz ${root}/migrations/vendor
-			tar -xzf migrations/vendor/jre-8u131-linux.tar.gz
-			  
-			echo jre folder exists?
-			if [ -d migrations/vendor/jre ]; then
-			  rm -rf migrations/vendor/jre
-			  echo JRE FOLDER IS THERE
-			fi
-
-			echo move folder
-			mv migrations/vendor/jre* migrations/vendor/jre
-			echo change rights on the folder
-			chmod -R a+rw migrations/vendor/jre
-
-			## Build #######################################################################
-			tar cvvzf ${APP}.${EXT} ${target_files}
-		"""
-        //sh "ci/archive.sh"
+        sh "ci/archive.sh"
         // sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
         // Check if exists already
         def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
