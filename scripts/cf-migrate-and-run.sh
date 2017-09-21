@@ -1,7 +1,7 @@
 #!/bin/bash
 
-cd $(dirname $(dirname $0))  # Return to root
-cd migrations/vendor
+APP_PATH=$( cd $(dirname $0) ; pwd -P )/..
+cd $APP_PATH/migrations/vendor
 
 if [ ! -f jre/bin/java ]; then
   echo "Expected migrations/vendor/jre/bin/java, but not found"
@@ -21,9 +21,7 @@ fi
 JAVA_BIN_DIR="$(cd "$(dirname jre/bin/java)"; pwd -P)"
 PATH=$JAVA_BIN_DIR:$PATH
 
-#cd $(dirname $(dirname $0))  # Return to root
-#cd migrations
-cd ..
+cd $APP_PATH/migrations
 
 python migrate.py \
   --changelog ./changelog.xml \
