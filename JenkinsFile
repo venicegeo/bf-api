@@ -69,22 +69,13 @@ node {
 			popd > /dev/null
 
 			## Install Dependencies ########################################################
-			# Create or enter virtual environment
-			if [ ! -f .env/bin/activate ]; then
-				virtualenv .env
-			fi
-			. .env/bin/activate
-
-			# Fetch libraries
-			mkdir -p vendor
-			.env/bin/pip install -d vendor -r requirements.txt
         """
-        
+
         sh """
 			## DB migration process depenendencies
 			mkdir -p migrations/vendor
         """
-        
+
         sh """
 			mvn -X --settings ~/.m2/settings.xml dependency:get \
 				  -Dmaven.repo.local="${root}/migrations/vendor" \
@@ -112,7 +103,7 @@ node {
 			cp migrations/vendor/org/venice/beachfront/postgresql/42.0.0.jre6/postgresql-42.0.0.jre6.jar ${root}/migrations/vendor
 			mv ${root}/migrations/vendor/postgresql-42.0.0.jre6.jar ${root}/migrations/vendor/postgresql.jar
         """
-        
+
         sh """
 			mvn -X --settings ~/.m2/settings.xml dependency:get \
 				  -Dmaven.repo.local="${root}/migrations/vendor" \
@@ -125,16 +116,16 @@ node {
 
 			cp ${root}/migrations/vendor/org/venice/beachfront/jre/8u131-linux/jre-8u131-linux.tar.gz ${root}/migrations/vendor
             """
-            
+
             sh """
             echo expanding jre to ${root}/migrations/vendor
 			tar -xzf  ${root}/migrations/vendor/jre-8u131-linux.tar.gz --directory ${root}/migrations/vendor
 			rm -f ${root}/migrations/vendor/jre-8u131-linux.tar.gz
-			
+
 			echo contents of ${root}/migrations/vendor
 			ls -la ${root}/migrations/vendor
 			"""
-			
+
             sh """
 			echo jre folder exists?
 			if [ -d migrations/vendor/jre ]; then
@@ -142,7 +133,7 @@ node {
 			  echo JRE FOLDER IS THERE
 			fi
             """
-            
+
             sh """
 			echo MOVE JRE FOLDER TO ${root}/migrations/vendor
 			mv ${root}/migrations/vendor/jre* ${root}/migrations/vendor/jre
