@@ -1,8 +1,6 @@
 #!/bin/bash
 
-pwd
 cd $(dirname $(dirname $0))  # Return to root
-pwd
 cd migrations/vendor
 
 if [ ! -f jre/bin/java ]; then
@@ -23,8 +21,9 @@ fi
 JAVA_BIN_DIR="$(cd "$(dirname jre/bin/java)"; pwd -P)"
 PATH=$JAVA_BIN_DIR:$PATH
 
-cd $(dirname $(dirname $0))  # Return to root
-cd migrations
+#cd $(dirname $(dirname $0))  # Return to root
+#cd migrations
+cd ..
 
 python migrate.py \
   --changelog ./changelog.xml \
