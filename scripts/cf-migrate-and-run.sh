@@ -1,6 +1,8 @@
 #!/bin/bash
 
+pwd
 cd $(dirname $(dirname $0))  # Return to root
+pwd
 cd migrations/vendor
 
 if [ ! -f jre/bin/java ]; then
