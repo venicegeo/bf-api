@@ -49,7 +49,7 @@ def install_layer(layer_id: str):
 
     try:
         response = requests.post(
-            'https://{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(  # FIXME -- https please?
+            '{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(
                 host=GEOSERVER_HOST,
                 ws='piazza',  # FIXME -- autodetect?
                 ds='piazza',  # FIXME -- autodetect?
@@ -136,7 +136,7 @@ def install_style(style_id: str):
     log.info('Geoserver  service install style "%s"', style_id, action=' service geoserver install')
     try:
         response = requests.post(
-            'https://{}/geoserver/rest/styles'.format(  # FIXME -- https please?
+            '{}/geoserver/rest/styles'.format(
                 GEOSERVER_HOST,
             ),
             data="""
@@ -167,7 +167,7 @@ def install_style(style_id: str):
         )
         response.raise_for_status()
         response = requests.put(
-            'https://{}/geoserver/rest/layers/{}'.format(  # FIXME -- https please?
+            '{}/geoserver/rest/layers/{}'.format(
                 GEOSERVER_HOST,
                 DETECTIONS_LAYER_ID,
             ),
@@ -202,7 +202,7 @@ def layer_exists(layer_id: str) -> bool:
     log.info('Geoserver  check if service layer "%s" exists', layer_id, action=' service geoserver check')
     try:
         response = requests.get(
-            'https://{}/geoserver/rest/layers/{}'.format(  # FIXME -- https please
+            '{}/geoserver/rest/layers/{}'.format(
                 GEOSERVER_HOST,
                 layer_id,
             ),
@@ -220,7 +220,7 @@ def style_exists(style_id: str) -> bool:
     log.info('Geoserver  check if service style exists "%s"', style_id, action=' service geoserver check')
     try:
         response = requests.get(
-            'https://{}/geoserver/rest/styles/{}'.format(  # FIXME -- https please
+            '{}/geoserver/rest/styles/{}'.format(
                 GEOSERVER_HOST,
                 style_id,
             ),

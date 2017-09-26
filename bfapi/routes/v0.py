@@ -252,7 +252,7 @@ def get_user_data():
         },
         'services': {
             'catalog': 'https://{}'.format(CATALOG),
-            'wms_server': 'https://{}/geoserver/wms'.format(GEOSERVER_HOST),
+            'wms_server': '{}/geoserver/wms'.format(GEOSERVER_HOST),
         },
     })
 
