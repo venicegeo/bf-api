@@ -19,7 +19,7 @@ from bfapi.config import GEOSERVER_HOST, GEOSERVER_USERNAME, GEOSERVER_PASSWORD
 
 DETECTIONS_LAYER_ID = 'bfdetections'
 DETECTIONS_STYLE_ID = 'bfdetections'
-TIMEOUT = 24
+TIMEOUT = 60
 
 
 def install_if_needed():
