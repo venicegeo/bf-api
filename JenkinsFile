@@ -279,6 +279,7 @@ node {
             }
             withCredentials([
               file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: "POSTMAN_FILE")
+	      [$class: 'StringBinding', credentialsId: "bf_test_key", variable: "BF_GPKG_KEY"]
             ]) {
                 withEnv([
                   "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
