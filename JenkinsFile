@@ -303,104 +303,106 @@ node {
             }
         }
     }
-    stage("Phase Two Deploy") {
-        if(!fileExists('.cf')) {
-            sh "mkdir -p .cf"
-        }
-        def piazza_api_key = ""
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
-            def keyCurl = sh(script: """curl -s https://piazza.${env.PHASE_TWO_PCF_SPACE}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
-            piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
-            sh """
-              if [ -z $piazza_api_key ]; then
-                echo "No Piazza API key found"
-                exit 1
-              fi
-            """
-        }
-        withEnv([
-          "CF_HOME=.cf"
-        ]) {
-            withCredentials([
-              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
-              [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
-              [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
-            ]) {
-                  sh """
-                  cf api ${env.PCF_API_ENDPOINT}
-                  cf auth ${CFUSER} ${CFPASS}
-                  cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
-                  cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start
-                  cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}
-                  cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
-                  cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
-                  cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
-                  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
-                  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-                """
-                try {
-                  sh "cf start ${appName}"
-                } catch (Exception e) {
-                  printLogsFailsafe appName
-                  sh "cf delete ${appName} -f -r"
-                  error("Error during application start. Deleting ${appName} and failing the build.")
-                }
-            }
-        }
-		if(!params.SKIP_SCANS) {
-			withCredentials([
-			  [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
-			]) {
+	if(params.DEPLOY_PHASE_TWO) {
+		stage("Phase Two Deploy") {
+			if(!fileExists('.cf')) {
+				sh "mkdir -p .cf"
+			}
+			def piazza_api_key = ""
+			withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
+				def keyCurl = sh(script: """curl -s https://piazza.${env.PHASE_TWO_PCF_SPACE}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+				piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
 				sh """
-				  mkdir -p ${root}/zap-out
-				  ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN}
-				  cat ${root}/zap-out/zap.xml
-				  /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
+				  if [ -z $piazza_api_key ]; then
+					echo "No Piazza API key found"
+					exit 1
+				  fi
 				"""
 			}
+			withEnv([
+			  "CF_HOME=.cf"
+			]) {
+				withCredentials([
+				  [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
+				  [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+				  [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
+				]) {
+					  sh """
+					  cf api ${env.PCF_API_ENDPOINT}
+					  cf auth ${CFUSER} ${CFPASS}
+					  cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
+					  cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start
+					  cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}
+					  cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
+					  cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
+					  cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
+					  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
+					  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
+					"""
+					try {
+					  sh "cf start ${appName}"
+					} catch (Exception e) {
+					  printLogsFailsafe appName
+					  sh "cf delete ${appName} -f -r"
+					  error("Error during application start. Deleting ${appName} and failing the build.")
+					}
+				}
+			}
+			if(!params.SKIP_SCANS) {
+				withCredentials([
+				  [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
+				]) {
+					sh """
+					  mkdir -p ${root}/zap-out
+					  ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN}
+					  cat ${root}/zap-out/zap.xml
+					  /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
+					"""
+				}
+			}
+			withEnv([
+			  "CF_HOME=.cf"
+			]) {
+				withCredentials([
+				  [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
+				]) {
+					sh """
+					  cf api ${env.PCF_API_ENDPOINT}
+					  cf auth ${CFUSER} ${CFPASS}
+					  cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
+					"""
+					def legacyAppNames = sh(script: """cf routes | grep \"bf-api \" | awk '{print \$4}'""", returnStdout: true)
+					sh "cf map-route ${appName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
+					// Remove legacy applications
+					for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+						def legacyAppName = legacyApp.toString().trim()
+						if(legacyAppName != appName) {
+							sh "cf unmap-route ${legacyAppName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
+							sh "cf delete -f ${legacyAppName} -r"
+						}
+					}
+				}
+			}
 		}
-        withEnv([
-          "CF_HOME=.cf"
-        ]) {
-            withCredentials([
-              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
-            ]) {
-                sh """
-                  cf api ${env.PCF_API_ENDPOINT}
-                  cf auth ${CFUSER} ${CFPASS}
-                  cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
-                """
-                def legacyAppNames = sh(script: """cf routes | grep \"bf-api \" | awk '{print \$4}'""", returnStdout: true)
-                sh "cf map-route ${appName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
-                // Remove legacy applications
-                for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
-                    def legacyAppName = legacyApp.toString().trim()
-                    if(legacyAppName != appName) {
-                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
-                        sh "cf delete -f ${legacyAppName} -r"
-                    }
-                }
-            }
-        }
-    }
-    if(!params.SKIP_INTEGRATION_TESTS) {
-        stage("Phase Two Integration Tests") {
-            withCredentials([
-		    	file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: "POSTMAN_FILE"),
-		    	[$class: 'StringBinding', credentialsId: "${env.BF_GPKG_KEY}", variable: "BF_GPKG_KEY"]
-            ]) {
-                withEnv([
-                  "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
-                  "PCF_SPACE=${env.PHASE_TWO_PCF_SPACE}",
-                  "NPM_CONFIG_CACHE=${root}/.npmcache",
-                  "HOME=${WORKSPACE}"
+		if(!params.SKIP_INTEGRATION_TESTS) {
+			stage("Phase Two Integration Tests") {
+				withCredentials([
+					file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: "POSTMAN_FILE"),
+					[$class: 'StringBinding', credentialsId: "${env.BF_GPKG_KEY}", variable: "BF_GPKG_KEY"]
+				]) {
+					withEnv([
+					  "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
+					  "PCF_SPACE=${env.PHASE_TWO_PCF_SPACE}",
+					  "NPM_CONFIG_CACHE=${root}/.npmcache",
+					  "HOME=${WORKSPACE}"
 
-                ]) {
-                    dir ("integration-tests") {
-                        sh "sh ci/beachfront_integration_tests_stage.sh"
-                    }
-                }
-            }
-        }
-    }
+					]) {
+						dir ("integration-tests") {
+							sh "sh ci/beachfront_integration_tests_stage.sh"
+						}
+					}
+				}
+			}
+		}
+	}
 }
