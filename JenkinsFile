@@ -196,8 +196,9 @@ node {
             sh "mkdir -p .cf"
         }
         def piazza_api_key = ""
+	def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_DOMAIN}"
         withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
-            def keyCurl = sh(script: """curl -s https://piazza.${env.PHASE_ONE_PCF_SPACE}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+            def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
             piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
             sh """
               if [ -z $piazza_api_key ]; then
@@ -309,8 +310,9 @@ node {
 				sh "mkdir -p .cf"
 			}
 			def piazza_api_key = ""
+			def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_DOMAIN}"
 			withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
-				def keyCurl = sh(script: """curl -s https://piazza.${env.PHASE_TWO_PCF_SPACE}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+				def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
 				piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
 				sh """
 				  if [ -z $piazza_api_key ]; then
