@@ -17,6 +17,8 @@ from json import JSONDecodeError
 import dateutil.parser
 import dateutil.tz
 import flask
+import logging
+import requests
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
@@ -28,6 +30,7 @@ from bfapi.service import (
     geopackage as _geopackage,
 )
 
+TIMEOUT_LONG = 180
 
 #
 # Algorithms
@@ -230,6 +233,8 @@ def delete_productline(productline_id: str):
 
 
 def list_productlines():
+    log = logging.getLogger(__name__)
+    log.info('list product lines')
     productlines = _productlines.get_all()
     return flask.jsonify({
         'productlines': {
@@ -237,7 +242,6 @@ def list_productlines():
             'features': [p.serialize() for p in productlines],
         },
     })
-
 
 #
 # Profile
@@ -358,6 +362,8 @@ def _get_number(d: dict, key: str, *, min_value: int = None, max_value: int = No
 
 
 def _get_string(d: dict, key: str, *, nullable: bool = False, min_length: int = 1, max_length: int = 256):
+    log = logging.getLogger(__name__)
+
     if key not in d:
         raise ValidationError('`{}` is missing'.format(key))
     value = d.get(key)
@@ -370,6 +376,47 @@ def _get_string(d: dict, key: str, *, nullable: bool = False, min_length: int = 
         raise ValidationError('`{}` must be a string of {}–{} characters'.format(key, min_length, max_length))
     return value
 
+#
+# Imagery data
+#
+def get_search_imagery(itemType: str) -> bool:
+    log = logging.getLogger(__name__)
+    try:
+        query_params = flask.request.args
+        cloudCover = query_params.get('cloudCover')
+        PL_API_KEY = query_params.get('PL_API_KEY')
+        bbox = query_params.get('bbox')
+        acquiredDate = query_params.get('acquiredDate')
+        maxAcquiredDate = query_params.get('maxAcquiredDate')
+    except JSONDecodeError:
+        return 'Invalid input: request body must be a JSON object', 400
+    except ValidationError as err:
+        return 'Invalid input: {}'.format(err), 400
+    
+    #Process GET request to BF-IA-BROKER
+    log.info(' Searching for images from BF-IA-BROKER', action='searching images')
+    try:
+        response = requests.get(
+            'http://{}/planet/discover/{}'.format(CATALOG, itemType),
+            timeout=TIMEOUT_LONG,
+            params={
+                'cloudCover': cloudCover,
+                'PL_API_KEY': PL_API_KEY,
+                'bbox': bbox,
+                'acquiredDate': acquiredDate,
+                'maxAcquiredDate': maxAcquiredDate,
+            },
+        )
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+
+    return response.content, response.status_code, {**response.headers}
 
 #
 # Errors
