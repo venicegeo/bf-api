@@ -8,8 +8,8 @@ if [ -z "$MANIFEST_FILENAME" ]; then
     echo "Cannot read MANIFEST_FILENAME from the environment"
     exit 1
 fi
-if [ -z "$BEACHFRONT_PIAZZA_AUTH" ]; then
-    echo "Cannot read BEACHFRONT_PIAZZA_AUTH from the environment"
+if [ -z "$BEACHFRONT_PIAZZA_AUTH_TEXT" ]; then
+    echo "Cannot read BEACHFRONT_PIAZZA_AUTH_TEXT from the environment"
     exit 1
 fi
 if [ -z "$BEACHFRONT_GEOAXIS_CLIENT_ID" ]; then
@@ -28,7 +28,7 @@ fi
 echo ###########################################################################
 
 echo "Requesting new Piazza API key via $PIAZZA_URL"
-response=$(curl -s $PIAZZA_URL -u "$BEACHFRONT_PIAZZA_AUTH")
+response=$(curl -s $PIAZZA_URL -u "${BEACHFRONT_PIAZZA_AUTH_TEXT}:")
 echo
 echo "Response:"
 echo $response|sed 's/^/    | /'
