@@ -381,18 +381,14 @@ def _get_string(d: dict, key: str, *, nullable: bool = False, min_length: int = 
 #
 def get_search_imagery(itemType: str) -> bool:
     log = logging.getLogger(__name__)
-    try:
-        query_params = flask.request.args
-        cloudCover = query_params.get('cloudCover')
-        PL_API_KEY = query_params.get('PL_API_KEY')
-        bbox = query_params.get('bbox')
-        acquiredDate = query_params.get('acquiredDate')
-        maxAcquiredDate = query_params.get('maxAcquiredDate')
-    except JSONDecodeError:
-        return 'Invalid input: request body must be a JSON object', 400
-    except ValidationError as err:
-        return 'Invalid input: {}'.format(err), 400
-    
+
+    query_params = flask.request.args
+    cloudCover = query_params.get('cloudCover')
+    PL_API_KEY = query_params.get('PL_API_KEY')
+    bbox = query_params.get('bbox')
+    acquiredDate = query_params.get('acquiredDate')
+    maxAcquiredDate = query_params.get('maxAcquiredDate')
+
     #Process GET request to BF-IA-BROKER
     log.info(' Searching for images from BF-IA-BROKER', action='searching images')
     try:
