@@ -56,7 +56,7 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule(methods=['GET'], rule='/v0/productline', view_func=routes.v0.list_productlines)
     app.add_url_rule(methods=['POST'], rule='/v0/productline', view_func=routes.v0.create_productline)
     app.add_url_rule(methods=['DELETE'], rule='/v0/productline/<productline_id>', view_func=routes.v0.delete_productline)
-
+    app.add_url_rule(methods=['GET'], rule='/v0/imagery/discover/<itemType>', view_func=routes.v0.get_search_imagery)
 
 def banner():
     configurations = []
