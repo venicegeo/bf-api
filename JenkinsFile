@@ -159,7 +159,7 @@ node {
         echo "Artifact version ${appVersion} exists in Nexus, nothing to do"
     } else {
         // Deploy file
-        sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${root}/${archiveName}
+        sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${root}/${archiveName} \
         -DrepositoryId=nexus \
         -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
         -DgroupId="org.venice.beachfront" \
