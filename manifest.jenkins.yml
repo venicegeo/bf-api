@@ -5,7 +5,7 @@ applications:
   memory: 2G
   disk_quota: 2G
   instances: 1
-  buildpack: 'java-buildpack'
+  buildpack: java_buildpack
   services:
     - pz-postgres
     - pz-geoserver-efs
