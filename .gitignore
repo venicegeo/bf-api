@@ -17,3 +17,6 @@ manifest.prod.yml
 vagrant-bfapi.log
 migrations/vendor
 vendor
+/target/
+.classpath
+.settings/
