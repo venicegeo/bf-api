@@ -8,13 +8,15 @@ import javax.sql.DataSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.venice.beachfront.bfapi.model.Environment;
-import org.venice.beachfront.bfapi.services.JobService;
 
 @Configuration
-public class MockApiConfig extends BfApiConfig {
-	@Bean
+@PropertySource("classpath:test.properties")
+public class MockApiConfig {
+	@Bean()
 	@Primary
 	public Environment getEnvironmentConfiguration() throws MalformedURLException  {
 		URL url = new URL("http://localhost:99999");
@@ -33,9 +35,4 @@ public class MockApiConfig extends BfApiConfig {
 		return src;
 	}
 	
-	@Bean
-	@Primary
-	public JobService getJobService() {
-		return null;
-	}
 }
