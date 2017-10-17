@@ -19,15 +19,13 @@ node {
 
   def getPiazzaApiKey = { String pcfSpace ->
     def piazza_api_key = ""
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
-      def keyCurl = sh(script: """curl -s https://piazza.${env.PHASE_ONE_PCF_SPACE}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
+      def keyCurl = sh(script: """curl -s https://piazza.${pcfSpace}.${env.PIAZZA_URL}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
       piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
-      sh """
-        if [ -z $piazza_api_key ]; then
-          echo "No Piazza API key found"
-          exit 1
-        fi
-      """
+      if (piazza_api_key == null || piazza_api_key.length()==0) {
+        error "No Piazza API key found"
+        exit 1
+      }
     }
     echo "Piazza API key found"
     return piazza_api_key
