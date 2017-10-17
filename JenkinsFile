@@ -9,6 +9,7 @@ node {
   def sonar = tool 'SonarQube Runner 2.8'
   def fullAppName = '' // Fill during Setup stage
   def appVersion = '' // Fill during Setup stage
+  def archiveName = '' // Fill during Archive stage
 
   def printLogsFailsafe = {String logAppName ->
     try {
@@ -48,7 +49,7 @@ node {
           cf api ${env.PCF_API_ENDPOINT}
           cf auth ${CFUSER} ${CFPASS}
           cf target -o ${env.PCF_ORG} -s ${pcfSpace}
-          cf push ${deployAppName} -f manifest.jenkins.yml --hostname ${deployAppName} -d ${pcfDomain} --no-start
+          cf push ${deployAppName} -f manifest.jenkins.yml -p ${root}/${archiveName} --hostname ${deployAppName} -d ${pcfDomain} --no-start
           cf set-env ${fullAppName} SPACE ${pcfSpace}
           cf set-env ${fullAppName} DOMAIN ${pcfDomain}
           cf set-env ${fullAppName} PIAZZA_API_KEY $piazzaApiKey
@@ -136,11 +137,11 @@ node {
   }
 
   stage("Archive") {
-    def archiveName = "${fullAppName}.jar"
+    archiveName = "${fullAppName}.jar"
     def target_files = "bfapi migrations vendor scripts/cf-migrate-and-run.sh sql/ Procfile requirements.txt runtime.txt"
     sh """
       mvn clean package
-      mv target/bf-api*.jar ./${archiveName}
+      mv target/bf-api*.jar ${root}/${archiveName}
     """
 
     // Check if exists already
@@ -158,7 +159,7 @@ node {
         echo "Artifact version ${appVersion} exists in Nexus, nothing to do"
     } else {
         // Deploy file
-        sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${archiveName} \
+        sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${root}/${archiveName}
         -DrepositoryId=nexus \
         -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
         -DgroupId="org.venice.beachfront" \
