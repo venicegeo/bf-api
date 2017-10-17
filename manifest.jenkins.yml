@@ -5,12 +5,13 @@ applications:
   memory: 2G
   disk_quota: 2G
   instances: 1
-  buildpack: 'https://github.com/cloudfoundry/python-buildpack#v1.5.9'
+  buildpack: 'java-buildpack'
   services:
     - pz-postgres
     - pz-geoserver-efs
-  env:        
-    GEOAXIS: __GEOAXIS__        
-    GEOAXIS_CLIENT_ID: __GEOAXIS_CLIENT_ID__        
-    GEOAXIS_SECRET: __GEOAXIS_SECRET__        
+  env:
+    GEOAXIS: __GEOAXIS__
+    GEOAXIS_CLIENT_ID: __GEOAXIS_CLIENT_ID__
+    GEOAXIS_SECRET: __GEOAXIS_SECRET__
     PIAZZA_API_KEY: __PIAZZA_API_KEY__
+    IA_BROKER: __IA_BROKER__

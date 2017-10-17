@@ -22,23 +22,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
-
 	</properties>
-	
-	<profiles>
-		<profile>
-			<id>vcap-datasource</id>
-			<properties>
-				<spring.datasource.type>org.postgresql.Driver</spring.datasource.type>
-				<spring.datasource.url>jdbc:postgresql://${vcap.services.pz-postgres.credentials.host}:${vcap.services.pz-postgres.credentials.port}/${vcap.services.pz-postgres.credentials.database}</spring.datasource.url>
-				<spring.datasource.username>${vcap.services.pz-postgres.credentials.username}</spring.datasource.username>
-				<spring.datasource.password>${vcap.services.pz-postgres.credentials.password}</spring.datasource.password>
-			</properties>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
-		</profile>
-	</profiles>
 
 	<dependencies>
 		<dependency>
