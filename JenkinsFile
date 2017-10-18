@@ -64,7 +64,7 @@ node {
           sh "cf start ${deployAppName}"
         } catch (Exception e) {
           printLogsFailsafe deployAppName
-          // sh "cf delete ${deployAppName} -f"
+          sh "cf delete ${deployAppName} -f"
           error("Error during application start. Deleting ${deployAppName} and failing the build.")
         }
       }

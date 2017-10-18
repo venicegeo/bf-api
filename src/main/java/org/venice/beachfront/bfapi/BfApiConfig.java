@@ -69,7 +69,6 @@ public class BfApiConfig {
 			@Value("${vcap.services.pz-postgres.credentials.username:#{null}}") String vcapUsername,
 			@Value("${vcap.services.pz-postgres.credentials.password:#{null}}") String vcapPassword
 			) {
-		System.out.println(String.format("DATA SOURCE: %s || %s; %s; %s; %s; %s", environmentDbUrl, vcapHostname, vcapPort, vcapDatabase, vcapUsername, vcapPassword));
 		if (environmentDbUrl != null && environmentDbUrl.length() > 0) {
 			return DataSourceBuilder
 					.create()
