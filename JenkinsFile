@@ -230,6 +230,7 @@ node {
 					  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
 					  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
 					"""
+                    sh "cf env ${appName}"
                     sh "cf start ${appName}"
                 } catch (Exception e) {
                   printLogsFailsafe appName
