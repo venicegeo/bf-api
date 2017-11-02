@@ -298,7 +298,7 @@ node {
                         }
                         sh """
                           mkdir -p ${root}/.npmcache
-                          npm install newman@2
+                          npm install newman@3
                         """
                         sh "sh ci/beachfront_integration_tests.sh"
                     }
