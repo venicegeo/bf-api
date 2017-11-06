@@ -344,8 +344,8 @@ node {
 						  cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
 						  cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
 						  cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
-                                                  cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}
-                                                  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
+						  cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}
+						  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
 						  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
 						  """
 						  sh "cf start ${appName}"
