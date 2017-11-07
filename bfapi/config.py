@@ -30,8 +30,18 @@ def validate(failfast: bool = True):
     if not POSTGRES_USERNAME: _errors.append('POSTGRES_USERNAME cannot be blank')
     if not POSTGRES_PASSWORD: _errors.append('POSTGRES_PASSWORD cannot be blank')
     if not GEOSERVER_HOST: _errors.append('GEOSERVER_HOST cannot be blank')
-    if not GEOSERVER_USERNAME: _errors.append('GEOSERVER_USERNAME cannot be blank')
-    if not GEOSERVER_PASSWORD: _errors.append('GEOSERVER_PASSWORD cannot be blank')
+
+    if GEOSERVER_AUTH_TYPE not in ('userpass', 'sslkey'):
+        _errors.append('GEOSERVER_AUTH_TYPE has invalid value (must be `userpass` or `sslkey`)')
+
+    if GEOSERVER_AUTH_TYPE == 'userpass':
+        if not GEOSERVER_USERNAME: _errors.append('GEOSERVER_USERNAME cannot be blank')
+        if not GEOSERVER_PASSWORD: _errors.append('GEOSERVER_PASSWORD cannot be blank')
+
+    if GEOSERVER_AUTH_TYPE == 'sslcert':
+        if not GEOSERVER_SSL_KEY_PATH: _errors.append('GEOSERVER_SSL_KEY_PATH cannot be blank')
+        if not GEOSERVER_SSL_CERT_PATH: _errors.append('GEOSERVER_SSL_CERT_PATH cannot be blank')
+
     if not GEOAXIS: _errors.append('GEOAXIS cannot be blank')
     if not GEOAXIS_CLIENT_ID: _errors.append('GEOAXIS_CLIENT_ID cannot be blank')
     if not GEOAXIS_SECRET: _errors.append('GEOAXIS_SECRET cannot be blank')
@@ -112,5 +122,8 @@ POSTGRES_USERNAME = _services.get('pz-postgres.credentials.username')
 POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
 
 GEOSERVER_HOST = _services.get('pz-geoserver-efs.credentials.geoserver.host')
+GEOSERVER_AUTH_TYPE = _services.get('pz-geoserver-efs.credentials.geoserver.authtype')
 GEOSERVER_USERNAME = _services.get('pz-geoserver-efs.credentials.geoserver.username')
 GEOSERVER_PASSWORD = _services.get('pz-geoserver-efs.credentials.geoserver.password')
+GEOSERVER_SSL_KEY_PATH = _services.get('pz-geoserver-efs.credentials.geoserver.keypath')
+GEOSERVER_SSL_CERT_PATH = _services.get('pz-geoserver-efs.credentials.geoserver.certpath')
