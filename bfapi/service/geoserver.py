@@ -23,7 +23,7 @@ DETECTIONS_LAYER_ID = 'bfdetections'
 DETECTIONS_STYLE_ID = 'bfdetections'
 TIMEOUT = 60
 
-AUTH_KWARGS = {}
+AUTH_KWARGS = {'verify': False}
 if GEOSERVER_AUTH_TYPE == 'userpass':
     AUTH_KWARGS['auth'] = (GEOSERVER_USERNAME, GEOSERVER_PASSWORD)
 if GEOSERVER_AUTH_TYPE == 'sslcert':

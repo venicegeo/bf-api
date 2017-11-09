@@ -7,6 +7,7 @@ node {
     def nodejs = tool 'NodeJS_6'
     def sonar = tool 'SonarQube Runner 2.8'
     def projectId = "venicegeo:beachfront:bf-api"
+    boolean geoserverClientSSLAvailable = false
 
     def printLogsFailsafe = {String logAppName ->
       try {
@@ -70,14 +71,31 @@ node {
         def archiveName = "bf-api.tar.gz"
         def APP = "bf-api"
         def EXT = "tar.gz"
-        def target_files = "bfapi migrations vendor scripts/cf-migrate-and-run.sh sql/ Procfile requirements.txt runtime.txt"
+        def target_files = "bfapi keys migrations vendor scripts/cf-migrate-and-run.sh sql/ Procfile requirements.txt runtime.txt"
         sh """
 			pushd `dirname ${0}`/.. > /dev/null
 			echo ${0}
 			popd > /dev/null
+      """
+
+      ## Geoserver SSL Keys ##########################################################
+
+      sh "mkdir -p keys"
+      echo "Copying Geoserver SSL key"
+      if (env.GEOSERVER_SSL_CERT_PATH != "" && env.GEOSERVER_SSL_KEY_PATH != "") {
+        geoserverClientSSLAvailable = true
+        sh """
+          cp ${env.GEOSERVER_SSL_CERT_PATH} ./keys/geoserver.client.pem
+          cp ${env.GEOSERVER_SSL_KEY_PATH} ./keys/geoserver.client.key
+        """
+        echo "Geoserver client SSL key: OK"
+      }
+      else {
+        geoserverClientSSLAvailable = false
+        echo "Geoserver client SSL key: Unavailable"
+      }
 
 			## Install Dependencies ########################################################
-        """
 
         sh """
 			## DB migration process depenendencies
@@ -230,6 +248,15 @@ node {
 					  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
 					  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
 					"""
+
+          if (geoserverClientSSLAvailable) {
+            cf set-env ${appName} GEOSERVER_AUTH_TYPE sslcert
+            cf set-env ${appName} GEOSERVER_SSL_CERT_PATH keys/geoserver.client.pem
+            cf set-env ${appName} GEOSERVER_SSL_KEY_PATH keys/geoserver.client.key
+          } else {
+            cf set-env ${appName} GEOSERVER_AUTH_TYPE userpass
+          }
+
                     sh "cf start ${appName}"
                 } catch (Exception e) {
                   printLogsFailsafe appName
@@ -337,7 +364,7 @@ node {
 					  cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
 					  cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start
 					  """
-					  try {					  
+					  try {
 						  sh """
 						  cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}
 						  cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
@@ -346,6 +373,13 @@ node {
 						  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
 						  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
 						  """
+              if (geoserverClientSSLAvailable) {
+                cf set-env ${appName} GEOSERVER_AUTH_TYPE sslcert
+                cf set-env ${appName} GEOSERVER_SSL_CERT_PATH keys/geoserver.client.pem
+                cf set-env ${appName} GEOSERVER_SSL_KEY_PATH keys/geoserver.client.key
+              } else {
+                cf set-env ${appName} GEOSERVER_AUTH_TYPE userpass
+              }
 						  sh "cf start ${appName}"
 					} catch (Exception e) {
 					  printLogsFailsafe appName

@@ -39,8 +39,8 @@ def validate(failfast: bool = True):
         if not GEOSERVER_PASSWORD: _errors.append('GEOSERVER_PASSWORD cannot be blank')
 
     if GEOSERVER_AUTH_TYPE == 'sslcert':
-        if not GEOSERVER_SSL_KEY_PATH: _errors.append('GEOSERVER_SSL_KEY_PATH cannot be blank')
         if not GEOSERVER_SSL_CERT_PATH: _errors.append('GEOSERVER_SSL_CERT_PATH cannot be blank')
+        if not GEOSERVER_SSL_KEY_PATH: _errors.append('GEOSERVER_SSL_KEY_PATH cannot be blank')
 
     if not GEOAXIS: _errors.append('GEOAXIS cannot be blank')
     if not GEOAXIS_CLIENT_ID: _errors.append('GEOAXIS_CLIENT_ID cannot be blank')
@@ -108,6 +108,10 @@ GEOAXIS           = os.getenv('GEOAXIS')
 GEOAXIS_CLIENT_ID = os.getenv('GEOAXIS_CLIENT_ID')
 GEOAXIS_SECRET    = os.getenv('GEOAXIS_SECRET')
 
+GEOSERVER_AUTH_TYPE = os.getenv('GEOSERVER_AUTH_TYPE')
+GEOSERVER_SSL_CERT_PATH = _services.get('GEOSERVER_SSL_CERT_PATH')
+GEOSERVER_SSL_KEY_PATH = _services.get('GEOSERVER_SSL_KEY_PATH')
+
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_WORKER_MAX_RETRIES = 3
 JOB_TTL = timedelta(hours=2)
@@ -122,8 +126,5 @@ POSTGRES_USERNAME = _services.get('pz-postgres.credentials.username')
 POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
 
 GEOSERVER_HOST = _services.get('pz-geoserver-efs.credentials.geoserver.host')
-GEOSERVER_AUTH_TYPE = _services.get('pz-geoserver-efs.credentials.geoserver.authtype')
 GEOSERVER_USERNAME = _services.get('pz-geoserver-efs.credentials.geoserver.username')
 GEOSERVER_PASSWORD = _services.get('pz-geoserver-efs.credentials.geoserver.password')
-GEOSERVER_SSL_KEY_PATH = _services.get('pz-geoserver-efs.credentials.geoserver.keypath')
-GEOSERVER_SSL_CERT_PATH = _services.get('pz-geoserver-efs.credentials.geoserver.certpath')
