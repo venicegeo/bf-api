@@ -231,6 +231,9 @@ node {
 					  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
 					  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
 					"""
+                if(env.GITLAB_CREDS) {
+                  sh "cf set-env ${appName} REQUESTS_CA_BUNDLE /etc/ssl/certs/ca-certificates.crt"
+                }
                     sh "cf start ${appName}"
                 } catch (Exception e) {
                   printLogsFailsafe appName
