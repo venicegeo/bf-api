@@ -15,11 +15,19 @@ import logging
 
 import requests
 
-from bfapi.config import GEOSERVER_HOST, GEOSERVER_USERNAME, GEOSERVER_PASSWORD
+from bfapi.config import (GEOSERVER_HOST, GEOSERVER_AUTH_TYPE,
+    GEOSERVER_USERNAME, GEOSERVER_PASSWORD,
+    GEOSERVER_SSL_CERT_PATH, GEOSERVER_SSL_KEY_PATH)
 
 DETECTIONS_LAYER_ID = 'bfdetections'
 DETECTIONS_STYLE_ID = 'bfdetections'
 TIMEOUT = 60
+
+AUTH_KWARGS = {'verify': False}
+if GEOSERVER_AUTH_TYPE == 'userpass':
+    AUTH_KWARGS['auth'] = (GEOSERVER_USERNAME, GEOSERVER_PASSWORD)
+if GEOSERVER_AUTH_TYPE == 'sslcert':
+    AUTH_KWARGS['cert'] = (GEOSERVER_SSL_CERT_PATH, GEOSERVER_SSL_KEY_PATH)
 
 
 def install_if_needed():
@@ -54,7 +62,7 @@ def install_layer(layer_id: str):
                 ws='piazza',  # FIXME -- autodetect?
                 ds='piazza',  # FIXME -- autodetect?
             ),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
+            **AUTH_KWARGS,
             timeout=TIMEOUT,
             headers={
                 'Content-Type': 'application/xml',
@@ -151,7 +159,7 @@ def install_style(style_id: str):
                   </NamedLayer>
                 </StyledLayerDescriptor>
             """.strip(),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
+            **AUTH_KWARGS,
             timeout=TIMEOUT,
             headers={
                 'Content-Type': 'application/vnd.ogc.sld+xml',
@@ -201,7 +209,7 @@ def layer_exists(layer_id: str) -> bool:
                 GEOSERVER_HOST,
                 layer_id,
             ),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
+            **AUTH_KWARGS,
             timeout=TIMEOUT,
         )
     except requests.ConnectionError as err:
@@ -219,7 +227,7 @@ def style_exists(style_id: str) -> bool:
                 GEOSERVER_HOST,
                 style_id,
             ),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
+            **AUTH_KWARGS,
             timeout=TIMEOUT,
         )
     except requests.ConnectionError as err:
