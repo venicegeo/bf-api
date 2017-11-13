@@ -31,8 +31,8 @@ def validate(failfast: bool = True):
     if not POSTGRES_PASSWORD: _errors.append('POSTGRES_PASSWORD cannot be blank')
     if not GEOSERVER_HOST: _errors.append('GEOSERVER_HOST cannot be blank')
 
-    if GEOSERVER_AUTH_TYPE not in ('userpass', 'sslkey'):
-        _errors.append('GEOSERVER_AUTH_TYPE has invalid value (must be `userpass` or `sslkey`)')
+    if GEOSERVER_AUTH_TYPE not in ('userpass', 'sslcert'):
+        _errors.append('GEOSERVER_AUTH_TYPE has invalid value (must be `userpass` or `sslcert`)')
 
     if GEOSERVER_AUTH_TYPE == 'userpass':
         if not GEOSERVER_USERNAME: _errors.append('GEOSERVER_USERNAME cannot be blank')
@@ -109,8 +109,8 @@ GEOAXIS_CLIENT_ID = os.getenv('GEOAXIS_CLIENT_ID')
 GEOAXIS_SECRET    = os.getenv('GEOAXIS_SECRET')
 
 GEOSERVER_AUTH_TYPE = os.getenv('GEOSERVER_AUTH_TYPE')
-GEOSERVER_SSL_CERT_PATH = _services.get('GEOSERVER_SSL_CERT_PATH')
-GEOSERVER_SSL_KEY_PATH = _services.get('GEOSERVER_SSL_KEY_PATH')
+GEOSERVER_SSL_CERT_PATH = os.getenv('GEOSERVER_SSL_CERT_PATH')
+GEOSERVER_SSL_KEY_PATH = os.getenv('GEOSERVER_SSL_KEY_PATH')
 
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_WORKER_MAX_RETRIES = 3
