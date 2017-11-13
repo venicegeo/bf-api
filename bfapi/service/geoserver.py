@@ -25,7 +25,8 @@ DETECTIONS_LAYER_ID = 'bfdetections'
 DETECTIONS_STYLE_ID = 'bfdetections'
 TIMEOUT = 60
 
-GEOSERVER_SESSION.verify = False
+GEOSERVER_SESSION.verify = False # XXX: Does not actually work, see: https://github.com/requests/requests/issues/2255
+
 if GEOSERVER_AUTH_TYPE == 'userpass':
     GEOSERVER_SESSION.auth = (GEOSERVER_NAME, GEOSERVER_PASSWORD)
 if GEOSERVER_AUTH_TYPE == 'sslcert':
