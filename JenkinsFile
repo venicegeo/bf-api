@@ -59,21 +59,18 @@ node {
       popd > /dev/null
     """
 
-    ## Geoserver SSL Keys ##########################################################
+    ## Geoserver SSL Certificate ##########################################################
 
     sh "mkdir -p keys"
-    echo "Copying Geoserver SSL key"
-    if (env.GEOSERVER_SSL_CERT_PATH != "" && env.GEOSERVER_SSL_KEY_PATH != "") {
-      geoserverClientSSLAvailable = true
-      sh """
-        cp ${env.GEOSERVER_SSL_CERT_PATH} ./keys/geoserver.client.pem
-        cp ${env.GEOSERVER_SSL_KEY_PATH} ./keys/geoserver.client.key
-      """
-      echo "Geoserver client SSL key: OK"
-    }
-    else {
-      geoserverClientSSLAvailable = false
-      echo "Geoserver client SSL key: Unavailable"
+    withCredentials([file(credentialsId: "${env.GEOSERVER_CERT_FILE}", variable: 'CERT_FILE')]) {
+      echo "Copying Geoserver client SSL certificate"
+      if (CERT_FILE != null && CERT_FILE != "") {
+        geoserverClientSSLAvailable = true
+        cp "cp ${CERT_FILE} ./keys/geoserver.client.pem"
+      } else {
+        geoserverClientSSLAvailable = false
+        echo "Geoserver client SSL key: Unavailable"
+      }
     }
 
     ## Install Dependencies ########################################################
@@ -235,7 +232,6 @@ node {
           if (geoserverClientSSLAvailable) {
             cf set-env ${appName} GEOSERVER_AUTH_TYPE sslcert
             cf set-env ${appName} GEOSERVER_SSL_CERT_PATH keys/geoserver.client.pem
-            cf set-env ${appName} GEOSERVER_SSL_KEY_PATH keys/geoserver.client.key
           } else {
             cf set-env ${appName} GEOSERVER_AUTH_TYPE userpass
           }
@@ -362,7 +358,6 @@ node {
             if (geoserverClientSSLAvailable) {
               cf set-env ${appName} GEOSERVER_AUTH_TYPE sslcert
               cf set-env ${appName} GEOSERVER_SSL_CERT_PATH keys/geoserver.client.pem
-              cf set-env ${appName} GEOSERVER_SSL_KEY_PATH keys/geoserver.client.key
             } else {
               cf set-env ${appName} GEOSERVER_AUTH_TYPE userpass
             }

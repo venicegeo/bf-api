@@ -40,7 +40,6 @@ def validate(failfast: bool = True):
 
     if GEOSERVER_AUTH_TYPE == 'sslcert':
         if not GEOSERVER_SSL_CERT_PATH: _errors.append('GEOSERVER_SSL_CERT_PATH cannot be blank')
-        if not GEOSERVER_SSL_KEY_PATH: _errors.append('GEOSERVER_SSL_KEY_PATH cannot be blank')
 
     if not GEOAXIS: _errors.append('GEOAXIS cannot be blank')
     if not GEOAXIS_CLIENT_ID: _errors.append('GEOAXIS_CLIENT_ID cannot be blank')
@@ -110,7 +109,6 @@ GEOAXIS_SECRET    = os.getenv('GEOAXIS_SECRET')
 
 GEOSERVER_AUTH_TYPE = os.getenv('GEOSERVER_AUTH_TYPE')
 GEOSERVER_SSL_CERT_PATH = os.getenv('GEOSERVER_SSL_CERT_PATH')
-GEOSERVER_SSL_KEY_PATH = os.getenv('GEOSERVER_SSL_KEY_PATH')
 
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_WORKER_MAX_RETRIES = 3
