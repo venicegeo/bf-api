@@ -17,7 +17,7 @@ import urllib.parse
 import flask
 import logging
 
-from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_CLIENT_ID
+from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_AUTH, GEOAXIS_CLIENT_ID
 from bfapi.service import users
 from bfapi.routes import v0
 
@@ -64,7 +64,7 @@ def login_start():
         ('response_type', 'code'),
         ('scope', 'UserProfile.me'),
     ))
-    return flask.redirect('https://{}/ms_oauth/oauth2/endpoints/oauthservice/authorize?{}'.format(GEOAXIS, params))
+    return flask.redirect('https://{}/ms_oauth/oauth2/endpoints/oauthservice/authorize?{}'.format(GEOAXIS_AUTH, params))
 
 
 def logout():
