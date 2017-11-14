@@ -620,6 +620,18 @@ def _create_algorithm_cli_cmd(
         ])
     elif algo_interface == 'pzsvc-shape-py':
         return '-f ' + geotiff_filenames[0] + ' -o shoreline.geojson'
+    elif algo_interface == 'pzsvc-wta-py':
+        band_flag = ''
+        if scene_platform == scenes.PLATFORM_RAPIDEYE:
+            band_flag = '--bands 1 2 3 4 5'
+        elif scene_platform == scenes.PLATFORM_LANDSAT:
+            band_flag = '--bands 2 3 4 1 5'
+        return ' '.join([
+            ' '.join(['-i ' + filename for filename in image_filenames]),
+            band_flag,
+            '--basename shoreline',
+            '--smooth 1.0'
+        ])
     else:
         error_message = 'unknown algorithm interface "' + algo_interface + '".'
         log.error(error_message)
