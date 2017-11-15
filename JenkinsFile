@@ -59,9 +59,11 @@ node {
       popd > /dev/null
     """
 
-    ## Geoserver SSL Certificate ##########################################################
+    sh """
+      ## Geoserver SSL Certificate ##########################################################
+      mkdir -p keys
+    """
 
-    sh "mkdir -p keys"
     withCredentials([file(credentialsId: "${env.GEOSERVER_CERT_FILE}", variable: 'CERT_FILE')]) {
       echo "Copying Geoserver client SSL certificate"
       if (CERT_FILE != null && CERT_FILE != "") {
@@ -73,9 +75,9 @@ node {
       }
     }
 
-    ## Install Dependencies ########################################################
-
     sh """
+      ## Install Dependencies ########################################################
+
       ## DB migration process depenendencies
       mkdir -p migrations/vendor
     """
@@ -145,8 +147,10 @@ node {
       chmod -R a+rw migrations/vendor/jre
     """
 
-    ## Build #######################################################################
-    sh "tar cvvzf ${APP}.${EXT} ${target_files}"
+    sh """
+      ## Build #######################################################################
+      tar cvvzf ${APP}.${EXT} ${target_files}
+    """
 
     // Check if exists already
     def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
