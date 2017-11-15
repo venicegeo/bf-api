@@ -107,12 +107,19 @@ SESSION_TTL = timedelta(minutes=15)
 
 _services = _getservices()
 
-POSTGRES_HOST = _services.get('pz-postgres.credentials.hostname')
-POSTGRES_PORT = _services.get('pz-postgres.credentials.port')
-POSTGRES_DATABASE = _services.get('pz-postgres.credentials.database')
+POSTGRES_HOST = _services.get('pz-postgres.credentials.db_host')
+POSTGRES_PORT = _services.get('pz-postgres.credentials.db_port')
+POSTGRES_DATABASE = _services.get('pz-postgres.credentials.db_name')
 POSTGRES_USERNAME = _services.get('pz-postgres.credentials.username')
 POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
 
-GEOSERVER_HOST = _services.get('pz-geoserver-efs.credentials.geoserver.host')
-GEOSERVER_USERNAME = _services.get('pz-geoserver-efs.credentials.geoserver.username')
-GEOSERVER_PASSWORD = _services.get('pz-geoserver-efs.credentials.geoserver.password')
+# With the current configuration of the Boundless On-Demand Service, this following VCAP value will contain the full protocol, host, port, and geoserver path, and index.html reference.
+# BF-API Code expects the Host to contain only the hostname. No /geoserver prefixes of any kind. Those shall be stripped here.
+# This is considered a temporary fix until the GeoServer service adds proper values for the isolated host name. 
+GEOSERVER_HOST = _services.get('pz-geoserver.credentials.boundless_geoserver_url')
+if GEOSERVER_HOST.endswith('/index.html'):
+    GEOSERVER_HOST = GEOSERVER_HOST[:-11]
+if GEOSERVER_HOST.endswith('/geoserver'):
+    GEOSERVER_HOST = GEOSERVER_HOST[:-10]
+GEOSERVER_USERNAME = _services.get('pz-geoserver.credentials.boundless_geoserver_username')
+GEOSERVER_PASSWORD = _services.get('pz-geoserver.credentials.boundless_geoserver_password')
