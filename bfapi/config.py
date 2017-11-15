@@ -118,10 +118,8 @@ POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
 # This is considered a temporary fix until the GeoServer service adds proper values for the isolated host name. 
 GEOSERVER_HOST = _services.get('pz-geoserver.credentials.boundless_geoserver_url')
 if GEOSERVER_HOST.endswith('/index.html'):
-    GEOSERVER_HOST = GEOSERVER_HOST[:11]
+    GEOSERVER_HOST = GEOSERVER_HOST[:-11]
 if GEOSERVER_HOST.endswith('/geoserver'):
-    GEOSERVER_HOST = GEOSERVER_HOST[:10]
-if "http" not in GEOSERVER_HOST:
-    GEOSERVER_HOST = "https://" + GEOSERVER_HOST
+    GEOSERVER_HOST = GEOSERVER_HOST[:-10]
 GEOSERVER_USERNAME = _services.get('pz-geoserver.credentials.boundless_geoserver_username')
 GEOSERVER_PASSWORD = _services.get('pz-geoserver.credentials.boundless_geoserver_password')
