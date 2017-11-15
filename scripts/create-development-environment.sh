@@ -26,6 +26,7 @@ create_environment_vars() {
     echo -e "\n$FUNCNAME: Creating $filepath"
     cat <<'EOT' | sed -E 's/^        //' > $filepath
         export GEOAXIS=
+        export GEOAXIS_AUTH=
         export GEOAXIS_CLIENT_ID=
         export GEOAXIS_SECRET=
         export DOMAIN=
