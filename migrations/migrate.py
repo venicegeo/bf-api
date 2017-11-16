@@ -46,22 +46,40 @@ def configure_environment() -> dict:
         raise ValueError("VCAP_SERVICES environment variable missing")
     vcap = json.loads(vcap_json)
 
+    vcap_merged = {}
+    for key, section in vcap.items():
+        log("Parsing VCAP section:", key, "with name:")
+        for entry in section:
+            name = entry.get('name')
+            log("Registering VCAP entry with name:", name)
+            if name in vcap_merged:
+                log("WARNING: overwriting an entry by that same name in merged VCAP configuration")
+            vcap_merged[name] = entry
+
+    pz_postgres_section = vcap_merged.get('pz-postgres')
+    if not pz_postgres_section:
+        log("pz-postgres configuration in environment not found", error=True)
+        raise ValueError("`pz-postgres` section missing from VCAP_SERVICES")
+    pg_credentials = pz_postgres_section.get('credentials', {})
+
+    pz_postgres_service_key_section = vcap_merged.get('pz-postgres-service-key')
+    if not pz_postgres_service_key_section:
+        log("pz-postgres-service-key configuration in environment not found", error=True)
+        raise ValueError("`pz-postgres-service-key` section missing from VCAP_SERVICES")
+    pg_service_key_credentials = pz_postgres_service_key_section.get('credentials', {})    
+
     output = {
-        'hostname': '',
-        'username': '',
-        'password': '',
-        'database': '',
-        'port': 0,
+        'hostname': pg_credentials.get('db_host') or '',
+        'username': pg_service_key_credentials.get('username') or '',
+        'password': pg_service_key_credentials.get('password') or '',
+        'database': pg_credentials.get('db_name') or '',
+        'port': int(pg_credentials.get('db_port') or 0)),
     }
 
-    for config in vcap.get('user-provided', []):
-        if config.get('name') != 'pz-postgres':
-            continue
-        creds = config.get('credentials', {})
-        output.update(creds)
-        break
-    else:
-        log("pz-postgres configuration in environment not found", error=True)
+    for k, v in output.items():
+        if not v:
+            log('Could not extract VCAP value for postgres `%s`' % k, error=True)
+
     return output
 
 
