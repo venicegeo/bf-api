@@ -73,7 +73,7 @@ def configure_environment() -> dict:
         'username': pg_service_key_credentials.get('username') or '',
         'password': pg_service_key_credentials.get('password') or '',
         'database': pg_credentials.get('db_name') or '',
-        'port': int(pg_credentials.get('db_port') or 0)),
+        'port': int(pg_credentials.get('db_port') or 0),
     }
 
     for k, v in output.items():
