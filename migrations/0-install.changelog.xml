@@ -15,8 +15,7 @@
             WHERE table_name LIKE '__beachfront__%';
         </sqlCheck>
         <not>
-          <viewExists viewName="__beachfront__geoserver" schemaName="public">
-          </viewExists>
+          <viewExists viewName="__beachfront__geoserver" schemaName="public"/>
         </not>
       </and>
     </preConditions>
