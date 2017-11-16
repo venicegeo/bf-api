@@ -48,7 +48,7 @@ def configure_environment() -> dict:
 
     vcap_merged = {}
     for key, section in vcap.items():
-        log("Parsing VCAP section:", key, "with name:")
+        log("Parsing VCAP section:", key)
         for entry in section:
             name = entry.get('name')
             log("Registering VCAP entry with name:", name)
