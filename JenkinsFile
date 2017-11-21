@@ -234,10 +234,12 @@ node {
           """
 
           if (geoserverClientSSLAvailable) {
-            cf set-env ${appName} GEOSERVER_AUTH_TYPE sslcert
-            cf set-env ${appName} GEOSERVER_SSL_CERT_PATH keys/geoserver.client.pem
+            sh """
+              cf set-env ${appName} GEOSERVER_AUTH_TYPE sslcert
+              cf set-env ${appName} GEOSERVER_SSL_CERT_PATH keys/geoserver.client.pem
+            """
           } else {
-            cf set-env ${appName} GEOSERVER_AUTH_TYPE userpass
+            sh "cf set-env ${appName} GEOSERVER_AUTH_TYPE userpass"
           }
 
           sh "cf start ${appName}"
