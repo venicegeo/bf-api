@@ -243,6 +243,10 @@ node {
             sh "cf set-env ${appName} GEOSERVER_AUTH_TYPE userpass"
           }
 
+          if(env.GITLAB_CREDS) {
+             sh "cf set-env ${appName} REQUESTS_CA_BUNDLE /etc/ssl/certs/ca-certificates.crt"
+          }
+ 
           sh "cf start ${appName}"
         } catch (Exception e) {
           printLogsFailsafe appName
