@@ -56,7 +56,7 @@ def install_if_needed():
 def install_layer(layer_id: str):
     log = logging.getLogger(__name__)
     log.info('Geoserver service install layer "%s"', layer_id, action=' service geoserver install')
-
+'''
     try:
         response = GEOSERVER_SESSION.post(
             '{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(
@@ -135,6 +135,7 @@ def install_layer(layer_id: str):
                   err.request.url,
                   err.response.content)
         raise GeoServerError()
+        '''
 
 
 def install_style(style_id: str):
