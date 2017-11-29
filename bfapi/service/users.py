@@ -156,7 +156,6 @@ def _fetch_geoaxis_profile(access_token: str):
             headers={
                 'Authorization': 'Bearer {}'.format(access_token),
             },
-            verify=False,
         )
         log.debug('Received response: %s', response.text)
         response.raise_for_status()
@@ -200,7 +199,6 @@ def _request_geoaxis_access_token(auth_code: str):
                 'code': auth_code,
                 'redirect_uri': 'https://bf-api.{}/login'.format(DOMAIN),
             },
-            verify=False,
         )
         log.debug('Received response: %s', response.text)
         response.raise_for_status()
