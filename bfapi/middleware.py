@@ -21,7 +21,7 @@ from bfapi.service import users
 PATTERNS_AUTHORIZED_ORIGINS = (
     re.compile(r'^https://beachfront(\.[^.]+)*\.geointservices\.io$'),
     re.compile(r'^https://bf-swagger(\.[^.]+)*\.geointservices\.io$'),
-    re.compole(r'^https://([^.]+\.)+gs\.mil$'),
+    re.compile(r'^https://([^.]+\.)+gs\.mil$'),
     re.compile(r'^https://localhost:8080$'),
 )
 
