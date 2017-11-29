@@ -15,11 +15,21 @@ import logging
 
 import requests
 
-from bfapi.config import GEOSERVER_HOST, GEOSERVER_USERNAME, GEOSERVER_PASSWORD
+from bfapi.config import (GEOSERVER_HOST, GEOSERVER_AUTH_TYPE,
+    GEOSERVER_USERNAME, GEOSERVER_PASSWORD, GEOSERVER_SSL_CERT_PATH)
+
+GEOSERVER_SESSION = requests.Session()
 
 DETECTIONS_LAYER_ID = 'bfdetections'
 DETECTIONS_STYLE_ID = 'bfdetections'
 TIMEOUT = 60
+
+GEOSERVER_SESSION.verify = False # XXX: Does not actually work, see: https://github.com/requests/requests/issues/2255
+
+if GEOSERVER_AUTH_TYPE == 'userpass':
+    GEOSERVER_SESSION.auth = (GEOSERVER_NAME, GEOSERVER_PASSWORD)
+if GEOSERVER_AUTH_TYPE == 'sslcert':
+    GEOSERVER_SESSION.cert = GEOSERVER_SSL_CERT_PATH
 
 
 def install_if_needed():
@@ -48,13 +58,13 @@ def install_layer(layer_id: str):
     log.info('Geoserver service install layer "%s"', layer_id, action=' service geoserver install')
 
     try:
-        response = requests.post(
+        response = GEOSERVER_SESSION.post(
             '{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(
                 host=GEOSERVER_HOST,
                 ws='piazza',  # FIXME -- autodetect?
                 ds='piazza',  # FIXME -- autodetect?
             ),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
+            verify=False, # XXX -- remove once root certs are set up right
             timeout=TIMEOUT,
             headers={
                 'Content-Type': 'application/xml',
@@ -122,7 +132,8 @@ def install_layer(layer_id: str):
                   layer_id,
                   err.response.status_code,
                   err.request.method,
-                  err.request.url)
+                  err.request.url,
+                  err.response.content)
         raise GeoServerError()
 
 
@@ -130,10 +141,11 @@ def install_style(style_id: str):
     log = logging.getLogger(__name__)
     log.info('Geoserver  service install style "%s"', style_id, action=' service geoserver install')
     try:
-        response = requests.post(
+        response = GEOSERVER_SESSION.post(
             '{}/geoserver/rest/styles'.format(
                 GEOSERVER_HOST,
             ),
+            verify=False, # XXX -- remove once root certs are set up right
             data="""
                 <StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld">
                   <NamedLayer>
@@ -151,7 +163,6 @@ def install_style(style_id: str):
                   </NamedLayer>
                 </StyledLayerDescriptor>
             """.strip(),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
             timeout=TIMEOUT,
             headers={
                 'Content-Type': 'application/vnd.ogc.sld+xml',
@@ -161,11 +172,12 @@ def install_style(style_id: str):
             },
         )
         response.raise_for_status()
-        response = requests.put(
+        response = GEOSERVER_SESSION.put(
             '{}/geoserver/rest/layers/{}'.format(
                 GEOSERVER_HOST,
                 DETECTIONS_LAYER_ID,
             ),
+            verify=False, # XXX -- remove once root certs are set up right
             data="""
                 <layer>
                   <defaultStyle>
@@ -173,12 +185,12 @@ def install_style(style_id: str):
                   </defaultStyle>
                 </layer>
             """.strip().format(DETECTIONS_STYLE_ID),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
             timeout=TIMEOUT,
             headers={
                 'Content-Type': 'application/xml',
             },
         )
+
         response.raise_for_status()
     except requests.ConnectionError as err:
         log.error('Cannot communicate with GeoServer: %s', err)
@@ -189,6 +201,8 @@ def install_style(style_id: str):
                   err.response.status_code,
                   err.request.method,
                   err.request.url)
+        for resp in err.response.history:
+            print(resp, resp.request, resp.request.method, resp.request.url, resp.headers)
         raise GeoServerError()
 
 
@@ -196,12 +210,14 @@ def layer_exists(layer_id: str) -> bool:
     log = logging.getLogger(__name__)
     log.info('Geoserver  check if service layer "%s" exists', layer_id, action=' service geoserver check')
     try:
-        response = requests.get(
+        print(GEOSERVER_SESSION)
+        print(GEOSERVER_SESSION.verify)
+        response = GEOSERVER_SESSION.get(
             '{}/geoserver/rest/layers/{}'.format(
                 GEOSERVER_HOST,
                 layer_id,
             ),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
+            verify=False, # XXX -- remove once root certs are set up right
             timeout=TIMEOUT,
         )
     except requests.ConnectionError as err:
@@ -214,12 +230,12 @@ def style_exists(style_id: str) -> bool:
     log = logging.getLogger(__name__)
     log.info('Geoserver  check if service style exists "%s"', style_id, action=' service geoserver check')
     try:
-        response = requests.get(
+        response = GEOSERVER_SESSION.get(
             '{}/geoserver/rest/styles/{}'.format(
                 GEOSERVER_HOST,
                 style_id,
             ),
-            auth=(GEOSERVER_USERNAME, GEOSERVER_PASSWORD),
+            verify=False, # XXX -- remove once root certs are set up right
             timeout=TIMEOUT,
         )
     except requests.ConnectionError as err:

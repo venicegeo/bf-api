@@ -30,8 +30,17 @@ def validate(failfast: bool = True):
     if not POSTGRES_USERNAME: _errors.append('POSTGRES_USERNAME cannot be blank')
     if not POSTGRES_PASSWORD: _errors.append('POSTGRES_PASSWORD cannot be blank')
     if not GEOSERVER_HOST: _errors.append('GEOSERVER_HOST cannot be blank')
-    if not GEOSERVER_USERNAME: _errors.append('GEOSERVER_USERNAME cannot be blank')
-    if not GEOSERVER_PASSWORD: _errors.append('GEOSERVER_PASSWORD cannot be blank')
+
+    if GEOSERVER_AUTH_TYPE not in ('userpass', 'sslcert'):
+        _errors.append('GEOSERVER_AUTH_TYPE has invalid value (must be `userpass` or `sslcert`)')
+
+    if GEOSERVER_AUTH_TYPE == 'userpass':
+        if not GEOSERVER_USERNAME: _errors.append('GEOSERVER_USERNAME cannot be blank')
+        if not GEOSERVER_PASSWORD: _errors.append('GEOSERVER_PASSWORD cannot be blank')
+
+    if GEOSERVER_AUTH_TYPE == 'sslcert':
+        if not GEOSERVER_SSL_CERT_PATH: _errors.append('GEOSERVER_SSL_CERT_PATH cannot be blank')
+
     if not GEOAXIS: _errors.append('GEOAXIS cannot be blank')
     if not GEOAXIS_AUTH: _errors.append('GEOAXIS_AUTH cannot be blank')
     if not GEOAXIS_CLIENT_ID: _errors.append('GEOAXIS_CLIENT_ID cannot be blank')
@@ -100,6 +109,9 @@ GEOAXIS_AUTH      = os.getenv('GEOAXIS_AUTH')
 GEOAXIS_CLIENT_ID = os.getenv('GEOAXIS_CLIENT_ID')
 GEOAXIS_SECRET    = os.getenv('GEOAXIS_SECRET')
 
+GEOSERVER_AUTH_TYPE = os.getenv('GEOSERVER_AUTH_TYPE')
+GEOSERVER_SSL_CERT_PATH = os.getenv('GEOSERVER_SSL_CERT_PATH')
+
 JOB_WORKER_INTERVAL = timedelta(seconds=60)
 JOB_WORKER_MAX_RETRIES = 3
 JOB_TTL = timedelta(hours=2)
@@ -107,19 +119,12 @@ SESSION_TTL = timedelta(minutes=15)
 
 _services = _getservices()
 
-POSTGRES_HOST = _services.get('pz-postgres.credentials.db_host')
-POSTGRES_PORT = _services.get('pz-postgres.credentials.db_port')
-POSTGRES_DATABASE = _services.get('pz-postgres.credentials.db_name')
+POSTGRES_HOST = _services.get('pz-postgres.credentials.hostname')
+POSTGRES_PORT = _services.get('pz-postgres.credentials.port')
+POSTGRES_DATABASE = _services.get('pz-postgres.credentials.database')
 POSTGRES_USERNAME = _services.get('pz-postgres.credentials.username')
 POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
 
-# With the current configuration of the Boundless On-Demand Service, this following VCAP value will contain the full protocol, host, port, and geoserver path, and index.html reference.
-# BF-API Code expects the Host to contain only the hostname. No /geoserver prefixes of any kind. Those shall be stripped here.
-# This is considered a temporary fix until the GeoServer service adds proper values for the isolated host name. 
-GEOSERVER_HOST = _services.get('pz-geoserver.credentials.boundless_geoserver_url')
-if GEOSERVER_HOST.endswith('/index.html'):
-    GEOSERVER_HOST = GEOSERVER_HOST[:-11]
-if GEOSERVER_HOST.endswith('/geoserver'):
-    GEOSERVER_HOST = GEOSERVER_HOST[:-10]
-GEOSERVER_USERNAME = _services.get('pz-geoserver.credentials.boundless_geoserver_username')
-GEOSERVER_PASSWORD = _services.get('pz-geoserver.credentials.boundless_geoserver_password')
+GEOSERVER_HOST = _services.get('pz-geoserver-efs.credentials.geoserver.host')
+GEOSERVER_USERNAME = _services.get('pz-geoserver-efs.credentials.geoserver.username')
+GEOSERVER_PASSWORD = _services.get('pz-geoserver-efs.credentials.geoserver.password')
