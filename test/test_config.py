@@ -47,6 +47,7 @@ class ConfigurationValidateTest(unittest.TestCase):
         self.override('GEOSERVER_PASSWORD', 'test-password')
         self.override('GEOAXIS', 'test-host')
         self.override('GEOAXIS_AUTH', 'test-host')
+        self.override('GEOAXIS_LOGOUT', 'test-host')
         self.override('GEOAXIS_CLIENT_ID', 'test-client-id')
         self.override('GEOAXIS_SECRET', 'test-secret')
 
