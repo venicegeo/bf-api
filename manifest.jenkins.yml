@@ -8,7 +8,8 @@ applications:
   buildpack: 'https://github.com/cloudfoundry/python-buildpack#v1.5.9'
   services:
     - pz-postgres
-    - pz-geoserver-efs
+    - pz-postgres-service-key
+    - pz-geoserver
   env:        
     GEOAXIS: __GEOAXIS__        
     GEOAXIS_CLIENT_ID: __GEOAXIS_CLIENT_ID__        
