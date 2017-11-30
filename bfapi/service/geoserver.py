@@ -62,6 +62,7 @@ def install_layer(layer_id: str):
             data=r"""
                 <featureType>
                     <name>{layer_id}</name>
+                    <enabled>true</enabled>
                     <title>Beachfront Detections</title>
                     <srs>EPSG:4326</srs>
                     <nativeBoundingBox>
