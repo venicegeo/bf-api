@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="2-add-compute-mask" author="patrick.doody@rgi-corp.com">
+
+    <preConditions onFail="MARK_RAN" onFailMessage="Compute Mask column found, Skipping">
+      <not>
+        <columnExists schemaName="public", tableName="__beachfront__job", columnName="compute_mask"/>
+      </not>
+    </preConditions>
+
+    <addColumn
+      schemaName="public"
+      tableName="__beachfront__job">
+        <column name="compute_mask" type="SMALLINT">
+    </addColumn>
+
+  </changeSet>
+</databaseChangeLog>

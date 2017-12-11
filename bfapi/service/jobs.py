@@ -55,7 +55,8 @@ class Job:
             status: str,
             tide: float,
             tide_min_24h: float,
-            tide_max_24h: float):
+            tide_max_24h: float,
+            compute_mask: bool):
         self.algorithm_name = algorithm_name
         self.algorithm_version = algorithm_version
         self.created_by = created_by
@@ -70,6 +71,7 @@ class Job:
         self.tide = tide
         self.tide_min_24h = tide_min_24h
         self.tide_max_24h = tide_max_24h
+        self.compute_mask = compute_mask
 
     def serialize(self):
         return {
@@ -89,6 +91,7 @@ class Job:
                 'tide': self.tide,
                 'tide_min_24h': self.tide_min_24h,
                 'tide_max_24h': self.tide_max_24h,
+                'compute_mask': self.compute_mask,
                 'type': 'JOB',
             }
         }
@@ -103,7 +106,8 @@ def create(
         scene_id: str,
         service_id: str,
         job_name: str,
-        planet_api_key: str) -> Job:
+        planet_api_key: str,
+        compute_mask: bool) -> Job:
     log = logging.getLogger(__name__)
     log.info('Job service initiate create job "%s" for user "%s" for scene "%s"', job_name, user_id, scene_id, action='service job create',actor=user_id)
 
@@ -174,6 +178,7 @@ def create(
             tide=scene.tide,
             tide_min_24h=scene.tide_min,
             tide_max_24h=scene.tide_max,
+            compute_mask=compute_mask
         )
         db.jobs.insert_job_user(
             conn,
@@ -204,6 +209,7 @@ def create(
         tide=scene.tide,
         tide_min_24h=scene.tide_min,
         tide_max_24h=scene.tide_max,
+        compute_mask=compute_mask
     )
 
 def forget(user_id: str, job_id: str) -> None:
@@ -256,6 +262,7 @@ def get(user_id: str, job_id: str) -> Job:
         tide=row['tide'],
         tide_min_24h=row['tide_min_24h'],
         tide_max_24h=row['tide_max_24h'],
+        compute_mask=row['compute_mask']
     )
 
 
@@ -290,6 +297,7 @@ def get_all(user_id: str) -> List[Job]:
             tide=row['tide'],
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
+            compute_mask=row['compute_mask']
         )
         jobs.append(feature)
 
@@ -327,6 +335,7 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
             tide=row['tide'],
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
+            compute_mask=row['compute_mask']
         ))
     return jobs
 
@@ -362,6 +371,7 @@ def get_by_scene(scene_id: str) -> List[Job]:
             tide=row['tide'],
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
+            compute_mask=row['compute_mask']
         ))
     return jobs
 

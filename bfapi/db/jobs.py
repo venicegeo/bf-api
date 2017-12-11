@@ -82,15 +82,16 @@ def insert_job(
         tide: float,
         tide_min_24h: float,
         tide_max_24h: float,
-        user_id: str) -> None:
+        user_id: str,
+        compute_mask: bool) -> None:
 
     log = logging.getLogger(__name__)
     log.info('Db insert job "%s" for user "%s"', job_id, user_id, action='database insert record')
     query = """
         INSERT INTO __beachfront__job (job_id, algorithm_id, algorithm_name, algorithm_version, created_by, name,
-                                       scene_id, status, tide, tide_min_24h, tide_max_24h)
+                                       scene_id, status, tide, tide_min_24h, tide_max_24h, compute_mask)
         VALUES (%(job_id)s, %(algorithm_id)s, %(algorithm_name)s, %(algorithm_version)s, %(created_by)s, %(name)s,
-                %(scene_id)s, %(status)s, %(tide)s, %(tide_min_24h)s, %(tide_max_24h)s)
+                %(scene_id)s, %(status)s, %(tide)s, %(tide_min_24h)s, %(tide_max_24h)s, %(compute_mask)s)
         """
     params = {
         'job_id': job_id,
@@ -104,6 +105,7 @@ def insert_job(
         'tide': tide,
         'tide_min_24h': tide_min_24h,
         'tide_max_24h': tide_max_24h,
+        'compute_mask': compute_mask
     }
     conn.execute(query, params)
 
@@ -181,7 +183,7 @@ def select_job(
     log = logging.getLogger(__name__)
     log.info('Db select job "%s"', job_id, action='database query record')
     query = """
-        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h, j.compute_mask,
                e.error_message, e.execution_step,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
           FROM __beachfront__job j
@@ -230,7 +232,7 @@ def select_jobs_for_productline(
     log = logging.getLogger(__name__)
     log.info('Db select jobs for productline "%s"', productline_id, action='database query record')
     query = """
-        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h, j.compute_mask,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
           FROM __beachfront__productline_job p
                LEFT OUTER JOIN __beachfront__job j ON (j.job_id = p.job_id)
@@ -254,7 +256,7 @@ def select_jobs_for_scene(
     log = logging.getLogger(__name__)
     log.info('Db select jobs for scene "%s"', scene_id, action='database select record')
     query = """
-        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h, j.compute_mask,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
           FROM __beachfront__job j
                LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
@@ -275,7 +277,7 @@ def select_jobs_for_user(
     log = logging.getLogger(__name__)
     log.info('Db select jobs for user "%s"', user_id, action='database query record')
     query = """
-        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h,
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h, j.compute_mask,
                e.error_message, e.execution_step,
                ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
           FROM __beachfront__job j
