@@ -142,7 +142,7 @@ def create(
     # Dispatch to Piazza
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
-        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, scene_filenames, scene.platform)
+        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, scene_filenames, scene.platform, compute_mask)
         job_id = piazza.execute(algorithm.service_id, {
             'body': {
                 'content': json.dumps({
@@ -603,7 +603,8 @@ class Worker(threading.Thread):
 def _create_algorithm_cli_cmd(
         algo_interface: str,
         image_filenames: list,
-        scene_platform: str) -> str:
+        scene_platform: str,
+        compute_mask: bool) -> str:
     log = logging.getLogger(__name__)
     if algo_interface == 'pzsvc-ossim':
         return ' '.join([
@@ -626,7 +627,8 @@ def _create_algorithm_cli_cmd(
             ' '.join(['-i ' + filename for filename in image_filenames]),
             band_flag,
             '--basename shoreline',
-            '--smooth 1.0'
+            '--smooth 1.0',
+            '--coastmask {0}'.format(compute_mask)
         ])
     elif algo_interface == 'pzsvc-shape-py':
         return '-f ' + geotiff_filenames[0] + ' -o shoreline.geojson'
@@ -641,6 +643,7 @@ def _create_algorithm_cli_cmd(
             band_flag,
             '--basename shoreline',
             '--smooth 1.0'
+            '--coastmask {0}'.format(compute_mask)
         ])
     else:
         error_message = 'unknown algorithm interface "' + algo_interface + '".'

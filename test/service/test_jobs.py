@@ -263,7 +263,7 @@ class CreateJobTest(unittest.TestCase):
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key', True)
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
-            'cmd': '-i multispectral.TIF --bands 2 4 --basename shoreline --smooth 1.0',
+            'cmd': '-i multispectral.TIF --bands 2 4 --basename shoreline --smooth 1.0 --coastmask True',
             'inExtFiles': ['https://bf-api.test.localdomain/v0/scene/test-scene-id?planet_api_key=test-planet-api-key'],
             'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
@@ -276,7 +276,7 @@ class CreateJobTest(unittest.TestCase):
         jobs.create('test-user-id', 'test-scene-id', 'test-service-id', 'test-name', 'test-planet-api-key', True)
         self.assertEqual('test-algo-id', self.mock_execute.call_args[0][0])
         self.assertEqual({
-            'cmd': '-i multispectral.TIF --bands 2 5 --basename shoreline --smooth 1.0',
+            'cmd': '-i multispectral.TIF --bands 2 5 --basename shoreline --smooth 1.0 --coastmask True',
             'inExtFiles': ['https://bf-api.test.localdomain/v0/scene/test-scene-id?planet_api_key=test-planet-api-key'],
             'inExtNames': ['multispectral.TIF'],
             'outGeoJson': ['shoreline.geojson'],
