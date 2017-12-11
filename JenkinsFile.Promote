@@ -77,6 +77,26 @@ withEnv(["CF_HOME=.cf"]) {
     def appName = sh(script: "cf apps | grep 'bf-api' | cut -f1 -d ' ' ", returnStdout: true) 
     appName = appName.trim() 
     def appvers = appName[-18..-1]
+
+
+    //generate PZ API Key
+    //Using explicity def of piazza_url b/c the env variable in venice.json is difference and I need to check this
+    def piazza_api_key = ""
+    def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_DOMAIN}"
+    withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
+      def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+      if (keyCurl.contains('Please request a new API')) {
+        keyCurl = sh(script: """curl -X POST -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+      }
+      piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
+      sh """
+        if [ -z $piazza_api_key ]; then
+        echo "No Piazza API key found"
+        exit 1
+        fi
+      """
+    }
+
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
         sh "cf api ${env.PCF_API_ENDPOINT}"
         sh "cf auth ${CFUSER} ${CFPASS}"
@@ -85,14 +105,14 @@ withEnv(["CF_HOME=.cf"]) {
         try {
 
       //all environment variables go here
-          sh "cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}"
-          sh "cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}"
+          sh "cf set-env ${appName} SPACE ${env.PROD_PCF_SPACE}"
+          sh "cf set-env ${appName} DOMAIN ${env.PROD_PCF_DOMAIN}"
           sh "cf set-env ${appName} PIAZZA_API_KEY ${piazza_api_key}"
           sh "cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}"
           sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
           sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
-          sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}"
-          sh "cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}"
+          sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${env.GEOAXIS_CLIENT_ID}"
+          sh "cf set-env ${appName} GEOAXIS_SECRET ${env.GEOAXIS_SECRET}"
           sh "cf start ${appName}"
         } catch (Exception e) {
         try {
