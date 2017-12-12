@@ -64,6 +64,7 @@ def create_job():
         planet_api_key = _get_string(payload, 'planet_api_key', max_length=64)
         service_id = _get_string(payload, 'algorithm_id', max_length=64)
         scene_id = _get_string(payload, 'scene_id', max_length=100)
+        compute_mask = _get_boolean(payload, 'compute_mask')
     except JSONDecodeError:
         return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
@@ -76,6 +77,7 @@ def create_job():
             scene_id=scene_id,
             job_name=job_name.strip(),
             planet_api_key=planet_api_key,
+            compute_mask=compute_mask
         )
     except _jobs.PreprocessingError as err:
         return 'Cannot execute: {}'.format(err), 500
@@ -359,6 +361,15 @@ def _get_number(d: dict, key: str, *, min_value: int = None, max_value: int = No
     if min_value is not None and value < min_value or max_value is not None and value > max_value:
         raise ValidationError('`{}` must be a number between {} and {}'.format(key, min_value, max_value))
     return value
+
+
+def _get_boolean(d: dict, key: str):
+    if key not in d:
+        raise ValidationError('`{}` is missing'.format(key))
+    value = d.get(key)
+    if not isinstance(value, bool) or not isinstance(value, str):
+        raise ValidationError('`{}` must be a boolean'.format(key))
+    return bool(value)
 
 
 def _get_string(d: dict, key: str, *, nullable: bool = False, min_length: int = 1, max_length: int = 256):
