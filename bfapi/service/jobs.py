@@ -642,7 +642,7 @@ def _create_algorithm_cli_cmd(
             ' '.join(['-i ' + filename for filename in image_filenames]),
             band_flag,
             '--basename shoreline',
-            '--smooth 1.0'
+            '--smooth 1.0',
             '--coastmask' if compute_mask else '',
         ])
     else:
