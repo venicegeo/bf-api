@@ -34,6 +34,11 @@ if GEOSERVER_AUTH_TYPE == 'sslcert':
 
 def install_if_needed():
     log = logging.getLogger(__name__)
+
+    # XXX: Remove this in a future commit once UC Geoserver works again
+    log.warn('Skipping geoserver resource installation; this is a debug state and should be removed once unneeded', action='service geoserver install')
+    return
+
     log.info('Geoserver service install if needed', action='service geoserver install')
     log.info('Checking to see if installation is required',action='Check for required installation')
 
