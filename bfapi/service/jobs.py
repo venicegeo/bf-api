@@ -628,7 +628,7 @@ def _create_algorithm_cli_cmd(
             band_flag,
             '--basename shoreline',
             '--smooth 1.0',
-            '--coastmask {0}'.format(compute_mask)
+            '--coastmask' if compute_mask else '',
         ])
     elif algo_interface == 'pzsvc-shape-py':
         return '-f ' + geotiff_filenames[0] + ' -o shoreline.geojson'
@@ -643,7 +643,7 @@ def _create_algorithm_cli_cmd(
             band_flag,
             '--basename shoreline',
             '--smooth 1.0'
-            '--coastmask {0}'.format(compute_mask)
+            '--coastmask' if compute_mask else '',
         ])
     else:
         error_message = 'unknown algorithm interface "' + algo_interface + '".'
