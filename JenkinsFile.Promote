@@ -43,6 +43,7 @@ withEnv(["CF_HOME=.cf"]) {
     def appName = sh(script: "cf apps | grep 'bf-api' | cut -f1 -d ' ' ", returnStdout: true)
     appName = appName.trim() 
     def appvers = appName[-17..-1]
+    sh "echo ${appName}"
 
      // sh """
      //  sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml
