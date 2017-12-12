@@ -6,8 +6,8 @@ node {
   def zapHome = tool 'ZAProxy_v2_5_0'
   def nodejs = tool 'NodeJS_6'
   def sonarUrl = "https://sonar.gs.mil"
-  def projectKey = "venicegeo:piazza:bf-api"
-  def projectName = "venicegeo:piazza:bf-api"
+  def projectKey = "venicegeo:beachfront:bf-api"
+  def projectName = "venicegeo:beachfront:bf-api"
 
 if(!fileExists('.cf')) {
       sh "mkdir -p .cf"
@@ -44,18 +44,18 @@ withEnv(["CF_HOME=.cf"]) {
     appName = appName.trim() 
     def appvers = appName[-17..-1]
 
-     sh """
-      sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml
-      ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
-      cp ${root}/target/piazza-docs-1.0.0.jar ${root}/bf-api.jar
-     """
+     // sh """
+     //  sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml
+     //  ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
+     //  cp ${root}/target/piazza-docs-1.0.0.jar ${root}/bf-api.jar
+     // """
     // Check if exists already
     def getDependencyStatus = sh(script: """mvn -X --settings ~/.m2/settings.xml dependency:get \
       -Dmaven.repo.local="${root}/.m2/repository" \
       -DrepositoryId=nexus \
       -DartifactId=bf-api \
       -Dversion=${appvers} \
-      -DgroupId="org.venice.piazza" \
+      -DgroupId="org.venice.beachfront" \
       -Dpackaging=jar \
       -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
     """, returnStatus: true)
@@ -80,7 +80,6 @@ withEnv(["CF_HOME=.cf"]) {
 
 
     //generate PZ API Key
-    //Using explicity def of piazza_url b/c the env variable in venice.json is difference and I need to check this
     def piazza_api_key = ""
     def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_DOMAIN}"
     withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
@@ -130,13 +129,13 @@ withEnv(["CF_HOME=.cf"]) {
         sh "cf target -o ${env.PCF_ORG} -s ${env.PROD_PCF_SPACE}"
         def legacyAppNames = sh(script: "cf routes | grep \"bf-api \" | awk '{print \$4}'", returnStdout: true)
         sh "cf map-route ${appName} ${env.PROD_PCF_DOMAIN} --hostname bf-api"
-        sh "cf map-route ${appName} ${env.PROD_PCF_DOMAIN} --hostname piazza"
+        sh "cf map-route ${appName} ${env.PROD_PCF_DOMAIN} --hostname beachfront"
         // Remove Legacy applications
         for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
           def legacyAppName = legacyApp.toString().trim()
           if (legacyAppName != appName) {
             sh "cf unmap-route ${legacyAppName} ${env.PROD_PCF_DOMAIN} --hostname bf-api"
-            sh "cf unmap-route ${legacyAppName} ${env.PROD_PCF_DOMAIN} --hostname piazza"
+            sh "cf unmap-route ${legacyAppName} ${env.PROD_PCF_DOMAIN} --hostname beachfront"
             sh "cf delete -f ${legacyAppName} -r"
           }
         }
