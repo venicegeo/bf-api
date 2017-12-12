@@ -82,7 +82,7 @@ withEnv(["CF_HOME=.cf"]) {
 
     //generate PZ API Key
     def piazza_api_key = ""
-    def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_DOMAIN}"
+    def piazza_url = "https://piazza.${env.PHASE_TWO_PCF_DOMAIN}"
     withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
       def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
       if (keyCurl.contains('Please request a new API')) {
@@ -101,7 +101,7 @@ withEnv(["CF_HOME=.cf"]) {
         sh "cf api ${env.PCF_API_ENDPOINT}"
         sh "cf auth ${CFUSER} ${CFPASS}"
         sh "cf target -o ${env.PCF_ORG} -s ${env.PROD_PCF_SPACE}"
-        sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROD_PCF_DOMAIN} --no-start"
+        sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PROD_PCF_DOMAIN} --no-start"
         try {
 
       //all environment variables go here
