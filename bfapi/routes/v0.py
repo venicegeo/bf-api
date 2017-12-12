@@ -367,7 +367,7 @@ def _get_boolean(d: dict, key: str):
     if key not in d:
         raise ValidationError('`{}` is missing'.format(key))
     value = d.get(key)
-    if not isinstance(value, bool) or not isinstance(value, str):
+    if not isinstance(value, bool) and not isinstance(value, str):
         raise ValidationError('`{}` must be a boolean'.format(key))
     return bool(value)
 

@@ -24,7 +24,7 @@
     <addColumn
       schemaName="public"
       tableName="__beachfront__job">
-        <column name="compute_mask" type="SMALLINT">
+        <column name="compute_mask" type="SMALLINT"/>
     </addColumn>
 
     <!-- Re-create views -->
