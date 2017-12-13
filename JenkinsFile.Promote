@@ -3,82 +3,62 @@
 node {
   def root = pwd()
   def mvn = tool 'M3'
-  def zapHome = tool 'ZAProxy_v2_5_0'
   def nodejs = tool 'NodeJS_6'
-  def sonarUrl = "https://sonar.gs.mil"
-  def projectKey = "venicegeo:beachfront:bf-api"
-  def projectName = "venicegeo:beachfront:bf-api"
+  def appvers = "${env.PROMOTE_VERSION}"
+  def appBaseName = "pz-gateway"
+  def appName
 
-if(!fileExists('.cf')) {
-      sh "mkdir -p .cf"
-    }
-withEnv(["CF_HOME=.cf"]) {
+  if(!fileExists('.cf')) {
+        sh "mkdir -p .cf"
+      }
+  withEnv(["CF_HOME=.cf"]) {
 
-  def authenticatePcf = { ->
+    def authenticatePcf = { ->
       withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]]) {
         sh """
           cf api ${env.PCF_API_ENDPOINT}
           cf auth ${CFUSER} ${CFPASS}
         """
-
       }
     }
 
-  stage('Setup') {
-    deleteDir()
-    // github is open gitlab requires credentials to clone
-    if(env.GITLAB_CREDS) {
-      git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
-    } else {
-      git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
-    }
-  }
-
   stage('Pull Artifact') {
-
     authenticatePcf()
-    sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"    
+    if (appvers == "") {
+      // Get the latest version from Phase 2
+      echo "No version specified. Fetching the latest version from ${env.PHASE_TWO_PCF_SPACE}"
+      sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
+      appName = sh(script: "cf apps | grep '${appBaseName}' | cut -f1 -d ' ' ", returnStdout: true) 
+      appvers = appName.trim().replace("${appBaseName}-", "")
+      echo "Pulled version ${appvers} from ${env.PHASE_TWO_PCF_SPACE}"
+    } else {
+      appName = "${appBaseName}-${appvers}"
+    }
 
-    // go to CF apps, see which version is running on STAGE, then find that exact version and pull that version from nexus
-    def appName = sh(script: "cf apps | grep 'bf-api' | cut -f1 -d ' ' ", returnStdout: true)
-    appName = appName.trim() 
-    def appvers = appName[-17..-1]
-
-     // sh """
-     //  sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml
-     //  ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
-     //  cp ${root}/target/piazza-docs-1.0.0.jar ${root}/bf-api.jar
-     // """
-    // Check if exists already
+    // Get the Artifact from Nexus
     def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
       -Dmaven.repo.local="${root}/.m2/repository" \
       -DrepositoryId=nexus \
-      -DartifactId=bf-api \
+      -DartifactId=${appBaseName} \
       -Dversion=${appvers} \
       -DgroupId="org.venice.beachfront" \
       -Dpackaging=tar.gz \
+      -Ddest=${root}/${appBaseName}.tar.gz \
       -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
       >> /dev/null 2>&1 \
       """, returnStatus: true)
     echo "dependency status = ${getDependencyStatus}"
     if (getDependencyStatus == 0) {
-      echo "Artifact version ${appvers} exists in Nexus, nothing to do"
+      //Unzip
+      sh "tar -xvzf ${root}/${appBaseName}.tar.gz"
     } else {
-      //the build should already exist because we are pushing an existing version
-      error("Build Failed")
+      error("The artifact version ${appvers} could not be found in Nexus.")
     }
-}
+  }
 
   stage ('Deploy') {
-
     authenticatePcf()
-    sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"    
-
-    // go to CF apps, see which version is running on STAGE, then find that exact version and pull that version from nexus
-    def appName = sh(script: "cf apps | grep 'bf-api' | cut -f1 -d ' ' ", returnStdout: true) 
-    appName = appName.trim() 
-    def appvers = appName[-18..-1]
-
+    sh "cf target -o ${env.PCF_ORG} -s ${env.PROMOTE_SPACE}"    
 
     //generate PZ API Key
     def piazza_api_key = ""
@@ -97,50 +77,41 @@ withEnv(["CF_HOME=.cf"]) {
       """
     }
 
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
-        sh "cf api ${env.PCF_API_ENDPOINT}"
-        sh "cf auth ${CFUSER} ${CFPASS}"
-        sh "cf target -o ${env.PCF_ORG} -s ${env.PROD_PCF_SPACE}"
-        sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PROD_PCF_DOMAIN} --no-start"
-        try {
-
-      //all environment variables go here
-          sh "cf set-env ${appName} SPACE ${env.PROD_PCF_SPACE}"
-          sh "cf set-env ${appName} DOMAIN ${env.PROD_PCF_DOMAIN}"
-          sh "cf set-env ${appName} PIAZZA_API_KEY ${piazza_api_key}"
-          sh "cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}"
-          sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
-          sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
-          sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${env.GEOAXIS_CLIENT_ID}"
-          sh "cf set-env ${appName} GEOAXIS_SECRET ${env.GEOAXIS_SECRET}"
-          sh "cf start ${appName}"
-        } catch (Exception e) {
-        try {
-          sh "cf logs --recent ${appName}"
-        } catch (Exception ex) {
-          echo "Printing logs failed: ${ex}"
-        }
-          sh "cf delete ${appName} -f -r"
-          error("Error during application start. Deleting ${appName} and failing the build.")
-        }
-    }
-      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
-        sh "cf api ${env.PCF_API_ENDPOINT}"
-        sh "cf auth ${CFUSER} ${CFPASS}"
-        sh "cf target -o ${env.PCF_ORG} -s ${env.PROD_PCF_SPACE}"
-        def legacyAppNames = sh(script: "cf routes | grep \"bf-api \" | awk '{print \$4}'", returnStdout: true)
-        sh "cf map-route ${appName} ${env.PROD_PCF_DOMAIN} --hostname bf-api"
-        sh "cf map-route ${appName} ${env.PROD_PCF_DOMAIN} --hostname beachfront"
-        // Remove Legacy applications
-        for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
-          def legacyAppName = legacyApp.toString().trim()
-          if (legacyAppName != appName) {
-            sh "cf unmap-route ${legacyAppName} ${env.PROD_PCF_DOMAIN} --hostname bf-api"
-            sh "cf unmap-route ${legacyAppName} ${env.PROD_PCF_DOMAIN} --hostname beachfront"
-            sh "cf delete -f ${legacyAppName} -r"
-          }
+    // Push the app
+    sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
+    try {
+        sh "cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}"
+        sh "cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}"
+        sh "cf set-env ${appName} PIAZZA_API_KEY ${piazza_api_key}"
+        sh "cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}"
+        sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
+        sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
+        sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${env.GEOAXIS_CLIENT_ID}"
+        sh "cf set-env ${appName} GEOAXIS_SECRET ${env.GEOAXIS_SECRET}"
+        sh "cf start ${appName}"
+      } catch (Exception e) {
+      try {
+        sh "cf logs --recent ${appName}"
+      } catch (Exception ex) {
+        echo "Printing logs failed: ${ex}"
+      }
+        sh "cf delete ${appName} -f -r"
+        error("Error during application start. Deleting ${appName} and failing the build.")
+      }
+      // Assign Routes
+      def legacyAppNames = sh(script: "cf routes | grep \"${appBaseName} \" | awk '{print \$4}'", returnStdout: true)
+      sh "cf map-route ${appName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
+      sh "cf map-route ${appName} ${env.PROMOTE_DOMAIN} --hostname beachfront"
+      
+      // Delete old Routes
+      for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+        def legacyAppName = legacyApp.toString().trim()
+        if (legacyAppName != appName) {
+          sh "cf unmap-route ${legacyAppName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
+          sh "cf unmap-route ${legacyAppName} ${env.PROMOTE_DOMAIN} --hostname beachfront"
+          sh "cf delete -f ${legacyAppName} -r"
         }
       }
     }
-}
+  }
 }
