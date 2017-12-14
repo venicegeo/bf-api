@@ -1,33 +1,33 @@
 #!/usr/bin/groovy
 
 node {
-    def mvn = tool 'M3'
-    def root = pwd()
-    def zapHome = tool 'ZAProxy_v2_5_0'
-    def nodejs = tool 'NodeJS_6'
-    def sonar = tool 'SonarQube Runner 2.8'
-    def projectId = "venicegeo:beachfront:bf-api"
+  def mvn = tool 'M3'
+  def root = pwd()
+  def zapHome = tool 'ZAProxy_v2_5_0'
+  def nodejs = tool 'NodeJS_6'
+  def sonar = tool 'SonarQube Runner 2.8'
+  def projectId = "venicegeo:beachfront:bf-api"
 
-    def printLogsFailsafe = {String logAppName ->
-      try {
-        echo "Printing recent logs for ${logAppName}"
-        sh "cf logs --recent ${logAppName}"
-      } catch (Exception e) {
-        echo "Printing logs failed: ${e}"
-      }
+  def printLogsFailsafe = {String logAppName ->
+    try {
+      echo "Printing recent logs for ${logAppName}"
+      sh "cf logs --recent ${logAppName}"
+    } catch (Exception e) {
+      echo "Printing logs failed: ${e}"
     }
+  }
 
-    stage('Setup') {
-        deleteDir()
-        if(env.GITLAB_CREDS) {
-            git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
-        } else {
-            git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
-        }
+  stage('Setup') {
+    deleteDir()
+    if(env.GITLAB_CREDS) {
+      git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
+    } else {
+      git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
     }
+  }
 
-    def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true).trim()
-    def appName = "bf-api-${appvers}"
+  def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true).trim()
+  def appName = "bf-api-${appvers}"
 
 	if(!params.SKIP_SCANS) {
 		stage("Dependency Check") {
@@ -38,13 +38,13 @@ node {
 			}
 		}
 
-		stage("Fortify") {
-			withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
-				sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./{*.py,**/*.py}"
-				sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-				sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
-			}
-		}
+    stage("Fortify") {
+      withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+        sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./{*.py,**/*.py}"
+        sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
+        sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+      }
+    }
 
 		/*stage("Sonar") {
 			withCredentials([string(credentialsId: "${env.SONAR_TOKEN}", variable: 'USERNAME')]) {
@@ -66,187 +66,182 @@ node {
 		}*/
 	}
 
-    stage("Archive") {
-        def archiveName = "bf-api.tar.gz"
-        def APP = "bf-api"
-        def EXT = "tar.gz"
-        def target_files = "bfapi migrations vendor scripts/cf-migrate-and-run.sh sql/ Procfile requirements.txt runtime.txt"
-        sh """
-			pushd `dirname ${0}`/.. > /dev/null
-			echo ${0}
-			popd > /dev/null
+  stage("Archive") {
+    def archiveName = "bf-api.tar.gz"
+    def APP = "bf-api"
+    def EXT = "tar.gz"
+    def target_files = "bfapi migrations vendor scripts/cf-migrate-and-run.sh sql/ Procfile requirements.txt runtime.txt manifest.jenkins.yml"
+    sh """
+      pushd `dirname ${0}`/.. > /dev/null
+      echo ${0}
+      popd > /dev/null
+    """
 
-			## Install Dependencies ########################################################
-        """
+    sh """
+      ## DB migration process depenendencies
+      mkdir -p migrations/vendor
+    """
 
-        sh """
-			## DB migration process depenendencies
-			mkdir -p migrations/vendor
-        """
-
-        sh """
-			mvn -X --settings ~/.m2/settings.xml dependency:get \
-				  -Dmaven.repo.local="${root}/migrations/vendor" \
-				  -DrepositoryId=nexus \
-				  -DartifactId=liquibase-core \
-				  -Dversion=3.2.2 \
-				  -DgroupId="org.venice.beachfront" \
-				  -Dpackaging=jar \
-				  -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
-
-			cp migrations/vendor/org/venice/beachfront/liquibase-core/3.2.2/liquibase-core-3.2.2.jar ${root}/migrations/vendor
-			mv ${root}/migrations/vendor/liquibase-core-3.2.2.jar ${root}/migrations/vendor/liquibase.jar
-        """
-
-        sh """
-			mvn -X --settings ~/.m2/settings.xml dependency:get \
-				  -Dmaven.repo.local="${root}/migrations/vendor" \
-				  -DrepositoryId=nexus \
-				  -DartifactId=postgresql \
-				  -Dversion=42.0.0.jre6 \
-				  -DgroupId="org.venice.beachfront" \
-				  -Dpackaging=jar \
-				  -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
-
-			cp migrations/vendor/org/venice/beachfront/postgresql/42.0.0.jre6/postgresql-42.0.0.jre6.jar ${root}/migrations/vendor
-			mv ${root}/migrations/vendor/postgresql-42.0.0.jre6.jar ${root}/migrations/vendor/postgresql.jar
-        """
-
-        sh """
-			mvn -X --settings ~/.m2/settings.xml dependency:get \
-				  -Dmaven.repo.local="${root}/migrations/vendor" \
-				  -DrepositoryId=nexus \
-				  -DartifactId=jre \
-				  -Dversion=8u131-linux \
-				  -DgroupId="org.venice.beachfront" \
-				  -Dpackaging=tar.gz \
-				  -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
-
-			cp ${root}/migrations/vendor/org/venice/beachfront/jre/8u131-linux/jre-8u131-linux.tar.gz ${root}/migrations/vendor
-            """
-
-            sh """
-            echo expanding jre to ${root}/migrations/vendor
-			tar -xzf  ${root}/migrations/vendor/jre-8u131-linux.tar.gz --directory ${root}/migrations/vendor
-			rm -f ${root}/migrations/vendor/jre-8u131-linux.tar.gz
-
-			echo contents of ${root}/migrations/vendor
-			ls -la ${root}/migrations/vendor
-			"""
-
-            sh """
-			echo jre folder exists?
-			if [ -d migrations/vendor/jre ]; then
-			  rm -rf migrations/vendor/jre
-			  echo JRE FOLDER IS THERE
-			fi
-            """
-
-            sh """
-			echo MOVE JRE FOLDER TO ${root}/migrations/vendor
-			mv ${root}/migrations/vendor/jre* ${root}/migrations/vendor/jre
-			echo change rights on the folder
-			chmod -R a+rw migrations/vendor/jre
-			## Build #######################################################################
-			tar cvvzf ${APP}.${EXT} ${target_files}
-		    """
-
-        //sh "ci/archive.sh"
-        // sh "tar -cvzf ${archiveName} bfapi vendor sql Procfile requirements.txt runtime.txt dependency-check-report.xml"
-        // Check if exists already
-        def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
-        -Dmaven.repo.local="${root}/.m2/repository" \
+    sh """
+      mvn -X --settings ~/.m2/settings.xml dependency:get \
+        -Dmaven.repo.local="${root}/migrations/vendor" \
         -DrepositoryId=nexus \
-        -DartifactId=bf-api \
-        -Dversion=${appvers} \
+        -DartifactId=liquibase-core \
+        -Dversion=3.2.2 \
+        -DgroupId="org.venice.beachfront" \
+        -Dpackaging=jar \
+        -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
+
+      cp migrations/vendor/org/venice/beachfront/liquibase-core/3.2.2/liquibase-core-3.2.2.jar ${root}/migrations/vendor
+      mv ${root}/migrations/vendor/liquibase-core-3.2.2.jar ${root}/migrations/vendor/liquibase.jar
+    """
+
+    sh """
+      mvn -X --settings ~/.m2/settings.xml dependency:get \
+        -Dmaven.repo.local="${root}/migrations/vendor" \
+        -DrepositoryId=nexus \
+        -DartifactId=postgresql \
+        -Dversion=42.0.0.jre6 \
+        -DgroupId="org.venice.beachfront" \
+        -Dpackaging=jar \
+        -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
+
+      cp migrations/vendor/org/venice/beachfront/postgresql/42.0.0.jre6/postgresql-42.0.0.jre6.jar ${root}/migrations/vendor
+      mv ${root}/migrations/vendor/postgresql-42.0.0.jre6.jar ${root}/migrations/vendor/postgresql.jar
+    """
+
+    sh """
+      mvn -X --settings ~/.m2/settings.xml dependency:get \
+        -Dmaven.repo.local="${root}/migrations/vendor" \
+        -DrepositoryId=nexus \
+        -DartifactId=jre \
+        -Dversion=8u131-linux \
         -DgroupId="org.venice.beachfront" \
         -Dpackaging=tar.gz \
-        -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
-        >> /dev/null 2>&1 \
-        """, returnStatus: true)
-        if (getDependencyStatus == 0) {
-            echo "Artifact version ${appvers} exists in Nexus, nothing to do"
-        } else {
-            // Deploy file
-            sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${archiveName} \
-            -DrepositoryId=nexus \
-            -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
-            -DgroupId="org.venice.beachfront" \
-            -DgeneratePom=false \
-            -Dpackaging=tar.gz \
-            -Dmaven.repo.local="${root}/.m2/repository" \
-            -DartifactId=bf-api \
-            -Dversion=${appvers} \
-            """
-        }
-		sh """
-			rm ${archiveName} Vagrantfile
-			rm -rf vagrant
-		"""
-		try {
-			sh """
-				rm fortify* dependency-check-report.xml
-			"""
-		} catch (Exception e) {
-			// Scans were probably skipped
-		}
+        -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}"
+
+      cp ${root}/migrations/vendor/org/venice/beachfront/jre/8u131-linux/jre-8u131-linux.tar.gz ${root}/migrations/vendor
+    """
+
+    sh """
+      echo expanding jre to ${root}/migrations/vendor
+      tar -xzf  ${root}/migrations/vendor/jre-8u131-linux.tar.gz --directory ${root}/migrations/vendor
+      rm -f ${root}/migrations/vendor/jre-8u131-linux.tar.gz
+
+      echo contents of ${root}/migrations/vendor
+      ls -la ${root}/migrations/vendor
+    """
+
+    sh """
+      echo jre folder exists?
+      if [ -d migrations/vendor/jre ]; then
+        rm -rf migrations/vendor/jre
+        echo JRE FOLDER IS THERE
+      fi
+    """
+
+    sh """
+      echo MOVE JRE FOLDER TO ${root}/migrations/vendor
+      mv ${root}/migrations/vendor/jre* ${root}/migrations/vendor/jre
+      echo change rights on the folder
+      chmod -R a+rw migrations/vendor/jre
+      ## Build #######################################################################
+      tar cvvzf ${APP}.${EXT} ${target_files}
+    """
+
+    // Check if exists already
+    def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
+      -Dmaven.repo.local="${root}/.m2/repository" \
+      -DrepositoryId=nexus \
+      -DartifactId=bf-api \
+      -Dversion=${appvers} \
+      -DgroupId="org.venice.beachfront" \
+      -Dpackaging=tar.gz \
+      -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+      >> /dev/null 2>&1 \
+    """, returnStatus: true)
+    if (getDependencyStatus == 0) {
+      echo "Artifact version ${appvers} exists in Nexus, nothing to do"
+    } else {
+      // Deploy file
+      sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${archiveName} \
+      -DrepositoryId=nexus \
+      -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+      -DgroupId="org.venice.beachfront" \
+      -DgeneratePom=false \
+      -Dpackaging=tar.gz \
+      -Dmaven.repo.local="${root}/.m2/repository" \
+      -DartifactId=bf-api \
+      -Dversion=${appvers} \
+      """
     }
-    stage("Phase One Deploy") {
-        if(!fileExists('.cf')) {
-            sh "mkdir -p .cf"
+    sh """
+      rm ${archiveName} Vagrantfile
+      rm -rf vagrant
+    """
+    try {
+      sh """
+        rm fortify* dependency-check-report.xml
+      """
+    } catch (Exception e) {
+      // Scans were probably skipped
+    }
+  }
+  
+  stage("Phase One Deploy") {
+    if(!fileExists('.cf')) {
+      sh "mkdir -p .cf"
+    }
+    def piazza_api_key = ""
+    def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_DOMAIN}"
+    withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
+      def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+      if (keyCurl.contains('Please request a new API')) {
+        keyCurl = sh(script: """curl -X POST -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+      }
+      piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
+      sh """
+        if [ -z $piazza_api_key ]; then
+          echo "No Piazza API key found"
+          exit 1
+        fi
+      """
+    }
+    withEnv([
+      "CF_HOME=.cf"
+    ]) {
+      withCredentials([
+        [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
+        [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+        [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
+      ]) {
+        sh """
+          cf api ${env.PCF_API_ENDPOINT}
+          cf auth ${CFUSER} ${CFPASS}
+          cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}
+          cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PHASE_ONE_PCF_DOMAIN} --no-start
+        """
+        try {
+          sh """
+            cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}
+            cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}
+            cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
+            cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
+            cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}
+            cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}
+            cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
+            cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
+          """
+          sh "cf start ${appName}"
+        } catch (Exception e) {
+          printLogsFailsafe appName
+          sh "cf delete ${appName} -f -r"
+          error("Error during application start. Deleting ${appName} and failing the build.")
         }
-        def piazza_api_key = ""
-	def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_DOMAIN}"
-        withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
-            def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
-            if (keyCurl.contains('Please request a new API')) {
-              keyCurl = sh(script: """curl -X POST -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
-            }
-            piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
-            sh """
-              if [ -z $piazza_api_key ]; then
-                echo "No Piazza API key found"
-                exit 1
-              fi
-            """
-        }
-        withEnv([
-          "CF_HOME=.cf"
-        ]) {
-            withCredentials([
-              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
-              [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
-              [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
-            ]) {
-                sh """
-                  cf api ${env.PCF_API_ENDPOINT}
-                  cf auth ${CFUSER} ${CFPASS}
-                  cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}
-                  cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PHASE_ONE_PCF_DOMAIN} --no-start
-				"""
-				try {
-					sh """
-					  cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}
-					  cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}
-					  cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
-					  cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
-					  cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}
-					  cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}
-					  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
-					  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-					"""
-                    sh "cf start ${appName}"
-                } catch (Exception e) {
-                  printLogsFailsafe appName
-                  sh "cf delete ${appName} -f -r"
-                  error("Error during application start. Deleting ${appName} and failing the build.")
-                }
-            }
-        }
+      }
+    }
 		if(!params.SKIP_SCANS) {
-			withCredentials([
-			  [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
-			]) {
+			withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
 				sh """
 				  mkdir -p ${root}/zap-out
 				  ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_ONE_PCF_DOMAIN}
@@ -255,62 +250,63 @@ node {
 				"""
 			}
 		}
-        withEnv([
-          "CF_HOME=.cf"
-        ]) {
-            withCredentials([
-              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
-            ]) {
-                sh """
-                  cf api ${env.PCF_API_ENDPOINT}
-                  cf auth ${CFUSER} ${CFPASS}
-                  cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}
-                """
-                def legacyAppNames = sh(script: """cf routes | grep \"bf-api \" | awk '{print \$4}'""", returnStdout: true)
-                sh "cf map-route ${appName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname bf-api"
-                // Remove legacy applications
-                for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
-                    def legacyAppName = legacyApp.toString().trim()
-                    if(legacyAppName != appName) {
-                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname bf-api"
-                        sh "cf delete -f ${legacyAppName} -r"
-                    }
-                }
-            }
+    withEnv([
+      "CF_HOME=.cf"
+    ]) {
+      withCredentials([
+        [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
+      ]) {
+        sh """
+          cf api ${env.PCF_API_ENDPOINT}
+          cf auth ${CFUSER} ${CFPASS}
+          cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}
+        """
+        def legacyAppNames = sh(script: """cf routes | grep \"bf-api \" | awk '{print \$4}'""", returnStdout: true)
+        sh "cf map-route ${appName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname bf-api"
+        // Remove legacy applications
+        for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+          def legacyAppName = legacyApp.toString().trim()
+          if(legacyAppName != appName) {
+            sh "cf unmap-route ${legacyAppName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname bf-api"
+            sh "cf delete -f ${legacyAppName} -r"
+          }
         }
+      }
     }
+  }
 
-    if(!params.SKIP_INTEGRATION_TESTS) {
-        stage("Phase One Integration Tests") {
-                        if(!fileExists("integration-tests")) {
-                sh "mkdir -p integration-tests"
+  if(!params.SKIP_INTEGRATION_TESTS) {
+    stage("Phase One Integration Tests") {
+      if(!fileExists("integration-tests")) {
+        sh "mkdir -p integration-tests"
+      }
+      withCredentials([
+        file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: "POSTMAN_FILE"),
+        [$class: 'StringBinding', credentialsId: "${env.BF_GPKG_KEY}", variable: "BF_GPKG_KEY"]
+      ]) {
+        withEnv([
+          "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
+          "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}",
+          "NPM_CONFIG_CACHE=${root}/.npmcache",
+          "HOME=${WORKSPACE}"
+        ]) {
+          dir ("integration-tests") {
+            if(env.INTEGRATION_GITLAB_CREDS) {
+              git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}", credentialsId: "${env.INTEGRATION_GITLAB_CREDS}"
+            } else {
+              git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}"
             }
-            withCredentials([
-		    	file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: "POSTMAN_FILE"),
-		    	[$class: 'StringBinding', credentialsId: "${env.BF_GPKG_KEY}", variable: "BF_GPKG_KEY"]
-            ]) {
-                withEnv([
-                  "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
-                  "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}",
-                  "NPM_CONFIG_CACHE=${root}/.npmcache",
-                  "HOME=${WORKSPACE}"
-                ]) {
-                    dir ("integration-tests") {
-                        if(env.INTEGRATION_GITLAB_CREDS) {
-                            git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}", credentialsId: "${env.INTEGRATION_GITLAB_CREDS}"
-                        } else {
-                            git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}"
-                        }
-                        sh """
-                          mkdir -p ${root}/.npmcache
-                          npm install newman@3
-                        """
-                        sh "sh ci/beachfront_integration_tests.sh"
-                    }
-                }
-            }
+            sh """
+              mkdir -p ${root}/.npmcache
+              npm install newman@3
+            """
+            sh "sh ci/beachfront_integration_tests.sh"
+          }
         }
+      }
     }
+  }
+  
 	if(params.DEPLOY_PHASE_TWO) {
 		stage("Phase Two Deploy") {
 			if(!fileExists('.cf')) {
@@ -339,67 +335,70 @@ node {
 				  [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
 				  [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
 				]) {
-					  sh """
-					  cf api ${env.PCF_API_ENDPOINT}
-					  cf auth ${CFUSER} ${CFPASS}
-					  cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
-					  cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start
-					  """
-					  try {					  
-						  sh """
-						  cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}
-						  cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
-						  cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
-						  cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
-						  cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}
-						  cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}
-						  cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
-						  cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-						  """
-						  sh "cf start ${appName}"
-					} catch (Exception e) {
-					  printLogsFailsafe appName
-					  sh "cf delete ${appName} -f -r"
-					  error("Error during application start. Deleting ${appName} and failing the build.")
-					}
-				}
-			}
-			if(!params.SKIP_SCANS) {
-				withCredentials([
-				  [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
-				]) {
-					sh """
-					  mkdir -p ${root}/zap-out
-					  ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN}
-					  cat ${root}/zap-out/zap.xml
-					  /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
-					"""
-				}
-			}
-			withEnv([
-			  "CF_HOME=.cf"
-			]) {
-				withCredentials([
-				  [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
-				]) {
-					sh """
-					  cf api ${env.PCF_API_ENDPOINT}
-					  cf auth ${CFUSER} ${CFPASS}
-					  cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
-					"""
-					def legacyAppNames = sh(script: """cf routes | grep \"bf-api \" | awk '{print \$4}'""", returnStdout: true)
-					sh "cf map-route ${appName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
-					// Remove legacy applications
-					for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
-						def legacyAppName = legacyApp.toString().trim()
-						if(legacyAppName != appName) {
-							sh "cf unmap-route ${legacyAppName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
-							sh "cf delete -f ${legacyAppName} -r"
-						}
-					}
-				}
-			}
-		}
+          sh """
+            cf api ${env.PCF_API_ENDPOINT}
+            cf auth ${CFUSER} ${CFPASS}
+            cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
+            cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start
+          """
+          try {					  
+            sh """
+            cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}
+            cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
+            cf set-env ${appName} PIAZZA_API_KEY $piazza_api_key
+            cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
+            cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}
+            cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}
+            cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
+            cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
+            """
+            sh "cf start ${appName}"
+          } catch (Exception e) {
+            printLogsFailsafe appName
+            sh "cf delete ${appName} -f -r"
+            error("Error during application start. Deleting ${appName} and failing the build.")
+          }
+        }
+      }
+      
+      if(!params.SKIP_SCANS) {
+        withCredentials([
+          [$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]
+        ]) {
+          sh """
+            mkdir -p ${root}/zap-out
+            ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN}
+            cat ${root}/zap-out/zap.xml
+            /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
+          """
+        }
+      }
+      
+      withEnv([
+        "CF_HOME=.cf"
+      ]) {
+        withCredentials([
+          [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
+        ]) {
+          sh """
+            cf api ${env.PCF_API_ENDPOINT}
+            cf auth ${CFUSER} ${CFPASS}
+            cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
+          """
+          def legacyAppNames = sh(script: """cf routes | grep \"bf-api \" | awk '{print \$4}'""", returnStdout: true)
+          sh "cf map-route ${appName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
+          // Remove legacy applications
+          for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+            def legacyAppName = legacyApp.toString().trim()
+            if(legacyAppName != appName) {
+              sh "cf unmap-route ${legacyAppName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname bf-api"
+              sh "cf delete -f ${legacyAppName} -r"
+            }
+          }
+        }
+      }
+    }
+    
 		if(!params.SKIP_INTEGRATION_TESTS) {
 			stage("Phase Two Integration Tests") {
 				withCredentials([
