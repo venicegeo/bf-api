@@ -3,7 +3,6 @@
 node {
   def root = pwd()
   def mvn = tool 'M3'
-  def nodejs = tool 'NodeJS_6'
   def appvers = "${env.PROMOTE_VERSION}"
   def appBaseName = "bf-api"
   def appName
@@ -78,7 +77,7 @@ node {
     }
 
     // Push the app
-    sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
+    sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
     try {
         sh "cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}"
         sh "cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}"
