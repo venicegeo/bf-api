@@ -43,6 +43,7 @@ def validate(failfast: bool = True):
 
     if not GEOAXIS: _errors.append('GEOAXIS cannot be blank')
     if not GEOAXIS_AUTH: _errors.append('GEOAXIS_AUTH cannot be blank')
+    if not GEOAXIS_LOGOUT: _errors.append('GEOAXIS_LOGOUT cannot be blank')
     if not GEOAXIS_CLIENT_ID: _errors.append('GEOAXIS_CLIENT_ID cannot be blank')
     if not GEOAXIS_SECRET: _errors.append('GEOAXIS_SECRET cannot be blank')
 
@@ -106,6 +107,7 @@ SECRET_KEY     = os.getenv('SECRET_KEY', os.urandom(24).hex())
 
 GEOAXIS           = os.getenv('GEOAXIS')
 GEOAXIS_AUTH      = os.getenv('GEOAXIS_AUTH')
+GEOAXIS_LOGOUT    = os.getenv('GEOAXIS_LOGOUT')
 GEOAXIS_CLIENT_ID = os.getenv('GEOAXIS_CLIENT_ID')
 GEOAXIS_SECRET    = os.getenv('GEOAXIS_SECRET')
 

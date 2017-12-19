@@ -17,7 +17,7 @@ import urllib.parse
 import flask
 import logging
 
-from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_AUTH, GEOAXIS_CLIENT_ID
+from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_AUTH, GEOAXIS_LOGOUT, GEOAXIS_CLIENT_ID
 from bfapi.service import users
 from bfapi.routes import v0
 
@@ -72,7 +72,7 @@ def logout():
 
     flask.session.clear()
     log.info('Logged out user "%s"', flask.request.user.user_id, actor=flask.request.user.user_id, action='log out')
-    return 'https://{}/oam/server/logout'.format(GEOAXIS)
+    return 'https://{}/oam/server/logout'.format(GEOAXIS_LOGOUT)
 
 
 def keepalive():
