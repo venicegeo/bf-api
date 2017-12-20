@@ -71,7 +71,7 @@ def create_job():
         return 'Invalid input: {}'.format(err), 400
 
     try:
-        # Does this result exist already?lG get any existing Jobs that match.
+        # Does this result exist already? Get any existing Jobs that match.
         existingJob = _jobs.get_existing_redundant_job(
             user_id=flask.request.user.user_id, 
             scene_id=scene_id,
