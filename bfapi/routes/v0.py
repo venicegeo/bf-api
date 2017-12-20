@@ -17,11 +17,20 @@ from json import JSONDecodeError
 import dateutil.parser
 import dateutil.tz
 import flask
+import logging
+import requests
 
 from bfapi.config import CATALOG, GEOSERVER_HOST
 from bfapi.db import DatabaseError
-from bfapi.service import algorithms as _algorithms, jobs as _jobs, productlines as _productlines, scenes as _scenes
+from bfapi.service import (
+    algorithms as _algorithms,
+    jobs as _jobs,
+    productlines as _productlines,
+    scenes as _scenes,
+    geopackage as _geopackage,
+)
 
+TIMEOUT_LONG = 180
 
 #
 # Algorithms
@@ -54,7 +63,8 @@ def create_job():
         job_name = _get_string(payload, 'name', max_length=100)
         planet_api_key = _get_string(payload, 'planet_api_key', max_length=64)
         service_id = _get_string(payload, 'algorithm_id', max_length=64)
-        scene_id = _get_string(payload, 'scene_id', max_length=64)
+        scene_id = _get_string(payload, 'scene_id', max_length=100)
+        compute_mask = _get_boolean(payload, 'compute_mask')
     except JSONDecodeError:
         return 'Invalid input: request body must be a JSON object', 400
     except ValidationError as err:
@@ -65,7 +75,9 @@ def create_job():
         existingJob = _jobs.get_existing_redundant_job(
             user_id=flask.request.user.user_id, 
             scene_id=scene_id,
-            service_id=service_id)
+            service_id=service_id,
+            compute_mask=compute_mask
+        )
         if existingJob is not None:
             # A Job exists already. Return this. 
             record = existingJob
@@ -77,6 +89,7 @@ def create_job():
                 scene_id=scene_id,
                 job_name=job_name.strip(),
                 planet_api_key=planet_api_key,
+                compute_mask=compute_mask
             )
     except _jobs.PreprocessingError as err:
         return 'Cannot execute: {}'.format(err), 500
@@ -100,6 +113,24 @@ def download_geojson(job_id: str):
         'Content-Type': 'application/vnd.geo+json',
     }
 
+def download_geopackage(job_id: str):
+    try:
+        detections = _jobs.get_detections(job_id)
+    except _jobs.NotFound:
+        return 'Job not found', 404
+    except _jobs.Error as err:
+        return 'Cannot download: {}'.format(err), 500
+    except DatabaseError:
+        return 'A database error prevents detection download', 500
+
+    try:
+        gpkg_data = _geopackage.convert_geojson_to_geopackage(detections)
+    except _geopackage.GeoPackageError as e:
+        return str(e), 500
+
+    return gpkg_data, 200, {
+        'Content-Type': 'application/x-sqlite3',
+    }
 
 def forget_job(job_id: str):
     try:
@@ -216,6 +247,8 @@ def delete_productline(productline_id: str):
 
 
 def list_productlines():
+    log = logging.getLogger(__name__)
+    log.info('list product lines')
     productlines = _productlines.get_all()
     return flask.jsonify({
         'productlines': {
@@ -223,7 +256,6 @@ def list_productlines():
             'features': [p.serialize() for p in productlines],
         },
     })
-
 
 #
 # Profile
@@ -238,7 +270,7 @@ def get_user_data():
         },
         'services': {
             'catalog': 'https://{}'.format(CATALOG),
-            'wms_server': 'https://{}/geoserver/wms'.format(GEOSERVER_HOST),
+            'wms_server': '{}/geoserver/wms'.format(GEOSERVER_HOST),
         },
     })
 
@@ -248,7 +280,7 @@ def get_user_data():
 
 # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 # FIXME -- hopefully this can move into the IA Broker eventually
-def forward_to_geotiff(scene_id: str):
+def forward_to_scene(scene_id: str):
     planet_api_key = flask.request.args.get('planet_api_key')
     if not planet_api_key:
         return 'Missing `planet_api_key` parameter', 400
@@ -257,15 +289,17 @@ def forward_to_geotiff(scene_id: str):
     user_id = user.user_id if user else None
     try:
         scene = _scenes.get(scene_id, planet_api_key)
-        geotiff_url = _scenes.activate(scene, planet_api_key, user_id)
+        scene_url = _scenes.activate(scene, planet_api_key, user_id)
     except _scenes.NotFound:
         return 'Cannot download: Scene `{}` not found'.format(scene_id), 404
     except (_scenes.CatalogError,
-            _scenes.MalformedSceneID) as err:
+            _scenes.MalformedSceneID,
+            _scenes.UpstreamPlanetError,
+            ) as err:
         return 'Cannot download: {}'.format(err), 500
 
-    if geotiff_url:
-        return flask.redirect(geotiff_url)
+    if scene_url:
+        return flask.redirect(scene_url)
 
     return """
         <h1>GeoTIFF for <code>{scene_id}</code> is activating</h1>
@@ -313,7 +347,6 @@ def forward_to_geotiff(scene_id: str):
     }
 # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 
-
 #
 # Helpers
 #
@@ -342,7 +375,18 @@ def _get_number(d: dict, key: str, *, min_value: int = None, max_value: int = No
     return value
 
 
+def _get_boolean(d: dict, key: str):
+    if key not in d:
+        raise ValidationError('`{}` is missing'.format(key))
+    value = d.get(key)
+    if not isinstance(value, bool) and not isinstance(value, str):
+        raise ValidationError('`{}` must be a boolean'.format(key))
+    return bool(value)
+
+
 def _get_string(d: dict, key: str, *, nullable: bool = False, min_length: int = 1, max_length: int = 256):
+    log = logging.getLogger(__name__)
+
     if key not in d:
         raise ValidationError('`{}` is missing'.format(key))
     value = d.get(key)
@@ -355,6 +399,43 @@ def _get_string(d: dict, key: str, *, nullable: bool = False, min_length: int = 
         raise ValidationError('`{}` must be a string of {}–{} characters'.format(key, min_length, max_length))
     return value
 
+#
+# Imagery data
+#
+def get_search_imagery(itemType: str) -> bool:
+    log = logging.getLogger(__name__)
+
+    query_params = flask.request.args
+    cloudCover = query_params.get('cloudCover')
+    PL_API_KEY = query_params.get('PL_API_KEY')
+    bbox = query_params.get('bbox')
+    acquiredDate = query_params.get('acquiredDate')
+    maxAcquiredDate = query_params.get('maxAcquiredDate')
+
+    #Process GET request to BF-IA-BROKER
+    log.info(' Searching for images from BF-IA-BROKER', action='searching images')
+    try:
+        response = requests.get(
+            'http://{}/planet/discover/{}'.format(CATALOG, itemType),
+            timeout=TIMEOUT_LONG,
+            params={
+                'cloudCover': cloudCover,
+                'PL_API_KEY': PL_API_KEY,
+                'bbox': bbox,
+                'acquiredDate': acquiredDate,
+                'maxAcquiredDate': maxAcquiredDate,
+            },
+        )
+    except requests.ConnectionError as err:
+        log.error('Connection failed: %s; url="%s"', err, err.request.url)
+        raise Unreachable()
+    except requests.HTTPError as err:
+        status_code = err.response.status_code
+        if status_code == 401:
+            raise Unauthorized()
+        raise ServerError(status_code)
+
+    return response.content, response.status_code, {**response.headers}
 
 #
 # Errors

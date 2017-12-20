@@ -19,7 +19,7 @@ def select_user(
         *,
         user_id: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select user', action='database query record')
+    log.info('Db select user "%s"', user_id, action='database query record')
     query = """
         SELECT u.user_id, u.user_name, u.api_key, u.created_on
           FROM __beachfront__user u
@@ -36,7 +36,7 @@ def select_user_by_api_key(
         *,
         api_key: str) -> ResultProxy:
     log = logging.getLogger(__name__)
-    log.info('Db select user by api', action='database query record')
+    log.info('Db select user by api key', action='database query record')
     query = """
         SELECT u.user_id, u.user_name, u.api_key, u.created_on
           FROM __beachfront__user u
@@ -55,7 +55,7 @@ def insert_user(
         user_name: str,
         api_key: str) -> None:
     log = logging.getLogger(__name__)
-    log.info('Db insert user', action='database insert record')
+    log.info('Db insert user "%s" with name "%s"', user_id, user_name, action='database insert record')
     query = """
         INSERT INTO __beachfront__user (user_id, user_name, api_key)
         VALUES (%(user_id)s, %(user_name)s, %(api_key)s)

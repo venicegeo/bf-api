@@ -55,7 +55,8 @@ class Job:
             status: str,
             tide: float,
             tide_min_24h: float,
-            tide_max_24h: float):
+            tide_max_24h: float,
+            compute_mask: bool):
         self.algorithm_name = algorithm_name
         self.algorithm_version = algorithm_version
         self.created_by = created_by
@@ -70,6 +71,7 @@ class Job:
         self.tide = tide
         self.tide_min_24h = tide_min_24h
         self.tide_max_24h = tide_max_24h
+        self.compute_mask = compute_mask
 
     def serialize(self):
         return {
@@ -89,6 +91,7 @@ class Job:
                 'tide': self.tide,
                 'tide_min_24h': self.tide_min_24h,
                 'tide_max_24h': self.tide_max_24h,
+                'compute_mask': self.compute_mask,
                 'type': 'JOB',
             }
         }
@@ -103,9 +106,10 @@ def create(
         scene_id: str,
         service_id: str,
         job_name: str,
-        planet_api_key: str) -> Job:
+        planet_api_key: str,
+        compute_mask: bool) -> Job:
     log = logging.getLogger(__name__)
-    log.info('Job service create', action='service job create',actor=user_id)
+    log.info('Job service initiate create job "%s" for user "%s" for scene "%s"', job_name, user_id, scene_id, action='service job create',actor=user_id)
 
     # Fetch prerequisites
     try:
@@ -122,26 +126,29 @@ def create(
         log.error('Preprocessing error: %s', err)
         raise PreprocessingError(err)
 
-    # Determine GeoTIFF URLs.
-    if scene.platform in ('rapideye', 'planetscope'): 
-        geotiff_filenames = ['multispectral.TIF']
-        geotiff_urls = [scenes.create_download_url(scene.id, planet_api_key)]
-    elif scene.platform in ('landsat'):
-        geotiff_filenames = ['coastal.TIF', 'swir1.TIF']
-        geotiff_urls = [scene.geotiff_coastal, scene.geotiff_swir1]
+    # Determine scene URLs.
+    if scene.platform in (scenes.PLATFORM_RAPIDEYE, scenes.PLATFORM_PLANETSCOPE):
+        scene_filenames = ['multispectral.TIF']
+        scene_urls = [scenes.create_download_url(scene.id, planet_api_key)]
+    elif scene.platform == scenes.PLATFORM_LANDSAT:
+        scene_filenames = ['coastal.TIF', 'swir1.TIF']
+        scene_urls = [scene.image_coastal, scene.image_swir1]
+    elif scene.platform == scenes.PLATFORM_SENTINEL:
+        scene_filenames = ['coastal.JP2', 'swir1.JP2']
+        scene_urls = [scene.image_coastal, scene.image_swir1]
     else:
         raise PreprocessingError('Unexpected platform')
 
     # Dispatch to Piazza
     try:
         log.info('Dispatching <scene:%s> to <algo:%s>', scene_id, algorithm.name)
-        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, geotiff_filenames, scene.platform)
+        cli_cmd = _create_algorithm_cli_cmd(algorithm.interface, scene_filenames, scene.platform, compute_mask)
         job_id = piazza.execute(algorithm.service_id, {
             'body': {
                 'content': json.dumps({
                     'cmd': cli_cmd,
-                    'inExtFiles': geotiff_urls,
-                    'inExtNames': geotiff_filenames,
+                    'inExtFiles': scene_urls,
+                    'inExtNames': scene_filenames,
                     'outGeoJson': ['shoreline.geojson'],
                     'userID': user_id,
                 }),
@@ -171,6 +178,7 @@ def create(
             tide=scene.tide,
             tide_min_24h=scene.tide_min,
             tide_max_24h=scene.tide_max,
+            compute_mask=compute_mask,
         )
         db.jobs.insert_job_user(
             conn,
@@ -201,11 +209,12 @@ def create(
         tide=scene.tide,
         tide_min_24h=scene.tide_min,
         tide_max_24h=scene.tide_max,
+        compute_mask=compute_mask,
     )
 
 def forget(user_id: str, job_id: str) -> None:
     log = logging.getLogger(__name__)
-    log.info('Job  service forget', action=' service job forget',actor=user_id)
+    log.info('Job  service forget job "%s" for user "%s"', job_id, user_id, action=' service job forget',actor=user_id)
     conn = db.get_connection()
     try:
         if not db.jobs.exists(conn, job_id=job_id):
@@ -221,7 +230,7 @@ def forget(user_id: str, job_id: str) -> None:
 
 def get(user_id: str, job_id: str) -> Job:
     log = logging.getLogger(__name__)
-    log.info('Job service get', action='service job get',actor=user_id)
+    log.info('Job service get job "%s" for user "%s"', job_id, user_id, action='service job get',actor=user_id)
     conn = db.get_connection()
 
     try:
@@ -253,12 +262,13 @@ def get(user_id: str, job_id: str) -> Job:
         tide=row['tide'],
         tide_min_24h=row['tide_min_24h'],
         tide_max_24h=row['tide_max_24h'],
+        compute_mask=row['compute_mask'],
     )
 
 
 def get_all(user_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
-    log.info('Job service get all', action='service job get all',actor=user_id)
+    log.info('Job service get all jobs for user "%s"', user_id, action='service job get all',actor=user_id)
     conn = db.get_connection()
 
     try:
@@ -287,6 +297,7 @@ def get_all(user_id: str) -> List[Job]:
             tide=row['tide'],
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
+            compute_mask=row['compute_mask'],
         )
         jobs.append(feature)
 
@@ -295,7 +306,7 @@ def get_all(user_id: str) -> List[Job]:
 
 def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     log = logging.getLogger(__name__)
-    log.info('Job  service get by productline', action=' service job get by productline')
+    log.info('Job  service get by productline "%s"', productline_id, action=' service job get by productline')
     conn = db.get_connection()
 
     try:
@@ -324,11 +335,12 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
             tide=row['tide'],
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
+            compute_mask=row['compute_mask'],
         ))
     return jobs
 
 
-def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str) -> Job:
+def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str, compute_mask: bool) -> Job:
     if BLOCK_REDUNDANT_JOB_CHECK:
         return None
     
@@ -349,7 +361,8 @@ def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str) -> 
         cursor = db.jobs.select_for_existing_jobs(conn, 
             scene_id=scene_id, 
             algorithm_id=service_id, 
-            algorithm_version=algorithm.version
+            algorithm_version=algorithm.version,
+            compute_mask=compute_mask
         )
     except db.DatabaseError as err:
         log.error('Could not check for identical jobs for <scene:%s> and <service:%s>', scene_id, service_id)
@@ -393,6 +406,7 @@ def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str) -> 
             tide=row['tide'],
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
+            compute_mask=row['compute_mask'],
         )
     else:
         # No identical jobs matched
@@ -401,7 +415,7 @@ def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str) -> 
 
 def get_by_scene(scene_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
-    log.info('Job  service get by scene', action=' service job get by scene')
+    log.info('Job  service get by scene "%s"', scene_id, action=' service job get by scene')
     conn = db.get_connection()
 
     try:
@@ -430,6 +444,7 @@ def get_by_scene(scene_id: str) -> List[Job]:
             tide=row['tide'],
             tide_min_24h=row['tide_min_24h'],
             tide_max_24h=row['tide_max_24h'],
+            compute_mask=row['compute_mask'],
         ))
     return jobs
 
@@ -441,10 +456,9 @@ def get_detections(job_id: str) -> str:
     """
 
     log = logging.getLogger(__name__)
-    log.info('Job service get detections', action='service job get detections')
+    log.info('Job service get detections for job "%s"', job_id, action='service job get detections')
     conn = db.get_connection()
 
-    log.info('Packaging detections for <job:%s>', job_id)
     try:
         if not db.jobs.exists(conn, job_id=job_id):
             raise NotFound(job_id)
@@ -561,74 +575,13 @@ class Worker(threading.Thread):
 
         # Determine appropriate action by status
         if status.status in (piazza.STATUS_SUBMITTED, piazza.STATUS_PENDING):
-            if age > job_ttl:
-                log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
-                _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)
-                return
-
-            conn = db.get_connection()
-            try:
-                db.jobs.update_status(conn, job_id=job_id, status=status.status)
-            except db.DatabaseError as err:
-                log.error('<%03d/%s> Could not save status to database', index, job_id)
-                db.print_diagnostics(err)
-                return
-            finally:
-                conn.close()
+            self._updater_process_pending(job_id, age, index, status)
 
         elif status.status == piazza.STATUS_RUNNING:
-            if age > job_ttl:
-                log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
-                _save_execution_error(job_id, STEP_PROCESSING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
-                return
-
-            conn = db.get_connection()
-            try:
-                db.jobs.update_status(conn, job_id=job_id, status=status.status)
-            except db.DatabaseError as err:
-                log.error('<%03d/%s> Could not save status to database', index, job_id)
-                db.print_diagnostics(err)
-                return
-            finally:
-                conn.close()
+            self._updater_process_running(job_id, age, index, status)
 
         elif status.status == piazza.STATUS_SUCCESS:
-            log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
-            try:
-                detections_data_id = _resolve_detections_data_id(status.data_id)
-            except PostprocessingError as err:
-                log.error('<%03d/%s> Could not resolve detections data ID: %s', index, job_id, err)
-                _save_execution_error(job_id, STEP_RESOLVE, str(err))
-                return
-
-            log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
-            try:
-                geojson = piazza.get_file(detections_data_id).text
-            except piazza.ServerError as err:
-                log.error('<%03d/%s> Could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
-                _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not retrieve GeoJSON from Piazza')
-                return
-
-            log.info('<%03d/%s> Saving detections to database (%0.1fMB)', index, job_id, len(geojson) / 1024000)
-            conn = db.get_connection()
-            transaction = conn.begin()
-            try:
-                db.jobs.insert_detection(conn, job_id=job_id, feature_collection=geojson)
-                db.jobs.update_status(
-                    conn,
-                    job_id=job_id,
-                    status=piazza.STATUS_SUCCESS,
-                )
-                transaction.commit()
-            except db.DatabaseError as err:
-                transaction.rollback()
-                transaction.close()
-                log.error('<%03d/%s> Could not save status and detections to database', index, job_id)
-                db.print_diagnostics(err)
-                _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
-                return
-            finally:
-                conn.close()
+            self._updater_process_success(job_id, age, index, status)
 
         elif status.status in (piazza.STATUS_ERROR, piazza.STATUS_FAIL):
             # FIXME -- use heuristics to generate a more descriptive error message
@@ -637,6 +590,84 @@ class Worker(threading.Thread):
         elif status.status == piazza.STATUS_CANCELLED:
             _save_execution_error(job_id, STEP_ALGORITHM, 'Job was cancelled', status=piazza.STATUS_CANCELLED)
 
+    def _updater_process_pending(self, job_id: str, age: timedelta, index: int, status: str):
+        log = self._log
+        job_ttl = self._job_ttl
+
+        if age > job_ttl:
+            log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
+            _save_execution_error(job_id, STEP_QUEUED, 'Submission wait time exceeded', status=STATUS_TIMED_OUT)
+            return
+
+        conn = db.get_connection()
+        try:
+            db.jobs.update_status(conn, job_id=job_id, status=status.status)
+        except db.DatabaseError as err:
+            log.error('<%03d/%s> Could not save status to database', index, job_id)
+            db.print_diagnostics(err)
+            return
+        finally:
+            conn.close()
+
+    def _updater_process_running(self, job_id: str, age: timedelta, index: int, status: str):
+        log = self._log
+        job_ttl = self._job_ttl
+
+        if age > job_ttl:
+            log.warning('<%03d/%s> appears to have stalled and will no longer be tracked', index, job_id)
+            _save_execution_error(job_id, STEP_PROCESSING, 'Processing time exceeded', status=STATUS_TIMED_OUT)
+            return
+
+        conn = db.get_connection()
+        try:
+            db.jobs.update_status(conn, job_id=job_id, status=status.status)
+        except db.DatabaseError as err:
+            log.error('<%03d/%s> Could not save status to database', index, job_id)
+            db.print_diagnostics(err)
+            return
+        finally:
+            conn.close()
+
+    def _updater_process_success(self, job_id: str, age: timedelta, index: int, status: str):
+        log = self._log
+        job_ttl = self._job_ttl
+
+        log.info('<%03d/%s> Resolving detections data ID (via <%s>)', index, job_id, status.data_id)
+        try:
+            detections_data_id = _resolve_detections_data_id(status.data_id)
+        except PostprocessingError as err:
+            log.error('<%03d/%s> Could not resolve detections data ID: %s', index, job_id, err)
+            _save_execution_error(job_id, STEP_RESOLVE, str(err))
+            return
+
+        log.info('<%03d/%s> Fetching detections from Piazza', index, job_id)
+        try:
+            geojson = piazza.get_file(detections_data_id).text
+        except piazza.ServerError as err:
+            log.error('<%03d/%s> Could not fetch data ID <%s>: %s', index, job_id, detections_data_id, err)
+            _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not retrieve GeoJSON from Piazza')
+            return
+
+        log.info('<%03d/%s> Saving detections to database (%0.1fMB)', index, job_id, len(geojson) / 1024000)
+        conn = db.get_connection()
+        transaction = conn.begin()
+        try:
+            db.jobs.insert_detection(conn, job_id=job_id, feature_collection=geojson)
+            db.jobs.update_status(
+                conn,
+                job_id=job_id,
+                status=piazza.STATUS_SUCCESS,
+            )
+            transaction.commit()
+        except db.DatabaseError as err:
+            transaction.rollback()
+            transaction.close()
+            log.error('<%03d/%s> Could not save status and detections to database', index, job_id)
+            db.print_diagnostics(err)
+            _save_execution_error(job_id, STEP_COLLECT_GEOJSON, 'Could not insert GeoJSON to database')
+            return
+        finally:
+            conn.close()
 
 #
 # Helpers
@@ -644,13 +675,14 @@ class Worker(threading.Thread):
 
 def _create_algorithm_cli_cmd(
         algo_interface: str,
-        geotiff_filenames: list,
-        scene_platform: str) -> str:
+        image_filenames: list,
+        scene_platform: str,
+        compute_mask: bool) -> str:
     log = logging.getLogger(__name__)
     if algo_interface == 'pzsvc-ossim':
         return ' '.join([
             'shoreline',
-            '--image ' + ','.join(geotiff_filenames),
+            '--image ' + ','.join(image_filenames),
             '--projection geo-scaled',
             '--threshold 0.5',
             '--tolerance 0.075',
@@ -662,14 +694,34 @@ def _create_algorithm_cli_cmd(
             band_flag = '--bands 2 4'
         elif scene_platform == scenes.PLATFORM_RAPIDEYE:
             band_flag = '--bands 2 5'
-        elif scene_platform == scenes.PLATFORM_LANDSAT:
+        elif scene_platform in (scenes.PLATFORM_LANDSAT, scenes.PLATFORM_SENTINEL):
             band_flag = '--bands 1 1'
-        return ' '.join([
-            ' '.join(['-i ' + filename for filename in geotiff_filenames]),
+        cmd = ' '.join([
+            ' '.join(['-i ' + filename for filename in image_filenames]),
             band_flag,
             '--basename shoreline',
-            '--smooth 1.0'
+            '--smooth 1.0',
+            '--coastmask' if compute_mask else '',
         ])
+        cmd = cmd.strip()
+        return cmd
+    elif algo_interface == 'pzsvc-shape-py':
+        return '-f ' + geotiff_filenames[0] + ' -o shoreline.geojson'
+    elif algo_interface == 'pzsvc-wta-py':
+        band_flag = ''
+        if scene_platform == scenes.PLATFORM_RAPIDEYE:
+            band_flag = '--bands 1 2 3 4 5'
+        elif scene_platform == scenes.PLATFORM_LANDSAT:
+            band_flag = '--bands 2 3 4 1 5'
+        cmd = ' '.join([
+            ' '.join(['-i ' + filename for filename in image_filenames]),
+            band_flag,
+            '--basename shoreline',
+            '--smooth 1.0',
+            '--coastmask' if compute_mask else '',
+        ])
+        cmd = cmd.strip()
+        return cmd
     else:
         error_message = 'unknown algorithm interface "' + algo_interface + '".'
         log.error(error_message)

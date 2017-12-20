@@ -349,6 +349,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
         users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
             'INFO - Users service auth api key',
+            'INFO - Users service authenticated user "test-user-id"'
         ], self.logger.lines)
 
     def test_logs_failure_from_unauthorized_api_key(self):
@@ -357,7 +358,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
             users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
             'INFO - Users service auth api key',
-            'ERROR - Unauthorized API key "0123456789abcdef0123456789abcdef"'
+            'ERROR - Unauthorized API key provided'
         ], self.logger.lines)
 
     def test_logs_failure_from_malformed_api_key(self):
@@ -366,7 +367,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
             users.authenticate_via_api_key('definitely not correctly formed')
         self.assertEqual([
             'INFO - Users service auth api key',
-            'ERROR - Cannot verify malformed API key: "definitely not correctly formed"'
+            'ERROR - Cannot verify malformed API key.'
         ], self.logger.lines)
 
     def test_logs_failure_from_database_select(self):
@@ -375,7 +376,7 @@ class AuthenticateViaApiKeyTest(unittest.TestCase):
             users.authenticate_via_api_key(API_KEY)
         self.assertEqual([
             'INFO - Users service auth api key',
-            """ERROR - Database query for API key "0123456789abcdef0123456789abcdef" failed""",
+            """ERROR - Database query for API key failed""",
         ], self.logger.lines)
 
 
@@ -430,7 +431,7 @@ class GetByIdTest(unittest.TestCase):
         with self.assertRaises(DatabaseError):
             users.get_by_id('test-user-id')
         self.assertEqual([
-            'INFO - Users service get by id',
+            'INFO - Users service get by id "test-user-id"',
             """ERROR - Database query for user ID "test-user-id" failed""",
         ], self.logger.lines)
 

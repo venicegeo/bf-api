@@ -26,6 +26,8 @@ create_environment_vars() {
     echo -e "\n$FUNCNAME: Creating $filepath"
     cat <<'EOT' | sed -E 's/^        //' > $filepath
         export GEOAXIS=
+        export GEOAXIS_AUTH=
+        export GEOAXIS_LOGOUT=
         export GEOAXIS_CLIENT_ID=
         export GEOAXIS_SECRET=
         export DOMAIN=
@@ -38,21 +40,19 @@ create_environment_vars() {
             {
               "name": "pz-postgres",
               "credentials": {
-                "hostname": "localhost",
+                "db_host": "localhost",
                 "username": "beachfront",
                 "password": "secret",
-                "database": "beachfront",
-                "port": "5432",
-                "host": "localhost:5432"
+                "db_name": "beachfront",
+                "db_port": "5432"
               }
             },
             {
-              "name": "pz-geoserver-efs",
+              "name": "pz-geoserver",
               "credentials": {
-                "host": "localhost:8443",
-                "username": "beachfront",
-                "password": "secret",
-                "port": "8443"
+                "boundless_geoserver_url": "http://localhost:8080/geoserver/index.html",
+                "boundless_geoserver_username": "admin",
+                "boundless_geoserver_password": "geoserver"
               }
             }
           ]
@@ -92,7 +92,7 @@ create_ssl_certs() {
 
             [Beachfront]
                 basicConstraints       = CA:false
-                subjectAltName         = DNS:localhost, DNS:localhost.localdomain
+                subjectAltName         = DNS:localhost, DNS:localhost.localdomain, DNS:vagranthost
         ') \
         -extensions Beachfront \
         2>&1 |indent_stream

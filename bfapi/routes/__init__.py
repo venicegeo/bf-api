@@ -17,7 +17,7 @@ import urllib.parse
 import flask
 import logging
 
-from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_CLIENT_ID
+from bfapi.config import DOMAIN, UI, GEOAXIS, GEOAXIS_AUTH, GEOAXIS_LOGOUT, GEOAXIS_CLIENT_ID
 from bfapi.service import users
 from bfapi.routes import v0
 
@@ -47,7 +47,7 @@ def login():
     except users.Error:
         return 'Cannot log in: an internal error prevents authentication', 500
 
-    flask.session.permanent = True
+    flask.session.permanent = False
     flask.session['api_key'] = user.api_key
 
     # Send user back to the UI
@@ -64,12 +64,18 @@ def login_start():
         ('response_type', 'code'),
         ('scope', 'UserProfile.me'),
     ))
-    return flask.redirect('https://{}/ms_oauth/oauth2/endpoints/oauthservice/authorize?{}'.format(GEOAXIS, params))
+    return flask.redirect('https://{}/ms_oauth/oauth2/endpoints/oauthservice/authorize?{}'.format(GEOAXIS_AUTH, params))
 
 
 def logout():
     log = logging.getLogger(__name__)
 
     flask.session.clear()
-    log.info('Logged out', actor=flask.request.user.user_id, action='log out')
-    return 'You have been logged out'
+    log.info('Logged out user "%s"', flask.request.user.user_id, actor=flask.request.user.user_id, action='log out')
+    return 'https://{}/oam/server/logout'.format(GEOAXIS_LOGOUT)
+
+
+def keepalive():
+    return flask.jsonify({
+        'keepalive': 'true'
+    })

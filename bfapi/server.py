@@ -37,10 +37,11 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule(methods=['GET'], rule='/', view_func=routes.health_check)
     app.add_url_rule(methods=['GET'], rule='/login', view_func=routes.login)
     app.add_url_rule(methods=['GET'], rule='/login/geoaxis', view_func=routes.login_start)
-    app.add_url_rule(methods=['GET'], rule='/v0/scene/<scene_id>.TIF', view_func=routes.v0.forward_to_geotiff)
+    app.add_url_rule(methods=['GET'], rule='/v0/scene/<scene_id>', view_func=routes.v0.forward_to_scene)
 
     # Protected endpoints
     app.add_url_rule(methods=['GET'], rule='/logout', view_func=routes.logout)
+    app.add_url_rule(methods=['GET'], rule='/keepalive', view_func=routes.keepalive)
     app.add_url_rule(methods=['GET'], rule='/v0/user', view_func=routes.v0.get_user_data)
     app.add_url_rule(methods=['GET'], rule='/v0/algorithm', view_func=routes.v0.list_algorithms)
     app.add_url_rule(methods=['GET'], rule='/v0/algorithm/<service_id>', view_func=routes.v0.get_algorithm)
@@ -49,12 +50,13 @@ def attach_routes(app: flask.Flask):
     app.add_url_rule(methods=['GET'], rule='/v0/job/<job_id>', view_func=routes.v0.get_job)
     app.add_url_rule(methods=['DELETE'], rule='/v0/job/<job_id>', view_func=routes.v0.forget_job)
     app.add_url_rule(methods=['GET'], rule='/v0/job/<job_id>.geojson', view_func=routes.v0.download_geojson)
+    app.add_url_rule(methods=['GET'], rule='/v0/job/<job_id>.gpkg', view_func=routes.v0.download_geopackage)
     app.add_url_rule(methods=['GET'], rule='/v0/job/by_scene/<scene_id>', view_func=routes.v0.list_jobs_for_scene)
     app.add_url_rule(methods=['GET'], rule='/v0/job/by_productline/<productline_id>', view_func=routes.v0.list_jobs_for_productline)
     app.add_url_rule(methods=['GET'], rule='/v0/productline', view_func=routes.v0.list_productlines)
     app.add_url_rule(methods=['POST'], rule='/v0/productline', view_func=routes.v0.create_productline)
     app.add_url_rule(methods=['DELETE'], rule='/v0/productline/<productline_id>', view_func=routes.v0.delete_productline)
-
+    app.add_url_rule(methods=['GET'], rule='/v0/imagery/discover/<itemType>', view_func=routes.v0.get_search_imagery)
 
 def banner():
     configurations = []
@@ -92,7 +94,6 @@ def init(app: flask.Flask):
 
     app.secret_key = config.SECRET_KEY
     app.response_class.default_mimetype = FALLBACK_MIMETYPE
-    app.permanent_session_lifetime = config.SESSION_TTL
 
     install_service_assets()
     apply_middlewares(app)

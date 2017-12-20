@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+echo 10.0.2.2 vagranthost >> /etc/hosts
+
 # Install Python 3.5 and related dependencies
 sudo add-apt-repository -y ppa:fkrull/deadsnakes
 sudo apt-get -y update
@@ -23,7 +25,7 @@ sudo apt-get -y install openjdk-8-jdk tomcat7 unzip
 # Ensure Tomcat is pointing to JDK8
 sudo echo 'JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64' >> /etc/default/tomcat7
 # Download and Install
-wget http://sourceforge.net/projects/geoserver/files/GeoServer/2.8.2/geoserver-2.8.2-war.zip
+wget -nv http://sourceforge.net/projects/geoserver/files/GeoServer/2.8.2/geoserver-2.8.2-war.zip
 unzip geoserver-2.8.2-war.zip geoserver.war
 sudo mv geoserver.war /var/lib/tomcat7/webapps/
 sudo service tomcat7 restart
@@ -34,11 +36,31 @@ sudo curl http://localhost.dev:8080/geoserver/rest/workspaces/piazza/datastores 
 
 # Create the development environment. Ensure proper EOL encoding (thank you Windows)
 sudo apt-get -y install dos2unix
-find /vagrant -type f -print0 | xargs -0 dos2unix
+find /vagrant -type f -print0 | xargs -0 dos2unix --quiet
 
+echo "Creating development environment..."
 # Create environment
 /vagrant/scripts/create-development-environment.sh
-# Run Tests
-/vagrant/scripts/test.sh
-# Start the application
-#/vagrant/scripts/run-in-development-mode.sh
+source /vagrant/.dev/environment-vars.sh
+
+echo "Setting up database..."
+echo "Installing Liquibase..."
+mkdir -p /opt/liquibase/
+cd /opt/liquibase/
+wget -nv https://github.com/liquibase/liquibase/releases/download/liquibase-parent-3.5.3/liquibase-3.5.3-bin.tar.gz \
+  -O /opt/liquibase/liquibase.tar.gz
+tar xfz liquibase.tar.gz
+echo "Downloading PostgreSQL JDBC driver..."
+cd /opt
+wget -nv https://jdbc.postgresql.org/download/postgresql-42.1.1.jre6.jar \
+  -O /opt/postgresql.jar
+
+echo "Running Liquibase migrations..."
+/vagrant/.env/bin/python3 /vagrant/migrations/migrate.py clearCheckSums \
+  --liquibase /opt/liquibase/liquibase \
+  --classpath /opt/postgresql.jar
+/vagrant/.env/bin/python3 /vagrant/migrations/migrate.py update \
+  --liquibase /opt/liquibase/liquibase \
+  --classpath /opt/postgresql.jar
+
+exit 0

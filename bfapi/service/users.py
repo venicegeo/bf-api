@@ -44,23 +44,24 @@ def authenticate_via_api_key(api_key: str) -> User:
     log.info('Users service auth api key', action='service users auth api key')
 
     if not PATTERN_API_KEY.match(api_key):
-        log.error('Cannot verify malformed API key: "%s"', api_key)
+        log.error('Cannot verify malformed API key.')
         raise MalformedAPIKey()
 
-    log.debug('Checking "%s"', api_key)
     conn = db.get_connection()
     try:
         row = db.users.select_user_by_api_key(conn, api_key=api_key).fetchone()
     except db.DatabaseError as err:
-        log.error('Database query for API key "%s" failed', api_key)
+        log.error('Database query for API key failed')
         db.print_diagnostics(err)
         raise
     finally:
         conn.close()
 
     if not row:
-        log.error('Unauthorized API key "%s"', api_key)
+        log.error('Unauthorized API key provided')
         raise Unauthorized('Beachfront API key is not active')
+
+    log.info('Users service authenticated user "%s"', row['user_id'])
 
     return User(
         user_id=row['user_id'],
@@ -88,7 +89,7 @@ def authenticate_via_geoaxis(auth_code: str) -> User:
 
 def get_by_id(user_id: str) -> User:
     log = logging.getLogger(__name__)
-    log.info('Users service get by id', action='service users get by id')
+    log.info('Users service get by id "%s"', user_id, action='service users get by id')
 
     log.debug('Searching database for user "%s"', user_id)
     conn = db.get_connection()
@@ -155,6 +156,7 @@ def _fetch_geoaxis_profile(access_token: str):
             headers={
                 'Authorization': 'Bearer {}'.format(access_token),
             },
+            verify=False,
         )
         log.debug('Received response: %s', response.text)
         response.raise_for_status()
@@ -198,6 +200,7 @@ def _request_geoaxis_access_token(auth_code: str):
                 'code': auth_code,
                 'redirect_uri': 'https://bf-api.{}/login'.format(DOMAIN),
             },
+            verify=False,
         )
         log.debug('Received response: %s', response.text)
         response.raise_for_status()

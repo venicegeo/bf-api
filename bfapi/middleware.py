@@ -29,8 +29,10 @@ PATTERNS_PUBLIC_ENDPOINTS = (
     re.compile(r'^/favicon.ico$'),
     re.compile(r'^/login$'),
     re.compile(r'^/login/geoaxis$'),
-    re.compile(r'^/v0/scene/[^/]+.TIF$'),
+    re.compile(r'^/v0/scene/[^/]+$'),
 )
+
+ENDPOINTS_DO_NOT_EXTEND_SESSION = ['/v0/job', '/v0/productline']
 
 
 def apply_default_response_headers(response: flask.Response) -> flask.Response:
@@ -66,6 +68,7 @@ def auth_filter():
     try:
         log.debug('Attaching user to request context')
         request.user = users.authenticate_via_api_key(api_key)
+        log.info('User "%s" successfully authenticated request to endpoint "%s"', request.user.name, request.path)
     except users.Unauthorized as err:
         return str(err), 401
     except users.MalformedAPIKey:

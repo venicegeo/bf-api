@@ -19,7 +19,7 @@ from bfapi.config import GEOSERVER_HOST, GEOSERVER_USERNAME, GEOSERVER_PASSWORD
 
 DETECTIONS_LAYER_ID = 'bfdetections'
 DETECTIONS_STYLE_ID = 'bfdetections'
-TIMEOUT = 24
+TIMEOUT = 60
 
 
 def install_if_needed():
@@ -45,11 +45,11 @@ def install_if_needed():
 
 def install_layer(layer_id: str):
     log = logging.getLogger(__name__)
-    log.info('Geoserver  service install layer', action=' service geoserver install')
-    log.info('Installing `%s`', layer_id)
+    log.info('Geoserver service install layer "%s"', layer_id, action=' service geoserver install')
+
     try:
         response = requests.post(
-            'http://{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(  # FIXME -- https please?
+            '{host}/geoserver/rest/workspaces/{ws}/datastores/{ds}/featuretypes'.format(
                 host=GEOSERVER_HOST,
                 ws='piazza',  # FIXME -- autodetect?
                 ds='piazza',  # FIXME -- autodetect?
@@ -62,6 +62,7 @@ def install_layer(layer_id: str):
             data=r"""
                 <featureType>
                     <name>{layer_id}</name>
+                    <enabled>true</enabled>
                     <title>Beachfront Detections</title>
                     <srs>EPSG:4326</srs>
                     <nativeBoundingBox>
@@ -76,9 +77,8 @@ def install_layer(layer_id: str):
                                 <name>{layer_id}</name>
                                 <sql>
                                     SELECT * FROM __beachfront__geoserver
-                                     WHERE ('%jobid%' = '' AND '%productlineid%' = '' AND '%sceneid%' = '')
+                                     WHERE ('%jobid%' = '' AND '%sceneid%' = '')
                                         OR (job_id = '%jobid%')
-                                        OR (productline_id = '%productlineid%')
                                         OR (scene_id = '%sceneid%')
                                 </sql>
                                 <escapeSql>false</escapeSql>
@@ -91,10 +91,6 @@ def install_layer(layer_id: str):
                                 <parameter>
                                     <name>jobid</name>
                                     <regexpValidator>^(%|[a-f0-9]{{8}}-[a-f0-9]{{4}}-[a-f0-9]{{4}}-[a-f0-9]{{4}}-[a-f0-9]{{12}})$</regexpValidator>
-                                </parameter>
-                                <parameter>
-                                    <name>productlineid</name>
-                                    <regexpValidator>^[a-z]+$</regexpValidator>
                                 </parameter>
                                 <parameter>
                                     <name>sceneid</name>
@@ -133,11 +129,10 @@ def install_layer(layer_id: str):
 
 def install_style(style_id: str):
     log = logging.getLogger(__name__)
-    log.info('Geoserver  service install style', action=' service geoserver install')
-    log.info('Installing `%s`', style_id)
+    log.info('Geoserver  service install style "%s"', style_id, action=' service geoserver install')
     try:
         response = requests.post(
-            'http://{}/geoserver/rest/styles'.format(  # FIXME -- https please?
+            '{}/geoserver/rest/styles'.format(
                 GEOSERVER_HOST,
             ),
             data="""
@@ -168,7 +163,7 @@ def install_style(style_id: str):
         )
         response.raise_for_status()
         response = requests.put(
-            'http://{}/geoserver/rest/layers/{}'.format(  # FIXME -- https please?
+            '{}/geoserver/rest/layers/{}'.format(
                 GEOSERVER_HOST,
                 DETECTIONS_LAYER_ID,
             ),
@@ -200,10 +195,10 @@ def install_style(style_id: str):
 
 def layer_exists(layer_id: str) -> bool:
     log = logging.getLogger(__name__)
-    log.info('Geoserver  service layer exists', action=' service geoserver check')
+    log.info('Geoserver  check if service layer "%s" exists', layer_id, action=' service geoserver check')
     try:
         response = requests.get(
-            'http://{}/geoserver/rest/layers/{}'.format(  # FIXME -- https please
+            '{}/geoserver/rest/layers/{}'.format(
                 GEOSERVER_HOST,
                 layer_id,
             ),
@@ -218,10 +213,10 @@ def layer_exists(layer_id: str) -> bool:
 
 def style_exists(style_id: str) -> bool:
     log = logging.getLogger(__name__)
-    log.info('Geoserver  service style exists', action=' service geoserver check')
+    log.info('Geoserver  check if service style exists "%s"', style_id, action=' service geoserver check')
     try:
         response = requests.get(
-            'http://{}/geoserver/rest/styles/{}'.format(  # FIXME -- https please
+            '{}/geoserver/rest/styles/{}'.format(
                 GEOSERVER_HOST,
                 style_id,
             ),

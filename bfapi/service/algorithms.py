@@ -58,7 +58,7 @@ def list_all() -> List[Algorithm]:
     log.info('Algorithms service list all algorithms', action='Service algorithms list all ')
     try:
         log.info('Fetching beachfront services from Piazza', action='fetch services')
-        services = piazza.get_services('^BF_Algo_')
+        services = piazza.get_services('BF_Algo_')
     except piazza.Error as err:
         log.error('Service discovery failed: %s', err)
         raise
@@ -85,7 +85,7 @@ def list_all() -> List[Algorithm]:
 
 def get(service_id: str) -> Algorithm:
     log = logging.getLogger(__name__)
-    log.info('Algorithms service get algorithms', action=' service algorithms get')
+    log.info('Algorithms service get algorithm "%s"', service_id, action=' service algorithms get')
     try:
         log.info('Fetch beachfront service `%s` from Piazza', service_id, action='fetch service', actee=service_id)
         service = piazza.get_service(service_id)

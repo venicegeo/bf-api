@@ -29,7 +29,7 @@ STATUS_SUCCESS = 'Success'
 TYPE_DATA = 'data'
 TYPE_DEPLOYMENT = 'deployment'
 
-TIMEOUT_LONG = 24
+TIMEOUT_LONG = 180
 TIMEOUT_SHORT = 6
 
 
@@ -71,7 +71,7 @@ class ServiceDescriptor:
 
 def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_id: str) -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza service create trigger', action='service piazza create trigger')
+    log.info('Piazza service create trigger for event "%s"', event_type_id, action='service piazza create trigger')
     try:
         response = requests.post(
             'https://{}/trigger'.format(PIAZZA),
@@ -120,63 +120,9 @@ def create_trigger(*, data_inputs: dict, event_type_id: str, name: str, service_
     return trigger_id
 
 
-def deploy(data_id: str, *, poll_interval: int = 3, max_poll_attempts: int = 10) -> str:
-    log = logging.getLogger(__name__)
-    log.info('Piazza service deploy', action='service piazza deploy')
-    try:
-        response = requests.post(
-            'https://{}/deployment'.format(PIAZZA),
-            timeout=TIMEOUT_LONG,
-            auth=(PIAZZA_API_KEY, ''),
-            json={
-                'dataId': data_id,
-                'deploymentType': 'geoserver',
-                'type': 'access',
-            },
-        )
-        response.raise_for_status()
-    except requests.ConnectionError as err:
-        log.error('Connection failed: %s; url="%s"', err, err.request.url)
-        raise Unreachable()
-    except requests.HTTPError as err:
-        status_code = err.response.status_code
-        if status_code == 401:
-            raise Unauthorized()
-        raise ServerError(status_code)
-
-    data = response.json().get('data')
-    if not data:
-        raise InvalidResponse('missing `data`', response.text)
-
-    job_id = data.get('jobId')
-    if not job_id:
-        raise InvalidResponse('missing `jobId`', response.text)
-
-    # Poll until complete
-    poll_attempts = 0
-    while True:
-        status = get_status(job_id)
-
-        if status.status == STATUS_SUCCESS:
-            return status.layer_id
-
-        elif status.status == STATUS_RUNNING:
-            poll_attempts += 1
-            if poll_attempts >= max_poll_attempts:
-                raise DeploymentError('exhausted max poll attempts')
-            time.sleep(poll_interval)
-            continue
-
-        if status.status == STATUS_ERROR:
-            raise DeploymentError('deployment job failed')
-
-        else:
-            raise DeploymentError('unexpected deployment job status: ' + status.status)
-
-
 def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str:
     log = logging.getLogger(__name__)
-    log.info('Piazza service execute', action='service piazza execute')
+    log.info('Piazza service execute service "%s"', service_id, action='service piazza execute')
     try:
         response = requests.post(
             'https://{}/job'.format(PIAZZA),
@@ -220,7 +166,7 @@ def execute(service_id: str, data_inputs: dict, data_output: list = None) -> str
 
 def get_file(data_id: str) -> requests.Response:
     log = logging.getLogger(__name__)
-    log.info('Piazza service get file', action='service piazza get file')
+    log.info('Piazza service get file for data "%s"', data_id, action='service piazza get file')
     try:
         response = requests.get(
             'https://{}/file/{}'.format(PIAZZA, data_id),
@@ -241,7 +187,7 @@ def get_file(data_id: str) -> requests.Response:
 
 def get_service(service_id: str) -> ServiceDescriptor:
     log = logging.getLogger(__name__)
-    log.info('Piazza service get service', action='service piazza get service')
+    log.info('Piazza service get service "%s"', service_id, action='service piazza get service')
     try:
         response = requests.get(
             'https://{}/service/{}'.format(PIAZZA, service_id),
@@ -301,7 +247,7 @@ def get_services(pattern: str, count: int = 100) -> List[ServiceDescriptor]:
 
 def get_status(job_id: str) -> Status:
     log = logging.getLogger(__name__)
-    log.info('Piazza service get status', action='service piazza get status')
+    log.info('Piazza service get status for job "%s"', job_id , action='service piazza get status')
     try:
         response = requests.get(
             'https://{}/job/{}'.format(PIAZZA, job_id),
@@ -338,31 +284,7 @@ def get_status(job_id: str) -> Status:
         raise InvalidResponse('ambiguous value for `data.status`', response.text)
 
     if status == STATUS_SUCCESS:
-        result = data.get('result')
-        if not result:
-            raise InvalidResponse('missing `data.result`', response.text)
-
-        result_type = result.get('type')
-        if not result_type:
-            raise InvalidResponse('missing `data.result.type`', response.text)
-
-        if result_type == TYPE_DATA:
-            data_id = result.get('dataId')
-            if not data_id:
-                raise InvalidResponse('missing `data.result.dataId`', response.text)
-            return Status(status, data_id=data_id)
-
-        elif result_type == TYPE_DEPLOYMENT:
-            deployment = result.get('deployment')
-            if not deployment:
-                raise InvalidResponse('missing `data.result.deployment`', response.text)
-            layer_id = deployment.get('layer')
-            if not layer_id:
-                raise InvalidResponse('missing `data.result.deployment.layer`', response.text)
-            return Status(status, layer_id=layer_id)
-
-        else:
-            raise InvalidResponse('unknown result type `{}`'.format(result_type), response.text)
+        return _process_success_status(data, response, status)
 
     elif status == STATUS_ERROR:
         result = data.get('result')
@@ -372,6 +294,34 @@ def get_status(job_id: str) -> Status:
         return Status(status, error_message=error_message)
 
     return Status(status)
+
+
+def _process_success_status(data: dict, response: dict, status: str) -> Status:
+    result = data.get('result')
+    if not result:
+        raise InvalidResponse('missing `data.result`', response.text)
+
+    result_type = result.get('type')
+    if not result_type:
+        raise InvalidResponse('missing `data.result.type`', response.text)
+
+    if result_type == TYPE_DATA:
+        data_id = result.get('dataId')
+        if not data_id:
+            raise InvalidResponse('missing `data.result.dataId`', response.text)
+        return Status(status, data_id=data_id)
+
+    elif result_type == TYPE_DEPLOYMENT:
+        deployment = result.get('deployment')
+        if not deployment:
+            raise InvalidResponse('missing `data.result.deployment`', response.text)
+        layer_id = deployment.get('layer')
+        if not layer_id:
+            raise InvalidResponse('missing `data.result.deployment.layer`', response.text)
+        return Status(status, layer_id=layer_id)
+
+    else:
+        raise InvalidResponse('unknown result type `{}`'.format(result_type), response.text)
 
 
 def get_triggers(name: str) -> list:
