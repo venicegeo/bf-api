@@ -33,6 +33,7 @@ node {
     } else {
       appName = "${appBaseName}-${appvers}"
     }
+    appName = appName.trim()
 
     // Get the Artifact from Nexus
     def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
@@ -100,14 +101,12 @@ node {
       // Assign Routes
       def legacyAppNames = sh(script: "cf routes | grep \"${appBaseName} \" | awk '{print \$4}'", returnStdout: true)
       sh "cf map-route ${appName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
-      sh "cf map-route ${appName} ${env.PROMOTE_DOMAIN} --hostname beachfront"
       
       // Delete old Routes
       for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
         def legacyAppName = legacyApp.toString().trim()
         if (legacyAppName != appName) {
           sh "cf unmap-route ${legacyAppName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
-          sh "cf unmap-route ${legacyAppName} ${env.PROMOTE_DOMAIN} --hostname beachfront"
           sh "cf delete -f ${legacyAppName} -r"
         }
       }
