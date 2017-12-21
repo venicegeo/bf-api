@@ -16,4 +16,3 @@ manifest.prod.yml
 .python-version
 vagrant-bfapi.log
 migrations/vendor
-vendor
