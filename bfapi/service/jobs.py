@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 from bfapi import db
-from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, JOB_WORKER_MAX_RETRIES
+from bfapi.config import JOB_TTL, JOB_WORKER_INTERVAL, JOB_WORKER_MAX_RETRIES, BLOCK_REDUNDANT_JOB_CHECK
 from bfapi.service import algorithms, scenes, piazza
 
 FORMAT_DTG = '%Y-%m-%d-%H-%M'
