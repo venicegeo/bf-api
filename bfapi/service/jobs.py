@@ -367,9 +367,8 @@ def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str, com
     except db.DatabaseError as err:
         log.error('Could not check for identical jobs for <scene:%s> and <service:%s>', scene_id, service_id)
         db.print_diagnostics(err)
-        raise err
-    finally:
         conn.close()
+        raise err
 
     # if any identical Jobs matched
     if cursor.rowcount > 0:
