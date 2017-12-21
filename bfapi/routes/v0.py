@@ -71,21 +71,33 @@ def create_job():
         return 'Invalid input: {}'.format(err), 400
 
     try:
-        record = _jobs.create(
-            user_id=flask.request.user.user_id,
-            service_id=service_id,
+        # Does this result exist already? Get any existing Jobs that match.
+        existingJob = _jobs.get_existing_redundant_job(
+            user_id=flask.request.user.user_id, 
             scene_id=scene_id,
-            job_name=job_name.strip(),
-            planet_api_key=planet_api_key,
+            service_id=service_id,
             compute_mask=compute_mask
         )
+        if existingJob is not None:
+            # A Job exists already. Return this. 
+            record = existingJob
+        else:
+            # New job must be created
+            record = _jobs.create(
+                user_id=flask.request.user.user_id,
+                service_id=service_id,
+                scene_id=scene_id,
+                job_name=job_name.strip(),
+                planet_api_key=planet_api_key,
+                compute_mask=compute_mask
+            )
     except _jobs.PreprocessingError as err:
         return 'Cannot execute: {}'.format(err), 500
     except DatabaseError:
         return 'A database error prevents job execution', 500
     return flask.jsonify({
         'job': record.serialize(),
-    }), 201
+    }), 200 if existingJob is not None else 201
 
 
 def download_geojson(job_id: str):

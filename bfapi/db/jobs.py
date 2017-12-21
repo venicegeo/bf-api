@@ -270,6 +270,36 @@ def select_jobs_for_scene(
     return conn.execute(query, params)
 
 
+def select_for_existing_jobs(
+        conn: Connection,
+        *,
+        algorithm_id: str,
+        algorithm_version: str,
+        scene_id: str,
+        compute_mask: bool) -> ResultProxy:
+    log = logging.getLogger(__name__)
+    log.info('Db select jobs for scene and algorithm', action='database select record')
+    query = """
+        SELECT j.job_id, j.algorithm_name, j.algorithm_version, j.created_by, j.created_on, j.name, j.scene_id, j.status, j.tide, j.tide_min_24h, j.tide_max_24h, j.compute_mask
+               ST_AsGeoJSON(s.geometry) AS geometry, s.sensor_name, s.captured_on
+          FROM __beachfront__job j
+               LEFT OUTER JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
+         WHERE j.scene_id = %(scene_id)s
+           AND j.algorithm_id = %(algorithm_id)s
+           AND j.algorithm_version = %(algorithm_version)s
+           AND j.compute_mask = %(compute_mask)s
+           AND j.status IN ('Submitted', 'Running', 'Success')
+        ORDER BY created_on DESC
+        """
+    params = {
+        'algorithm_id': algorithm_id,
+        'algorithm_version': algorithm_version,
+        'scene_id': scene_id,
+        'compute_mask': compute_mask,
+    }
+    return conn.execute(query, params)
+
+
 def select_jobs_for_user(
         conn: Connection,
         *,

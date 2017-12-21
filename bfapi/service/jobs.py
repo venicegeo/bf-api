@@ -340,6 +340,79 @@ def get_by_productline(productline_id: str, since: datetime) -> List[Job]:
     return jobs
 
 
+def get_existing_redundant_job(user_id: str, scene_id: str, service_id: str, compute_mask: bool) -> Job:
+    if BLOCK_REDUNDANT_JOB_CHECK:
+        return None
+    
+    log = logging.getLogger(__name__)
+    log.info('Job  services get by scene and algorithm', action=' service job get by scene and algorithm')
+    conn = db.get_connection()
+
+    # Fetch algorithm to compare version numbers
+    try:
+        algorithm = algorithms.get(service_id)
+    except (algorithms.NotFound,
+            algorithms.ValidationError) as err:
+        log.error('Could not find algorithm: %s', err)
+        raise PreprocessingError(err)
+
+    # Query for existing jobs
+    try:
+        cursor = db.jobs.select_for_existing_jobs(conn, 
+            scene_id=scene_id, 
+            algorithm_id=service_id, 
+            algorithm_version=algorithm.version,
+            compute_mask=compute_mask
+        )
+    except db.DatabaseError as err:
+        log.error('Could not check for identical jobs for <scene:%s> and <service:%s>', scene_id, service_id)
+        db.print_diagnostics(err)
+        raise err
+    finally:
+        conn.close()
+
+    # if any identical Jobs matched
+    if cursor.rowcount > 0:
+        # Add this Job to the Jobs table of the user
+        row = cursor.fetchone()
+        try:
+            transaction = conn.begin()
+            db.jobs.insert_job_user(
+                conn,
+                job_id=row['job_id'],
+                user_id=user_id,
+            )
+            transaction.commit()
+        except db.DatabaseError as err:
+            log.error('Could not add existing job %s to user table for user "%s"', row['job_id'], user_id)
+            db.print_diagnostics(err)
+            raise
+        finally:
+            conn.close()
+
+        # Return the Job Metadata
+        return Job(
+            algorithm_name=row['algorithm_name'],
+            algorithm_version=row['algorithm_version'],
+            created_by=row['created_by'],
+            created_on=row['created_on'],
+            geometry=json.loads(row['geometry']),
+            job_id=row['job_id'],
+            name=row['name'],
+            scene_time_of_collect=row['captured_on'],
+            scene_sensor_name=row['sensor_name'],
+            scene_id=row['scene_id'],
+            status=row['status'],
+            tide=row['tide'],
+            tide_min_24h=row['tide_min_24h'],
+            tide_max_24h=row['tide_max_24h'],
+            compute_mask=row['compute_mask'],
+        )
+    else:
+        # No identical jobs matched
+        return None
+
+
 def get_by_scene(scene_id: str) -> List[Job]:
     log = logging.getLogger(__name__)
     log.info('Job  service get by scene "%s"', scene_id, action=' service job get by scene')

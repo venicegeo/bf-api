@@ -115,6 +115,8 @@ POSTGRES_DATABASE = _services.get('pz-postgres.credentials.db_name')
 POSTGRES_USERNAME = _services.get('pz-postgres.credentials.username')
 POSTGRES_PASSWORD = _services.get('pz-postgres.credentials.password')
 
+BLOCK_REDUNDANT_JOB_CHECK = os.getenv('BLOCK_REDUNDANT_JOB_CHECK', "False") == "True"
+
 # With the current configuration of the Boundless On-Demand Service, this following VCAP value will contain the full protocol, host, port, and geoserver path, and index.html reference.
 # BF-API Code expects the Host to contain only the hostname. No /geoserver prefixes of any kind. Those shall be stripped here.
 # This is considered a temporary fix until the GeoServer service adds proper values for the isolated host name. 
