@@ -80,15 +80,20 @@ node {
     // Push the app
     sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
     try {
-        sh "cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}"
-        sh "cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}"
-        sh "cf set-env ${appName} PIAZZA_API_KEY ${piazza_api_key}"
-        sh "cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}"
-        sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
-        sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
-        sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${env.GEOAXIS_CLIENT_ID}"
-        sh "cf set-env ${appName} GEOAXIS_SECRET ${env.GEOAXIS_SECRET}"
-        sh "cf start ${appName}"
+        withCredentials([
+          [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+          [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"]
+        ]) {
+          sh "cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}"
+          sh "cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}"
+          sh "cf set-env ${appName} PIAZZA_API_KEY ${piazza_api_key}"
+          sh "cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}"
+          sh "cf set-env ${appName} GEOAXIS_AUTH ${env.GEOAXIS_AUTH_DOMAIN}"
+          sh "cf set-env ${appName} GEOAXIS_LOGOUT ${env.GEOAXIS_LOGOUT_DOMAIN}"
+          sh "cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}"
+          sh "cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}"
+          sh "cf start ${appName}"
+        }
       } catch (Exception e) {
         try {
           sh "cf logs --recent ${appName}"
