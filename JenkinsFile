@@ -398,26 +398,5 @@ node {
         }
       }
     }
-    
-		if(!params.SKIP_INTEGRATION_TESTS) {
-			stage("Phase Two Integration Tests") {
-				withCredentials([
-					file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: "POSTMAN_FILE"),
-					[$class: 'StringBinding', credentialsId: "${env.BF_GPKG_KEY}", variable: "BF_GPKG_KEY"]
-				]) {
-					withEnv([
-					  "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
-					  "PCF_SPACE=${env.PHASE_TWO_PCF_SPACE}",
-					  "NPM_CONFIG_CACHE=${root}/.npmcache",
-					  "HOME=${WORKSPACE}"
-
-					]) {
-						dir ("integration-tests") {
-							sh "sh ci/beachfront_integration_tests_stage.sh"
-						}
-					}
-				}
-			}
-		}
-	}
+  }
 }
