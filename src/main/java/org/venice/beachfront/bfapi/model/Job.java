@@ -4,6 +4,7 @@ import org.joda.time.DateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class Job {
 	@JsonProperty("job_id") private final String jobId;
@@ -13,11 +14,11 @@ public class Job {
 	@JsonProperty("created_on") private final DateTime createdOn;
 	@JsonProperty("algorithm_name") private final String algorithmName;
 	@JsonProperty("algorithm_version")private final String algorithmVersion;
-	@JsonProperty("geometry") private final Object geometry;
+	@JsonProperty("geometry") private final JsonNode geometry;
 	@JsonProperty("scene_sensor_name") private final String sceneSensorName;
 	@JsonProperty("scene_time_of_collect") private final DateTime sceneTimeOfCollection;
 	@JsonProperty("scene_id") private final String sceneId;
-	@JsonProperty("extras") private final Object extras;
+	@JsonProperty("extras") private final JsonNode extras;
 	@JsonIgnore private final String planetApiKey;
 	
 	/**
@@ -36,8 +37,8 @@ public class Job {
 	 * @param planetApiKey API key to use when contacting the Planet Labs API
 	 */
 	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmName,
-			String algorithmVersion, Object geometry, String sceneSensorName, DateTime sceneTimeOfCollection,
-			String sceneId, Object extras, String planetApiKey) {
+			String algorithmVersion, JsonNode geometry, String sceneSensorName, DateTime sceneTimeOfCollection,
+			String sceneId, JsonNode extras, String planetApiKey) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
@@ -91,7 +92,7 @@ public class Job {
 	/**
 	 * @return the geometry
 	 */
-	public Object getGeometry() {
+	public JsonNode getGeometry() {
 		return geometry;
 	}
 
@@ -119,7 +120,7 @@ public class Job {
 	/**
 	 * @return the extras
 	 */
-	public Object getExtras() {
+	public JsonNode getExtras() {
 		return extras;
 	}
 

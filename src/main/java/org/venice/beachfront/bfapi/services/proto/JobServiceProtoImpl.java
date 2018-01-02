@@ -1,38 +1,41 @@
-package org.venice.beachfront.bfapi.services;
+package org.venice.beachfront.bfapi.services.proto;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.joda.time.DateTime;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.model.Confirmation;
 import org.venice.beachfront.bfapi.model.Job;
+import org.venice.beachfront.bfapi.model.JobStatus;
+import org.venice.beachfront.bfapi.services.JobService;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+@Profile("prototype")
+@Service
 public class JobServiceProtoImpl implements JobService {
 
 	@Override
 	public Job createJob(String jobName, 
 			String creatorUserId,
-			String algorithmName, 
-			String algorithmVersion,
-			JsonNode geometry,
-			String sceneSensorName,
-			DateTime sceneCollectionTime,
 			String sceneId,
-			JsonNode extras,
-			String planetApiKey) {
+			String algorithmId,
+			String planetApiKey,
+			JsonNode extras) {
 		return new Job(
 				"job-id-123", 
 				jobName, 
 				"in-progress", 
 				creatorUserId, 
 				DateTime.now(), 
-				algorithmName, 
-				algorithmVersion, 
-				geometry, 
-				sceneSensorName, 
-				sceneCollectionTime, 
+				"algo name", 
+				"algo version 1.0", 
+				null, //geometry 
+				"RE-3", 
+				DateTime.now().minusDays(1), 
 				sceneId, 
 				extras, 
 				planetApiKey);
@@ -42,14 +45,10 @@ public class JobServiceProtoImpl implements JobService {
 	public List<Job> getJobs() {
 		Job job = this.createJob("job-name", 
 				"user-id-123",
-				"ndwi", 
-				"1.0",
-				null, // JsonNode 
-				"Sentinel-2",
-				DateTime.now().minusDays(7),
 				"SCENE-ID-123",
-				null, // JsonNode
-				"planet-key-abc-123");
+				"ndwi-id-1.0", 
+				"planet-key-abc-123", 
+				null);
 		List<Job> jobs = new ArrayList<Job>();
 		jobs.add(job);
 		return jobs;
@@ -79,6 +78,11 @@ public class JobServiceProtoImpl implements JobService {
 			return new Confirmation(job.getJobId(), false);
 		}
 		return new Confirmation(job.getJobId(), true);
+	}
+
+	@Override
+	public List<JobStatus> searchJobsByInputs(String algorithmId, String sceneId) {
+		return Collections.singletonList(new JobStatus("job-id-123", "in-progress"));
 	}
 
 }

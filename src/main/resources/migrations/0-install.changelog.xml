@@ -13,9 +13,9 @@
         WHERE table_name LIKE '__beachfront__%';
       </sqlCheck>
     </preConditions>
-    <sqlFile path="../sql/schema.install.sql"
+    <sqlFile path="../sql/migration/schema.install.sql"
       relativeToChangelogFile="true"/>
-    <sqlFile path="../sql/views.install.sql"
+    <sqlFile path="../sql/migration/views.install.sql"
       relativeToChangelogFile="true"/>
   </changeSet>
 </databaseChangeLog>

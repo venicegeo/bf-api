@@ -2,17 +2,22 @@ package org.venice.beachfront.bfapi.controllers;
 
 import java.util.List;
 
-import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.venice.beachfront.bfapi.model.Confirmation;
 import org.venice.beachfront.bfapi.model.Job;
+import org.venice.beachfront.bfapi.model.JobStatus;
+import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.services.JobService;
+import org.venice.beachfront.bfapi.services.UserProfileService;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -26,10 +31,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 @Controller
 public class JobCrudController {
 	private JobService jobService;
+	private UserProfileService userProfileService;
 	
 	@Autowired
-	public JobCrudController(JobService jobService) {
+	public JobCrudController(JobService jobService, UserProfileService userProfileService) {
 		this.jobService = jobService;
+		this.userProfileService = userProfileService;
 	}
 	
 	@RequestMapping(
@@ -39,18 +46,15 @@ public class JobCrudController {
 			produces={"application/json"})
 	@ResponseBody
 	public Job createJob(@RequestBody CreateJobBody body) {
-		String currentUserId = "blah blah user id";
+		UserProfile currentUser = this.userProfileService.getCurrentUserProfile();
 		return this.jobService.createJob(
 				body.jobName,
-				currentUserId,
-				body.algorithmName,
-				body.algorithmVersion,
-				body.geometry,
-				body.sceneSensorName,
-				body.sceneCollectionTime,
+				currentUser.getId(),
+				body.algorithmId,
 				body.sceneId,
-				body.extras,
-				body.planetApiKey);
+				body.planetApiKey,
+				body.extras
+				);
 	}
 	
 	@RequestMapping(
@@ -68,7 +72,11 @@ public class JobCrudController {
 			produces={"application/json"})
 	@ResponseBody
 	public Job getJobById(@PathVariable("id") String id) {
-		return this.jobService.getJob(id);
+		Job job = this.jobService.getJob(id);
+		if (job == null) {
+			throw new JobNotFoundException();
+		}
+		return job;
 	}
 	
 	@RequestMapping(
@@ -82,37 +90,39 @@ public class JobCrudController {
 	}
 
 	private static class CreateJobBody {
-		public String jobName;
-		public String algorithmName;
-		public String algorithmVersion;
-		public JsonNode geometry;
-		public String sceneSensorName;
-		public DateTime sceneCollectionTime;
-		public String sceneId;
-		public JsonNode extras;
-		public String planetApiKey;
+		public final String jobName;
+		public final String algorithmId;
+		public final String sceneId;
+		public final String planetApiKey;
+		public final JsonNode extras;
 
 		@JsonCreator
 		public CreateJobBody(
-				@JsonProperty(value="jobName", required=true) String jobName,
-				@JsonProperty(value="algorithmName", required=true) String algorithmName,
-				@JsonProperty(value="algorithmVersion", required=true) String algorithmVersion,
-				@JsonProperty(value="geometry", required=true) JsonNode geometry ,
-				@JsonProperty(value="sceneSensorName", required=true) String sceneSensorName,
-				@JsonProperty(value="sceneCollectionTime", required=true) DateTime sceneCollectionTime,
-				@JsonProperty(value="sceneId", required=true) String sceneId,
-				@JsonProperty(value="extras") JsonNode extras,
-				@JsonProperty(value="planetApiKey", required=true) String planetApiKey) {
+				@JsonProperty(value="name", required=true) String jobName,
+				@JsonProperty(value="algorithm_id", required=true) String algorithmId,
+				@JsonProperty(value="scene_id", required=true) String sceneId,
+				@JsonProperty(value="planet_api_key", required=true) String planetApiKey,
+				@JsonProperty(value="extras") JsonNode extras) {
 			this.jobName = jobName;
-			this.algorithmName = algorithmName;
-			this.algorithmVersion = algorithmVersion;
-			this.geometry = geometry;
-			this.sceneSensorName = sceneSensorName;
-			this.sceneCollectionTime = sceneCollectionTime;
+			this.algorithmId = algorithmId;
 			this.sceneId = sceneId;
-			this.extras = extras;
 			this.planetApiKey = planetApiKey;
-		}
-		
+			this.extras = extras;
+		}	
+	}
+	
+	@ResponseStatus(value=HttpStatus.NOT_FOUND)
+	private static class JobNotFoundException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+	}
+	
+	@RequestMapping(path="/job/searchByInputs",
+			method=RequestMethod.GET,
+			produces={"application/json"})
+	@ResponseBody
+	public List<JobStatus> searchJobsByInputs(
+			@RequestParam(value="algorithm_id", required=true) String algorithmId,
+			@RequestParam(value="scene_id", required=true) String sceneId) {
+		return this.jobService.searchJobsByInputs(algorithmId, sceneId);
 	}
 }

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.venice.beachfront.bfapi.services;
+package org.venice.beachfront.bfapi.services.proto;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -19,16 +19,19 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Environment;
+import org.venice.beachfront.bfapi.services.IABrokerPassthroughService;
 
 /**
  * @author fsufitch
  *
  */
+@Service
 public class IABrokerPassthroughServiceImpl implements IABrokerPassthroughService {
 
 	@Autowired private Environment env;
