@@ -19,15 +19,16 @@ public interface JobDbService {
 			double tide,
 			double tideMin24h,
 			double tideMax24h,
-			String userId
-			) throws SQLException;
+			String userId,
+			Boolean computeMask) throws SQLException;
 	public void insertJobFailure(String jobId, String executionStep, String message) throws SQLException;
 	public void updateJobStatus(String jobId, String status) throws SQLException;
 	public JobEntry getJob(String jobId) throws SQLException;
-	public List<JobStatusEntry> getJobsForInputs(String algorithmId, String sceneId) throws SQLException;
+	public List<JobStatusEntry> getJobStatusesForInputs(String algorithmId, String sceneId) throws SQLException;
 	public List<JobEntry> getAllJobs() throws SQLException;
 	public List<JobEntry> getJobsForScene(String sceneId) throws SQLException;
 	public List<JobEntry> getJobsForUser(String userId) throws SQLException;
+	public List<JobEntry> getJobsForInputs(String algorithmId, String algorithmVersion, String sceneId, Boolean computeMask) throws SQLException;
 	public List<JobEntry> getOutstandingJobs() throws SQLException;
 	
 	public void insertJobUserRelation(String jobId, String userId) throws SQLException;

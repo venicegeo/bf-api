@@ -19,6 +19,7 @@ public class Job {
 	@JsonProperty("scene_time_of_collect") private final DateTime sceneTimeOfCollection;
 	@JsonProperty("scene_id") private final String sceneId;
 	@JsonProperty("extras") private final JsonNode extras;
+	@JsonProperty("compute_mask") private final Boolean computeMask;
 	@JsonIgnore private final String planetApiKey;
 	
 	/**
@@ -38,7 +39,7 @@ public class Job {
 	 */
 	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmName,
 			String algorithmVersion, JsonNode geometry, String sceneSensorName, DateTime sceneTimeOfCollection,
-			String sceneId, JsonNode extras, String planetApiKey) {
+			String sceneId, JsonNode extras, Boolean computeMask, String planetApiKey) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
@@ -51,6 +52,7 @@ public class Job {
 		this.sceneTimeOfCollection = sceneTimeOfCollection;
 		this.sceneId = sceneId;
 		this.extras = extras;
+		this.computeMask = computeMask;
 		this.planetApiKey = planetApiKey;
 	}	
 
@@ -136,6 +138,13 @@ public class Job {
 	 */
 	public String getJobName() {
 		return jobName;
+	}
+
+	/**
+	 * @return the computeMask
+	 */
+	public Boolean getComputeMask() {
+		return computeMask;
 	}
 
 }

@@ -14,6 +14,7 @@ public class DbDTO {
 		public double tide;
 		public double tideMin24h;
 		public double tideMax24h;
+		public Boolean computeMask;
 		public String errorMessage;
 		public String executionStep;
 		public SceneEntry scene;

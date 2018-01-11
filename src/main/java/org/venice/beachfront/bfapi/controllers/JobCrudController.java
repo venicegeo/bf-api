@@ -53,6 +53,7 @@ public class JobCrudController {
 				body.algorithmId,
 				body.sceneId,
 				body.planetApiKey,
+				body.computeMask,
 				body.extras
 				);
 	}
@@ -94,6 +95,7 @@ public class JobCrudController {
 		public final String algorithmId;
 		public final String sceneId;
 		public final String planetApiKey;
+		public final Boolean computeMask;
 		public final JsonNode extras;
 
 		@JsonCreator
@@ -102,11 +104,13 @@ public class JobCrudController {
 				@JsonProperty(value="algorithm_id", required=true) String algorithmId,
 				@JsonProperty(value="scene_id", required=true) String sceneId,
 				@JsonProperty(value="planet_api_key", required=true) String planetApiKey,
+				@JsonProperty(value="compute_mask", required=true) Boolean computeMask,
 				@JsonProperty(value="extras") JsonNode extras) {
 			this.jobName = jobName;
 			this.algorithmId = algorithmId;
 			this.sceneId = sceneId;
 			this.planetApiKey = planetApiKey;
+			this.computeMask = computeMask;
 			this.extras = extras;
 		}	
 	}
