@@ -178,18 +178,20 @@ def _fetch_geoaxis_profile(access_token: str):
     lastname = profile.get('lastname')
     if not user_id:
         if lastname and firstname and uid:
-            user_id = 'O=Beachfront,OU=ID.me,CN={}.{},UID={}'.format(lastname, firstname, uid)
+            log.debug('DN not found. Generating one from other values.')
+            user_id = 'UID={},CN={}.{},OU=ID.me,O=Beachfront'.format(uid, lastname, firstname)
         else:
-            log.error('Geoaxis response missing important values: %s', response.text)
-            raise InvalidGeoaxisResponse('missing important values', response.text)
+            log.error('Geoaxis response missing DN and unable to generate: %s', response.text)
+            raise InvalidGeoaxisResponse('missing DN or UID, firstname, and lastname values', response.text)
 
     name = profile.get('commonname')
     if not name:
         if lastname and firstname:
+            log.debug('commonname not found. Generating one from first and last name')
             name = '{}.{}'.format(lastname, firstname)
         else:
-            log.error('Geoaxis response missing name values: %s', response.text)
-            raise InvalidGeoaxisResponse('missing name values', response.text)
+            log.error('Geoaxis response missing commonname, firstname, and lastname values: %s', response.text)
+            raise InvalidGeoaxisResponse('missing commonname, firstname, and lastname values', response.text)
 
     return user_id, name
 
