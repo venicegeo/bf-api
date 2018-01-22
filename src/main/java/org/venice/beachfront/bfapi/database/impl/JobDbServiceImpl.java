@@ -27,7 +27,7 @@ public class JobDbServiceImpl implements JobDbService {
 	
 	@Override
 	public void insertJob(String jobId, String name, String algorithmId, String algorithmName, String algorithmVersion,
-			String sceneId, String status, double tide, double tideMin24h, double tideMax24h, String userId)
+			String sceneId, String status, double tide, double tideMin24h, double tideMax24h, String userId, Boolean computeMask)
 			throws SQLException {		
 		try (
 				PooledConnection pconn = this.connectionManager.getPooledConnection();
@@ -44,6 +44,7 @@ public class JobDbServiceImpl implements JobDbService {
 			stmt.setDouble(9, tide);
 			stmt.setDouble(10, tideMin24h);
 			stmt.setDouble(11, tideMax24h);
+			stmt.setBoolean(12, computeMask);
 			stmt.execute();
 		}
 	}
@@ -58,12 +59,12 @@ public class JobDbServiceImpl implements JobDbService {
 				PreparedStatement stmt = pconn.getConnection().prepareStatement(this.jobExistsSql);
 			) {
 			stmt.setString(1, jobId);
+
 			try (ResultSet rs = stmt.executeQuery()) {
 				return rs.next();
 			}
 		}
 	}
-
 
 	@Override
 	public void insertJobFailure(String jobId, String executionStep, String message) throws SQLException {
@@ -77,7 +78,7 @@ public class JobDbServiceImpl implements JobDbService {
 
 	}
 
-	@Autowired @Qualifier("selectJob.sql")
+	@Autowired @Qualifier("selectJobByJobId.sql")
 	private String selectJobSql;
 	
 	@Override
@@ -88,6 +89,7 @@ public class JobDbServiceImpl implements JobDbService {
 				PreparedStatement stmt = pconn.getConnection().prepareStatement(this.selectJobSql);
 			) {
 			stmt.setString(1, jobId);
+
 			try (ResultSet rs = stmt.executeQuery()) {
 				if (!rs.next()) {
 					return null;
@@ -102,6 +104,7 @@ public class JobDbServiceImpl implements JobDbService {
 				result.tide = rs.getDouble("tide");
 				result.tideMin24h = rs.getDouble("tide_min_24h");
 				result.tideMax24h = rs.getDouble("tide_max_24h");
+				result.computeMask = rs.getBoolean("compute_mask");
 				result.errorMessage = rs.getString("error_message");
 				result.executionStep = rs.getString("execution_step");
 
@@ -115,11 +118,11 @@ public class JobDbServiceImpl implements JobDbService {
 		return result;
 	}
 
-	@Autowired @Qualifier("selectJobByInputs.sql")
+	@Autowired @Qualifier("selectJobStatusesByInputs.sql")
 	private String selectJobByInputsSql;
 
 	@Override
-	public List<JobStatusEntry> getJobsForInputs(String algorithmId, String sceneId) throws SQLException {
+	public List<JobStatusEntry> getJobStatusesForInputs(String algorithmId, String sceneId) throws SQLException {
 		List<JobStatusEntry> result = new ArrayList<>();
 		try (
 				PooledConnection pconn = this.connectionManager.getPooledConnection();
@@ -127,6 +130,7 @@ public class JobDbServiceImpl implements JobDbService {
 			) {
 			stmt.setString(1, algorithmId);
 			stmt.setString(2, sceneId);
+
 			try (ResultSet rs = stmt.executeQuery()) {
 				while (rs.next()) {
 					JobStatusEntry statusEntry = new JobStatusEntry();
@@ -157,10 +161,20 @@ public class JobDbServiceImpl implements JobDbService {
 		return null;
 	}
 
+	@Autowired @Qualifier("insertJobUser.sql")
+	private String insertJobUserSql;
+
 	@Override
 	public void insertJobUserRelation(String jobId, String userId) throws SQLException {
-		// TODO Auto-generated method stub
-
+		
+		try (
+				PooledConnection pconn = this.connectionManager.getPooledConnection();
+				PreparedStatement stmt = pconn.getConnection().prepareStatement(this.insertJobUserSql);
+			) {
+			stmt.setString(1, jobId);
+			stmt.setString(2, userId);
+			stmt.execute();
+		}
 	}
 
 	@Override
@@ -192,8 +206,53 @@ public class JobDbServiceImpl implements JobDbService {
 					jobEntry.tide = rs.getDouble("tide");
 					jobEntry.tideMin24h = rs.getDouble("tide_min_24h");
 					jobEntry.tideMax24h = rs.getDouble("tide_max_24h");
+					jobEntry.computeMask = rs.getBoolean("compute_mask");
 					jobEntry.errorMessage = rs.getString("error_message");
 					jobEntry.executionStep = rs.getString("execution_step");
+
+					jobEntry.scene = new SceneEntry();
+					jobEntry.scene.sceneId = rs.getString("scene_id");
+					jobEntry.scene.geometryGeoJson = rs.getString("geometry");
+					jobEntry.scene.sensorName = rs.getString("sensor_name");
+					jobEntry.scene.capturedOn = new DateTime(rs.getTimestamp("captured_on"));
+					result.add(jobEntry);
+				}
+			}
+		}
+		return result;
+	}
+		
+	@Autowired @Qualifier("selectJobsByInputs.sql")
+	private String selectJobsByInputsSql;
+
+	@Override
+	public List<JobEntry> getJobsForInputs(String algorithmId, String algorithmVersion,
+			String sceneId, Boolean computeMask) throws SQLException {
+		
+		List<JobEntry> result = new ArrayList<>();
+		try (
+				PooledConnection pconn = this.connectionManager.getPooledConnection();
+				PreparedStatement stmt = pconn.getConnection().prepareStatement(this.selectJobsByInputsSql);
+			) {
+			stmt.setString(1, algorithmId);
+			stmt.setString(2, algorithmVersion);
+			stmt.setString(3, sceneId);
+			stmt.setBoolean(4, computeMask);
+
+			try (ResultSet rs = stmt.executeQuery()) {
+				while (rs.next()) {
+					JobEntry jobEntry = new JobEntry();
+					jobEntry.jobId = rs.getString("job_id");
+					jobEntry.algorithmName = rs.getString("algorithm_name");
+					jobEntry.algorithmVersion = rs.getString("algorithm_version");
+					jobEntry.createdBy = rs.getString("created_by");
+					jobEntry.createdOn = new DateTime(rs.getTimestamp("created_on"));
+					jobEntry.name = rs.getString("name");
+					jobEntry.status = rs.getString("status");
+					jobEntry.tide = rs.getDouble("tide");
+					jobEntry.tideMin24h = rs.getDouble("tide_min_24h");
+					jobEntry.tideMax24h = rs.getDouble("tide_max_24h");
+					jobEntry.computeMask = rs.getBoolean("compute_mask");
 
 					jobEntry.scene = new SceneEntry();
 					jobEntry.scene.sceneId = rs.getString("scene_id");

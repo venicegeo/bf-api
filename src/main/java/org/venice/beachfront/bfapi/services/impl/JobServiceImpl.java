@@ -42,27 +42,48 @@ public class JobServiceImpl implements JobService {
 			String sceneId,
 			String algorithmId,
 			String planetApiKey,
+			Boolean computeMask,
 			JsonNode extras) {
 		
 		Algorithm algorithm = this.algorithmService.getAlgorithm(algorithmId);
 		Scene scene = this.iaBrokerService.getScene(sceneId, planetApiKey, true);
 		this.iaBrokerService.activateScene(scene, planetApiKey);
 		
-		//String jobId = piazzaService.execute(...)
-		String jobId = String.format("%s-%s-%s-%s", creatorUserId, sceneId, algorithmId, DateTime.now().toString());
-		
 		try {
-			this.jobDbService.insertJob(jobId, 
-					jobName, 
-					algorithm.getServiceId(), 
-					algorithm.getName(), 
-					algorithm.getVersion(), 
-					scene.getId(), 
-					"Pending", 
-					scene.getTide(),
-					scene.getTideMin(),
-					scene.getTideMax(),
-					creatorUserId);
+
+			final String jobId;
+			final List<JobEntry> existingJobs = this.jobDbService.getJobsForInputs(algorithmId, algorithm.getVersion(), sceneId, computeMask);
+			
+			if( existingJobs.isEmpty() ) {
+
+				//String jobId = piazzaService.execute(...)
+				jobId = String.format("%s-%s-%s-%s", creatorUserId, sceneId, algorithmId, DateTime.now().toString());
+
+				this.jobDbService.insertJob(jobId, 
+						jobName, 
+						algorithm.getServiceId(), 
+						algorithm.getName(), 
+						algorithm.getVersion(), 
+						scene.getId(), 
+						"Pending", 
+						scene.getTide(),
+						scene.getTideMin(),
+						scene.getTideMax(),
+						creatorUserId,
+						computeMask);
+				
+				return getJob(jobId);
+			}
+			else if( existingJobs.size() > 0) {
+				
+				jobId = existingJobs.get(0).jobId;
+
+				// Add to JobUser table
+				this.jobDbService.insertJobUserRelation(jobId, creatorUserId);
+				
+				return getJob(jobId);
+			}
+			
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -86,7 +107,9 @@ public class JobServiceImpl implements JobService {
 						je.scene.sensorName,
 						je.scene.capturedOn,
 						je.scene.sceneId,
-						null, null));
+						null, 
+						je.computeMask,
+						null));
 			}
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
@@ -112,7 +135,9 @@ public class JobServiceImpl implements JobService {
 					job.scene.sensorName, 
 					job.scene.capturedOn, 
 					job.scene.sceneId, 
-					null, null);
+					null, 
+					job.computeMask,
+					null);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -128,7 +153,7 @@ public class JobServiceImpl implements JobService {
 	public List<JobStatus> searchJobsByInputs(String algorithmId, String sceneId) {
 		List<JobStatus> result = new ArrayList<>();
 		try {
-			for (JobStatusEntry jse : this.jobDbService.getJobsForInputs(algorithmId, sceneId)) {
+			for (JobStatusEntry jse : this.jobDbService.getJobStatusesForInputs(algorithmId, sceneId)) {
 				result.add(new JobStatus(jse.jobId, jse.status));
 			}
 		} catch (SQLException e) {

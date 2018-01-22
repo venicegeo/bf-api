@@ -24,6 +24,7 @@ public class JobServiceProtoImpl implements JobService {
 			String sceneId,
 			String algorithmId,
 			String planetApiKey,
+			Boolean computeMask,
 			JsonNode extras) {
 		return new Job(
 				"job-id-123", 
@@ -37,7 +38,8 @@ public class JobServiceProtoImpl implements JobService {
 				"RE-3", 
 				DateTime.now().minusDays(1), 
 				sceneId, 
-				extras, 
+				extras,
+				true,
 				planetApiKey);
 	}
 
@@ -48,6 +50,7 @@ public class JobServiceProtoImpl implements JobService {
 				"SCENE-ID-123",
 				"ndwi-id-1.0", 
 				"planet-key-abc-123", 
+				true,
 				null);
 		List<Job> jobs = new ArrayList<Job>();
 		jobs.add(job);
@@ -69,6 +72,7 @@ public class JobServiceProtoImpl implements JobService {
 				DateTime.now(), 
 				"S2-ABC-1234", 
 				null, 
+				true,
 				"PL_API_1234567");
 	}
 

@@ -14,6 +14,7 @@ public interface JobService {
 			String sceneId,
 			String algorithmId,
 			String planetApiKey,
+			Boolean computeMask,
 			JsonNode extras);
 	public List<Job> getJobs();
 	public Job getJob(String jobId);
