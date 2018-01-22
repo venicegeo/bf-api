@@ -10,17 +10,30 @@ import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.database.DbDTO.JobEntry;
 import org.venice.beachfront.bfapi.database.DbDTO.JobStatusEntry;
 import org.venice.beachfront.bfapi.database.JobDbService;
+import org.venice.beachfront.bfapi.database.dao.JobDao;
+import org.venice.beachfront.bfapi.model.Job;
 
 @Service
 public class JobDbServiceImpl implements JobDbService {
+	@Autowired
+	private JobDao jobDao;
 
 	@Autowired @Qualifier("insertJob.sql")
 	private String insertJobSql;
 	
+	public void insertJob(Job job) {
+		jobDao.save(job);
+	}
+	
+	public Job getJobByJobId(String jobId) {
+		return jobDao.findByJobId(jobId);
+	}
+	
 	@Override
 	public void insertJob(String jobId, String name, String algorithmId, String algorithmName, String algorithmVersion,
 			String sceneId, String status, double tide, double tideMin24h, double tideMax24h, String userId)
-			throws SQLException {		
+			throws SQLException {
+		
 //		try (
 //				PooledConnection pconn = this.connectionManager.getPooledConnection();
 //				PreparedStatement stmt = pconn.getConnection().prepareStatement(this.insertJobSql);

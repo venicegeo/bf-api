@@ -7,4 +7,5 @@ import org.venice.beachfront.bfapi.model.Job;
 
 @Transactional
 public interface JobDao extends CrudRepository<Job, Long> {
+	Job findByJobId(String jobId);
 }
