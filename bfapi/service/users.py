@@ -175,8 +175,13 @@ def _fetch_geoaxis_profile(access_token: str):
 
     user_id = profile.get('DN')
     if not user_id:
-        log.error('Geoaxis response missing `DN`: %s', response.text)
-        raise InvalidGeoaxisResponse('missing `DN`', response.text)
+        log.warning('Geoaxis response missing `DN`')
+        cn = profile.get('commonname')
+        mo = profile.get('memberof')
+        if not (cn and mo):
+            log.error('Geoaxis response missing fallback ID components: %s', response.text)
+            raise InvalidGeoaxisResponse('missing ID components', response.text)
+        user_id = '%s@%s' % (cn, mo)
 
     name = profile.get('commonname')
     if not name:
