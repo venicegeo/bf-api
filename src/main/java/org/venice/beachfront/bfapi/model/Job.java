@@ -10,6 +10,7 @@ import org.joda.time.DateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.vividsolutions.jts.geom.Geometry;
 
 @Entity
 @Table(name = "__beachfront__job")
@@ -31,7 +32,7 @@ public class Job {
 	private String algorithmVersion;
 	@JsonProperty("geometry")
 	@Transient
-	private JsonNode geometry;
+	private Geometry geometry;
 	@JsonProperty("scene_sensor_name")
 	private String sceneSensorName;
 	@JsonProperty("scene_time_of_collect")
@@ -80,8 +81,8 @@ public class Job {
 	 *            API key to use when contacting the Planet Labs API
 	 */
 	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmName,
-			String algorithmVersion, JsonNode geometry, String sceneSensorName, DateTime sceneTimeOfCollection, String sceneId,
-			JsonNode extras, String planetApiKey) {
+			   String algorithmVersion, Geometry geometry, String sceneSensorName, DateTime sceneTimeOfCollection, String sceneId,
+			   JsonNode extras, String planetApiKey) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
@@ -153,11 +154,11 @@ public class Job {
 		this.algorithmVersion = algorithmVersion;
 	}
 
-	public JsonNode getGeometry() {
+	public Geometry getGeometry() {
 		return geometry;
 	}
 
-	public void setGeometry(JsonNode geometry) {
+	public void setGeometry(Geometry geometry) {
 		this.geometry = geometry;
 	}
 

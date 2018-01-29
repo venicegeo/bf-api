@@ -49,7 +49,7 @@ public class JobCrudController {
 		UserProfile currentUser = this.userProfileService.getCurrentUserProfile();
 		return this.jobService.createJob(
 				body.jobName,
-				currentUser.getId(),
+				currentUser.getUserId(),
 				body.algorithmId,
 				body.sceneId,
 				body.planetApiKey,

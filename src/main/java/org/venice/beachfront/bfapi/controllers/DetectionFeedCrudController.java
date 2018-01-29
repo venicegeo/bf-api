@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * 
  * @version 1.0
  */
+@Controller
 public class DetectionFeedCrudController {
 	private final DetectionFeedService detectionFeedService;
 	

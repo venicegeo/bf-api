@@ -1,6 +1,7 @@
 package org.venice.beachfront.bfapi.database;
 
 import org.joda.time.DateTime;
+import org.venice.beachfront.bfapi.model.Scene;
 
 public class DbDTO {
 	public static class JobEntry {
@@ -16,7 +17,7 @@ public class DbDTO {
 		public double tideMax24h;
 		public String errorMessage;
 		public String executionStep;
-		public SceneEntry scene;
+		public Scene scene;
 	}
 	
 	public static class JobStatusEntry {
@@ -24,19 +25,19 @@ public class DbDTO {
 		public String status;
 	}
 
-	public static class SceneEntry {
+	/*public static class SceneEntry {
 		public String sceneId;
 		public DateTime capturedOn;
 		public String catalogUri;
 		public double cloudCover;
 		public String sensorName;
 		public String geometryGeoJson;
-	}
+	}*/
 	
-	public static class UserEntry {
+	/*public static class UserEntry {
 		public String userId;
 		public String userName;
 		public String apiKey;
 		public DateTime createdOn;
-	}
+	}*/
 }

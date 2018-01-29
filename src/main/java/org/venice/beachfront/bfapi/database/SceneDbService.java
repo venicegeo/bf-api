@@ -2,20 +2,21 @@ package org.venice.beachfront.bfapi.database;
 
 import java.sql.SQLException;
 
+import com.vividsolutions.jts.geom.Geometry;
 import org.joda.time.DateTime;
-import org.venice.beachfront.bfapi.database.DbDTO.SceneEntry;
+import org.venice.beachfront.bfapi.model.Scene;
 
 public interface SceneDbService {
-	public void insertScene(
+	void insertScene(
 			String sceneId,
 			DateTime capturedOn,
 			String catalogUri,
 			double cloudCover,
-			String geometryGeoJson,
-			int resolution,
+			Geometry geometry,
 			String sensorName
 			) throws SQLException;
-	
-	public SceneEntry getScene(String sceneId) throws SQLException;
+	void insertScene(Scene scene) throws SQLException;
+	Scene getScene(String sceneId) throws SQLException;
+	boolean sceneExists(String sceneId) throws SQLException;
 }
 

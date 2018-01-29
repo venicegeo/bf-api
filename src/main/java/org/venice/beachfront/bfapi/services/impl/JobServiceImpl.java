@@ -57,7 +57,7 @@ public class JobServiceImpl implements JobService {
 					algorithm.getServiceId(), 
 					algorithm.getName(), 
 					algorithm.getVersion(), 
-					scene.getId(), 
+					scene.getSceneId(),
 					"Pending", 
 					scene.getTide(),
 					scene.getTideMin(),
@@ -82,10 +82,10 @@ public class JobServiceImpl implements JobService {
 						je.createdOn,
 						je.algorithmName,
 						je.algorithmVersion,
-						JsonNodeFactory.instance.rawValueNode(new RawValue(je.scene.geometryGeoJson)),
-						je.scene.sensorName,
-						je.scene.capturedOn,
-						je.scene.sceneId,
+						je.scene.getGeometry(),
+						je.scene.getSensorName(),
+						je.scene.getCaptureTime(),
+						je.scene.getSceneId(),
 						null, null));
 			}
 		} catch (SQLException e) {
@@ -108,10 +108,10 @@ public class JobServiceImpl implements JobService {
 					job.createdOn, 
 					job.algorithmName, 
 					job.algorithmVersion, 
-					JsonNodeFactory.instance.rawValueNode(new RawValue(job.scene.geometryGeoJson)), 
-					job.scene.sensorName, 
-					job.scene.capturedOn, 
-					job.scene.sceneId, 
+					job.scene.getGeometry(),
+					job.scene.getSensorName(),
+					job.scene.getCaptureTime(),
+					job.scene.getSceneId(),
 					null, null);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
