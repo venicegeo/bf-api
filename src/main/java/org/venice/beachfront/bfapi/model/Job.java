@@ -39,6 +39,12 @@ public class Job {
 	private DateTime sceneTimeOfCollection;
 	@JsonProperty("scene_id")
 	private String sceneId;
+	@JsonProperty("tide")
+	private double tide;
+	@JsonProperty("tide_min_24h")
+	private double tideMin24h;
+	@JsonProperty("tide_max_24h")
+	private double tideMax24h;
 	@JsonProperty("extras")
 	@Transient
 	private JsonNode extras;
@@ -75,6 +81,12 @@ public class Job {
 	 *            collection time of job imagery
 	 * @param sceneId
 	 *            scene ID of job imagery
+	 * @param tide
+	 *            scene tide value
+	 * @param tideMin24h
+	 *            scene tide 24 hour minimum
+	 * @param tideMax24h
+	 *            scene tide 24 hour maximum
 	 * @param extras
 	 *            extra algorithm-dependent data
 	 * @param planetApiKey
@@ -82,7 +94,7 @@ public class Job {
 	 */
 	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmName,
 			   String algorithmVersion, Geometry geometry, String sceneSensorName, DateTime sceneTimeOfCollection, String sceneId,
-			   JsonNode extras, String planetApiKey) {
+			   double tide, double tideMin24h, double tideMax24h, JsonNode extras, String planetApiKey) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
@@ -94,6 +106,9 @@ public class Job {
 		this.sceneSensorName = sceneSensorName;
 		this.sceneTimeOfCollection = sceneTimeOfCollection;
 		this.sceneId = sceneId;
+		this.tide = tide;
+		this.tideMin24h = tideMin24h;
+		this.tideMax24h = tideMax24h;
 		this.extras = extras;
 		this.planetApiKey = planetApiKey;
 	}
@@ -184,6 +199,24 @@ public class Job {
 
 	public void setSceneId(String sceneId) {
 		this.sceneId = sceneId;
+	}
+
+	public double getTide() { return tide; }
+
+	public void setTide(double tide) {
+		this.tide = tide;
+	}
+
+	public double getTideMin24h() { return tideMin24h; }
+
+	public void setTideMin24h(double tideMin24h) {
+		this.tideMin24h = tideMin24h;
+	}
+
+	public double getTideMax24h() { return tideMax24h; }
+
+	public void setTideMax24h(double tideMax24h) {
+		this.tideMax24h = tideMax24h;
 	}
 
 	public JsonNode getExtras() {

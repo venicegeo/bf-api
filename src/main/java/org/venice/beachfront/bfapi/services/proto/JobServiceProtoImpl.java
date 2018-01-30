@@ -36,7 +36,10 @@ public class JobServiceProtoImpl implements JobService {
 				null, //geometry 
 				"RE-3", 
 				DateTime.now().minusDays(1), 
-				sceneId, 
+				sceneId,
+				0,
+				0,
+				0,
 				extras, 
 				planetApiKey);
 	}
@@ -67,7 +70,10 @@ public class JobServiceProtoImpl implements JobService {
 				null, 
 				"Sentinel-2", 
 				DateTime.now(), 
-				"S2-ABC-1234", 
+				"S2-ABC-1234",
+				0,
+				0,
+				0,
 				null, 
 				"PL_API_1234567");
 	}

@@ -52,7 +52,7 @@ public class JobServiceImpl implements JobService {
 		String jobId = String.format("%s-%s-%s-%s", creatorUserId, sceneId, algorithmId, DateTime.now().toString());
 		
 		try {
-			this.jobDbService.insertJob(jobId, 
+			this.jobDbService.insertJob(jobId,
 					jobName, 
 					algorithm.getServiceId(), 
 					algorithm.getName(), 
@@ -86,6 +86,9 @@ public class JobServiceImpl implements JobService {
 						je.scene.getSensorName(),
 						je.scene.getCaptureTime(),
 						je.scene.getSceneId(),
+						je.scene.getTide(),
+						je.scene.getTideMin(),
+						je.scene.getTideMax(),
 						null, null));
 			}
 		} catch (SQLException e) {
@@ -112,6 +115,9 @@ public class JobServiceImpl implements JobService {
 					job.scene.getSensorName(),
 					job.scene.getCaptureTime(),
 					job.scene.getSceneId(),
+					job.scene.getTide(),
+					job.scene.getTideMin(),
+					job.scene.getTideMax(),
 					null, null);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
