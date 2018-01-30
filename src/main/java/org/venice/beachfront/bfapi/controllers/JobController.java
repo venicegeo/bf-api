@@ -1,3 +1,18 @@
+/**
+ * Copyright 2016, RadiantBlue Technologies, Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ **/
 package org.venice.beachfront.bfapi.controllers;
 
 import java.util.List;
@@ -29,48 +44,33 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @version 1.0
  */
 @Controller
-public class JobCrudController {
-	private JobService jobService;
-	private UserProfileService userProfileService;
-	
+public class JobController {
 	@Autowired
-	public JobCrudController(JobService jobService, UserProfileService userProfileService) {
+	private JobService jobService;
+	@Autowired
+	private UserProfileService userProfileService;
+
+	@Autowired
+	public JobController(JobService jobService, UserProfileService userProfileService) {
 		this.jobService = jobService;
 		this.userProfileService = userProfileService;
 	}
-	
-	@RequestMapping(
-			path="/job",
-			method=RequestMethod.POST,
-			consumes={"application/json"},
-			produces={"application/json"})
+
+	@RequestMapping(path = "/job", method = RequestMethod.POST, consumes = { "application/json" }, produces = { "application/json" })
 	@ResponseBody
 	public Job createJob(@RequestBody CreateJobBody body) {
 		UserProfile currentUser = this.userProfileService.getCurrentUserProfile();
-		return this.jobService.createJob(
-				body.jobName,
-				currentUser.getId(),
-				body.algorithmId,
-				body.sceneId,
-				body.planetApiKey,
-				body.computeMask,
-				body.extras
-				);
+		return this.jobService.createJob(body.jobName, currentUser.getId(), body.algorithmId, body.sceneId, body.planetApiKey,
+				body.computeMask, body.extras);
 	}
-	
-	@RequestMapping(
-	        path="/job",
-	        method=RequestMethod.GET,
-	        produces={"application/json"})
+
+	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public List<Job> listJobs() {
 		return this.jobService.getJobs();
 	}
-	
-	@RequestMapping(
-			path="/job/{id}",
-			method=RequestMethod.GET,
-			produces={"application/json"})
+
+	@RequestMapping(path = "/job/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public Job getJobById(@PathVariable("id") String id) {
 		Job job = this.jobService.getJob(id);
@@ -79,11 +79,8 @@ public class JobCrudController {
 		}
 		return job;
 	}
-	
-	@RequestMapping(
-			path="/job/{id}",
-			method=RequestMethod.DELETE,
-			produces={"application/json"})
+
+	@RequestMapping(path = "/job/{id}", method = RequestMethod.DELETE, produces = { "application/json" })
 	@ResponseBody
 	public Confirmation deleteJob(@PathVariable("id") String id) {
 		Job job = this.jobService.getJob(id);
@@ -99,34 +96,30 @@ public class JobCrudController {
 		public final JsonNode extras;
 
 		@JsonCreator
-		public CreateJobBody(
-				@JsonProperty(value="name", required=true) String jobName,
-				@JsonProperty(value="algorithm_id", required=true) String algorithmId,
-				@JsonProperty(value="scene_id", required=true) String sceneId,
-				@JsonProperty(value="planet_api_key", required=true) String planetApiKey,
-				@JsonProperty(value="compute_mask", required=true) Boolean computeMask,
-				@JsonProperty(value="extras") JsonNode extras) {
+		public CreateJobBody(@JsonProperty(value = "name", required = true) String jobName,
+				@JsonProperty(value = "algorithm_id", required = true) String algorithmId,
+				@JsonProperty(value = "scene_id", required = true) String sceneId,
+				@JsonProperty(value = "planet_api_key", required = true) String planetApiKey,
+				@JsonProperty(value = "compute_mask", required = true) Boolean computeMask,
+				@JsonProperty(value = "extras") JsonNode extras) {
 			this.jobName = jobName;
 			this.algorithmId = algorithmId;
 			this.sceneId = sceneId;
 			this.planetApiKey = planetApiKey;
 			this.computeMask = computeMask;
 			this.extras = extras;
-		}	
+		}
 	}
-	
-	@ResponseStatus(value=HttpStatus.NOT_FOUND)
+
+	@ResponseStatus(value = HttpStatus.NOT_FOUND)
 	private static class JobNotFoundException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 	}
-	
-	@RequestMapping(path="/job/searchByInputs",
-			method=RequestMethod.GET,
-			produces={"application/json"})
+
+	@RequestMapping(path = "/job/searchByInputs", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public List<JobStatus> searchJobsByInputs(
-			@RequestParam(value="algorithm_id", required=true) String algorithmId,
-			@RequestParam(value="scene_id", required=true) String sceneId) {
+	public List<JobStatus> searchJobsByInputs(@RequestParam(value = "algorithm_id", required = true) String algorithmId,
+			@RequestParam(value = "scene_id", required = true) String sceneId) {
 		return this.jobService.searchJobsByInputs(algorithmId, sceneId);
 	}
 }
