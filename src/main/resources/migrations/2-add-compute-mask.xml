@@ -28,7 +28,7 @@
     </addColumn>
 
     <!-- Re-create views -->
-    <sqlFile path="../sql/views.install.sql"
+    <sqlFile path="../sql/migration/views.install.sql"
       relativeToChangelogFile="true"/>
 
   </changeSet>

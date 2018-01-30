@@ -19,7 +19,7 @@ public class DbDTO {
 		public String executionStep;
 		public SceneEntry scene;
 	}
-	
+
 	public static class JobStatusEntry {
 		public String jobId;
 		public String status;
@@ -33,7 +33,7 @@ public class DbDTO {
 		public String sensorName;
 		public String geometryGeoJson;
 	}
-	
+
 	public static class UserEntry {
 		public String userId;
 		public String userName;
