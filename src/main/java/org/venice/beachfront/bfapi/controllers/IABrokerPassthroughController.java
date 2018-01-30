@@ -24,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.venice.beachfront.bfapi.services.IABrokerPassthroughService;
@@ -41,9 +40,7 @@ public class IABrokerPassthroughController {
 
 	@RequestMapping(path = "/ia/**")
 	@ResponseBody
-	public ResponseEntity<byte[]> passthrough(@RequestBody String body, HttpMethod method, HttpServletRequest request)
-			throws IOException, URISyntaxException {
-		String iaURI = request.getRequestURI().substring("/ia/".length()); // Skip "/ia/"
-		return iaBrokerPassthroughService.passthroughRequest(iaURI, body, method, request);
+	public ResponseEntity<byte[]> passthrough(HttpMethod method, HttpServletRequest request) throws IOException, URISyntaxException {
+		return iaBrokerPassthroughService.passthroughRequest(method, request);
 	}
 }
