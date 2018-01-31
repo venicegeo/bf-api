@@ -4,8 +4,8 @@ import java.sql.SQLException;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.venice.beachfront.bfapi.database.DbDTO.JobEntry;
-import org.venice.beachfront.bfapi.database.DbDTO.JobStatusEntry;
+import org.venice.beachfront.bfapi.model.Job;
+import org.venice.beachfront.bfapi.model.JobStatus;
 
 @Service
 public class JobDbService {
@@ -27,38 +27,38 @@ public class JobDbService {
 		// TODO
 	}
 
-	public JobEntry getJob(String jobId) throws SQLException {
+	public Job getJob(String jobId) throws SQLException {
 		// TODO
 		return null;
 	}
 
-	public List<JobStatusEntry> getJobStatusesForInputs(String algorithmId, String sceneId) throws SQLException {
+	public List<JobStatus> getJobStatusesForInputs(String algorithmId, String sceneId) throws SQLException {
 		// TODO
 		return null;
 	}
 
-	public List<JobEntry> getAllJobs() throws SQLException {
+	public List<Job> getAllJobs() throws SQLException {
 		// TODO
 		return null;
 	}
 
-	public List<JobEntry> getJobsForScene(String sceneId) throws SQLException {
+	public List<Job> getJobsForScene(String sceneId) throws SQLException {
 		// TODO
 		return null;
 	}
 
-	public List<JobEntry> getJobsForUser(String userId) throws SQLException {
+	public List<Job> getJobsForUser(String userId) throws SQLException {
 		// TODO
 		return null;
 	}
 
-	public List<JobEntry> getJobsForInputs(String algorithmId, String algorithmVersion, String sceneId, Boolean computeMask)
+	public List<Job> getJobsForInputs(String algorithmId, String algorithmVersion, String sceneId, Boolean computeMask)
 			throws SQLException {
 		// TODO
 		return null;
 	}
 
-	public List<JobEntry> getOutstandingJobs() throws SQLException {
+	public List<Job> getOutstandingJobs() throws SQLException {
 		// TODO
 		return null;
 	}
