@@ -22,6 +22,7 @@ import java.net.URISyntaxException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -44,10 +45,12 @@ public class IABrokerPassthroughService {
 	@Autowired
 	private RestTemplate restTemplate;
 
-	public ResponseEntity<byte[]> passthroughRequest(String uri, String body, HttpMethod method, HttpServletRequest request)
+	public ResponseEntity<byte[]> passthroughRequest(HttpMethod method, HttpServletRequest request)
 			throws MalformedURLException, IOException, URISyntaxException {
-		URI iaURI = new URI(IA_BROKER_PROTOCOL, null, IA_BROKER_SERVER, IA_BROKER_PORT, request.getRequestURI(), request.getQueryString(),
-				null);
-		return restTemplate.exchange(iaURI, method, new HttpEntity<String>(body), byte[].class);
+		// URI to ia-Broker will strip out the /ia prefix that the bf-api uses to denote ia-broker proxying
+		URI uri = new URI(IA_BROKER_PROTOCOL, null, IA_BROKER_SERVER, IA_BROKER_PORT, request.getRequestURI().substring("/ia".length()),
+				request.getQueryString(), null);
+		String body = IOUtils.toString(request.getReader());
+		return restTemplate.exchange(uri, method, new HttpEntity<String>(body), byte[].class);
 	}
 }
