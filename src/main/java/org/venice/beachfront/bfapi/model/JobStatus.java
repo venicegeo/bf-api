@@ -10,16 +10,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Table(name = "__beachfront__job_status")
 public class JobStatus {
 	@Id
-	@JsonProperty("job_id") private String jobId;
-	@JsonProperty("status") private String status;
+	@JsonProperty("job_id")
+	private String jobId;
+	@JsonProperty("status")
+	private String status;
 
-	public JobStatus() { super(); }
+	public JobStatus() {
+		super();
+	}
 
 	public JobStatus(String jobId, String status) {
 		this.jobId = jobId;
 		this.status = status;
 	}
-	
+
 	public String getJobId() {
 		return jobId;
 	}

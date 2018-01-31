@@ -1,6 +1,5 @@
 package org.venice.beachfront.bfapi.model;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -24,8 +23,8 @@ public class Scene {
 	@JsonProperty("cloud_cover")
 	private double cloudCover;
 	@JsonProperty("geometry")
-	//@Column(columnDefinition="Geometry")
-	//@Type(type = "org.hibernate.spatial.GeometryType")
+	// @Column(columnDefinition="Geometry")
+	// @Type(type = "org.hibernate.spatial.GeometryType")
 	@Type(type = "jts_geometry")
 	private Geometry geometry;
 	@JsonProperty("image_coastal")
@@ -65,11 +64,13 @@ public class Scene {
 	/**
 	 * Default constructor for Hibernate
 	 */
-	public Scene() { super(); }
+	public Scene() {
+		super();
+	}
 
-	public Scene(String sceneId, DateTime captureTime, double cloudCover, Geometry geometry, String imageCoastal,
-			String imageMultispectral, String imageSwir1, String platform, String resolution, String sensorName,
-			String status, double tide, double tideMin, double tideMax, String uri, String fileFormat) {
+	public Scene(String sceneId, DateTime captureTime, double cloudCover, Geometry geometry, String imageCoastal, String imageMultispectral,
+			String imageSwir1, String platform, String resolution, String sensorName, String status, double tide, double tideMin,
+			double tideMax, String uri, String fileFormat) {
 		this.sceneId = sceneId;
 		this.captureTime = captureTime;
 		this.cloudCover = cloudCover;
@@ -92,13 +93,15 @@ public class Scene {
 		return sceneId;
 	}
 
-	public void setSceneId(final String sceneId) { this.sceneId = sceneId; }
+	public void setSceneId(final String sceneId) {
+		this.sceneId = sceneId;
+	}
 
 	public DateTime getCaptureTime() {
 		return captureTime;
 	}
 
-	public void setCaptureTime(final DateTime captureTime ) {
+	public void setCaptureTime(final DateTime captureTime) {
 		this.captureTime = captureTime;
 	}
 
@@ -106,7 +109,9 @@ public class Scene {
 		return cloudCover;
 	}
 
-	public void setCloudCover(final double cloudCover ) { this.cloudCover = cloudCover; }
+	public void setCloudCover(final double cloudCover) {
+		this.cloudCover = cloudCover;
+	}
 
 	public Geometry getGeometry() {
 		return geometry;
@@ -128,19 +133,25 @@ public class Scene {
 		return imageMultispectral;
 	}
 
-	public void setImageMultispectral(final String imageMultispectral) { this.imageMultispectral = imageMultispectral; }
+	public void setImageMultispectral(final String imageMultispectral) {
+		this.imageMultispectral = imageMultispectral;
+	}
 
 	public String getImageSwir1() {
 		return imageSwir1;
 	}
 
-	public void setImageSwir1() { this.imageSwir1 = imageSwir1; }
+	public void setImageSwir1() {
+		this.imageSwir1 = imageSwir1;
+	}
 
 	public String getPlatform() {
 		return platform;
 	}
 
-	public void setPlatform(final String platform) { this.platform = platform; }
+	public void setPlatform(final String platform) {
+		this.platform = platform;
+	}
 
 	public String getResolution() {
 		return resolution;
@@ -170,19 +181,25 @@ public class Scene {
 		return tide;
 	}
 
-	public void setTide(final double tide) { this.tide = tide; }
+	public void setTide(final double tide) {
+		this.tide = tide;
+	}
 
 	public double getTideMin() {
 		return tideMin;
 	}
 
-	public void setTideMin(final double tideMin) { this.tideMin = tideMin; }
+	public void setTideMin(final double tideMin) {
+		this.tideMin = tideMin;
+	}
 
 	public double getTideMax() {
 		return tideMax;
 	}
 
-	public void setTideMax(final double tideMax) { this.tideMax = tideMax; }
+	public void setTideMax(final double tideMax) {
+		this.tideMax = tideMax;
+	}
 
 	public String getUri() {
 		return uri;
@@ -193,7 +210,7 @@ public class Scene {
 	}
 
 	// ---
-	
+
 	public String getExternalId() {
 		String[] idParts = this.sceneId.split(":", 1);
 		if (idParts.length < 2) {
@@ -201,21 +218,27 @@ public class Scene {
 		}
 		return idParts[1];
 	}
-	
+
 	public String getFileName() {
-		switch(this.fileFormat) {
-		case "geotiff": return this.getExternalId() + ".tiff";
-		case "jpeg2000": return this.getExternalId() + ".jp2";
-		default: return this.getExternalId();
+		switch (this.fileFormat) {
+		case "geotiff":
+			return this.getExternalId() + ".tiff";
+		case "jpeg2000":
+			return this.getExternalId() + ".jp2";
+		default:
+			return this.getExternalId();
 		}
 	}
-	
+
 	public MediaType getMediaType() {
-		switch(this.fileFormat) {
-		case "geotiff": return new MediaType("image", "tiff");
-		case "jpeg2000": return new MediaType("image", "jp2");
-		default: return MediaType.APPLICATION_OCTET_STREAM;
+		switch (this.fileFormat) {
+		case "geotiff":
+			return new MediaType("image", "tiff");
+		case "jpeg2000":
+			return new MediaType("image", "jp2");
+		default:
+			return MediaType.APPLICATION_OCTET_STREAM;
 		}
 	}
-	
+
 }

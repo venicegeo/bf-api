@@ -97,8 +97,8 @@ public class Job {
 	 *            API key to use when contacting the Planet Labs API
 	 */
 	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmName,
-			String algorithmVersion, Geometry geometry, String sceneSensorName, DateTime sceneTimeOfCollection, String sceneId,
-			double tide, double tideMin24h, double tideMax24h, JsonNode extras, Boolean computeMask, String planetApiKey) {
+			String algorithmVersion, Geometry geometry, String sceneSensorName, DateTime sceneTimeOfCollection, String sceneId, double tide,
+			double tideMin24h, double tideMax24h, JsonNode extras, Boolean computeMask, String planetApiKey) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
@@ -206,19 +206,25 @@ public class Job {
 		this.sceneId = sceneId;
 	}
 
-	public double getTide() { return tide; }
+	public double getTide() {
+		return tide;
+	}
 
 	public void setTide(double tide) {
 		this.tide = tide;
 	}
 
-	public double getTideMin24h() { return tideMin24h; }
+	public double getTideMin24h() {
+		return tideMin24h;
+	}
 
 	public void setTideMin24h(double tideMin24h) {
 		this.tideMin24h = tideMin24h;
 	}
 
-	public double getTideMax24h() { return tideMax24h; }
+	public double getTideMax24h() {
+		return tideMax24h;
+	}
 
 	public void setTideMax24h(double tideMax24h) {
 		this.tideMax24h = tideMax24h;
