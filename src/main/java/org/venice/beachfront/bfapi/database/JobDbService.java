@@ -3,12 +3,17 @@ package org.venice.beachfront.bfapi.database;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.JobStatus;
 
 @Service
 public class JobDbService {
+	@Autowired
+	private JobDao jobDao;
+
 	public boolean jobExists(String jobId) throws SQLException {
 		// TODO
 		return false;
@@ -27,9 +32,8 @@ public class JobDbService {
 		// TODO
 	}
 
-	public Job getJob(String jobId) throws SQLException {
-		// TODO
-		return null;
+	public Job getJob(String jobId) {
+		return jobDao.findByJobId(jobId);
 	}
 
 	public List<JobStatus> getJobStatusesForInputs(String algorithmId, String sceneId) throws SQLException {

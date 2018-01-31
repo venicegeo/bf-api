@@ -59,21 +59,21 @@ public class JobController {
 	@RequestMapping(path = "/job", method = RequestMethod.POST, consumes = { "application/json" }, produces = { "application/json" })
 	@ResponseBody
 	public Job createJob(@RequestBody CreateJobBody body) {
-		UserProfile currentUser = this.userProfileService.getCurrentUserProfile();
-		return this.jobService.createJob(body.jobName, currentUser.getUserId(), body.algorithmId, body.sceneId, body.planetApiKey,
+		UserProfile currentUser = userProfileService.getCurrentUserProfile();
+		return jobService.createJob(body.jobName, currentUser.getUserId(), body.algorithmId, body.sceneId, body.planetApiKey,
 				body.computeMask, body.extras);
 	}
 
 	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public List<Job> listJobs() {
-		return this.jobService.getJobs();
+		return jobService.getJobs();
 	}
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public Job getJobById(@PathVariable("id") String id) {
-		Job job = this.jobService.getJob(id);
+		Job job = jobService.getJob(id);
 		if (job == null) {
 			throw new JobNotFoundException();
 		}
@@ -83,8 +83,8 @@ public class JobController {
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.DELETE, produces = { "application/json" })
 	@ResponseBody
 	public Confirmation deleteJob(@PathVariable("id") String id) {
-		Job job = this.jobService.getJob(id);
-		return this.jobService.deleteJob(job);
+		Job job = jobService.getJob(id);
+		return jobService.deleteJob(job);
 	}
 
 	private static class CreateJobBody {
@@ -120,6 +120,6 @@ public class JobController {
 	@ResponseBody
 	public List<JobStatus> searchJobsByInputs(@RequestParam(value = "algorithm_id", required = true) String algorithmId,
 			@RequestParam(value = "scene_id", required = true) String sceneId) {
-		return this.jobService.searchJobsByInputs(algorithmId, sceneId);
+		return jobService.searchJobsByInputs(algorithmId, sceneId);
 	}
 }
