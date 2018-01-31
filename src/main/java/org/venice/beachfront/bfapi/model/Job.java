@@ -1,5 +1,6 @@
 package org.venice.beachfront.bfapi.model;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -7,51 +8,52 @@ import javax.persistence.Transient;
 
 import org.joda.time.DateTime;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.vividsolutions.jts.geom.Geometry;
 
 @Entity
 @Table(name = "__beachfront__job")
 public class Job {
 	@Id
+	@Column(name = "job_id")
 	@JsonProperty("job_id")
 	private String jobId;
+	@Column(name = "name")
 	@JsonProperty("name")
 	private String jobName;
+	@Column(name = "status")
 	@JsonProperty("status")
 	private String status;
+	@Column(name = "created_by")
 	@JsonProperty("created_by")
 	private String createdByUserId;
+	@Column(name = "created_on")
 	@JsonProperty("created_on")
 	private DateTime createdOn;
+	@Column(name = "algorithm_name")
 	@JsonProperty("algorithm_name")
 	private String algorithmName;
+	@Column(name = "algorithm_version")
 	@JsonProperty("algorithm_version")
 	private String algorithmVersion;
-	@JsonProperty("geometry")
-	@Transient
-	private Geometry geometry;
-	@JsonProperty("scene_sensor_name")
-	private String sceneSensorName;
-	@JsonProperty("scene_time_of_collect")
-	private DateTime sceneTimeOfCollection;
+	@Column(name = "scene_id")
 	@JsonProperty("scene_id")
 	private String sceneId;
+	@Column(name = "tide")
 	@JsonProperty("tide")
 	private double tide;
+	@Column(name = "tide_min_24h")
 	@JsonProperty("tide_min_24h")
 	private double tideMin24h;
+	@Column(name = "tide_max_24h")
 	@JsonProperty("tide_max_24h")
 	private double tideMax24h;
 	@JsonProperty("extras")
-	@Transient
+	@Transient // TODO: This must be added to the Liquibase Migrations
 	private JsonNode extras;
+	@Column(name = "compute_mask")
 	@JsonProperty("compute_mask")
 	private Boolean computeMask;
-	@JsonIgnore
-	private String planetApiKey;
 
 	/**
 	 * Default constructor. Required for JPA/Hibernate.
@@ -75,12 +77,6 @@ public class Job {
 	 *            name (ID) of algorithm job is using
 	 * @param algorithmVersion
 	 *            version of algorithm job is using
-	 * @param geometry
-	 *            GeoJSON geometry describing the job
-	 * @param sceneSensorName
-	 *            name of sensor source for job imagery
-	 * @param sceneTimeOfCollection
-	 *            collection time of job imagery
 	 * @param sceneId
 	 *            scene ID of job imagery
 	 * @param tide
@@ -93,12 +89,10 @@ public class Job {
 	 *            extra algorithm-dependent data
 	 * @param computeMask
 	 *            compute mask boolean
-	 * @param planetApiKey
-	 *            API key to use when contacting the Planet Labs API
 	 */
 	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmName,
-			String algorithmVersion, Geometry geometry, String sceneSensorName, DateTime sceneTimeOfCollection, String sceneId, double tide,
-			double tideMin24h, double tideMax24h, JsonNode extras, Boolean computeMask, String planetApiKey) {
+			String algorithmVersion, String sceneId, double tide, double tideMin24h, double tideMax24h, JsonNode extras,
+			Boolean computeMask) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
@@ -106,16 +100,12 @@ public class Job {
 		this.createdOn = createdOn;
 		this.algorithmName = algorithmName;
 		this.algorithmVersion = algorithmVersion;
-		this.geometry = geometry;
-		this.sceneSensorName = sceneSensorName;
-		this.sceneTimeOfCollection = sceneTimeOfCollection;
 		this.sceneId = sceneId;
 		this.tide = tide;
 		this.tideMin24h = tideMin24h;
 		this.tideMax24h = tideMax24h;
 		this.extras = extras;
 		this.computeMask = computeMask;
-		this.planetApiKey = planetApiKey;
 	}
 
 	public String getJobId() {
@@ -174,30 +164,6 @@ public class Job {
 		this.algorithmVersion = algorithmVersion;
 	}
 
-	public Geometry getGeometry() {
-		return geometry;
-	}
-
-	public void setGeometry(Geometry geometry) {
-		this.geometry = geometry;
-	}
-
-	public String getSceneSensorName() {
-		return sceneSensorName;
-	}
-
-	public void setSceneSensorName(String sceneSensorName) {
-		this.sceneSensorName = sceneSensorName;
-	}
-
-	public DateTime getSceneTimeOfCollection() {
-		return sceneTimeOfCollection;
-	}
-
-	public void setSceneTimeOfCollection(DateTime sceneTimeOfCollection) {
-		this.sceneTimeOfCollection = sceneTimeOfCollection;
-	}
-
 	public String getSceneId() {
 		return sceneId;
 	}
@@ -238,17 +204,6 @@ public class Job {
 		this.extras = extras;
 	}
 
-	public String getPlanetApiKey() {
-		return planetApiKey;
-	}
-
-	public void setPlanetApiKey(String planetApiKey) {
-		this.planetApiKey = planetApiKey;
-	}
-
-	/**
-	 * @return the computeMask
-	 */
 	public Boolean getComputeMask() {
 		return computeMask;
 	}
