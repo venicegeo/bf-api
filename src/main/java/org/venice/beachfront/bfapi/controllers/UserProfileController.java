@@ -33,7 +33,7 @@ public class UserProfileController {
 	@Autowired
 	private UserProfileService userProfileService;
 
-	@RequestMapping(path = "/profile/me", method = RequestMethod.GET, produces = { "application/json" })
+	@RequestMapping(path = "/user", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public UserProfile getCurrentUserProfile() {
 		return this.userProfileService.getCurrentUserProfile();
