@@ -4,19 +4,18 @@ import java.sql.SQLException;
 
 import com.vividsolutions.jts.geom.Geometry;
 import org.joda.time.DateTime;
+import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.model.Scene;
 
-public interface SceneDbService {
-	void insertScene(
-			String sceneId,
-			DateTime capturedOn,
-			String catalogUri,
-			double cloudCover,
-			Geometry geometry,
-			String sensorName
-			) throws SQLException;
-	void insertScene(Scene scene) throws SQLException;
-	Scene getScene(String sceneId) throws SQLException;
-	boolean sceneExists(String sceneId) throws SQLException;
-}
+@Service
+public class SceneDbService {
+	public void insertScene(String sceneId, DateTime capturedOn, String catalogUri, double cloudCover, Geometry geometry,
+			int resolution, String sensorName) throws SQLException {
+		// TODO
+	}
 
+	public Scene getScene(String sceneId) throws SQLException {
+		// TODO
+		return null;
+	}
+}

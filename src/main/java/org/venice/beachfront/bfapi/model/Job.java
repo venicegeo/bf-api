@@ -48,6 +48,8 @@ public class Job {
 	@JsonProperty("extras")
 	@Transient
 	private JsonNode extras;
+	@JsonProperty("compute_mask")
+	private Boolean computeMask;
 	@JsonIgnore
 	private String planetApiKey;
 
@@ -89,12 +91,14 @@ public class Job {
 	 *            scene tide 24 hour maximum
 	 * @param extras
 	 *            extra algorithm-dependent data
+	 * @param computeMask
+	 *            compute mask boolean
 	 * @param planetApiKey
 	 *            API key to use when contacting the Planet Labs API
 	 */
 	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmName,
-			   String algorithmVersion, Geometry geometry, String sceneSensorName, DateTime sceneTimeOfCollection, String sceneId,
-			   double tide, double tideMin24h, double tideMax24h, JsonNode extras, String planetApiKey) {
+			String algorithmVersion, Geometry geometry, String sceneSensorName, DateTime sceneTimeOfCollection, String sceneId,
+			double tide, double tideMin24h, double tideMax24h, JsonNode extras, Boolean computeMask, String planetApiKey) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
@@ -110,6 +114,7 @@ public class Job {
 		this.tideMin24h = tideMin24h;
 		this.tideMax24h = tideMax24h;
 		this.extras = extras;
+		this.computeMask = computeMask;
 		this.planetApiKey = planetApiKey;
 	}
 
@@ -233,6 +238,13 @@ public class Job {
 
 	public void setPlanetApiKey(String planetApiKey) {
 		this.planetApiKey = planetApiKey;
+	}
+
+	/**
+	 * @return the computeMask
+	 */
+	public Boolean getComputeMask() {
+		return computeMask;
 	}
 
 }

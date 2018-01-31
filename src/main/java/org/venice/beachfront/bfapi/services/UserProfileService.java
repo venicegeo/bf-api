@@ -1,7 +1,11 @@
 package org.venice.beachfront.bfapi.services;
 
+import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.model.UserProfile;
 
-public interface UserProfileService {
-	public UserProfile getCurrentUserProfile();
+@Service
+public class UserProfileService {
+	public UserProfile getCurrentUserProfile() {
+		return null; // TODO
+	}
 }

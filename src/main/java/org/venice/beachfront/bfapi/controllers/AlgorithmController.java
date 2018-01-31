@@ -1,3 +1,18 @@
+/**
+ * Copyright 2016, RadiantBlue Technologies, Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ **/
 package org.venice.beachfront.bfapi.controllers;
 
 import java.util.List;
@@ -18,29 +33,19 @@ import org.venice.beachfront.bfapi.services.AlgorithmService;
  */
 @Controller
 public class AlgorithmController {
-	private AlgorithmService algorithmsService;
-
 	@Autowired
-	public AlgorithmController(AlgorithmService service) {
-		this.algorithmsService = service;
-	}
-	
-	@RequestMapping(
-			path="/algorithms",
-			method=RequestMethod.GET,
-			produces={"application/json"})
+	private AlgorithmService algorithmService;
+
+	@RequestMapping(path = "/algorithm", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public List<Algorithm> getAllAlgorithms() {
-		return this.algorithmsService.getAllAlgorithms();
+		return algorithmService.getAllAlgorithms();
 	}
-	
-	@RequestMapping(
-			path="/algorithms/{id}",
-			method=RequestMethod.GET,
-			produces={"application/json"})
+
+	@RequestMapping(path = "/algorithm/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public Algorithm getAlgorithmByServiceId(@PathVariable("id") String serviceId) {
-		return this.algorithmsService.getAlgorithm(serviceId);
+		return algorithmService.getAlgorithm(serviceId);
 	}
 
 }
