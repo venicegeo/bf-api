@@ -30,6 +30,9 @@ public class Job {
 	@Column(name = "created_on")
 	@JsonProperty("created_on")
 	private DateTime createdOn;
+	@Column(name = "algorithm_id")
+	@JsonProperty("algorithm_id")
+	private String algorithmId;
 	@Column(name = "algorithm_name")
 	@JsonProperty("algorithm_name")
 	private String algorithmName;
@@ -73,8 +76,10 @@ public class Job {
 	 *            ID of user who created the job
 	 * @param createdOn
 	 *            job creation time
+	 * @param algorithmId
+	 *            ID of algorithm job is using
 	 * @param algorithmName
-	 *            name (ID) of algorithm job is using
+	 *            name of algorithm job is using
 	 * @param algorithmVersion
 	 *            version of algorithm job is using
 	 * @param sceneId
@@ -90,14 +95,15 @@ public class Job {
 	 * @param computeMask
 	 *            compute mask boolean
 	 */
-	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmName,
-			String algorithmVersion, String sceneId, double tide, double tideMin24h, double tideMax24h, JsonNode extras,
-			Boolean computeMask) {
+	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmId,
+			String algorithmName, String algorithmVersion, String sceneId, double tide, double tideMin24h,
+			double tideMax24h, JsonNode extras, Boolean computeMask) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
 		this.createdByUserId = createdByUserId;
 		this.createdOn = createdOn;
+		this.algorithmId = algorithmId;
 		this.algorithmName = algorithmName;
 		this.algorithmVersion = algorithmVersion;
 		this.sceneId = sceneId;
@@ -146,6 +152,14 @@ public class Job {
 
 	public void setCreatedOn(DateTime createdOn) {
 		this.createdOn = createdOn;
+	}
+
+	public String getAlgorithmId() {
+		return algorithmId;
+	}
+
+	public void setAlgorithmId(String algorithmId) {
+		this.algorithmId = algorithmId;
 	}
 
 	public String getAlgorithmName() {
