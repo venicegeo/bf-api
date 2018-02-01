@@ -1,5 +1,6 @@
 package org.venice.beachfront.bfapi.model;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -12,19 +13,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Table(name = "__beachfront__user")
 public class UserProfile {
 	@Id
+	@Column(name = "user_id")
 	@JsonProperty("user_id")
 	private String userId;
+	@Column(name = "user_name")
 	@JsonProperty("user_name")
 	private String name;
+	@Column(name = "api_key")
 	@JsonProperty("api_key")
 	private String apiKey;
+	@Column(name = "created_on")
 	@JsonProperty("created_on")
 	private DateTime createdOn;
 
 	/**
 	 * Default constructor for Hibernate.
 	 */
-	public UserProfile() { super(); }
+	public UserProfile() {
+		super();
+	}
 
 	public UserProfile(String user_id, String name, String apiKey, DateTime createdOn) {
 		this.userId = user_id;
