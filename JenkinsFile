@@ -64,7 +64,6 @@ node {
             cf set-env ${fullAppName} GEOAXIS ${env.GEOAXIS_DOMAIN}
             cf set-env ${fullAppName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
             cf set-env ${fullAppName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-            cf set-env ${fullAppName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
             cf start ${deployAppName}
           """
         } catch (Exception e) {
