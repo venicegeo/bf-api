@@ -6,6 +6,10 @@ import org.springframework.http.MediaType;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class Scene {
+	public static final String STATUS_ACTIVE = "active";
+	public static final String STATUS_ACTIVATING = "activating";
+	public static final String STATUS_INACTIVE = "inactive";
+	
 	private final String id;
 	private final DateTime captureTime;
 	private final double cloudCover;
@@ -129,5 +133,21 @@ public class Scene {
 		default: return MediaType.APPLICATION_OCTET_STREAM;
 		}
 	}
+	
+	public static String parsePlatform(String sceneId) {
+		String[] parts = sceneId.split(":", 2);
+		if (parts.length < 1) {
+			return "";
+		}
+		return parts[0];	}
+	
+	public static String parseExternalId(String sceneId) {
+		String[] parts = sceneId.split(":", 2);
+		if (parts.length < 2) {
+			return "";
+		}
+		return parts[1];
+	}
+
 	
 }
