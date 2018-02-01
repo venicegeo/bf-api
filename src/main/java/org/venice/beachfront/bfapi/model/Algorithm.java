@@ -2,6 +2,7 @@ package org.venice.beachfront.bfapi.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+// TODO: How do we want to use this?
 public class Algorithm {
 	@JsonProperty("description") private final String description;
 	@JsonProperty("interface") private final String interface_;
