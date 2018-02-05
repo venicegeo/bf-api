@@ -24,7 +24,7 @@ import org.venice.beachfront.bfapi.model.UserProfile;
 
 @Transactional
 public interface JobUserDao extends CrudRepository<JobUser, Long> {
-	List<JobUser> findByUserId(String UserId);
+	List<JobUser> findByUserUserId(String UserId);
 
-	JobUser findByJobId(String JobId);
+	JobUser findByJobJobId(String JobId);
 }

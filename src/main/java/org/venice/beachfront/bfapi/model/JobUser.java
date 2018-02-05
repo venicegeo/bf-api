@@ -21,6 +21,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -34,11 +35,13 @@ public class JobUser {
 	@Id
 	@JoinColumn(name = "job_id", nullable = false, columnDefinition = "VARCHAR(64)")
 	@OnDelete(action = OnDeleteAction.CASCADE)
+	@OneToOne
 	@JsonProperty("job_id")
 	private Job job;
 	@Id
 	@JoinColumn(name = "user_id", nullable = false, columnDefinition = "VARCHAR(255)")
 	@OnDelete(action = OnDeleteAction.CASCADE)
+	@OneToOne
 	@JsonProperty("user_id")
 	private UserProfile user;
 
