@@ -33,11 +33,13 @@ public class IABrokerService {
 
 	public void activateScene(Scene scene, String planetApiKey)
 			throws IABrokerNotPermittedException, IABrokerUnknownException, IABrokerNotFoundException {
-		if (!scene.getStatus().equals(Scene.STATUS_INACTIVE)) {
+		if (!scene.getSensorName().equals(Scene.STATUS_INACTIVE)) { // XXX: getStatus()
 			return;
 		}
 
-		String activationPath = String.format("planet/activate/%s/%s", scene.getPlatform(), scene.getExternalId());
+		String platform = Scene.parsePlatform(scene.getSceneId());
+		
+		String activationPath = String.format("planet/activate/%s/%s", platform, scene.getExternalId());
 
 		ResponseEntity<Object> response = this.restTemplate.getForEntity(UriComponentsBuilder.newInstance()
 				.scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort).path(activationPath)
@@ -96,7 +98,7 @@ public class IABrokerService {
 					throw new RuntimeException(e);
 				}
 				
-				if (updatedScene.getStatus().equals(Scene.STATUS_ACTIVE)) {
+				if (updatedScene.getSensorName().equals(Scene.STATUS_ACTIVE)) { // XXX: getStatus??
 					return updatedScene;
 				}	
 			}
