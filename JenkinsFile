@@ -64,8 +64,16 @@ node {
             cf set-env ${fullAppName} GEOAXIS ${env.GEOAXIS_DOMAIN}
             cf set-env ${fullAppName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
             cf set-env ${fullAppName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
-            cf start ${deployAppName}
+            cf set-env ${fullAppName} JKS_FILE piazza.jks
+            cf set-env ${fullAppName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
+            cf set-env ${fullAppName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
           """
+          if (params.USE_GEOSERVER_PKI_AUTH) {
+             sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
+          } else {
+             sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,basic-geoserver-auth"
+          }
+          sh "cf start ${deployAppName}"
         } catch (Exception e) {
           printLogsFailsafe deployAppName
           sh "cf delete ${deployAppName} -f -r"

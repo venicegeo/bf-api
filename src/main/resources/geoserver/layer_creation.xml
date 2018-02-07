@@ -1,0 +1,53 @@
+<featureType>
+	<name>LAYER_NAME</name>
+	<enabled>true</enabled>
+	<title>Beachfront Detections</title>
+	<srs>EPSG:4326</srs>
+	<nativeBoundingBox>
+		<minx>-180.0</minx>
+		<maxx>180.0</maxx>
+		<miny>-90.0</miny>
+		<maxy>90.0</maxy>
+	</nativeBoundingBox>
+	<metadata>
+		<entry key="JDBC_VIRTUAL_TABLE">
+			<virtualTable>
+				<name>LAYER_NAME</name>
+				<sql>
+					SELECT * FROM __beachfront__geoserver
+					WHERE ('%jobid%' = '' AND '%sceneid%' = '')
+					OR (job_id = '%jobid%')
+					OR (scene_id = '%sceneid%')
+				</sql>
+				<escapeSql>false</escapeSql>
+				<keyColumn>job_id</keyColumn>
+				<geometry>
+					<name>geometry</name>
+					<type>Geometry</type>
+					<srid>4326</srid>
+				</geometry>
+				<parameter>
+					<name>jobid</name>
+					<regexpValidator>^(%|[a-f0-9]\{\{8\}\}-[a-f0-9]\{\{4\}\}-[a-f0-9]\{\{4\}\}-[a-f0-9]\{\{4\}\}-[a-f0-9]\{\{12\}\})$
+					</regexpValidator>
+				</parameter>
+				<parameter>
+					<name>sceneid</name>
+					<regexpValidator>^\\w+:\\w+$</regexpValidator>
+				</parameter>
+			</virtualTable>
+		</entry>
+		<entry key="time">
+			<dimensionInfo>
+				<enabled>false</enabled>
+				<attribute>time_of_collect</attribute>
+				<presentation>CONTINUOUS_INTERVAL</presentation>
+				<units>ISO8601</units>
+				<defaultValue>
+					<strategy>FIXED</strategy>
+					<referenceValue>P1Y/PRESENT</referenceValue>
+				</defaultValue>
+			</dimensionInfo>
+		</entry>
+	</metadata>
+</featureType>
