@@ -1,6 +1,7 @@
 package org.venice.beachfront.bfapi.model;
 
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -22,6 +23,7 @@ public class UserProfile {
 	@Column(name = "api_key")
 	@JsonProperty("api_key")
 	private String apiKey;
+	@Convert(converter = TimestampConverter.class)
 	@Column(name = "created_on")
 	@JsonProperty("created_on")
 	private DateTime createdOn;

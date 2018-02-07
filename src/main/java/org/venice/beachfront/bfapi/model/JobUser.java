@@ -17,10 +17,12 @@ package org.venice.beachfront.bfapi.model;
 
 import java.io.Serializable;
 import java.util.Objects;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
@@ -29,19 +31,21 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@IdClass(JobUser.JobUserPK.class)
+@IdClass(JobUserPK.class)
 @Table(name = "__beachfront__job_user")
 public class JobUser {
 	@Id
 	@JoinColumn(name = "job_id", nullable = false, columnDefinition = "VARCHAR(64)")
 	@OnDelete(action = OnDeleteAction.CASCADE)
-	@OneToOne
+	@ManyToOne
+	@Convert(converter = JobConverter.class)
 	@JsonProperty("job_id")
 	private Job job;
 	@Id
 	@JoinColumn(name = "user_id", nullable = false, columnDefinition = "VARCHAR(255)")
 	@OnDelete(action = OnDeleteAction.CASCADE)
 	@OneToOne
+	@Convert(converter = UserConverter.class)
 	@JsonProperty("user_id")
 	private UserProfile user;
 
@@ -52,48 +56,6 @@ public class JobUser {
 	public JobUser(Job job, UserProfile user) {
 		this.job = job;
 		this.user = user;
-	}
-
-	class JobUserPK implements Serializable {
-		protected Job job;
-		protected UserProfile user;
-
-		public JobUserPK() { super(); }
-
-		public JobUserPK(Job job, UserProfile user) {
-			this.job = job;
-			this.user = user;
-		}
-
-		public Job getJob() {
-			return job;
-		}
-
-		public void setJob(Job job) {
-			this.job = job;
-		}
-
-		public UserProfile getUser() {
-			return user;
-		}
-
-		public void setUser(UserProfile user) {
-			this.user = user;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			if (this == o) return true;
-			if (o == null || getClass() != o.getClass()) return false;
-			JobUserPK jobUserPK = (JobUserPK) o;
-			return job.getJobId().equals(jobUserPK.job.getJobId()) &&
-					user.getUserId().equals(jobUserPK.user.getUserId());
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(job.getJobId(), user.getUserId());
-		}
 	}
 
 	public Job getJob() {

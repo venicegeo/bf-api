@@ -2,6 +2,7 @@ package org.venice.beachfront.bfapi.services;
 
 import java.util.List;
 
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
@@ -18,7 +19,22 @@ public class JobService {
 
 	public Job createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
 			JsonNode extras) {
-		return null; // TODO
+		Job job = new Job(
+				"XXX",
+				jobName,
+				"Success",
+				creatorUserId,
+				DateTime.now(),
+				algorithmId,
+				"algName",
+				"algVersion",
+				sceneId,
+				0.0,
+				0.0,
+				0.0,
+				extras,
+				computeMask);
+		return jobDao.save(job); // TODO
 	}
 
 	public List<Job> getJobs() {

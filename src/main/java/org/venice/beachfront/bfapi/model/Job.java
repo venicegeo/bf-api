@@ -1,6 +1,7 @@
 package org.venice.beachfront.bfapi.model;
 
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -27,6 +28,7 @@ public class Job {
 	@Column(name = "created_by")
 	@JsonProperty("created_by")
 	private String createdByUserId;
+	@Convert(converter = TimestampConverter.class)
 	@Column(name = "created_on")
 	@JsonProperty("created_on")
 	private DateTime createdOn;
