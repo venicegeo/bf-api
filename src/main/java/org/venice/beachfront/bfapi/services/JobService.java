@@ -23,6 +23,8 @@ public class JobService {
 	private AlgorithmService algorithmService;
 	@Autowired
 	private IABrokerService iaBrokerService;
+	@Autowired
+	private PiazzaService piazzaService;
 
 	public Job createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
 			JsonNode extras) throws UserException {
@@ -43,11 +45,13 @@ public class JobService {
 		// Formulate the URLs for the Scene
 		// TODO - need add to broker service
 		List<String> fileNames = new ArrayList<String>(); // TODO
+		List<String> fileUrls = new ArrayList<String>(); // TODO
 
 		// Prepare Job Request
-		String algorithmCli = getAlgorithmCli(algorithmId, fileNames, scene.getSensorName(), computeMask);
+		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
 
 		// Dispatch Job to Piazza
+		String jobId = piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId);
 
 		return null;
 	}
@@ -81,11 +85,11 @@ public class JobService {
 	 *            True if compute mask is to be applied, false if not
 	 * @return The full command line string that can be executed by the Service Executor
 	 */
-	private String getAlgorithmCli(String algorithmId, List<String> fileNames, String scenePlatform, boolean computeMask) {
+	private String getAlgorithmCli(String algorithmId, List<String> fileUrls, String scenePlatform, boolean computeMask) {
 		List<String> imageFlags = new ArrayList<String>();
 		// Generate the images string parameters
-		for (String fileName : fileNames) {
-			imageFlags.add(String.format("-i %s", fileName));
+		for (String fileUrl : fileUrls) {
+			imageFlags.add(String.format("-i %s", fileUrl));
 		}
 		// Generate Bands based on the platform
 		String bandsFlag = null;
