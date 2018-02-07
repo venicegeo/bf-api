@@ -14,6 +14,11 @@ import com.vividsolutions.jts.geom.Geometry;
 @Entity
 @Table(name = "__beachfront__scene")
 public class Scene {
+	public static final String PLATFORM_PLANETSCOPE = "planetscope";
+	public static final String PLATFORM_RAPIDEYE = "rapideye";
+	public static final String PLATFORM_SENTINEL = "landsat";
+	public static final String PLATFORM_LANDSAT = "sentinel";
+
 	public static final String STATUS_ACTIVE = "active";
 	public static final String STATUS_ACTIVATING = "activating";
 	public static final String STATUS_INACTIVE = "inactive";
@@ -131,8 +136,9 @@ public class Scene {
 		if (parts.length < 1) {
 			return "";
 		}
-		return parts[0];	}
-	
+		return parts[0];
+	}
+
 	public static String parseExternalId(String sceneId) {
 		String[] parts = sceneId.split(":", 2);
 		if (parts.length < 2) {
