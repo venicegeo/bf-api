@@ -1,5 +1,6 @@
 package org.venice.beachfront.bfapi.services;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,10 +12,6 @@ import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.JobStatus;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerNotFoundException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerNotPermittedException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerUnknownException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerUpstreamPlanetErrorException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -45,8 +42,10 @@ public class JobService {
 
 		// Formulate the URLs for the Scene
 		// TODO - need add to broker service
+		List<String> fileNames = new ArrayList<String>(); // TODO
 
 		// Prepare Job Request
+		String algorithmCli = getAlgorithmCli(algorithmId, fileNames, scene.getSensorName(), computeMask);
 
 		// Dispatch Job to Piazza
 
@@ -82,8 +81,38 @@ public class JobService {
 	 *            True if compute mask is to be applied, false if not
 	 * @return The full command line string that can be executed by the Service Executor
 	 */
-	private String getAlgorithmCli(String algorithmName, List<String> fileNames, String scenePlatform, boolean computeMask) {
+	private String getAlgorithmCli(String algorithmId, List<String> fileNames, String scenePlatform, boolean computeMask) {
+		List<String> imageFlags = new ArrayList<String>();
+		// Generate the images string parameters
+		for (String fileName : fileNames) {
+			imageFlags.add(String.format("-i %s", fileName));
+		}
+		// Generate Bands based on the platform
+		String bandsFlag = null;
+		switch (scenePlatform) {
+		case Scene.PLATFORM_LANDSAT:
+		case Scene.PLATFORM_SENTINEL:
+			bandsFlag = "--bands 1 1";
+			break;
+		case Scene.PLATFORM_PLANETSCOPE:
+			bandsFlag = "--bands 2 4";
+			break;
+		case Scene.PLATFORM_RAPIDEYE:
+			bandsFlag = "--bands 2 5";
+			break;
+		}
+		// Piece together the CLI
+		StringBuilder command = new StringBuilder();
+		command.append(String.join(" ", imageFlags));
+		if (bandsFlag != null) {
+			command.append(" ");
+			command.append(bandsFlag);
+		}
+		command.append(" --basename shoreline --smooth 1.0");
+		if (computeMask) {
+			command.append(" --coastmask");
+		}
+		return command.toString();
 
-		return null;
 	}
 }
