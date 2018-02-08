@@ -33,6 +33,8 @@ public class PiazzaService {
 
 	@Autowired
 	private RestTemplate restTemplate;
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	/**
 	 * Executes the service, sending the payload to Piazza and parsing the response for the Job ID
@@ -83,16 +85,53 @@ public class PiazzaService {
 		}
 
 		// Parse the Job ID from the response and return
-		ObjectMapper objectMapper = new ObjectMapper();
-		String jobId = null;
 		try {
 			JsonNode responseJson = objectMapper.readTree(response.getBody());
-			jobId = responseJson.get("data").get("jobId").asText();
+			String jobId = responseJson.get("data").get("jobId").asText();
+			return jobId;
 		} catch (IOException exception) {
 			throw new UserException("There was an error parsing the Piazza response when submitting the Job.", exception.getMessage(),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
-		return jobId;
+	}
+
+	/**
+	 * Gets the status of the Piazza Job with the specified Job ID
+	 * 
+	 * @param jobId
+	 *            The Job ID
+	 * @return The status of the Job, as returned by Piazza
+	 */
+	public String getJobStatus(String jobId) throws UserException {
+		String piazzaJobUrl = String.format("%s/job/%s", PIAZZA_URL, jobId);
+		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
+		HttpEntity<String> request = new HttpEntity<>(headers);
+
+		// Execute the Request
+		ResponseEntity<String> response = null;
+		try {
+			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.GET, request, String.class);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			throw new UserException(String.format("There was an error fetching Job %s Status from Piazza.", jobId), exception.getMessage(),
+					exception.getStatusCode());
+		}
+
+		// Ensure the response succeeded
+		if (!response.getStatusCode().is2xxSuccessful()) {
+			// Error occurred - report back to the user
+			throw new UserException(String.format("Piazza returned a non-OK status when requesting Job %s Status.", jobId),
+					response.getStatusCode().toString(), response.getStatusCode());
+		}
+
+		// Parse out the Status from the Response
+		try {
+			JsonNode responseJson = objectMapper.readTree(response.getBody());
+			String status = responseJson.get("data").get("status").asText();
+			return status;
+		} catch (IOException exception) {
+			throw new UserException(String.format("There was an error parsing the Piazza response when Requesting Job %s Status.", jobId),
+					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	/**

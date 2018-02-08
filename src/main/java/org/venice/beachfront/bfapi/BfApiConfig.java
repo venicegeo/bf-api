@@ -67,6 +67,11 @@ public class BfApiConfig {
 	}
 
 	@Bean
+	public ObjectMapper objectMapper() {
+		return new ObjectMapper();
+	}
+
+	@Bean
 	public ExecutorService getExecutor(@Value("${concurrent.threads}") int threads) {
 		return Executors.newFixedThreadPool(threads);
 	}
