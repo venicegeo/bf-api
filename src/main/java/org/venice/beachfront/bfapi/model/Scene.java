@@ -1,6 +1,7 @@
 package org.venice.beachfront.bfapi.model;
 
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -28,6 +29,7 @@ public class Scene {
 	@Column(name = "scene_id")
 	@JsonProperty("scene_id")
 	private String sceneId;
+	@Convert(converter = TimestampConverter.class)
 	@Column(name = "captured_on")
 	@JsonProperty("captured_on")
 	private DateTime captureTime;
@@ -42,7 +44,7 @@ public class Scene {
 	private Geometry geometry;
 	@Column(name = "resolution")
 	@JsonProperty("resolution")
-	private String resolution;
+	private int resolution;
 	@Column(name = "sensor_name")
 	@JsonProperty("sensor_name")
 	private String sensorName;
@@ -70,7 +72,7 @@ public class Scene {
 		super();
 	}
 
-	public Scene(String sceneId, DateTime captureTime, double cloudCover, Geometry geometry, String resolution, String sensorName,
+	public Scene(String sceneId, DateTime captureTime, double cloudCover, Geometry geometry, int resolution, String sensorName,
 			String uri) {
 		this.sceneId = sceneId;
 		this.captureTime = captureTime;
@@ -113,11 +115,11 @@ public class Scene {
 		this.geometry = geometry;
 	}
 
-	public String getResolution() {
+	public int getResolution() {
 		return resolution;
 	}
 
-	public void setResolution(final String resolution) {
+	public void setResolution(final int resolution) {
 		this.resolution = resolution;
 	}
 

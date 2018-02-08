@@ -76,8 +76,9 @@ public class JobService {
 		String jobId = piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId);
 
 		// Create Job and commit to database; return to User
-		Job job = new Job(jobId, jobName, Job.STATUS_SUBMITTED, creatorUserId, new DateTime(), algorithm.getName(), algorithm.getVersion(),
-				scene.getSceneId(), scene.getTide(), scene.getTideMin24H(), scene.getTideMax24H(), extras, computeMask);
+		Job job = new Job(jobId, jobName, Job.STATUS_SUBMITTED, creatorUserId, new DateTime(), algorithm.getName(), algorithm.getName(),
+				algorithm.getVersion(), scene.getSceneId(), scene.getTide(), scene.getTideMin24H(), scene.getTideMax24H(), extras,
+				computeMask);
 		jobDao.save(job);
 		return job;
 	}
