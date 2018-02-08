@@ -1,9 +1,9 @@
 package org.venice.beachfront.bfapi.services;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
@@ -13,9 +13,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.venice.beachfront.bfapi.model.exception.UserException;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class PiazzaService {
@@ -44,22 +51,48 @@ public class PiazzaService {
 	 * @throws Exception
 	 */
 	public String execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId)
-			throws Exception {
+			throws UserException {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		// Structure the Job Request
-		String requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", fileNames),
-				String.join(", ", fileUrls), userId);
+		String requestJson = null;
+		try {
+			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", fileNames),
+					String.join(", ", fileUrls), userId);
+		} catch (Exception exception) {
+			exception.printStackTrace();
+			throw new UserException("Could not load local resource file for Job Request.", exception.getMessage(),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 		HttpEntity<String> request = new HttpEntity<>(requestJson, headers);
 
 		// Execute the Request
-		ResponseEntity<String> response = restTemplate.exchange(new URI(piazzaJobUrl), HttpMethod.POST, request, String.class);
+		ResponseEntity<String> response = null;
+		try {
+			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			throw new UserException("There was an error submitting the Job Request to Piazza.", exception.getMessage(),
+					exception.getStatusCode());
+		}
 
-		// Parse the Response
+		// Ensure the response succeeded
+		if (!response.getStatusCode().is2xxSuccessful()) {
+			// Error occurred - report back to the user
+			throw new UserException("Piazza returned a non-OK status code when submitting the Job.", response.getStatusCode().toString(),
+					response.getStatusCode());
+		}
 
-		// Return the Job ID
-
-		return null;
+		// Parse the Job ID from the response and return
+		ObjectMapper objectMapper = new ObjectMapper();
+		String jobId = null;
+		try {
+			JsonNode responseJson = objectMapper.readTree(response.getBody());
+			jobId = responseJson.get("data").get("jobId").asText();
+		} catch (IOException exception) {
+			throw new UserException("There was an error parsing the Piazza response when submitting the Job.", exception.getMessage(),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return jobId;
 	}
 
 	/**
@@ -70,14 +103,13 @@ public class PiazzaService {
 	 * @return Basic Auth Headers for Piazza
 	 */
 	private HttpHeaders createPiazzaHeaders(String piazzaApiKey) {
-		return new HttpHeaders() {
-			{
-				String auth = piazzaApiKey + ":";
-				byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
-				String authHeader = "Basic " + new String(encodedAuth);
-				set("Authorization", authHeader);
-			}
-		};
+		String plainCreds = piazzaApiKey + ":";
+		byte[] plainCredsBytes = plainCreds.getBytes();
+		byte[] base64CredsBytes = Base64.encodeBase64(plainCredsBytes);
+		String base64Creds = new String(base64CredsBytes);
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Authorization", "Basic " + base64Creds);
+		return headers;
 	}
 
 	/**
