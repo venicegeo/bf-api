@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.AlgorithmService;
 
 /**
@@ -38,13 +39,13 @@ public class AlgorithmController {
 
 	@RequestMapping(path = "/algorithm", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public List<Algorithm> getAllAlgorithms() {
+	public List<Algorithm> getAllAlgorithms() throws UserException {
 		return algorithmService.getAllAlgorithms();
 	}
 
 	@RequestMapping(path = "/algorithm/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public Algorithm getAlgorithmByServiceId(@PathVariable("id") String serviceId) {
+	public Algorithm getAlgorithmByServiceId(@PathVariable("id") String serviceId) throws UserException {
 		return algorithmService.getAlgorithm(serviceId);
 	}
 
