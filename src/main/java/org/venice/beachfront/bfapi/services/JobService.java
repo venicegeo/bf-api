@@ -82,8 +82,15 @@ public class JobService {
 		return job;
 	}
 
+	/**
+	 * Gets a list of all Jobs. Not paginated.
+	 * 
+	 * @return All jobs.
+	 */
 	public List<Job> getJobs() {
-		return null; // TODO
+		List<Job> jobs = new ArrayList<Job>();
+		jobDao.findAll().forEach(jobs::add);
+		return jobs;
 	}
 
 	public Job getJob(String jobId) {
