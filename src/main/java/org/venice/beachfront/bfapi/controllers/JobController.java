@@ -31,6 +31,7 @@ import org.venice.beachfront.bfapi.model.Confirmation;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.JobStatus;
 import org.venice.beachfront.bfapi.model.UserProfile;
+import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.JobService;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
@@ -58,7 +59,7 @@ public class JobController {
 
 	@RequestMapping(path = "/job", method = RequestMethod.POST, consumes = { "application/json" }, produces = { "application/json" })
 	@ResponseBody
-	public Job createJob(@RequestBody CreateJobBody body) {
+	public Job createJob(@RequestBody CreateJobBody body) throws UserException {
 		UserProfile currentUser = userProfileService.getCurrentUserProfile();
 		return jobService.createJob(body.jobName, currentUser.getUserId(), body.algorithmId, body.sceneId, body.planetApiKey,
 				body.computeMask, body.extras);

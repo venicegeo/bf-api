@@ -19,7 +19,6 @@ import org.apache.http.protocol.HttpContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -43,6 +42,7 @@ public class BfApiConfig {
 		return mapper;
 	}
 
+	@SuppressWarnings("resource") // httpClient should stay open and that's OK
 	@Bean
 	public RestTemplate restTemplate() {
 		RestTemplate restTemplate = new RestTemplate();
@@ -64,6 +64,11 @@ public class BfApiConfig {
 				}).setSSLHostnameVerifier(new NoopHostnameVerifier()).build();
 		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
 		return restTemplate;
+	}
+
+	@Bean
+	public ObjectMapper objectMapper() {
+		return new ObjectMapper();
 	}
 
 	@Bean

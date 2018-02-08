@@ -1,0 +1,23 @@
+{
+	"type": "execute-service",
+	"data": {
+		"serviceId": "{0}",
+		"dataInputs": {
+			"body": {
+				"content": {
+					"cmd": "{1}",
+					"inExtFiles": [{2}],
+					"outExtNames": [{3}],
+					"outGeoJson": ["shoreline.geojson"],
+					"userID": "{4}"
+				},
+				"type": "body",
+				"mimeType": "application/json"
+			}
+		},
+		"dataOutput": [{
+			"mimeType": "application/json",
+			"type": "text"
+		}]
+	}
+}
