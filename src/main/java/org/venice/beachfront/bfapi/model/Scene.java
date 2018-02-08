@@ -4,6 +4,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import org.hibernate.annotations.Type;
 import org.joda.time.DateTime;
@@ -48,6 +49,19 @@ public class Scene {
 	@Column(name = "catalog_uri")
 	@JsonProperty("catalog_uri")
 	private String uri;
+
+	@Transient
+	@Column(name = "tide")
+	@JsonProperty("tide")
+	private Double tide;
+	@Transient
+	@Column(name = "tide_min_24h")
+	@JsonProperty("tide_min_24h")
+	private Double tideMin24H;
+	@Transient
+	@Column(name = "tide_max_24h")
+	@JsonProperty("tide_max_24h")
+	private Double tideMax24H;
 
 	/**
 	 * Default constructor for Hibernate
@@ -145,5 +159,29 @@ public class Scene {
 			return "";
 		}
 		return parts[1];
+	}
+
+	public Double getTide() {
+		return tide;
+	}
+
+	public void setTide(Double tide) {
+		this.tide = tide;
+	}
+
+	public Double getTideMin24H() {
+		return tideMin24H;
+	}
+
+	public void setTideMin24H(Double tideMin24H) {
+		this.tideMin24H = tideMin24H;
+	}
+
+	public Double getTideMax24H() {
+		return tideMax24H;
+	}
+
+	public void setTideMax24H(Double tideMax24H) {
+		this.tideMax24H = tideMax24H;
 	}
 }

@@ -14,6 +14,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 @Entity
 @Table(name = "__beachfront__job")
 public class Job {
+	public static final String STATUS_CANCELLED = "Cancelled";
+	public static final String STATUS_ERROR = "Error";
+	public static final String STATUS_FAIL = "Fail";
+	public static final String STATUS_PENDING = "Pending";
+	public static final String STATUS_RUNNING = "Running";
+	public static final String STATUS_SUBMITTED = "Submitted";
+	public static final String STATUS_SUCCESS = "Success";
+
 	@Id
 	@Column(name = "job_id")
 	@JsonProperty("job_id")

@@ -3,6 +3,7 @@ package org.venice.beachfront.bfapi.services;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
@@ -26,6 +27,27 @@ public class JobService {
 	@Autowired
 	private PiazzaService piazzaService;
 
+	/**
+	 * Creates a Beachfront Job. This will submit the Job request to Piazza, fetch the Job ID, and add all of the Job
+	 * information into the Jobs DB Table. Polling will then begin for this Job's status in order to determine when the
+	 * job has completed in Piazza.
+	 * 
+	 * @param jobName
+	 *            The name of the Job
+	 * @param creatorUserId
+	 *            The ID of the User who created the job
+	 * @param sceneId
+	 *            The ID of the scene
+	 * @param algorithmId
+	 *            The ID of the algorithm
+	 * @param planetApiKey
+	 *            The users Planet Labs key
+	 * @param computeMask
+	 *            True if the compute mask for the algorithm should be applied, false if not
+	 * @param extras
+	 *            The JSON Extras
+	 * @return The fully created (and already committed) Job object
+	 */
 	public Job createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
 			JsonNode extras) throws UserException {
 		// Fetch the Algorithm and Scene information; Activate Scene if needed
@@ -43,9 +65,9 @@ public class JobService {
 		}
 
 		// Formulate the URLs for the Scene
-		// TODO - need add to broker service
-		List<String> fileNames = new ArrayList<String>(); // TODO
-		List<String> fileUrls = new ArrayList<String>(); // TODO
+		// TODO - need add to broker service - Filip
+		List<String> fileNames = new ArrayList<String>(); // TODO - Filip
+		List<String> fileUrls = new ArrayList<String>(); // TODO - Filip
 
 		// Prepare Job Request
 		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
@@ -53,7 +75,11 @@ public class JobService {
 		// Dispatch Job to Piazza
 		String jobId = piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId);
 
-		return null;
+		// Create Job and commit to database; return to User
+		Job job = new Job(jobId, jobName, Job.STATUS_SUBMITTED, creatorUserId, new DateTime(), algorithm.getName(), algorithm.getVersion(),
+				scene.getSceneId(), scene.getTide(), scene.getTideMin24H(), scene.getTideMax24H(), extras, computeMask);
+		jobDao.save(job);
+		return job;
 	}
 
 	public List<Job> getJobs() {
