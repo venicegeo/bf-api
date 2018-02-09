@@ -174,8 +174,8 @@ def get(scene_id: str, planet_api_key: str, *, with_tides: bool = True) -> Scene
             raise ValidationError(scene_id, 'Scene is missing Required Bands')
         status = STATUS_ACTIVE
     elif platform == PLATFORM_SENTINEL:
-        scene_coastal = feature['properties'].get('bands', {}).get('coastal')
-        scene_swir1 = feature['properties'].get('bands', {}).get('swir1')
+        scene_coastal = feature['properties'].get('bands', {}).get('blue')
+        scene_swir1 = feature['properties'].get('bands', {}).get('nir')
         if not scene_coastal or not scene_swir1:
             raise ValidationError(scene_id, 'Scene is missing Required Bands')
         status = STATUS_ACTIVE
