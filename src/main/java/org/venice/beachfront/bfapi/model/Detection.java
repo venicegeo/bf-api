@@ -27,7 +27,7 @@ public class Detection {
 	@Id
 	@Column(name = "feature_id")
 	@JsonProperty("feature_id")
-	private String featureId;
+	private int featureId;
 	@Column(name = "geometry")
 	@JsonProperty("geometry")
 	private Geometry geometry;
@@ -36,7 +36,7 @@ public class Detection {
 
 	}
 
-	public Detection(Job job, String featureId, Geometry geometry) {
+	public Detection(Job job, int featureId, Geometry geometry) {
 		this.job = job;
 		this.featureId = featureId;
 		this.geometry = geometry;
@@ -50,11 +50,11 @@ public class Detection {
 		this.job = job;
 	}
 
-	public String getFeatureId() {
+	public int getFeatureId() {
 		return featureId;
 	}
 
-	public void setFeatureId(String featureId) {
+	public void setFeatureId(int featureId) {
 		this.featureId = featureId;
 	}
 

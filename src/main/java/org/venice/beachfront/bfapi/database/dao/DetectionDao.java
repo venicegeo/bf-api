@@ -8,9 +8,9 @@ import org.venice.beachfront.bfapi.model.Detection;
 
 @Transactional
 public interface DetectionDao extends CrudRepository<Detection, Long> {
-	Detection findByJob_JobIdAndFeatureId(String jobId, String featureId);
+	Detection findByJob_JobIdAndFeatureId(String jobId, int featureId);
 
     List<Detection> findByJob_JobId(String jobId);
 
-    List<Detection> findByFeatureId(String featureId);
+    List<Detection> findByFeatureId(int featureId);
 }
