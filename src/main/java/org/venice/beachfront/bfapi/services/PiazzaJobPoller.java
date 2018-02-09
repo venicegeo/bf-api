@@ -66,13 +66,14 @@ public class PiazzaJobPoller {
 			List<Job> outstandingJobs = jobService.getOutstandingJobs();
 			for (Job job : outstandingJobs) {
 				// For each job, query the status of that job in Piazza
+				StatusMetadata status = null;
 				try {
-					StatusMetadata status = piazzaService.getJobStatus(job.getJobId());
-					processJobStatus(job, status);
+					status = piazzaService.getJobStatus(job.getJobId());
 				} catch (UserException exception) {
 					// TODO - Get the age of the job and determine if a complete failure based on timeout is necessary
 					continue;
 				}
+				processJobStatus(job, status);
 			}
 		}
 
@@ -85,7 +86,27 @@ public class PiazzaJobPoller {
 		 *            The Status of the corresponding Piazza Job
 		 */
 		private void processJobStatus(Job job, StatusMetadata status) {
-
+			// Update the Status of the Job
+			job.setStatus(status.getStatus());
+			// Process based on the status
+			if (status.isStatusIncomplete()) {
+				// Nothing to do here. Polling will continue for this job.
+			} else if (status.isStatusSuccess()) {
+				// Get the Data ID of the Job and download the file bytes
+				try {
+					byte[] detectionBytes = piazzaService.downloadData(status.getDataId());
+					// TODO: John - how do I save these GeoJSON bytes to the database?
+				} catch (UserException exception) {
+					exception.printStackTrace();
+					// Fail the Job as we have failed to download the bytes
+					job.setStatus(Job.STATUS_ERROR);
+				}
+			} else if (status.isStatusError()) {
+				// https://github.com/venicegeo/bf-api/blob/master/bfapi/db/jobs.py#L125
+				// TODO: John, how do I save to the job_error table?
+			}
+			// Commit the updates
+			jobService.updateJob(job);
 		}
 	}
 }

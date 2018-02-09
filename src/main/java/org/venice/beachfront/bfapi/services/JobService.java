@@ -95,6 +95,16 @@ public class JobService {
 	}
 
 	/**
+	 * Creates or Updates a Job in the Database
+	 * 
+	 * @param job
+	 *            The fully populated Job object.
+	 */
+	public void updateJob(Job job) {
+		jobDao.save(job);
+	}
+
+	/**
 	 * Gets the list of all outstanding jobs. That is, jobs that are submitted, running, or pending.
 	 * 
 	 * @return List of all jobs that are in a non-complete state that are eligible to be polled for updated status.
