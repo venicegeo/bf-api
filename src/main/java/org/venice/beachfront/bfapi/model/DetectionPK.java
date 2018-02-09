@@ -10,11 +10,11 @@ public class DetectionPK implements Serializable {
     @JsonProperty("job_id")
     protected Job job;
     @JsonProperty("feature_id")
-    protected String featureId;
+    protected int featureId;
 
     public DetectionPK() { super(); }
 
-    public DetectionPK(Job job, String featureId) {
+    public DetectionPK(Job job, int featureId) {
         this.job = job;
         this.featureId = featureId;
     }
@@ -27,11 +27,11 @@ public class DetectionPK implements Serializable {
         this.job = job;
     }
 
-    public String getFeatureId() {
+    public int getFeatureId() {
         return featureId;
     }
 
-    public void setFeatureId(String featureId) {
+    public void setFeatureId(int featureId) {
         this.featureId = featureId;
     }
 
@@ -41,7 +41,7 @@ public class DetectionPK implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
         DetectionPK detectionPK = (DetectionPK) o;
         return job.getJobId().equals(detectionPK.job.getJobId()) &&
-                featureId.equals(detectionPK.featureId);
+                featureId == detectionPK.featureId;
     }
 
     @Override
