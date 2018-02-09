@@ -95,6 +95,19 @@ public class JobService {
 	}
 
 	/**
+	 * Gets the list of all outstanding jobs. That is, jobs that are submitted, running, or pending.
+	 * 
+	 * @return List of all jobs that are in a non-complete state that are eligible to be polled for updated status.
+	 */
+	public List<Job> getOutstandingJobs() {
+		List<String> outstandingStatuses = new ArrayList<String>();
+		outstandingStatuses.add(Job.STATUS_PENDING);
+		outstandingStatuses.add(Job.STATUS_RUNNING);
+		outstandingStatuses.add(Job.STATUS_SUBMITTED);
+		return jobDao.findByStatusIn(outstandingStatuses);
+	}
+
+	/**
 	 * If a Job exists in the system that has the specified parameters, then that Job will be returned. If no job exists
 	 * matching these parameters, then no Job (null) will be returned. This is used in checking if a new Job should be
 	 * created, or if an existing Job should simply be linked instead.
