@@ -21,7 +21,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
+import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -104,7 +106,7 @@ public class PiazzaService {
 	 *            The Job ID
 	 * @return The status of the Job, as returned by Piazza
 	 */
-	public String getJobStatus(String jobId) throws UserException {
+	public StatusMetadata getJobStatus(String jobId) throws UserException {
 		String piazzaJobUrl = String.format("%s/job/%s", PIAZZA_URL, jobId);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
@@ -128,7 +130,15 @@ public class PiazzaService {
 		// Parse out the Status from the Response
 		try {
 			JsonNode responseJson = objectMapper.readTree(response.getBody());
-			String status = responseJson.get("data").get("status").asText();
+			StatusMetadata status = new StatusMetadata(responseJson.get("data").get("status").asText());
+			// Parse additional information depending on status
+			if (status.isStatusSuccess()) {
+				// If the status is complete, attach the Data ID of the shoreline detection
+				status.setDataId(responseJson.get("data").get("result").get("dataId").asText());
+			} else if (status.isStatusError()) {
+				// If the status is errored, then attach the error information
+				status.setErrorMessage(responseJson.get("data").get("message").asText());
+			}
 			return status;
 		} catch (IOException exception) {
 			throw new UserException(String.format("There was an error parsing the Piazza response when Requesting Job %s Status.", jobId),
@@ -217,6 +227,38 @@ public class PiazzaService {
 					String.format("There was an error parsing the Piazza response when Requesting registered Algorithm %s.", serviceId),
 					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+	}
+
+	/**
+	 * Calls the data/file endpoint to download the shoreline detection data from Piazza for the specified Data ID.
+	 * These bytes are the raw GeoJSON of the shoreline detection vectors.
+	 * 
+	 * @param dataId
+	 *            Data ID
+	 * @return The bytes of the ingested data
+	 */
+	public byte[] downloadData(String dataId) throws UserException {
+		String piazzaDataUrl = String.format("%s/file/%s", PIAZZA_URL, dataId);
+		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
+		HttpEntity<String> request = new HttpEntity<>(headers);
+
+		// Execute the Request
+		ResponseEntity<byte[]> response = null;
+		try {
+			response = restTemplate.exchange(URI.create(piazzaDataUrl), HttpMethod.GET, request, byte[].class);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			throw new UserException(String.format("There was an error fetching Data bytes %s from Piazza.", dataId), exception.getMessage(),
+					exception.getStatusCode());
+		}
+
+		// Ensure the response succeeded
+		if (!response.getStatusCode().is2xxSuccessful()) {
+			// Error occurred - report back to the user
+			throw new UserException(String.format("Piazza returned a non-OK status when requesting Data bytes %s.", dataId),
+					response.getStatusCode().toString(), response.getStatusCode());
+		}
+
+		return response.getBody();
 	}
 
 	/**
