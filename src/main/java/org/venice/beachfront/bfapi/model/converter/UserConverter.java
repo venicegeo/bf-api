@@ -1,11 +1,11 @@
-package org.venice.beachfront.bfapi.model;
+package org.venice.beachfront.bfapi.model.converter;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.UserProfileDao;
+import org.venice.beachfront.bfapi.model.UserProfile;
 
 @Converter(autoApply = true)
 public class UserConverter implements AttributeConverter<UserProfile, String>, org.springframework.core.convert.converter.Converter<String, UserProfile> {

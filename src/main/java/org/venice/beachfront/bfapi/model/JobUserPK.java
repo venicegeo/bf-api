@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.Objects;
 import javax.persistence.Convert;
 import javax.persistence.Embeddable;
-import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
@@ -12,6 +11,8 @@ import javax.persistence.OneToOne;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.venice.beachfront.bfapi.model.converter.JobConverter;
+import org.venice.beachfront.bfapi.model.converter.UserConverter;
 
 @Embeddable
 public class JobUserPK implements Serializable {
