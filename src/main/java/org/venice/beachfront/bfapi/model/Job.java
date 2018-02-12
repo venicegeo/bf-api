@@ -7,7 +7,6 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
-import org.elasticsearch.xpack.ml.utils.time.TimestampConverter;
 import org.joda.time.DateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
