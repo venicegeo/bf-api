@@ -15,13 +15,13 @@ import org.hibernate.annotations.OnDeleteAction;
 
 @Embeddable
 public class JobUserPK implements Serializable {
-    @JoinColumn(name = "job_id", nullable = false, columnDefinition = "VARCHAR(64)")
+    @JoinColumn(name = "job_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @ManyToOne(targetEntity = Job.class)
     @Convert(converter = JobConverter.class, attributeName = "job_id")
     @JsonProperty("job_id")
     protected Job job;
-    @JoinColumn(name = "user_id", nullable = false, columnDefinition = "VARCHAR(255)")
+    @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToOne(targetEntity = UserProfile.class)
     @Convert(converter = UserConverter.class, attributeName = "user_id")
