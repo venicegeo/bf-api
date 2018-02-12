@@ -1,6 +1,7 @@
 package org.venice.beachfront.bfapi.model;
 
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
@@ -15,19 +16,10 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@IdClass(DetectionPK.class)
 @Table(name = "__beachfront__detection")
 public class Detection {
-	@Id
-	@JoinColumn(name = "job_id", nullable = false, columnDefinition = "VARCHAR(64)")
-	@OnDelete(action = OnDeleteAction.CASCADE)
-	@ManyToOne(targetEntity = Job.class, optional = false)
-	@JsonProperty("job_id")
-	private Job job;
-	@Id
-	@Column(name = "feature_id")
-	@JsonProperty("feature_id")
-	private int featureId;
+	@EmbeddedId
+	private DetectionPK detectionPK;
 	@Column(name = "geometry")
 	@JsonProperty("geometry")
 	private Geometry geometry;
@@ -37,25 +29,16 @@ public class Detection {
 	}
 
 	public Detection(Job job, int featureId, Geometry geometry) {
-		this.job = job;
-		this.featureId = featureId;
+		this.detectionPK = new DetectionPK(job, featureId);
 		this.geometry = geometry;
 	}
 
-	public Job getJob() {
-		return job;
+	public DetectionPK getDetectionPK() {
+		return detectionPK;
 	}
 
-	public void setJob(Job job) {
-		this.job = job;
-	}
-
-	public int getFeatureId() {
-		return featureId;
-	}
-
-	public void setFeatureId(int featureId) {
-		this.featureId = featureId;
+	public void setDetectionPK(DetectionPK detectionPK) {
+		this.detectionPK = detectionPK;
 	}
 
 	public Geometry getGeometry() {

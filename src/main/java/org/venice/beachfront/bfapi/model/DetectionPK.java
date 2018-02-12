@@ -2,15 +2,25 @@ package org.venice.beachfront.bfapi.model;
 
 import java.io.Serializable;
 import java.util.Objects;
-import javax.persistence.Convert;
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
+@Embeddable
 public class DetectionPK implements Serializable {
+    @JoinColumn(name = "job_id", nullable = false, columnDefinition = "VARCHAR(64)")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToOne(targetEntity = Job.class, optional = false)
     @JsonProperty("job_id")
-    protected Job job;
+    private Job job;
+    @Column(name = "feature_id")
     @JsonProperty("feature_id")
-    protected int featureId;
+    private int featureId;
 
     public DetectionPK() { super(); }
 
