@@ -20,11 +20,10 @@ import javax.transaction.Transactional;
 
 import org.springframework.data.repository.CrudRepository;
 import org.venice.beachfront.bfapi.model.JobUser;
-import org.venice.beachfront.bfapi.model.UserProfile;
+import org.venice.beachfront.bfapi.model.JobUserPK;
 
 @Transactional
-public interface JobUserDao extends CrudRepository<JobUser, Long> {
-	List<JobUser> findByUserUserId(String UserId);
-
-	JobUser findByJobJobId(String JobId);
+public interface JobUserDao extends CrudRepository<JobUser, JobUserPK> {
+	List<JobUser> findByJobUserPK_User_UserId(String UserId);
+	JobUser findByJobUserPK_Job_JobId(String JobId);
 }
