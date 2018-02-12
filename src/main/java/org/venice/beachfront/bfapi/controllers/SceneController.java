@@ -54,7 +54,7 @@ public class SceneController {
 		return this.iaBrokerService.asyncGetActiveScene(sceneId, planetApiKey, true).thenApply((Scene activeScene) -> {
 			HttpHeaders headers = new HttpHeaders();
 			try {
-				headers.setLocation(new URI(activeScene.toString())); // XXX: Need a way to convert scene -> multispectral URL
+				headers.setLocation(new URI(activeScene.getUri()));
 			} catch (URISyntaxException e) {
 				throw new RuntimeException(e);
 			}

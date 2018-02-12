@@ -10,7 +10,9 @@ import javax.persistence.Transient;
 import org.hibernate.annotations.Type;
 import org.joda.time.DateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.vividsolutions.jts.geom.Geometry;
 
 @Entity
@@ -68,6 +70,10 @@ public class Scene {
 	@Transient
 	@JsonProperty("status")
 	private String status;
+	
+	@Transient
+	@JsonIgnore
+	private JsonNode rawJson;
 
 	/**
 	 * Default constructor for Hibernate
@@ -197,5 +203,17 @@ public class Scene {
 
 	public void setStatus(String status) {
 		this.status = status;
+	}
+
+	public JsonNode getRawJson() {
+		return rawJson;
+	}
+
+	public void setRawJson(JsonNode rawJson) {
+		this.rawJson = rawJson;
+	}
+	
+	public String getImageBand(String bandName) {
+		return this.rawJson.get("properties").get("bands").get(bandName).asText();
 	}
 }

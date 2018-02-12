@@ -93,11 +93,13 @@ public class IABrokerService {
 		JsonNode responseJson = response.getBody();
 
 		Scene scene = new Scene();
+		scene.setRawJson(responseJson);
 		scene.setSceneId(responseJson.get("id").asText());
 		scene.setCloudCover(responseJson.get("properties").get("cloudCover").asDouble());
 		scene.setResolution(responseJson.get("properties").get("resolution").asInt());
 		scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
 		scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
+		scene.setUri(responseJson.get("properties").get("location").asText());
 
 		String status = "active";
 		if (platform.equals(Scene.PLATFORM_RAPIDEYE) || platform.equals(Scene.PLATFORM_PLANETSCOPE)) {

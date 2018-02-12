@@ -1,6 +1,8 @@
 package org.venice.beachfront.bfapi.services;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.joda.time.DateTime;
@@ -15,6 +17,7 @@ import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
 
 @Service
 public class JobService {
@@ -74,10 +77,16 @@ public class JobService {
 			throw new UserException("There was an error activating the requested scene.", exception.getMessage(), null);
 		}
 
+		// Re-fetch scene after activation
+		try {
+			scene = iaBrokerService.getScene(sceneId, planetApiKey, true);
+		} catch (Exception exception) {
+			throw new UserException("There was an error getting the scene information.", exception.getMessage(), null);
+		}
+		
 		// Formulate the URLs for the Scene
-		// TODO - need add to broker service - Filip
-		List<String> fileNames = new ArrayList<String>(); // TODO - Filip
-		List<String> fileUrls = new ArrayList<String>(); // TODO - Filip
+		List<String> fileNames = this.getSceneInputFileNames(scene);
+		List<String> fileUrls = this.getSceneInputURLs(scene);
 
 		// Prepare Job Request
 		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
@@ -210,6 +219,32 @@ public class JobService {
 			command.append(" --coastmask");
 		}
 		return command.toString();
-
 	}
+	
+	private List<String> getSceneInputFileNames(Scene scene) {
+		switch (Scene.parsePlatform(scene.getSceneId())) {
+		case Scene.PLATFORM_RAPIDEYE:
+		case Scene.PLATFORM_PLANETSCOPE:
+			return Arrays.asList("multispectral.TIF");
+		case Scene.PLATFORM_LANDSAT:
+			return Arrays.asList("coastal.TIF", "multispectral.TIF");
+		case Scene.PLATFORM_SENTINEL: 
+			return Arrays.asList("B02.JP2", "B08.JP2");
+		}
+		return new ArrayList<String>();
+	}
+	
+	private List<String> getSceneInputURLs(Scene scene) {
+		switch (Scene.parsePlatform(scene.getSceneId())) {
+		case Scene.PLATFORM_RAPIDEYE:
+		case Scene.PLATFORM_PLANETSCOPE:
+			return Arrays.asList(scene.getUri().toString());
+		case Scene.PLATFORM_LANDSAT:
+			return Arrays.asList(scene.getImageBand("coastal"), scene.getUri().toString());
+		case Scene.PLATFORM_SENTINEL: 
+			return Arrays.asList(scene.getImageBand("blue"), scene.getImageBand("nir"));
+		}
+		return new ArrayList<String>();
+	}
+	
 }
