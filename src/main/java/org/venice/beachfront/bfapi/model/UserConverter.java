@@ -6,8 +6,8 @@ import javax.persistence.Converter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.venice.beachfront.bfapi.database.dao.UserProfileDao;
 
-@Converter
-public class UserConverter implements AttributeConverter<UserProfile, String> {
+@Converter(autoApply = true)
+public class UserConverter implements AttributeConverter<UserProfile, String>, org.springframework.core.convert.converter.Converter<String, UserProfile> {
     @Autowired
     UserProfileDao userProfileDao;
 
@@ -25,5 +25,10 @@ public class UserConverter implements AttributeConverter<UserProfile, String> {
             return null;
          }
          return userProfileDao.findByUserId(userId);
+    }
+
+    @Override
+    public UserProfile convert(String userId) {
+        return convertToEntityAttribute(userId);
     }
 }

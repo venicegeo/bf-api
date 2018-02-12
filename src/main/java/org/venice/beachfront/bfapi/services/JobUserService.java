@@ -38,17 +38,17 @@ public class JobUserService {
 	}
 
 	public JobUser getJobUser(String jobId) {
-		return jobUserDao.findByJobJobId(jobId);
+		return jobUserDao.findByJobUserPK_Job_JobId(jobId);
 	}
 
 	public Confirmation deleteJobUser(JobUser jobUser) {
 		jobUserDao.delete(jobUser);
 		return new Confirmation(
-				jobUser.getJob().getJobId(),
+				jobUser.getJobUserPK().getJob().getJobId(),
 				true);
 	}
 
 	public List<JobUser> searchByUser(String userId) {
-		return jobUserDao.findByUserUserId(userId);
+		return jobUserDao.findByJobUserPK_User_UserId(userId);
 	}
 }
