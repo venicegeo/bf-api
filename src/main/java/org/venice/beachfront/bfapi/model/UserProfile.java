@@ -73,4 +73,5 @@ public class UserProfile {
 	public void setCreatedOn(DateTime createdOn) {
 		this.createdOn = createdOn;
 	}
+
 }

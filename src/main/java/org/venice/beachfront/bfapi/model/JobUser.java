@@ -15,62 +15,30 @@
  **/
 package org.venice.beachfront.bfapi.model;
 
-import java.io.Serializable;
-import java.util.Objects;
-import javax.persistence.Convert;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 @Entity
-@IdClass(JobUserPK.class)
 @Table(name = "__beachfront__job_user")
 public class JobUser {
-	@Id
-	@JoinColumn(name = "job_id", nullable = false, columnDefinition = "VARCHAR(64)")
-	@OnDelete(action = OnDeleteAction.CASCADE)
-	@ManyToOne
-	@Convert(converter = JobConverter.class)
-	@JsonProperty("job_id")
-	private Job job;
-	@Id
-	@JoinColumn(name = "user_id", nullable = false, columnDefinition = "VARCHAR(255)")
-	@OnDelete(action = OnDeleteAction.CASCADE)
-	@OneToOne
-	@Convert(converter = UserConverter.class)
-	@JsonProperty("user_id")
-	private UserProfile user;
+	@EmbeddedId
+	JobUserPK jobUserPK;
 
 	public JobUser() {
 		super();
 	}
 
 	public JobUser(Job job, UserProfile user) {
-		this.job = job;
-		this.user = user;
+		this.jobUserPK = new JobUserPK(job, user);
 	}
 
-	public Job getJob() {
-		return job;
+	public JobUserPK getJobUserPK() {
+		return jobUserPK;
 	}
 
-	public void setJob(final Job job) {
-		this.job = job;
+	public void setjobUserPK(final JobUserPK jobUserPK) {
+		this.jobUserPK = jobUserPK;
 	}
 
-	public UserProfile getUser() {
-		return user;
-	}
-
-	public void setUser(final UserProfile user) {
-		this.user = user;
-	}
 }
