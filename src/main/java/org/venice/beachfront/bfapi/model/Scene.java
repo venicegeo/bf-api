@@ -64,6 +64,10 @@ public class Scene {
 	@Column(name = "tide_max_24h")
 	@JsonProperty("tide_max_24h")
 	private Double tideMax24H;
+	
+	@Transient
+	@JsonProperty("status")
+	private String status;
 
 	/**
 	 * Default constructor for Hibernate
@@ -185,5 +189,13 @@ public class Scene {
 
 	public void setTideMax24H(Double tideMax24H) {
 		this.tideMax24H = tideMax24H;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
 	}
 }

@@ -20,7 +20,6 @@ import javax.transaction.Transactional;
 
 import org.springframework.data.repository.CrudRepository;
 import org.venice.beachfront.bfapi.model.JobUser;
-import org.venice.beachfront.bfapi.model.UserProfile;
 
 @Transactional
 public interface JobUserDao extends CrudRepository<JobUser, Long> {

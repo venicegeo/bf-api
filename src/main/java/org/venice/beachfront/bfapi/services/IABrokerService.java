@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.model.Scene;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Service
 public class IABrokerService {
@@ -31,10 +34,13 @@ public class IABrokerService {
 
 	@Value("${ia.broker.port}")
 	private int iaBrokerPort;
+	
+	@Value("${DOMAIN}")
+	private String bfDomain;
 
 	public void activateScene(Scene scene, String planetApiKey)
 			throws IABrokerNotPermittedException, IABrokerUnknownException, IABrokerNotFoundException {
-		if (!scene.getSensorName().equals(Scene.STATUS_INACTIVE)) { // XXX: getStatus()
+		if (!scene.getStatus().equals(Scene.STATUS_INACTIVE)) {
 			return;
 		}
 
@@ -66,10 +72,10 @@ public class IABrokerService {
 
 		String scenePath = String.format("planet/%s/%s", platform, externalId);
 
-		ResponseEntity<Scene> response = this.restTemplate.getForEntity(
+		ResponseEntity<JsonNode> response = this.restTemplate.getForEntity(
 				UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
 						.path(scenePath).queryParam("PLANET_API_KEY", planetApiKey).queryParam("tides", withTides).build().toUri(),
-				Scene.class);
+						JsonNode.class);
 
 		if (!response.getStatusCode().is2xxSuccessful()) {
 			switch (response.getStatusCodeValue()) {
@@ -83,8 +89,32 @@ public class IABrokerService {
 				throw new IABrokerUnknownException(response.toString());
 			}
 		}
+		
+		JsonNode responseJson = response.getBody();
 
-		return response.getBody();
+		Scene scene = new Scene();
+		scene.setSceneId(responseJson.get("id").asText());
+		scene.setCloudCover(responseJson.get("properties").get("cloudCover").asDouble());
+		scene.setResolution(responseJson.get("properties").get("resolution").asInt());
+		scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
+		scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
+
+		String status = "active";
+		if (platform.equals(Scene.PLATFORM_RAPIDEYE) || platform.equals(Scene.PLATFORM_PLANETSCOPE)) {
+			status = responseJson.get("properties").get("status").asText();
+		} else {
+			// Status active
+		}
+		
+		scene.setStatus(status);
+		
+		if (withTides) {
+			scene.setTide(responseJson.get("properties").get("CurrentTide").asDouble());
+			scene.setTideMin24H(responseJson.get("properties").get("MinimumTide24Hours").asDouble());
+			scene.setTideMax24H(responseJson.get("properties").get("MaximumTide24Hours").asDouble());
+		}
+
+		return scene;
 
 	}
 
@@ -100,7 +130,7 @@ public class IABrokerService {
 					throw new RuntimeException(e);
 				}
 
-				if (updatedScene.getSensorName().equals(Scene.STATUS_ACTIVE)) { // XXX: getStatus??
+				if (updatedScene.getStatus().equals(Scene.STATUS_ACTIVE)) { 
 					return updatedScene;
 				}
 			}
@@ -123,8 +153,14 @@ public class IABrokerService {
 	 * @return
 	 */
 	public URI getDownloadUri(Scene scene, String planetApiKey) {
-		// TODO from https://github.com/venicegeo/bf-api/blob/master/bfapi/service/scenes.py#L116
-		return null;
+		// https://bf-api.{domain}/scene/{id}/download?planet_api_key={key}
+		return UriComponentsBuilder.newInstance()
+				.scheme("https")
+				.host("bf-api." + bfDomain)
+				.pathSegment("scene", scene.getSceneId(), "download")
+				.queryParam("planet_api_key", planetApiKey)
+				.build()
+				.toUri();
 	}
 
 	public class IABrokerNotPermittedException extends Exception {

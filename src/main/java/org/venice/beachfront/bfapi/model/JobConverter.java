@@ -1,12 +1,8 @@
 package org.venice.beachfront.bfapi.model;
-
-import java.sql.Timestamp;
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
 
-import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.services.JobService;
 
 @Converter

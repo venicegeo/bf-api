@@ -15,8 +15,6 @@
  **/
 package org.venice.beachfront.bfapi.model;
 
-import java.io.Serializable;
-import java.util.Objects;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
