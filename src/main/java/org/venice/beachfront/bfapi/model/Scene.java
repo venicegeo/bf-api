@@ -5,6 +5,7 @@ import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import org.hibernate.annotations.Type;
 import org.joda.time.DateTime;
@@ -15,6 +16,15 @@ import com.vividsolutions.jts.geom.Geometry;
 @Entity
 @Table(name = "__beachfront__scene")
 public class Scene {
+	public static final String PLATFORM_PLANETSCOPE = "planetscope";
+	public static final String PLATFORM_RAPIDEYE = "rapideye";
+	public static final String PLATFORM_SENTINEL = "landsat";
+	public static final String PLATFORM_LANDSAT = "sentinel";
+
+	public static final String STATUS_ACTIVE = "active";
+	public static final String STATUS_ACTIVATING = "activating";
+	public static final String STATUS_INACTIVE = "inactive";
+
 	@Id
 	@Column(name = "scene_id")
 	@JsonProperty("scene_id")
@@ -41,6 +51,19 @@ public class Scene {
 	@Column(name = "catalog_uri")
 	@JsonProperty("catalog_uri")
 	private String uri;
+
+	@Transient
+	@Column(name = "tide")
+	@JsonProperty("tide")
+	private Double tide;
+	@Transient
+	@Column(name = "tide_min_24h")
+	@JsonProperty("tide_min_24h")
+	private Double tideMin24H;
+	@Transient
+	@Column(name = "tide_max_24h")
+	@JsonProperty("tide_max_24h")
+	private Double tideMax24H;
 
 	/**
 	 * Default constructor for Hibernate
@@ -122,5 +145,45 @@ public class Scene {
 			throw new RuntimeException("Invalid scene ID: " + this.sceneId);
 		}
 		return idParts[1];
+	}
+
+	public static String parsePlatform(String sceneId) {
+		String[] parts = sceneId.split(":", 2);
+		if (parts.length < 1) {
+			return "";
+		}
+		return parts[0];
+	}
+
+	public static String parseExternalId(String sceneId) {
+		String[] parts = sceneId.split(":", 2);
+		if (parts.length < 2) {
+			return "";
+		}
+		return parts[1];
+	}
+
+	public Double getTide() {
+		return tide;
+	}
+
+	public void setTide(Double tide) {
+		this.tide = tide;
+	}
+
+	public Double getTideMin24H() {
+		return tideMin24H;
+	}
+
+	public void setTideMin24H(Double tideMin24H) {
+		this.tideMin24H = tideMin24H;
+	}
+
+	public Double getTideMax24H() {
+		return tideMax24H;
+	}
+
+	public void setTideMax24H(Double tideMax24H) {
+		this.tideMax24H = tideMax24H;
 	}
 }

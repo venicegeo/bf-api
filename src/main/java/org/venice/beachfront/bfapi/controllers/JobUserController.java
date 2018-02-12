@@ -15,15 +15,8 @@
  **/
 package org.venice.beachfront.bfapi.controllers;
 
-import java.util.Arrays;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Polygon;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,13 +31,19 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.venice.beachfront.bfapi.database.dao.SceneDao;
 import org.venice.beachfront.bfapi.model.Confirmation;
 import org.venice.beachfront.bfapi.model.Job;
-import org.venice.beachfront.bfapi.model.JobStatus;
 import org.venice.beachfront.bfapi.model.JobUser;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.UserProfile;
+import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.JobService;
 import org.venice.beachfront.bfapi.services.JobUserService;
 import org.venice.beachfront.bfapi.services.UserProfileService;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Polygon;
 
 /**
  * Main controller class for the JobUser CRUD endpoints.
@@ -70,7 +69,7 @@ public class JobUserController {
 
 	@RequestMapping(path = "/jobuser", method = RequestMethod.POST, consumes = { "application/json" }, produces = { "application/json" })
 	@ResponseBody
-	public JobUser createJobUser(@RequestBody CreateJobUserBody body) {
+	public JobUser createJobUser(@RequestBody CreateJobUserBody body) throws UserException {
 		GeometryFactory geometryFactory = new GeometryFactory();
 
 		Coordinate[] coordinates = new Coordinate[5];

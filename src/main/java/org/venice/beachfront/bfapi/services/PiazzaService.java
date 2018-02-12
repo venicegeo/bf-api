@@ -1,0 +1,279 @@
+package org.venice.beachfront.bfapi.services;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.exception.UserException;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@Service
+public class PiazzaService {
+	@Value("${piazza.server}")
+	private String PIAZZA_URL;
+	@Value("${PIAZZA_API_KEY}")
+	private String PIAZZA_API_KEY;
+
+	@Autowired
+	private RestTemplate restTemplate;
+	@Autowired
+	private ObjectMapper objectMapper;
+
+	/**
+	 * Executes the service, sending the payload to Piazza and parsing the response for the Job ID
+	 * 
+	 * @param serviceId
+	 *            The ID of the Piazza Service corresponding to the chosen algorithm
+	 * @param cliCommand
+	 *            The algorithm CLI parameters
+	 * @param fileNames
+	 *            The ordered list of file names
+	 * @param fileUrls
+	 *            The ordered list of file URLs
+	 * @param userId
+	 *            The ID of the creating user for this job
+	 * @return The Piazza Job ID
+	 * @throws Exception
+	 */
+	public String execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId)
+			throws UserException {
+		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
+		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
+		// Structure the Job Request
+		String requestJson = null;
+		try {
+			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", fileNames),
+					String.join(", ", fileUrls), userId);
+		} catch (Exception exception) {
+			exception.printStackTrace();
+			throw new UserException("Could not load local resource file for Job Request.", exception.getMessage(),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		HttpEntity<String> request = new HttpEntity<>(requestJson, headers);
+
+		// Execute the Request
+		ResponseEntity<String> response = null;
+		try {
+			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			throw new UserException("There was an error submitting the Job Request to Piazza.", exception.getMessage(),
+					exception.getStatusCode());
+		}
+
+		// Ensure the response succeeded
+		if (!response.getStatusCode().is2xxSuccessful()) {
+			// Error occurred - report back to the user
+			throw new UserException("Piazza returned a non-OK status code when submitting the Job.", response.getStatusCode().toString(),
+					response.getStatusCode());
+		}
+
+		// Parse the Job ID from the response and return
+		try {
+			JsonNode responseJson = objectMapper.readTree(response.getBody());
+			String jobId = responseJson.get("data").get("jobId").asText();
+			return jobId;
+		} catch (IOException exception) {
+			throw new UserException("There was an error parsing the Piazza response when submitting the Job.", exception.getMessage(),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Gets the status of the Piazza Job with the specified Job ID
+	 * 
+	 * @param jobId
+	 *            The Job ID
+	 * @return The status of the Job, as returned by Piazza
+	 */
+	public String getJobStatus(String jobId) throws UserException {
+		String piazzaJobUrl = String.format("%s/job/%s", PIAZZA_URL, jobId);
+		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
+		HttpEntity<String> request = new HttpEntity<>(headers);
+
+		// Execute the Request
+		ResponseEntity<String> response = null;
+		try {
+			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.GET, request, String.class);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			throw new UserException(String.format("There was an error fetching Job %s Status from Piazza.", jobId), exception.getMessage(),
+					exception.getStatusCode());
+		}
+
+		// Ensure the response succeeded
+		if (!response.getStatusCode().is2xxSuccessful()) {
+			// Error occurred - report back to the user
+			throw new UserException(String.format("Piazza returned a non-OK status when requesting Job %s Status.", jobId),
+					response.getStatusCode().toString(), response.getStatusCode());
+		}
+
+		// Parse out the Status from the Response
+		try {
+			JsonNode responseJson = objectMapper.readTree(response.getBody());
+			String status = responseJson.get("data").get("status").asText();
+			return status;
+		} catch (IOException exception) {
+			throw new UserException(String.format("There was an error parsing the Piazza response when Requesting Job %s Status.", jobId),
+					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Returns the list of all algorithm services that have been registed with the Beachfront Piazza API Key
+	 * 
+	 * @return List of algorithms available for use in Beachfront
+	 */
+	public List<Algorithm> getRegisteredAlgorithms() throws UserException {
+		String piazzaServicesUrl = String.format("%s/service/me", PIAZZA_URL);
+		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
+		HttpEntity<String> request = new HttpEntity<>(headers);
+
+		// Execute the Request
+		ResponseEntity<String> response = null;
+		try {
+			response = restTemplate.exchange(URI.create(piazzaServicesUrl), HttpMethod.GET, request, String.class);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			throw new UserException("There was an error fetching Algorithm List from Piazza.", exception.getMessage(),
+					exception.getStatusCode());
+		}
+
+		// Ensure the response succeeded
+		if (!response.getStatusCode().is2xxSuccessful()) {
+			// Error occurred - report back to the user
+			throw new UserException("Piazza returned a non-OK status when requesting registered Algorithm List.",
+					response.getStatusCode().toString(), response.getStatusCode());
+		}
+
+		// Parse out the Algorithms from the Response
+		try {
+			JsonNode responseJson = objectMapper.readTree(response.getBody());
+			JsonNode algorithmJsonArray = responseJson.get("data");
+			List<Algorithm> algorithms = new ArrayList<Algorithm>();
+			for (JsonNode algorithmJson : algorithmJsonArray) {
+				// For each Registered Service, wrap it in the Algorithm Object and add to the list
+				algorithms.add(getAlgorithmFromServiceNode(algorithmJson));
+			}
+			return algorithms;
+		} catch (IOException exception) {
+			throw new UserException("There was an error parsing the Piazza response when Requesting registered Algorithm List.",
+					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Gets the registered algorithm from Piazza based on the Service ID. This can return services that are not owned by
+	 * the currently configured Piazza API Key
+	 * 
+	 * @param serviceId
+	 *            Service ID to fetch
+	 * @return The Service
+	 */
+	public Algorithm getRegisteredAlgorithm(String serviceId) throws UserException {
+		String piazzaServiceUrl = String.format("%s/service/%s", PIAZZA_URL, serviceId);
+		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
+		HttpEntity<String> request = new HttpEntity<>(headers);
+
+		// Execute the Request
+		ResponseEntity<String> response = null;
+		try {
+			response = restTemplate.exchange(URI.create(piazzaServiceUrl), HttpMethod.GET, request, String.class);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			throw new UserException(String.format("There was an error fetching Algorithm %s from Piazza.", serviceId),
+					exception.getMessage(), exception.getStatusCode());
+		}
+
+		// Ensure the response succeeded
+		if (!response.getStatusCode().is2xxSuccessful()) {
+			// Error occurred - report back to the user
+			throw new UserException(String.format("Piazza returned a non-OK status when requesting registered Algorithm %s.", serviceId),
+					response.getStatusCode().toString(), response.getStatusCode());
+		}
+
+		// Parse out the Algorithms from the Response
+		try {
+			JsonNode responseJson = objectMapper.readTree(response.getBody());
+			JsonNode algorithmJson = responseJson.get("data");
+			return getAlgorithmFromServiceNode(algorithmJson);
+		} catch (IOException exception) {
+			throw new UserException(
+					String.format("There was an error parsing the Piazza response when Requesting registered Algorithm %s.", serviceId),
+					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Wraps up a Piazza Service JSON Node (from a /service response) in an Algorithm Object
+	 * 
+	 * @param serviceNode
+	 *            The Service Data Node
+	 * @return The Algorithm
+	 */
+	private Algorithm getAlgorithmFromServiceNode(JsonNode algorithmJson) {
+		JsonNode metadata = algorithmJson.get("resourceMetadata");
+		JsonNode addedMetadata = metadata.get("metadata");
+		Algorithm algorithm = new Algorithm(metadata.get("description").asText(), addedMetadata.get("Interface").asText(),
+				addedMetadata.get("ImgReq - cloudCover").asInt(), metadata.get("name").asText(), algorithmJson.get("serviceId").asText(),
+				metadata.get("version").asText());
+		return algorithm;
+	}
+
+	/**
+	 * Creates Basic Auth headers with the Piazza API Key
+	 * 
+	 * @param piazzaApiKey
+	 *            The Piazza API Key
+	 * @return Basic Auth Headers for Piazza
+	 */
+	private HttpHeaders createPiazzaHeaders(String piazzaApiKey) {
+		String plainCreds = piazzaApiKey + ":";
+		byte[] plainCredsBytes = plainCreds.getBytes();
+		byte[] base64CredsBytes = Base64.encodeBase64(plainCredsBytes);
+		String base64Creds = new String(base64CredsBytes);
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Authorization", "Basic " + base64Creds);
+		return headers;
+	}
+
+	/**
+	 * Gets the JSON for a Piazza job request, with string format parameters that must be filled in
+	 * 
+	 * @return JSON job request template
+	 */
+	private String loadJobRequestJson() throws Exception {
+		// Create the JSON Payload for the Layer request to GeoServer
+		ClassLoader classLoader = getClass().getClassLoader();
+		InputStream jsonStream = null;
+		String jsonString = null;
+		try {
+			jsonStream = classLoader.getResourceAsStream(String.format("%s/%s", "piazza", File.separator, "execute.json"));
+			jsonString = IOUtils.toString(jsonStream);
+		} finally {
+			try {
+				if (jsonStream != null) {
+					jsonStream.close();
+				}
+			} catch (Exception exception) {
+				exception.printStackTrace();
+			}
+		}
+		return jsonString;
+	}
+}

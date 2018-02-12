@@ -42,6 +42,7 @@ public class BfApiConfig {
 		return mapper;
 	}
 
+	@SuppressWarnings("resource") // httpClient should stay open and that's OK
 	@Bean
 	public RestTemplate restTemplate() {
 		RestTemplate restTemplate = new RestTemplate();
