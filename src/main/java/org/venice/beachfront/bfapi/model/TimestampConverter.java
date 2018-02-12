@@ -6,7 +6,7 @@ import javax.persistence.Converter;
 
 import org.joda.time.DateTime;
 
-@Converter
+@Converter(autoApply = true)
 public class TimestampConverter implements AttributeConverter<DateTime, Timestamp> {
     @Override
     public Timestamp convertToDatabaseColumn(DateTime dateTime) {
