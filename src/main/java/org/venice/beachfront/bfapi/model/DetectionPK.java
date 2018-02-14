@@ -13,7 +13,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 @Embeddable
 public class DetectionPK implements Serializable {
-    @JoinColumn(name = "job_id", nullable = false, columnDefinition = "VARCHAR(64)")
+    @JoinColumn(name = "job_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToOne(targetEntity = Job.class, optional = false)
     @JsonProperty("job_id")
