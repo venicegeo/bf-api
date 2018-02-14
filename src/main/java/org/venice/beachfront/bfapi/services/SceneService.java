@@ -80,11 +80,17 @@ public class SceneService {
 
 		String scenePath = String.format("planet/%s/%s", platform, externalId);
 
-		ResponseEntity<JsonNode> response = this.restTemplate.getForEntity(
+		ResponseEntity<JsonNode> response;
+		try {
+			response = this.restTemplate.getForEntity(
 				UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
 						.path(scenePath).queryParam("PLANET_API_KEY", planetApiKey).queryParam("tides", withTides).build().toUri(),
 						JsonNode.class);
-
+		} catch (RestClientException ex) {
+			String details = String.format("path=%s", scenePath);
+			throw new UserException("Unknown exception while querying broker", ex, details, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+			
 		if (!response.getStatusCode().is2xxSuccessful()) {
 			switch (response.getStatusCodeValue()) {
 			case 401:
