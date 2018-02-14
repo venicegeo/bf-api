@@ -16,7 +16,7 @@ import org.venice.beachfront.bfapi.model.Scene;
 import com.fasterxml.jackson.databind.JsonNode;
 
 @Service
-public class IABrokerService {
+public class SceneService {
 	private static final int ASYNC_POLL_INTERVAL_SEC = 10;
 	private static final int ASYNC_POLL_MAX_ATTEMPTS = 60;
 
@@ -56,9 +56,9 @@ public class IABrokerService {
 		if (!response.getStatusCode().is2xxSuccessful()) {
 			switch (response.getStatusCodeValue()) {
 			case 401:
-				throw new IABrokerService.IABrokerNotPermittedException();
+				throw new SceneService.IABrokerNotPermittedException();
 			case 404:
-				throw new IABrokerService.IABrokerNotFoundException();
+				throw new SceneService.IABrokerNotFoundException();
 			default:
 				throw new IABrokerUnknownException(response.toString());
 			}
@@ -80,11 +80,11 @@ public class IABrokerService {
 		if (!response.getStatusCode().is2xxSuccessful()) {
 			switch (response.getStatusCodeValue()) {
 			case 401:
-				throw new IABrokerService.IABrokerNotPermittedException();
+				throw new SceneService.IABrokerNotPermittedException();
 			case 404:
-				throw new IABrokerService.IABrokerNotFoundException();
+				throw new SceneService.IABrokerNotFoundException();
 			case 502:
-				throw new IABrokerService.IABrokerUpstreamPlanetErrorException();
+				throw new SceneService.IABrokerUpstreamPlanetErrorException();
 			default:
 				throw new IABrokerUnknownException(response.toString());
 			}

@@ -26,7 +26,7 @@ public class JobService {
 	@Autowired
 	private AlgorithmService algorithmService;
 	@Autowired
-	private IABrokerService iaBrokerService;
+	private SceneService iaBrokerService;
 	@Autowired
 	private PiazzaService piazzaService;
 

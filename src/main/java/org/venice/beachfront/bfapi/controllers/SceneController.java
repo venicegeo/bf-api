@@ -31,11 +31,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.venice.beachfront.bfapi.model.Scene;
-import org.venice.beachfront.bfapi.services.IABrokerService;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerNotFoundException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerNotPermittedException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerUnknownException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerUpstreamPlanetErrorException;
+import org.venice.beachfront.bfapi.services.SceneService;
+import org.venice.beachfront.bfapi.services.SceneService.IABrokerNotFoundException;
+import org.venice.beachfront.bfapi.services.SceneService.IABrokerNotPermittedException;
+import org.venice.beachfront.bfapi.services.SceneService.IABrokerUnknownException;
+import org.venice.beachfront.bfapi.services.SceneService.IABrokerUpstreamPlanetErrorException;
 
 /**
  * Main controller class for managing and downloading scenes.
@@ -45,7 +45,7 @@ import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerUpstreamPlan
 @Controller
 public class SceneController {
 	@Autowired
-	private IABrokerService iaBrokerService;
+	private SceneService iaBrokerService;
 
 	@RequestMapping(path = "/scene/{id}/download", method = RequestMethod.GET, params = { "planet_api_key" })
 	@ResponseBody
