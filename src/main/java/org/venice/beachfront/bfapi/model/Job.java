@@ -54,13 +54,13 @@ public class Job {
 	private String sceneId;
 	@Column(name = "tide")
 	@JsonProperty("tide")
-	private double tide;
+	private Double tide;
 	@Column(name = "tide_min_24h")
 	@JsonProperty("tide_min_24h")
-	private double tideMin24h;
+	private Double tideMin24h;
 	@Column(name = "tide_max_24h")
 	@JsonProperty("tide_max_24h")
-	private double tideMax24h;
+	private Double tideMax24h;
 	@JsonProperty("extras")
 	@Transient // TODO: This must be added to the Liquibase Migrations
 	private JsonNode extras;
@@ -106,8 +106,8 @@ public class Job {
 	 *            compute mask boolean
 	 */
 	public Job(String jobId, String jobName, String status, String createdByUserId, DateTime createdOn, String algorithmId,
-			String algorithmName, String algorithmVersion, String sceneId, double tide, double tideMin24h,
-			double tideMax24h, JsonNode extras, Boolean computeMask) {
+			String algorithmName, String algorithmVersion, String sceneId, Double tide, Double tideMin24h, Double tideMax24h,
+			JsonNode extras, Boolean computeMask) {
 		this.jobId = jobId;
 		this.jobName = jobName;
 		this.status = status;
