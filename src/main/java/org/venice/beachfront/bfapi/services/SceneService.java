@@ -20,8 +20,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 @Service
 public class SceneService {
-	private static final int ASYNC_POLL_INTERVAL_SEC = 10;
-	private static final int ASYNC_POLL_MAX_ATTEMPTS = 60;
+	@Value("${ia.broker.activation-poll-interval-sec}")
+	private int asyncActivationPollIntervalSeconds;
+	
+	@Value("${ia.broker.activation-poll-max-attempts}")
+	private int asyncActivationPollMaxAttempts;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -140,7 +143,7 @@ public class SceneService {
 
 	public CompletableFuture<Scene> asyncGetActiveScene(String sceneId, String planetApiKey, boolean withTides) {
 		return CompletableFuture.supplyAsync(() -> {
-			for (int i = 0; i < ASYNC_POLL_MAX_ATTEMPTS; i++) {
+			for (int i = 0; i < asyncActivationPollMaxAttempts; i++) {
 				Scene updatedScene;
 
 				try {
@@ -155,7 +158,7 @@ public class SceneService {
 			}
 
 			try {
-				Thread.sleep(ASYNC_POLL_INTERVAL_SEC * 1000);
+				Thread.sleep(asyncActivationPollIntervalSeconds * 1000);
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
