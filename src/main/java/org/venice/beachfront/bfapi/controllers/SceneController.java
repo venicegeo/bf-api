@@ -19,6 +19,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -31,11 +32,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.venice.beachfront.bfapi.model.Scene;
+import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.SceneService;
-import org.venice.beachfront.bfapi.services.SceneService.IABrokerNotFoundException;
-import org.venice.beachfront.bfapi.services.SceneService.IABrokerNotPermittedException;
-import org.venice.beachfront.bfapi.services.SceneService.IABrokerUnknownException;
-import org.venice.beachfront.bfapi.services.SceneService.IABrokerUpstreamPlanetErrorException;
 
 /**
  * Main controller class for managing and downloading scenes.
@@ -46,11 +44,14 @@ import org.venice.beachfront.bfapi.services.SceneService.IABrokerUpstreamPlanetE
 public class SceneController {
 	@Autowired
 	private SceneService iaBrokerService;
+	
+	@Autowired
+	private Logger logger;
 
 	@RequestMapping(path = "/scene/{id}/download", method = RequestMethod.GET, params = { "planet_api_key" })
 	@ResponseBody
 	public CompletableFuture<ResponseEntity<?>> downloadScene(@PathVariable(value = "id") String sceneId,
-			@RequestParam(value = "planet_api_key", required = true) String planetApiKey) throws IABrokerNotPermittedException, IABrokerNotFoundException, IABrokerUpstreamPlanetErrorException, IABrokerUnknownException {
+			@RequestParam(value = "planet_api_key", required = true) String planetApiKey) throws UserException {
 		return this.iaBrokerService.asyncGetActiveScene(sceneId, planetApiKey, true).thenApply((Scene activeScene) -> {
 			HttpHeaders headers = new HttpHeaders();
 			try {
@@ -62,24 +63,10 @@ public class SceneController {
 		});
 	}
 	
-	@ExceptionHandler(IABrokerNotPermittedException.class)
-	public ResponseEntity<String> handleNotPermitted() {
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("not permitted");
-	}
-
-	@ExceptionHandler(IABrokerNotFoundException.class)
-	public ResponseEntity<String> handleNotFound() {
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("not found");
-	}
-	
-	@ExceptionHandler(IABrokerUpstreamPlanetErrorException.class)
-	public ResponseEntity<String> handleUpstreamError(IABrokerUpstreamPlanetErrorException ex) {
-		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("upstream error: " + ex.getMessage());
-	}
-	
-	@ExceptionHandler(IABrokerUnknownException.class)
-	public ResponseEntity<String> handleUnknownError(IABrokerUnknownException ex) {
-		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("unknown error: " + ex.getMessage());
+	@ExceptionHandler(UserException.class)
+	public ResponseEntity<String> handleUserException(UserException ex) {
+		this.logger.error(ex.getDetails(), ex);
+		return ResponseEntity.status(ex.getRecommendedStatusCode()).body(ex.getMessage());
 	}
 }
 

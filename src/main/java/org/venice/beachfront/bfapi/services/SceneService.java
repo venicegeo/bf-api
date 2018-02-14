@@ -7,11 +7,14 @@ import java.util.concurrent.ExecutorService;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.model.Scene;
+import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -38,8 +41,7 @@ public class SceneService {
 	@Value("${DOMAIN}")
 	private String bfDomain;
 
-	public void activateScene(Scene scene, String planetApiKey)
-			throws IABrokerNotPermittedException, IABrokerUnknownException, IABrokerNotFoundException {
+	public void activateScene(Scene scene, String planetApiKey) throws UserException {
 		if (!scene.getStatus().equals(Scene.STATUS_INACTIVE)) {
 			return;
 		}
@@ -48,25 +50,31 @@ public class SceneService {
 
 		String activationPath = String.format("planet/activate/%s/%s", platform, scene.getExternalId());
 
-		ResponseEntity<Object> response = this.restTemplate.getForEntity(
-				UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
-						.path(activationPath).queryParam("PLANET_API_KEY", planetApiKey).build().toUri(),
-				Object.class);
+		ResponseEntity<String> response;
+		try {
+			response = this.restTemplate.getForEntity(
+					UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
+							.path(activationPath).queryParam("PLANET_API_KEY", planetApiKey).build().toUri(),
+					String.class);
+		} catch (RestClientException ex) {
+			String details = String.format("path=%s", activationPath);
+			throw new UserException("Unknown exception while querying broker", ex, details, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 
 		if (!response.getStatusCode().is2xxSuccessful()) {
 			switch (response.getStatusCodeValue()) {
 			case 401:
-				throw new SceneService.IABrokerNotPermittedException();
+				throw new UserException("Broker returned 401: Unauthorized", HttpStatus.UNAUTHORIZED);
 			case 404:
-				throw new SceneService.IABrokerNotFoundException();
+				throw new UserException("Scene not found", HttpStatus.NOT_FOUND);
 			default:
-				throw new IABrokerUnknownException(response.toString());
+				String simpleMessage = String.format("Received non-OK status %d from broker", response.getStatusCodeValue());
+				throw new UserException(simpleMessage, response.getBody() , HttpStatus.BAD_GATEWAY);
 			}
 		}
 	}
 
-	public Scene getScene(String sceneId, String planetApiKey, boolean withTides) throws IABrokerNotPermittedException,
-			IABrokerNotFoundException, IABrokerUpstreamPlanetErrorException, IABrokerUnknownException {
+	public Scene getScene(String sceneId, String planetApiKey, boolean withTides) throws UserException {
 		String platform = Scene.parsePlatform(sceneId);
 		String externalId = Scene.parseExternalId(sceneId);
 
@@ -80,40 +88,44 @@ public class SceneService {
 		if (!response.getStatusCode().is2xxSuccessful()) {
 			switch (response.getStatusCodeValue()) {
 			case 401:
-				throw new SceneService.IABrokerNotPermittedException();
+				throw new UserException("Broker returned 401: Unauthorized", HttpStatus.UNAUTHORIZED);
 			case 404:
-				throw new SceneService.IABrokerNotFoundException();
+				throw new UserException("Scene not found", HttpStatus.NOT_FOUND);
 			case 502:
-				throw new SceneService.IABrokerUpstreamPlanetErrorException();
+				throw new UserException("Upstream broker error", response.getBody().toString(), HttpStatus.BAD_GATEWAY);
 			default:
-				throw new IABrokerUnknownException(response.toString());
-			}
+				String simpleMessage = String.format("Received non-OK status %d from broker", response.getStatusCodeValue());
+				throw new UserException(simpleMessage, response.getBody().toString(), HttpStatus.BAD_GATEWAY);			}
 		}
 		
 		JsonNode responseJson = response.getBody();
 
 		Scene scene = new Scene();
-		scene.setRawJson(responseJson);
-		scene.setSceneId(responseJson.get("id").asText());
-		scene.setCloudCover(responseJson.get("properties").get("cloudCover").asDouble());
-		scene.setResolution(responseJson.get("properties").get("resolution").asInt());
-		scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
-		scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
-		scene.setUri(responseJson.get("properties").get("location").asText());
-
-		String status = "active";
-		if (platform.equals(Scene.PLATFORM_RAPIDEYE) || platform.equals(Scene.PLATFORM_PLANETSCOPE)) {
-			status = responseJson.get("properties").get("status").asText();
-		} else {
-			// Status active
-		}
-		
-		scene.setStatus(status);
-		
-		if (withTides) {
-			scene.setTide(responseJson.get("properties").get("CurrentTide").asDouble());
-			scene.setTideMin24H(responseJson.get("properties").get("MinimumTide24Hours").asDouble());
-			scene.setTideMax24H(responseJson.get("properties").get("MaximumTide24Hours").asDouble());
+		try {
+			scene.setRawJson(responseJson);
+			scene.setSceneId(responseJson.get("id").asText());
+			scene.setCloudCover(responseJson.get("properties").get("cloudCover").asDouble());
+			scene.setResolution(responseJson.get("properties").get("resolution").asInt());
+			scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
+			scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
+			scene.setUri(responseJson.get("properties").get("location").asText());
+	
+			String status = "active";
+			if (platform.equals(Scene.PLATFORM_RAPIDEYE) || platform.equals(Scene.PLATFORM_PLANETSCOPE)) {
+				status = responseJson.get("properties").get("status").asText();
+			} else {
+				// Status active
+			}
+			
+			scene.setStatus(status);
+			
+			if (withTides) {
+				scene.setTide(responseJson.get("properties").get("CurrentTide").asDouble());
+				scene.setTideMin24H(responseJson.get("properties").get("MinimumTide24Hours").asDouble());
+				scene.setTideMax24H(responseJson.get("properties").get("MaximumTide24Hours").asDouble());
+			}
+		} catch (NullPointerException ex) {
+			throw new UserException("Error parsing JSON response from upstream", ex, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return scene;
@@ -127,8 +139,7 @@ public class SceneService {
 
 				try {
 					updatedScene = this.getScene(sceneId, planetApiKey, withTides);
-				} catch (IABrokerNotPermittedException | IABrokerNotFoundException | IABrokerUpstreamPlanetErrorException
-						| IABrokerUnknownException e) {
+				} catch (UserException e) {
 					throw new RuntimeException(e);
 				}
 
@@ -143,7 +154,7 @@ public class SceneService {
 				throw new RuntimeException(e);
 			}
 
-			throw new RuntimeException(new IABrokerTimedOutException());
+			throw new RuntimeException(new UserException("Upstream server timed out", HttpStatus.GATEWAY_TIMEOUT));
 		}, this.executor);
 	}
 
@@ -165,31 +176,4 @@ public class SceneService {
 				.toUri();
 	}
 
-	public class IABrokerNotPermittedException extends Exception {
-		private static final long serialVersionUID = 1L;
-	}
-
-	public class IABrokerNotFoundException extends Exception {
-		private static final long serialVersionUID = 1L;
-	}
-
-	public class IABrokerUpstreamPlanetErrorException extends Exception {
-		private static final long serialVersionUID = 1L;
-	}
-
-	public class IABrokerTimedOutException extends Exception {
-		private static final long serialVersionUID = 1L;
-	}
-
-	public class IABrokerUnknownException extends Exception {
-		private static final long serialVersionUID = 1L;
-
-		public IABrokerUnknownException(String message) {
-			super(message);
-		}
-		
-		public IABrokerUnknownException(String message, Throwable cause) {
-			super(message, cause);
-		}
-	}
 }
