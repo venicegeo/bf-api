@@ -1,4 +1,4 @@
-package org.venice.beachfront.bfapi.model;
+package org.venice.beachfront.bfapi.model.converter;
 
 import java.sql.Timestamp;
 import javax.persistence.AttributeConverter;
