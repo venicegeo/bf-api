@@ -304,8 +304,8 @@ public class PiazzaService {
 		InputStream jsonStream = null;
 		String jsonString = null;
 		try {
-			jsonStream = classLoader.getResourceAsStream(String.format("%s/%s", "piazza", File.separator, "execute.json"));
-			jsonString = IOUtils.toString(jsonStream);
+			jsonStream = classLoader.getResourceAsStream(String.format("%s%s%s", "piazza", File.separator, "execute.json"));
+			jsonString = IOUtils.toString(jsonStream, "UTF-8");
 		} finally {
 			try {
 				if (jsonStream != null) {
