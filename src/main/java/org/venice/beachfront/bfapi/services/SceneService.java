@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.model.Scene;
@@ -53,28 +55,24 @@ public class SceneService {
 
 		String activationPath = String.format("planet/activate/%s/%s", platform, scene.getExternalId());
 
-		ResponseEntity<String> response;
 		try {
-			response = this.restTemplate.getForEntity(
+			this.restTemplate.getForEntity(
 					UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
-							.path(activationPath).queryParam("PLANET_API_KEY", planetApiKey).build().toUri(),
-					String.class);
-		} catch (RestClientException ex) {
-			String details = String.format("path=%s", activationPath);
-			throw new UserException("Unknown exception while querying broker", ex, details, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-
-		if (!response.getStatusCode().is2xxSuccessful()) {
-			switch (response.getStatusCodeValue()) {
+					.path(activationPath).queryParam("PLANET_API_KEY", planetApiKey).build().toUri(),
+					Object.class);
+		} catch (RestClientResponseException  ex) {
+			switch (ex.getRawStatusCode()) {
 			case 401:
-				throw new UserException("Broker returned 401: Unauthorized", HttpStatus.UNAUTHORIZED);
+				throw new UserException("Broker returned 401: Unauthorized", ex, HttpStatus.UNAUTHORIZED);
 			case 404:
-				throw new UserException("Scene not found", HttpStatus.NOT_FOUND);
+				throw new UserException("Scene not found", ex, HttpStatus.NOT_FOUND);
+			case 502:
+				throw new UserException("Upstream broker error", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			default:
-				String simpleMessage = String.format("Received non-OK status %d from broker", response.getStatusCodeValue());
-				throw new UserException(simpleMessage, response.getBody() , HttpStatus.BAD_GATEWAY);
+				String simpleMessage = String.format("Received non-OK status %d from broker", ex.getRawStatusCode());
+				throw new UserException(simpleMessage, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);			
 			}
-		}
+		}	
 	}
 
 	public Scene getScene(String sceneId, String planetApiKey, boolean withTides) throws UserException {
@@ -89,24 +87,21 @@ public class SceneService {
 				UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
 						.path(scenePath).queryParam("PLANET_API_KEY", planetApiKey).queryParam("tides", withTides).build().toUri(),
 						JsonNode.class);
-		} catch (RestClientException ex) {
-			String details = String.format("path=%s", scenePath);
-			throw new UserException("Unknown exception while querying broker", ex, details, HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (RestClientResponseException  ex) {
+			switch (ex.getRawStatusCode()) {
+			case 401:
+				throw new UserException("Broker returned 401: Unauthorized", ex, HttpStatus.UNAUTHORIZED);
+			case 404:
+				throw new UserException("Scene not found", ex, HttpStatus.NOT_FOUND);
+			case 502:
+				throw new UserException("Upstream broker error", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
+			default:
+				String simpleMessage = String.format("Received non-OK status %d from broker", ex.getRawStatusCode());
+				throw new UserException(simpleMessage, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);			
+			}
 		}
 			
-		if (!response.getStatusCode().is2xxSuccessful()) {
-			switch (response.getStatusCodeValue()) {
-			case 401:
-				throw new UserException("Broker returned 401: Unauthorized", HttpStatus.UNAUTHORIZED);
-			case 404:
-				throw new UserException("Scene not found", HttpStatus.NOT_FOUND);
-			case 502:
-				throw new UserException("Upstream broker error", response.getBody().toString(), HttpStatus.BAD_GATEWAY);
-			default:
-				String simpleMessage = String.format("Received non-OK status %d from broker", response.getStatusCodeValue());
-				throw new UserException(simpleMessage, response.getBody().toString(), HttpStatus.BAD_GATEWAY);			}
-		}
-		
+
 		JsonNode responseJson = response.getBody();
 
 		Scene scene = new Scene();
