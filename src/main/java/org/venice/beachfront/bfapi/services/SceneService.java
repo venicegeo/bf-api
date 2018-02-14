@@ -187,5 +187,9 @@ public class SceneService {
 		public IABrokerUnknownException(String message) {
 			super(message);
 		}
+		
+		public IABrokerUnknownException(String message, Throwable cause) {
+			super(message, cause);
+		}
 	}
 }
