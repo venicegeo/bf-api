@@ -1,9 +1,10 @@
-package org.venice.beachfront.bfapi.model;
+package org.venice.beachfront.bfapi.model.converter;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.services.JobService;
 
 @Converter(autoApply = true)

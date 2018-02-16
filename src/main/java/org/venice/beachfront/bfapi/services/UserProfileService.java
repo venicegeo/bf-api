@@ -1,6 +1,5 @@
 package org.venice.beachfront.bfapi.services;
 
-import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.database.dao.UserProfileDao;
@@ -12,11 +11,6 @@ public class UserProfileService {
 	UserProfileDao userProfileDao;
 
 	public UserProfile getCurrentUserProfile() {
-		UserProfile user = new UserProfile("XXX",
-				"jmcmahon",
-				"apiKey",
-				DateTime.now()
-		);
-		return userProfileDao.save(user);
+		return null;
 	}
 }

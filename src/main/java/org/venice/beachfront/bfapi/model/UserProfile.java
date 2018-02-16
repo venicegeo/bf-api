@@ -7,6 +7,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 import org.joda.time.DateTime;
+import org.venice.beachfront.bfapi.model.converter.TimestampConverter;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
