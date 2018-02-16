@@ -7,10 +7,12 @@ import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
+import org.venice.beachfront.bfapi.database.dao.JobUserDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Confirmation;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.JobStatus;
+import org.venice.beachfront.bfapi.model.JobUser;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
@@ -20,6 +22,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class JobService {
 	@Autowired
 	private JobDao jobDao;
+	@Autowired
+	private JobUserDao jobUserDao;
+	@Autowired
+	private UserProfileService userProfileService;
 	@Autowired
 	private AlgorithmService algorithmService;
 	@Autowired
@@ -56,8 +62,7 @@ public class JobService {
 		// that Job.
 		Job redundantJob = getExistingRedundantJob(sceneId, algorithm, computeMask);
 		if (redundantJob != null) {
-			// Add this Job to the Users Job table
-			// TODO - John help with adding job to users table
+			jobUserDao.save(new JobUser(redundantJob, userProfileService.getUserProfileById(creatorUserId)));
 			return redundantJob;
 		}
 
@@ -95,8 +100,10 @@ public class JobService {
 		Job job = new Job(jobId, jobName, Job.STATUS_SUBMITTED, creatorUserId, new DateTime(), algorithm.getServiceId(),
 				algorithm.getName(), algorithm.getVersion(), scene.getSceneId(), scene.getTide(), scene.getTideMin24H(),
 				scene.getTideMax24H(), extras, computeMask);
+		// Save the Job to the Jobs table
 		jobDao.save(job);
-		// TODO: John how do I commit to user job table here
+		// Associate this Job with the User who requested it
+		jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
 		return job;
 	}
 
@@ -164,11 +171,17 @@ public class JobService {
 	}
 
 	public Confirmation deleteJob(Job job) {
-		return null; // TODO
+		jobDao.delete(job);
+		return new Confirmation(job.getJobId(), true);
 	}
 
 	public List<JobStatus> searchJobsByInputs(String algorithmId, String sceneId) {
-		return null; // TODO
+		List<Job> jobs = jobDao.findByAlgorithmIdAndSceneId(algorithmId, sceneId);
+		List<JobStatus> statuses = new ArrayList<JobStatus>();
+		for (Job job : jobs) {
+			statuses.add(new JobStatus(job.getJobId(), job.getStatus()));
+		}
+		return statuses;
 	}
 
 	/**

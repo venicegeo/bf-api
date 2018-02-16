@@ -13,4 +13,8 @@ public class UserProfileService {
 	public UserProfile getCurrentUserProfile() {
 		return null;
 	}
+
+	public UserProfile getUserProfileById(String userId) {
+		return userProfileDao.findByUserId(userId);
+	}
 }
