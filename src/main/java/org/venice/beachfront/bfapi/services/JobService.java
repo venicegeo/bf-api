@@ -170,9 +170,15 @@ public class JobService {
 		return jobDao.findByJobId(jobId);
 	}
 
-	public Confirmation deleteJob(Job job) {
-		jobDao.delete(job);
-		return new Confirmation(job.getJobId(), true);
+	public Confirmation forgetJob(String jobId, String userId) {
+		JobUser jobUser = jobUserDao.findByJobUserPK_Job_JobIdAndJobUserPK_User_UserId(jobId, userId);
+		if (jobUser != null) {
+			jobUserDao.delete(jobUser);
+			return new Confirmation(jobId, true);
+		} else {
+			return new Confirmation(jobId, false);
+		}
+
 	}
 
 	public List<JobStatus> searchJobsByInputs(String algorithmId, String sceneId) {

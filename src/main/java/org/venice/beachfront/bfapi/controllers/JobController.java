@@ -85,7 +85,7 @@ public class JobController {
 	@ResponseBody
 	public Confirmation deleteJob(@PathVariable("id") String id) {
 		Job job = jobService.getJob(id);
-		return jobService.deleteJob(job);
+		return jobService.forgetJob(job.getJobId(), userProfileService.getCurrentUserProfile().getUserId());
 	}
 
 	private static class CreateJobBody {
