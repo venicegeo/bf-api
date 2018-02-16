@@ -26,7 +26,5 @@ import org.venice.beachfront.bfapi.model.JobUserPK;
 public interface JobUserDao extends CrudRepository<JobUser, JobUserPK> {
 	List<JobUser> findByJobUserPK_User_UserId(String UserId);
 
-	JobUser findByJobUserPK_Job_JobId(String JobId);
-
 	JobUser findByJobUserPK_Job_JobIdAndJobUserPK_User_UserId(String JobId, String UserId);
 }
