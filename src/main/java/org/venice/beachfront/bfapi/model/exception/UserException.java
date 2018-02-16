@@ -13,16 +13,53 @@ public class UserException extends Exception {
 
 	private String message;
 	private String details;
+	private Throwable cause;
 	@Transient
 	private HttpStatus recommendedStatusCode;
 
-	public UserException() {
-
+	public UserException(String message, HttpStatus recommendedStatusCode) {
+		this.message = message;
+		this.details = "";
+		this.cause = null;
+		this.recommendedStatusCode = recommendedStatusCode;
 	}
 
 	public UserException(String message, String details, HttpStatus recommendedStatusCode) {
 		this.message = message;
 		this.details = details;
+		this.cause = null;
 		this.recommendedStatusCode = recommendedStatusCode;
+	}
+	
+	public UserException(String message, Throwable cause, HttpStatus recommendedStatusCode) {
+		this.message = message;
+		this.cause = cause;
+		this.details = "";
+		this.recommendedStatusCode = recommendedStatusCode;
+	}
+
+	public UserException(String message, Throwable cause, String details, HttpStatus recommendedStatusCode) {
+		this.message = message;
+		this.cause = cause;
+		this.details = details;
+		this.recommendedStatusCode = recommendedStatusCode;
+	}
+
+	@Override
+	public String getMessage() {
+		return message;
+	}
+
+	public String getDetails() {
+		return details;
+	}
+
+	public HttpStatus getRecommendedStatusCode() {
+		return recommendedStatusCode;
+	}
+	
+	@Override
+	public Throwable getCause() {
+		return cause;
 	}
 }

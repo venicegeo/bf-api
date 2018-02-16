@@ -21,10 +21,6 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerNotFoundException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerNotPermittedException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerUnknownException;
-import org.venice.beachfront.bfapi.services.IABrokerService.IABrokerUpstreamPlanetErrorException;
 
 public class JobServiceTests {
 	@Mock
@@ -32,7 +28,7 @@ public class JobServiceTests {
 	@Mock
 	private AlgorithmService algorithmService;
 	@Mock
-	private IABrokerService iaBrokerService;
+	private SceneService iaBrokerService;
 	@Mock
 	private PiazzaService piazzaService;
 	@InjectMocks
@@ -44,8 +40,7 @@ public class JobServiceTests {
 	}
 
 	@Test
-	public void testCreateJob() throws UserException, IABrokerNotPermittedException, IABrokerNotFoundException,
-			IABrokerUpstreamPlanetErrorException, IABrokerUnknownException {
+	public void testCreateJob() throws UserException {
 		// Mock Scene and Algorithm
 		String serviceId = "service123";
 		String creatorId = "tester123";
