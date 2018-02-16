@@ -1,6 +1,9 @@
 package org.venice.beachfront.bfapi.services;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -10,8 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -24,7 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class SceneService {
 	@Value("${ia.broker.activation-poll-interval-sec}")
 	private int asyncActivationPollIntervalSeconds;
-	
+
 	@Value("${ia.broker.activation-poll-max-attempts}")
 	private int asyncActivationPollMaxAttempts;
 
@@ -42,7 +43,7 @@ public class SceneService {
 
 	@Value("${ia.broker.port}")
 	private int iaBrokerPort;
-	
+
 	@Value("${DOMAIN}")
 	private String bfDomain;
 
@@ -56,11 +57,9 @@ public class SceneService {
 		String activationPath = String.format("planet/activate/%s/%s", platform, scene.getExternalId());
 
 		try {
-			this.restTemplate.getForEntity(
-					UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
-					.path(activationPath).queryParam("PLANET_API_KEY", planetApiKey).build().toUri(),
-					Object.class);
-		} catch (RestClientResponseException  ex) {
+			this.restTemplate.getForEntity(UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer)
+					.port(this.iaBrokerPort).path(activationPath).queryParam("PLANET_API_KEY", planetApiKey).build().toUri(), Object.class);
+		} catch (RestClientResponseException ex) {
 			switch (ex.getRawStatusCode()) {
 			case 401:
 				throw new UserException("Broker returned 401: Unauthorized", ex, HttpStatus.UNAUTHORIZED);
@@ -70,9 +69,9 @@ public class SceneService {
 				throw new UserException("Upstream broker error", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			default:
 				String simpleMessage = String.format("Received non-OK status %d from broker", ex.getRawStatusCode());
-				throw new UserException(simpleMessage, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);			
+				throw new UserException(simpleMessage, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			}
-		}	
+		}
 	}
 
 	public Scene getScene(String sceneId, String planetApiKey, boolean withTides) throws UserException {
@@ -84,10 +83,10 @@ public class SceneService {
 		ResponseEntity<JsonNode> response;
 		try {
 			response = this.restTemplate.getForEntity(
-				UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
-						.path(scenePath).queryParam("PLANET_API_KEY", planetApiKey).queryParam("tides", withTides).build().toUri(),
-						JsonNode.class);
-		} catch (RestClientResponseException  ex) {
+					UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
+							.path(scenePath).queryParam("PLANET_API_KEY", planetApiKey).queryParam("tides", withTides).build().toUri(),
+					JsonNode.class);
+		} catch (RestClientResponseException ex) {
 			switch (ex.getRawStatusCode()) {
 			case 401:
 				throw new UserException("Broker returned 401: Unauthorized", ex, HttpStatus.UNAUTHORIZED);
@@ -97,10 +96,9 @@ public class SceneService {
 				throw new UserException("Upstream broker error", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			default:
 				String simpleMessage = String.format("Received non-OK status %d from broker", ex.getRawStatusCode());
-				throw new UserException(simpleMessage, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);			
+				throw new UserException(simpleMessage, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			}
 		}
-			
 
 		JsonNode responseJson = response.getBody();
 
@@ -113,16 +111,16 @@ public class SceneService {
 			scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
 			scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
 			scene.setUri(responseJson.get("properties").get("location").asText());
-	
+
 			String status = "active";
 			if (platform.equals(Scene.PLATFORM_RAPIDEYE) || platform.equals(Scene.PLATFORM_PLANETSCOPE)) {
 				status = responseJson.get("properties").get("status").asText();
 			} else {
 				// Status active
 			}
-			
+
 			scene.setStatus(status);
-			
+
 			if (withTides) {
 				scene.setTide(responseJson.get("properties").get("CurrentTide").asDouble());
 				scene.setTideMin24H(responseJson.get("properties").get("MinimumTide24Hours").asDouble());
@@ -147,7 +145,7 @@ public class SceneService {
 					throw new RuntimeException(e);
 				}
 
-				if (updatedScene.getStatus().equals(Scene.STATUS_ACTIVE)) { 
+				if (updatedScene.getStatus().equals(Scene.STATUS_ACTIVE)) {
 					return updatedScene;
 				}
 			}
@@ -171,13 +169,34 @@ public class SceneService {
 	 */
 	public URI getDownloadUri(Scene scene, String planetApiKey) {
 		// https://bf-api.{domain}/scene/{id}/download?planet_api_key={key}
-		return UriComponentsBuilder.newInstance()
-				.scheme("https")
-				.host("bf-api." + bfDomain)
-				.pathSegment("scene", scene.getSceneId(), "download")
-				.queryParam("planet_api_key", planetApiKey)
-				.build()
-				.toUri();
+		return UriComponentsBuilder.newInstance().scheme("https").host("bf-api." + bfDomain)
+				.pathSegment("scene", scene.getSceneId(), "download").queryParam("planet_api_key", planetApiKey).build().toUri();
+	}
+
+	public List<String> getSceneInputFileNames(Scene scene) {
+		switch (Scene.parsePlatform(scene.getSceneId())) {
+		case Scene.PLATFORM_RAPIDEYE:
+		case Scene.PLATFORM_PLANETSCOPE:
+			return Arrays.asList("multispectral.TIF");
+		case Scene.PLATFORM_LANDSAT:
+			return Arrays.asList("coastal.TIF", "multispectral.TIF");
+		case Scene.PLATFORM_SENTINEL:
+			return Arrays.asList("B02.JP2", "B08.JP2");
+		}
+		return new ArrayList<String>();
+	}
+
+	public List<String> getSceneInputURLs(Scene scene) {
+		switch (Scene.parsePlatform(scene.getSceneId())) {
+		case Scene.PLATFORM_RAPIDEYE:
+		case Scene.PLATFORM_PLANETSCOPE:
+			return Arrays.asList(scene.getUri().toString());
+		case Scene.PLATFORM_LANDSAT:
+			return Arrays.asList(scene.getImageBand("coastal"), scene.getUri().toString());
+		case Scene.PLATFORM_SENTINEL:
+			return Arrays.asList(scene.getImageBand("blue"), scene.getImageBand("nir"));
+		}
+		return new ArrayList<String>();
 	}
 
 }

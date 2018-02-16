@@ -28,7 +28,7 @@ public class JobServiceTests {
 	@Mock
 	private AlgorithmService algorithmService;
 	@Mock
-	private SceneService iaBrokerService;
+	private SceneService sceneService;
 	@Mock
 	private PiazzaService piazzaService;
 	@InjectMocks
@@ -47,7 +47,7 @@ public class JobServiceTests {
 		Algorithm mockAlgorithm = new Algorithm("Description", "Interface", 10, "Name", serviceId, "1.0.0");
 		Mockito.doReturn(mockAlgorithm).when(algorithmService).getAlgorithm(Mockito.eq(serviceId));
 		Scene mockScene = new Scene("scene123", new DateTime(), 10, null, 10, "Sensor", "URI");
-		Mockito.doReturn(mockScene).when(iaBrokerService).getScene(Mockito.eq("scene123"), Mockito.any(), Mockito.anyBoolean());
+		Mockito.doReturn(mockScene).when(sceneService).getScene(Mockito.eq("scene123"), Mockito.any(), Mockito.anyBoolean());
 		// No redundant jobs
 		Mockito.doReturn(new ArrayList<Job>()).when(jobDao).findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatus(
 				Mockito.eq(mockScene.getSceneId()), Mockito.eq(serviceId), Mockito.eq(mockAlgorithm.getVersion()), Mockito.any(),
