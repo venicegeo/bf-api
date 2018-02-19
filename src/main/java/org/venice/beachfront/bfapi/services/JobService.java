@@ -231,7 +231,7 @@ public class JobService {
 	 *            The error encountered
 	 */
 	public void createJobError(Job job, String error) {
-		JobError jobError = new JobError(job, error, null);
+		JobError jobError = new JobError(job, error, "Processing");
 		jobErrorDao.save(jobError);
 	}
 
