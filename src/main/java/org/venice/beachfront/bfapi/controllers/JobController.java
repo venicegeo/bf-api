@@ -112,6 +112,20 @@ public class JobController {
 			this.extras = extras;
 		}
 	}
+	
+	@RequestMapping(path = "/job/{id}.geojson", method = RequestMethod.GET, produces = { "application/json" })
+	@ResponseBody
+	public byte[] downloadJobGeoJson(@PathVariable("id") String id) {
+		return null;
+		// TODO
+	}
+	
+	@RequestMapping(path = "/job/{id}.gpkg", method = RequestMethod.GET, produces = { "application/json" })
+	@ResponseBody
+	public byte[] downloadJobGeoPackage(@PathVariable("id") String id) {
+		return null;
+		// TODO
+	}
 
 	@ResponseStatus(value = HttpStatus.NOT_FOUND)
 	private static class JobNotFoundException extends RuntimeException {
