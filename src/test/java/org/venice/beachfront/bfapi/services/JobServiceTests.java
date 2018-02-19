@@ -18,6 +18,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
+import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
 import org.venice.beachfront.bfapi.database.dao.JobUserDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
@@ -31,6 +32,8 @@ public class JobServiceTests {
 	private AlgorithmService algorithmService;
 	@Mock
 	private SceneService sceneService;
+	@Mock
+	private JobErrorDao jobErrorDao;
 	@Mock
 	private PiazzaService piazzaService;
 	@Mock

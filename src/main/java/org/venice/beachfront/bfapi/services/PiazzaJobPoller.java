@@ -28,7 +28,6 @@ import org.geotools.geojson.geom.GeometryJSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.venice.beachfront.bfapi.model.Detection;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
@@ -111,17 +110,22 @@ public class PiazzaJobPoller {
 					// Finally, mark the Job as successful
 					job.setStatus(Job.STATUS_SUCCESS);
 				} catch (IOException exception) {
-					// TODO: This should be a well-formed log entry because things going wrong here are bad
 					exception.printStackTrace();
+					String error = String.format("Job %s failed because of an internal error while reading the detection geometry.",
+							job.getJobId());
+					jobService.createJobError(job, error);
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
 					exception.printStackTrace();
+					String error = String.format("Job %s failed because of an internal error downloading the detection geometry.",
+							job.getJobId());
+					jobService.createJobError(job, error);
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
 				}
 			} else if (status.isStatusError()) {
-				// https://github.com/venicegeo/bf-api/blob/master/bfapi/db/jobs.py#L125
-				// TODO: John, how do I save to the job_error table?
+				job.setStatus(status.getStatus());
+				jobService.createJobError(job, status.getErrorMessage());
 			}
 			// Commit the updates
 			jobService.updateJob(job);

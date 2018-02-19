@@ -12,11 +12,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
+import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
 import org.venice.beachfront.bfapi.database.dao.JobUserDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Confirmation;
 import org.venice.beachfront.bfapi.model.Detection;
 import org.venice.beachfront.bfapi.model.Job;
+import org.venice.beachfront.bfapi.model.JobError;
 import org.venice.beachfront.bfapi.model.JobStatus;
 import org.venice.beachfront.bfapi.model.JobUser;
 import org.venice.beachfront.bfapi.model.Scene;
@@ -33,6 +35,8 @@ public class JobService {
 	private JobUserDao jobUserDao;
 	@Autowired
 	private DetectionDao detectionDao;
+	@Autowired
+	private JobErrorDao jobErrorDao;
 	@Autowired
 	private UserProfileService userProfileService;
 	@Autowired
@@ -216,6 +220,19 @@ public class JobService {
 	 */
 	public void createDetection(Job job, Geometry geometry) {
 		detectionDao.save(new Detection(job, 0, geometry));
+	}
+
+	/**
+	 * Creates an entry in the Job Error Table
+	 * 
+	 * @param job
+	 *            The Job that errored out
+	 * @param error
+	 *            The error encountered
+	 */
+	public void createJobError(Job job, String error) {
+		JobError jobError = new JobError(job, error, null);
+		jobErrorDao.save(jobError);
 	}
 
 	/**
