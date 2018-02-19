@@ -37,10 +37,6 @@ public class JobUserService {
 		return jobUsers;
 	}
 
-	public JobUser getJobUser(String jobId) {
-		return jobUserDao.findByJobUserPK_Job_JobId(jobId);
-	}
-
 	public Confirmation deleteJobUser(JobUser jobUser) {
 		jobUserDao.delete(jobUser);
 		return new Confirmation(
