@@ -166,6 +166,23 @@ public class JobService {
 		return jobs;
 	}
 
+	/**
+	 * Gets a list of all Jobs held by the specified user. Not paginated. This can include jobs created by the user, or
+	 * jobs added to that users table by way of redundant jobs.
+	 * 
+	 * @param createdByUserId
+	 *            The user.
+	 * @return Jobs owned by the specific user
+	 */
+	public List<Job> getJobsForUser(String createdByUserId) {
+		List<JobUser> jobRefs = jobUserDao.findByJobUserPK_User_UserId(createdByUserId);
+		List<Job> jobs = new ArrayList<Job>();
+		for (JobUser jobRef : jobRefs) {
+			jobs.add(jobRef.getJobUserPK().getJob());
+		}
+		return jobs;
+	}
+
 	public Job getJob(String jobId) {
 		return jobDao.findByJobId(jobId);
 	}

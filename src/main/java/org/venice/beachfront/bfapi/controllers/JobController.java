@@ -68,7 +68,8 @@ public class JobController {
 	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public List<Job> listJobs() {
-		return jobService.getJobs();
+		UserProfile currentUser = userProfileService.getCurrentUserProfile();
+		return jobService.getJobsForUser(currentUser.getUserId());
 	}
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.GET, produces = { "application/json" })

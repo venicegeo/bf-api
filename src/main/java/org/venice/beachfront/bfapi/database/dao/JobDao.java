@@ -16,4 +16,6 @@ public interface JobDao extends CrudRepository<Job, String> {
 			String algorithmVersion, Boolean computeMask, String status);
 
 	List<Job> findByStatusIn(List<String> statuses);
+	
+	List<Job> findByCreatedByUserId(String createdByUserId);
 }
