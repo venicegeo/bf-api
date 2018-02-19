@@ -15,18 +15,25 @@
  **/
 package org.venice.beachfront.bfapi.services;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.annotation.PostConstruct;
 
+import org.geotools.geojson.geom.GeometryJSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.venice.beachfront.bfapi.model.Detection;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+
+import com.vividsolutions.jts.geom.Geometry;
 
 /**
  * Scheduling class that manages the constant polling for Status of Shoreline detections Jobs in Piazza
@@ -92,10 +99,21 @@ public class PiazzaJobPoller {
 			if (status.isStatusIncomplete()) {
 				// Nothing to do here. Polling will continue for this job.
 			} else if (status.isStatusSuccess()) {
-				// Get the Data ID of the Job and download the file bytes
 				try {
+					// Download the file bytes from Piazza
 					byte[] detectionBytes = piazzaService.downloadData(status.getDataId());
-					// TODO: John - how do I save these GeoJSON bytes to the database?
+					// Convert the bytes into a Geometry object that Hibernate can store
+					InputStream inputStream = new ByteArrayInputStream(detectionBytes);
+					GeometryJSON geojson = new GeometryJSON();
+					Geometry geometry = geojson.read(inputStream);
+					// Commit the Detection to the Detections table
+					jobService.createDetection(job, geometry);
+					// Finally, mark the Job as successful
+					job.setStatus(Job.STATUS_SUCCESS);
+				} catch (IOException exception) {
+					// TODO: This should be a well-formed log entry because things going wrong here are bad
+					exception.printStackTrace();
+					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
 					exception.printStackTrace();
 					// Fail the Job as we have failed to download the bytes

@@ -1,15 +1,21 @@
 package org.venice.beachfront.bfapi.services;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.JobUserDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Confirmation;
+import org.venice.beachfront.bfapi.model.Detection;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.JobStatus;
 import org.venice.beachfront.bfapi.model.JobUser;
@@ -17,6 +23,7 @@ import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.vividsolutions.jts.geom.Geometry;
 
 @Service
 public class JobService {
@@ -24,6 +31,8 @@ public class JobService {
 	private JobDao jobDao;
 	@Autowired
 	private JobUserDao jobUserDao;
+	@Autowired
+	private DetectionDao detectionDao;
 	@Autowired
 	private UserProfileService userProfileService;
 	@Autowired
@@ -195,7 +204,45 @@ public class JobService {
 		} else {
 			return new Confirmation(jobId, false);
 		}
+	}
 
+	/**
+	 * Creates a Detection entry to associate the detection geometry with the Job object
+	 * 
+	 * @param job
+	 *            The Job associated with the detection
+	 * @param geometry
+	 *            The shoreline detection
+	 */
+	public void createDetection(Job job, Geometry geometry) {
+		detectionDao.save(new Detection(job, 0, geometry));
+	}
+
+	/**
+	 * Gets the raw GeoJSON for a detection based on the Job ID
+	 * 
+	 * @param jobId
+	 *            The ID of the Job
+	 * @return The GeoJSON detection for the job
+	 */
+	public byte[] getDetectionGeoJson(String jobId) throws UserException {
+		// Find the Detection
+		Detection detection = detectionDao.findByDetectionPK_Job_JobId(jobId);
+		if (detection == null) {
+			throw new UserException(String.format("Could not find any detection for Job %s", jobId), HttpStatus.NOT_FOUND);
+		}
+		// Get the raw GeoJSON bytes from the Detection Geometry
+		Geometry geometry = detection.getGeometry();
+		GeometryJSON geojson = new GeometryJSON();
+		StringWriter writer = new StringWriter();
+		try {
+			geojson.write(geometry, writer);
+			return writer.toString().getBytes();
+		} catch (IOException exception) {
+			exception.printStackTrace();
+			throw new UserException(String.format("There was an error reading the detection for Job %s.", jobId), exception,
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	public List<JobStatus> searchJobsByInputs(String algorithmId, String sceneId) {

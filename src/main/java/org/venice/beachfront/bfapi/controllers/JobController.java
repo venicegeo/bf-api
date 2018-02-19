@@ -112,14 +112,13 @@ public class JobController {
 			this.extras = extras;
 		}
 	}
-	
+
 	@RequestMapping(path = "/job/{id}.geojson", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public byte[] downloadJobGeoJson(@PathVariable("id") String id) {
-		return null;
-		// TODO
+	public byte[] downloadJobGeoJson(@PathVariable("id") String id) throws UserException {
+		return jobService.getDetectionGeoJson(id);
 	}
-	
+
 	@RequestMapping(path = "/job/{id}.gpkg", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public byte[] downloadJobGeoPackage(@PathVariable("id") String id) {
