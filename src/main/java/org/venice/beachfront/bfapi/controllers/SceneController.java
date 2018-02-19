@@ -19,7 +19,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
 
-import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -44,9 +43,6 @@ import org.venice.beachfront.bfapi.services.SceneService;
 public class SceneController {
 	@Autowired
 	private SceneService iaBrokerService;
-	
-	@Autowired
-	private Logger logger;
 
 	@RequestMapping(path = "/scene/{id}/download", method = RequestMethod.GET, params = { "planet_api_key" })
 	@ResponseBody
@@ -65,7 +61,6 @@ public class SceneController {
 	
 	@ExceptionHandler(UserException.class)
 	public ResponseEntity<String> handleUserException(UserException ex) {
-		this.logger.error(ex.getDetails(), ex);
 		return ResponseEntity.status(ex.getRecommendedStatusCode()).body(ex.getMessage());
 	}
 }
