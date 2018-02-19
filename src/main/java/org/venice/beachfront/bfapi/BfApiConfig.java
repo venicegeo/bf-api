@@ -16,14 +16,26 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+import org.venice.beachfront.bfapi.auth.ExtendedRequestDetails;
+import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
+import org.venice.beachfront.bfapi.auth.IdamAuthProvider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
@@ -42,7 +54,6 @@ public class BfApiConfig {
 		return mapper;
 	}
 
-	@SuppressWarnings("resource") // httpClient should stay open and that's OK
 	@Bean
 	public RestTemplate restTemplate() {
 		RestTemplate restTemplate = new RestTemplate();
@@ -90,6 +101,42 @@ public class BfApiConfig {
 					return true;
 				}
 			});
+		}
+	}
+
+	@Configuration
+	@Profile({ "secure" })
+	protected static class ApplicationSecurity extends WebSecurityConfigurerAdapter {
+		@Autowired
+		private IdamAuthProvider idamAuthProvider;
+		@Autowired
+		private FailedAuthEntryPoint failureEntryPoint;
+
+		@Override
+		protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+			auth.authenticationProvider(idamAuthProvider);
+			// TODO: We probably want two providers. One for IDAM brokers, one for local BF API Key checks
+		}
+
+		@Override
+		public void configure(WebSecurity web) throws Exception {
+			web.ignoring().antMatchers("/").antMatchers(HttpMethod.OPTIONS);
+		}
+
+		@Override
+		protected void configure(HttpSecurity http) throws Exception {
+			http.httpBasic().authenticationEntryPoint(failureEntryPoint).authenticationDetailsSource(authenticationDetailsSource()).and()
+					.authorizeRequests().anyRequest().authenticated().and().sessionManagement()
+					.sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable();
+		}
+
+		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
+			return new AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails>() {
+				@Override
+				public ExtendedRequestDetails buildDetails(HttpServletRequest request) {
+					return new ExtendedRequestDetails(request);
+				}
+			};
 		}
 	}
 }
