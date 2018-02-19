@@ -25,6 +25,8 @@ import java.util.TimerTask;
 import javax.annotation.PostConstruct;
 
 import org.geotools.geojson.geom.GeometryJSON;
+import org.joda.time.DateTime;
+import org.joda.time.Hours;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -41,6 +43,8 @@ import com.vividsolutions.jts.geom.Geometry;
 public class PiazzaJobPoller {
 	@Value("${piazza.poll.frequency.seconds}")
 	private int POLL_FREQUENCY_SECONDS;
+	@Value("${job.timeout.hours}")
+	private int JOB_TIMEOUT_HOURS;
 
 	@Autowired
 	private JobService jobService;
@@ -76,7 +80,14 @@ public class PiazzaJobPoller {
 				try {
 					status = piazzaService.getJobStatus(job.getJobId());
 				} catch (UserException exception) {
-					// TODO - Get the age of the job and determine if a complete failure based on timeout is necessary
+					// If the Job has exceeded it's time-to-live, then mark that job a failure.
+					int timeDelta = Hours.hoursBetween(new DateTime(), job.getCreatedOn()).getHours();
+					if (timeDelta >= JOB_TIMEOUT_HOURS) {
+						// Kill the Job
+						jobService.createJobError(job, "The Job has timed out.");
+						job.setStatus(Job.STATUS_ERROR);
+						jobService.updateJob(job);
+					}
 					continue;
 				}
 				processJobStatus(job, status);
