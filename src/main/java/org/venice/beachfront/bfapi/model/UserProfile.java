@@ -28,6 +28,10 @@ public class UserProfile {
 	@Column(name = "created_on")
 	@JsonProperty("created_on")
 	private DateTime createdOn;
+	@Convert(converter = TimestampConverter.class)
+	@Column(name = "last_accessed")
+	@JsonProperty("last_accessed")
+	private DateTime lastAccessed;
 
 	/**
 	 * Default constructor for Hibernate.
@@ -41,6 +45,7 @@ public class UserProfile {
 		this.name = name;
 		this.apiKey = apiKey;
 		this.createdOn = createdOn;
+		this.lastAccessed = createdOn; // First instance of access
 	}
 
 	public String getUserId() {
@@ -73,6 +78,14 @@ public class UserProfile {
 
 	public void setCreatedOn(DateTime createdOn) {
 		this.createdOn = createdOn;
+	}
+
+	public DateTime getLastAccessed() {
+		return lastAccessed;
+	}
+
+	public void setLastAccessed(DateTime lastAccessed) {
+		this.lastAccessed = lastAccessed;
 	}
 
 }
