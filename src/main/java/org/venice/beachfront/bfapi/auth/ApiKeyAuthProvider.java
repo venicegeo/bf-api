@@ -24,7 +24,7 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 		UserProfile userProfile = userProfileService.getUserProfileByApiKey(apiKey);
 		if (userProfile != null) {
 			// Valid API Key
-			return new UsernamePasswordAuthenticationToken(userProfile, null);
+			return new UsernamePasswordAuthenticationToken(userProfile.getUserId(), null);
 		}
 		// Invalid Key
 		return null;
