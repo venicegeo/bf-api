@@ -9,10 +9,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
 
 /**
  * Handles failed authentication provider responses back to the user for when the user has submitted an invalid API Key.
  */
+@Component
 public class FailedAuthEntryPoint extends BasicAuthenticationEntryPoint {
 
 	@Override
