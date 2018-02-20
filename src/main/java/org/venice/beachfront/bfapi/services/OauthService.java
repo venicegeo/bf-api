@@ -24,7 +24,7 @@ import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
 @Service
-public class OauthService {
+public class OAuthService {
 	@Value("${DOMAIN}")
 	private String domain;
 
