@@ -5,6 +5,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.stereotype.Component;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
@@ -14,6 +15,7 @@ import org.venice.beachfront.bfapi.services.UserProfileService;
  * <p>
  * This is utilized once the user has received their API Key through OAuth controllers.
  */
+@Component
 public class ApiKeyAuthProvider implements AuthenticationProvider {
 	@Autowired
 	private UserProfileService userProfileService;
