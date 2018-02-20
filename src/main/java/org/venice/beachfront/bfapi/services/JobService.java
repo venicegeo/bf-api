@@ -2,14 +2,26 @@ package org.venice.beachfront.bfapi.services;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.header.Header;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
@@ -29,6 +41,13 @@ import com.vividsolutions.jts.geom.Geometry;
 
 @Service
 public class JobService {
+	@Value("${gpkg.converter.protocol}")
+	private String GPKG_CONVERTER_PROTOCOL;
+	@Value("${gpkg.converter.server}")
+	private String GPKG_CONVERTER_SERVER;
+	@Value("${gpkg.converter.port}")
+	private int GPKG_CONVERTER_PORT;	
+			
 	@Autowired
 	private JobDao jobDao;
 	@Autowired
@@ -45,6 +64,8 @@ public class JobService {
 	private SceneService sceneService;
 	@Autowired
 	private PiazzaService piazzaService;
+	@Autowired
+	private RestTemplate restTemplate;
 
 	/**
 	 * Creates a Beachfront Job. This will submit the Job request to Piazza, fetch the Job ID, and add all of the Job
@@ -260,6 +281,41 @@ public class JobService {
 			throw new UserException(String.format("There was an error reading the detection for Job %s.", jobId), exception,
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+	}
+	
+	/**
+	 * Gets the detection data as a GPKG archive for a detection based on the Job ID
+	 * 
+	 * @param jobId
+	 *            The ID of the Job
+	 * @return The GPKG archive for the job
+	 */
+	public byte[] getDetectionGeoPackage(String jobId) throws UserException {
+		byte[] geoJsonData = this.getDetectionGeoJson(jobId);		
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<byte[]> request = new HttpEntity<byte[]>(geoJsonData, headers);
+		
+		URI geoJsonToGpkgUri = UriComponentsBuilder.newInstance()
+				.scheme(this.GPKG_CONVERTER_PROTOCOL)
+				.host(this.GPKG_CONVERTER_SERVER)
+				.port(this.GPKG_CONVERTER_PORT)
+				.pathSegment("convert")
+				.build().toUri();
+
+		ResponseEntity<byte[]> response;
+		try {
+			response = this.restTemplate.exchange(geoJsonToGpkgUri, HttpMethod.POST, request, byte[].class);
+		} catch (RestClientException ex) {
+			throw new UserException("Error communicating with GeoPackage converter service", ex, HttpStatus.BAD_GATEWAY);
+		}
+		
+		String contentType = response.getHeaders().getContentType().toString();
+		if (!contentType.equals("application/x-sqlite3")) {
+			throw new UserException("Unexpected content type from GeoPackage converter service: " + contentType, HttpStatus.BAD_GATEWAY);
+		}
+		
+		return geoJsonData;
 	}
 
 	public List<JobStatus> searchJobsByInputs(String algorithmId, String sceneId) {

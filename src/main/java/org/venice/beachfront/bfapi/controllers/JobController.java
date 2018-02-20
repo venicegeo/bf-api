@@ -115,11 +115,10 @@ public class JobController {
 		return jobService.getDetectionGeoJson(id);
 	}
 
-	@RequestMapping(path = "/job/{id}.gpkg", method = RequestMethod.GET, produces = { "application/json" })
+	@RequestMapping(path = "/job/{id}.gpkg", method = RequestMethod.GET, produces = { "application/x-sqlite3" })
 	@ResponseBody
-	public byte[] downloadJobGeoPackage(@PathVariable("id") String id) {
-		return null;
-		// TODO
+	public byte[] downloadJobGeoPackage(@PathVariable("id") String id) throws UserException {
+		return jobService.getDetectionGeoPackage(id);
 	}
 
 	@ResponseStatus(value = HttpStatus.NOT_FOUND)
