@@ -23,7 +23,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
@@ -33,9 +32,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
-import org.venice.beachfront.bfapi.auth.ExtendedRequestDetails;
-import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
 import org.venice.beachfront.bfapi.auth.ApiKeyAuthProvider;
+import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
@@ -119,23 +117,14 @@ public class BfApiConfig {
 
 		@Override
 		public void configure(WebSecurity web) throws Exception {
-			web.ignoring().antMatchers("/").antMatchers("/oauth/start").antMatchers("/oauth/callback").antMatchers(HttpMethod.OPTIONS);
+			web.ignoring().antMatchers("/").antMatchers("/oauth/start").antMatchers("/oauth/callback").antMatchers("/oauth/logout")
+					.antMatchers(HttpMethod.OPTIONS);
 		}
 
 		@Override
 		protected void configure(HttpSecurity http) throws Exception {
-			http.httpBasic().authenticationEntryPoint(failureEntryPoint).authenticationDetailsSource(authenticationDetailsSource()).and()
-					.authorizeRequests().anyRequest().authenticated().and().sessionManagement()
-					.sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable();
-		}
-
-		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
-			return new AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails>() {
-				@Override
-				public ExtendedRequestDetails buildDetails(HttpServletRequest request) {
-					return new ExtendedRequestDetails(request);
-				}
-			};
+			http.httpBasic().authenticationEntryPoint(failureEntryPoint).and().authorizeRequests().anyRequest().authenticated().and()
+					.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable();
 		}
 	}
 }

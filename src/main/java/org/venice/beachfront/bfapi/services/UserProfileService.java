@@ -17,4 +17,8 @@ public class UserProfileService {
 	public UserProfile getUserProfileById(String userId) {
 		return userProfileDao.findByUserId(userId);
 	}
+
+	public UserProfile getUserProfileByApiKey(String apiKey) {
+		return userProfileDao.findByApiKey(apiKey);
+	}
 }

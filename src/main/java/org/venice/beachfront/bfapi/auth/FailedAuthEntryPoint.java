@@ -18,8 +18,10 @@ public class FailedAuthEntryPoint extends BasicAuthenticationEntryPoint {
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authEx)
 			throws IOException, ServletException {
+		// Return 401 code
+		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 		PrintWriter writer = response.getWriter();
 		writer.println("Auth Failed");
-		// TODO: Proper failed auth!
+		// TODO: Audit log this
 	}
 }
