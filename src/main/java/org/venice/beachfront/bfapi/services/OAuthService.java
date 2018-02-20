@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
-import org.venice.beachfront.bfapi.database.dao.UserProfileDao;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenRequestBody;
@@ -44,7 +43,7 @@ public class OAuthService {
 	private RestTemplate restTemplate;
 
 	@Autowired
-	private UserProfileDao userProfileDao;
+	private UserProfileService userProfileService;
 
 	public String getOauthRedirectUri() {
 		return UriComponentsBuilder.newInstance().host("bf-api." + this.domain).pathSegment("oauth", "callback").build().toUri().toString();
@@ -82,15 +81,25 @@ public class OAuthService {
 	}
 
 	public UserProfile getOrCreateUser(String userId, String userName) {
-		UserProfile user = this.userProfileDao.findByUserId(userId);
+		UserProfile user = userProfileService.getUserProfileById(userId);
 		if (user != null) {
+			// Check if the user has a current API Key
+			if (user.getApiKey() == null) {
+				// Generate a new API Key if the user exists, but has no existing key
+				user.setApiKey(generateApiKey());
+				userProfileService.updateLastAccessed(user);
+			}
 			return user;
 		}
 
-		String apiKey = UUID.randomUUID().toString();
+		String apiKey = generateApiKey();
 		user = new UserProfile(userId, userName, apiKey, DateTime.now());
-		this.userProfileDao.save(user);
+		userProfileService.saveUserProfile(user);
 		return user;
+	}
+
+	private String generateApiKey() {
+		return UUID.randomUUID().toString();
 	}
 
 	private String createTokenAuthHeader() {
