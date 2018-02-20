@@ -15,6 +15,7 @@
  **/
 package org.venice.beachfront.bfapi.controllers;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
+import org.venice.beachfront.bfapi.services.UserProfileService;
 
 /**
  * Main controller class for the handling user profiles.
@@ -31,10 +33,13 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
  */
 @Controller
 public class UserProfileController {
+	@Autowired
+	private UserProfileService userProfileService;
+
 	@RequestMapping(path = "/user", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public UserProfile getCurrentUserProfile(Authentication authentication) throws UserException {
-		UserProfile currentUser = (UserProfile) authentication.getPrincipal();
+		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		if (currentUser != null) {
 			return currentUser;
 		} else {
