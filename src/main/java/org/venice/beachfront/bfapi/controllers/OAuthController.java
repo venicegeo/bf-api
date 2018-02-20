@@ -24,10 +24,13 @@ public class OAuthController {
 	
 	@Value("${oauth.authorize-url}")
 	private String oauthAuthorizeUrl;
-	
+
+	@Value("${oauth.logout-url}")
+	private String oauthLogoutUrl;
+
 	@Value("${oauth.client-id}")
 	private String oauthClientId;
-	
+
 	@Autowired
 	private OAuthService oauthService;
 	
@@ -70,5 +73,24 @@ public class OAuthController {
 		response.setHeader("Location", uiRedirectUri);
 		return "Authentication successful. Redirecting back to application...";
 	}
-	
+
+	@RequestMapping(path = "/oauth/logout", method = RequestMethod.GET, produces = { "text/plain" })
+	@ResponseBody
+	public String oauthLogout(HttpSession session, HttpServletResponse response) throws UserException {
+		// Remove cookie
+		session.invalidate();
+
+		// Construct redirect url for server side logout
+		final String uiUrl = "beachfront." + domain;
+		// Forward user to server side logout
+		String logoutRedirectUri = UriComponentsBuilder.newInstance()
+				.scheme("https")
+				.host(oauthLogoutUrl)
+				.queryParam("end_url", uiUrl)
+				.build().toUri().toString();
+
+		response.setStatus(HttpStatus.FOUND.value());
+		response.setHeader("Location", logoutRedirectUri);
+		return "Logging out. Redirecting to oauth logout...";
+	}
 }
