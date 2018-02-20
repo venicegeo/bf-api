@@ -15,13 +15,14 @@
  **/
 package org.venice.beachfront.bfapi.controllers;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.venice.beachfront.bfapi.model.UserProfile;
-import org.venice.beachfront.bfapi.services.UserProfileService;
+import org.venice.beachfront.bfapi.model.exception.UserException;
 
 /**
  * Main controller class for the handling user profiles.
@@ -30,13 +31,15 @@ import org.venice.beachfront.bfapi.services.UserProfileService;
  */
 @Controller
 public class UserProfileController {
-	@Autowired
-	private UserProfileService userProfileService;
-
 	@RequestMapping(path = "/user", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public UserProfile getCurrentUserProfile() {
-		return this.userProfileService.getCurrentUserProfile();
+	public UserProfile getCurrentUserProfile(Authentication authentication) throws UserException {
+		UserProfile currentUser = (UserProfile) authentication.getPrincipal();
+		if (currentUser != null) {
+			return currentUser;
+		} else {
+			throw new UserException("User Profile not found for specified API Key.", HttpStatus.UNAUTHORIZED);
+		}
 	}
 
 }

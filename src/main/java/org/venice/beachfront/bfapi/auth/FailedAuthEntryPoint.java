@@ -21,7 +21,7 @@ public class FailedAuthEntryPoint extends BasicAuthenticationEntryPoint {
 		// Return 401 code
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 		PrintWriter writer = response.getWriter();
-		writer.println("Auth Failed");
+		writer.println("Invalid API Key specified.");
 		// TODO: Audit log this
 	}
 }

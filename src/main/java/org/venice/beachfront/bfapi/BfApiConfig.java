@@ -103,7 +103,6 @@ public class BfApiConfig {
 	}
 
 	@Configuration
-	@Profile({ "secure" })
 	protected static class ApplicationSecurity extends WebSecurityConfigurerAdapter {
 		@Autowired
 		private ApiKeyAuthProvider apiKeyAuthProvider;

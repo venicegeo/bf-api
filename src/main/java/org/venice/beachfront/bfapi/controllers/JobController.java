@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,24 +52,18 @@ public class JobController {
 	@Autowired
 	private UserProfileService userProfileService;
 
-	@Autowired
-	public JobController(JobService jobService, UserProfileService userProfileService) {
-		this.jobService = jobService;
-		this.userProfileService = userProfileService;
-	}
-
 	@RequestMapping(path = "/job", method = RequestMethod.POST, consumes = { "application/json" }, produces = { "application/json" })
 	@ResponseBody
-	public Job createJob(@RequestBody CreateJobBody body) throws UserException {
-		UserProfile currentUser = userProfileService.getCurrentUserProfile();
+	public Job createJob(@RequestBody CreateJobBody body, Authentication authentication) throws UserException {
+		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		return jobService.createJob(body.jobName, currentUser.getUserId(), body.algorithmId, body.sceneId, body.planetApiKey,
 				body.computeMask, body.extras);
 	}
 
 	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public List<Job> listJobs() {
-		UserProfile currentUser = userProfileService.getCurrentUserProfile();
+	public List<Job> listJobs(Authentication authentication) throws UserException {
+		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		return jobService.getJobsForUser(currentUser.getUserId());
 	}
 
@@ -84,9 +79,10 @@ public class JobController {
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.DELETE, produces = { "application/json" })
 	@ResponseBody
-	public Confirmation deleteJob(@PathVariable("id") String id) {
+	public Confirmation deleteJob(@PathVariable("id") String id, Authentication authentication) throws UserException {
+		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		Job job = jobService.getJob(id);
-		return jobService.forgetJob(job.getJobId(), userProfileService.getCurrentUserProfile().getUserId());
+		return jobService.forgetJob(job.getJobId(), currentUser.getUserId());
 	}
 
 	private static class CreateJobBody {
