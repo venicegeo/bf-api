@@ -16,7 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
-import org.venice.beachfront.bfapi.services.OauthService;
+import org.venice.beachfront.bfapi.services.OAuthService;
 
 public class OAuthController {
 	@Value("${DOMAIN}")
@@ -29,7 +29,7 @@ public class OAuthController {
 	private String oauthClientId;
 	
 	@Autowired
-	private OauthService oauthService;
+	private OAuthService oauthService;
 	
 	@RequestMapping(path = "/oauth/start", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
