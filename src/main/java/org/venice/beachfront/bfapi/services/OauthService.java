@@ -1,6 +1,5 @@
 package org.venice.beachfront.bfapi.services;
 
-import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.UUID;
@@ -28,78 +27,75 @@ import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 public class OauthService {
 	@Value("${DOMAIN}")
 	private String domain;
-	
+
 	@Value("${oauth.token-url}")
 	private String oauthTokenUrl;
-	
+
 	@Value("${oauth.profile-url")
 	private String oauthProfileUrl;
-	
-	@Value("${oauth.client-id}")
+
+	@Value("${OAUTH_CLIENT_ID}")
 	private String oauthClientId;
-	
-	@Value("${oauth.client-secret}")
+
+	@Value("${OAUTH_SECRET}")
 	private String oauthClientSecret;
-	
+
 	@Autowired
 	private RestTemplate restTemplate;
-	
+
 	@Autowired
 	private UserProfileDao userProfileDao;
 
 	public String getOauthRedirectUri() {
-		return UriComponentsBuilder.newInstance()
-				.host("bf-api." + this.domain)
-				.pathSegment("oauth", "callback")
-				.build().toUri().toString();
+		return UriComponentsBuilder.newInstance().host("bf-api." + this.domain).pathSegment("oauth", "callback").build().toUri().toString();
 	}
-	
-	public String requestAccessToken(String authCode) throws UserException {		
-	    AccessTokenRequestBody body = new AccessTokenRequestBody("authorization_code", authCode, this.getOauthRedirectUri());
+
+	public String requestAccessToken(String authCode) throws UserException {
+		AccessTokenRequestBody body = new AccessTokenRequestBody("authorization_code", authCode, this.getOauthRedirectUri());
 		HttpHeaders headers = new HttpHeaders();
-	    headers.set("Authorization", this.createTokenAuthHeader());
-	    HttpEntity<AccessTokenRequestBody> entity = new HttpEntity<>(body, headers);
-	    
-	    ResponseEntity<AccessTokenResponseBody> response;
-	    try {
-	    	response = this.restTemplate.exchange(this.oauthTokenUrl, HttpMethod.POST, entity, AccessTokenResponseBody.class);
-	    } catch (RestClientResponseException ex) {
-	    	throw new UserException("Failed requesting OAuth access token", ex, HttpStatus.UNAUTHORIZED);
-	    }
-	    
-	    return response.getBody().getAccessToken();	
+		headers.set("Authorization", this.createTokenAuthHeader());
+		HttpEntity<AccessTokenRequestBody> entity = new HttpEntity<>(body, headers);
+
+		ResponseEntity<AccessTokenResponseBody> response;
+		try {
+			response = this.restTemplate.exchange(this.oauthTokenUrl, HttpMethod.POST, entity, AccessTokenResponseBody.class);
+		} catch (RestClientResponseException ex) {
+			throw new UserException("Failed requesting OAuth access token", ex, HttpStatus.UNAUTHORIZED);
+		}
+
+		return response.getBody().getAccessToken();
 	}
-	
+
 	public ProfileResponseBody requestOAuthProfile(String accessToken) throws UserException {
 		HttpHeaders headers = new HttpHeaders();
-	    headers.set("Authorization", "Bearer " + accessToken);
-	    HttpEntity<Object> entity = new HttpEntity<>(null, headers);
-	    
-	    ResponseEntity<ProfileResponseBody> response;
-	    try {
-	    	response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, ProfileResponseBody.class);
-	    } catch (RestClientResponseException ex) {
-	    	throw new UserException("Failed requesting OAuth access token", ex, HttpStatus.UNAUTHORIZED);
-	    }
+		headers.set("Authorization", "Bearer " + accessToken);
+		HttpEntity<Object> entity = new HttpEntity<>(null, headers);
+
+		ResponseEntity<ProfileResponseBody> response;
+		try {
+			response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, ProfileResponseBody.class);
+		} catch (RestClientResponseException ex) {
+			throw new UserException("Failed requesting OAuth access token", ex, HttpStatus.UNAUTHORIZED);
+		}
 
 		return response.getBody();
 	}
-	
+
 	public UserProfile getOrCreateUser(String userId, String userName) {
 		UserProfile user = this.userProfileDao.findByUserId(userId);
 		if (user != null) {
 			return user;
 		}
-		
+
 		String apiKey = UUID.randomUUID().toString();
 		user = new UserProfile(userId, userName, apiKey, DateTime.now());
 		this.userProfileDao.save(user);
 		return user;
 	}
-	
-	private String createTokenAuthHeader(){
+
+	private String createTokenAuthHeader() {
 		String auth = this.oauthClientId + ":" + this.oauthClientSecret;
-        byte[] encodedAuth = Base64.getEncoder().encode(auth.getBytes(Charset.forName("US-ASCII")));	    
-        return "Basic " + new String( encodedAuth );
+		byte[] encodedAuth = Base64.getEncoder().encode(auth.getBytes(Charset.forName("US-ASCII")));
+		return "Basic " + new String(encodedAuth);
 	}
 }

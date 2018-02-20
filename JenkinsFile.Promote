@@ -84,9 +84,9 @@ node {
           cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}
           cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}
           cf set-env ${appName} PIAZZA_API_KEY ${piazza_api_key}
-          cf set-env ${appName} GEOAXIS ${env.GEOAXIS_DOMAIN}
-          cf set-env ${appName} GEOAXIS_CLIENT_ID ${GEOAXIS_CLIENT_ID}
-          cf set-env ${appName} GEOAXIS_SECRET ${GEOAXIS_SECRET}
+          cf set-env ${appName} OAUTH_DOMAIN ${env.GEOAXIS_DOMAIN}
+          cf set-env ${appName} OAUTH_CLIENT_ID ${GEOAXIS_CLIENT_ID}
+          cf set-env ${appName} OAUTH_SECRET ${GEOAXIS_SECRET}
           cf start ${appName}
         """
       } catch (Exception e) {

@@ -45,7 +45,7 @@ public class OAuthController {
 		
 		response.setStatus(HttpStatus.FOUND.value());
 		response.setHeader("Location", redirectUri);
-		return "Redirecting to geoaxis...";
+		return "Redirecting to oauth provider...";
 	}
 	
 	@RequestMapping(path = "/oauth/callback", method = RequestMethod.GET, produces = { "text/plain" })
@@ -68,7 +68,7 @@ public class OAuthController {
 		session.setAttribute("api_key", userProfile.getApiKey());
 		response.setStatus(HttpStatus.FOUND.value());
 		response.setHeader("Location", uiRedirectUri);
-		return "Authentication successful. Redirecting back to UI...";
+		return "Authentication successful. Redirecting back to application...";
 	}
 	
 }

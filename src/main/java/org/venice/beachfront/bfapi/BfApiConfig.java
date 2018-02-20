@@ -35,7 +35,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 import org.venice.beachfront.bfapi.auth.ExtendedRequestDetails;
 import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
-import org.venice.beachfront.bfapi.auth.IdamAuthProvider;
+import org.venice.beachfront.bfapi.auth.ApiKeyAuthProvider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
@@ -108,19 +108,18 @@ public class BfApiConfig {
 	@Profile({ "secure" })
 	protected static class ApplicationSecurity extends WebSecurityConfigurerAdapter {
 		@Autowired
-		private IdamAuthProvider idamAuthProvider;
+		private ApiKeyAuthProvider apiKeyAuthProvider;
 		@Autowired
 		private FailedAuthEntryPoint failureEntryPoint;
 
 		@Override
 		protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-			auth.authenticationProvider(idamAuthProvider);
-			// TODO: We probably want two providers. One for IDAM brokers, one for local BF API Key checks
+			auth.authenticationProvider(apiKeyAuthProvider);
 		}
 
 		@Override
 		public void configure(WebSecurity web) throws Exception {
-			web.ignoring().antMatchers("/").antMatchers(HttpMethod.OPTIONS);
+			web.ignoring().antMatchers("/").antMatchers("/oauth/start").antMatchers("/oauth/callback").antMatchers(HttpMethod.OPTIONS);
 		}
 
 		@Override

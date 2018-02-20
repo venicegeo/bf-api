@@ -11,7 +11,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 
 /**
- * Handles failed authentication provider responses back to the user.
+ * Handles failed authentication provider responses back to the user for when the user has submitted an invalid API Key.
  */
 public class FailedAuthEntryPoint extends BasicAuthenticationEntryPoint {
 
