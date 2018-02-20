@@ -4,12 +4,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class AccessTokenResponseBody {
 	@JsonProperty("grant_type")
-	private final String accessToken;
+	private String accessToken;
 
+	public AccessTokenResponseBody() {
+		super();
+	}
+	
 	public AccessTokenResponseBody(String accessToken) {
 		super();
 		this.accessToken = accessToken;
 	}
+	
 	public String getAccessToken() {
 		return accessToken;
 	}

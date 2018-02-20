@@ -4,14 +4,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class AccessTokenRequestBody {
 	@JsonProperty("grant_type")
-	private final String grantType;
-	
+	private String grantType;
+
 	@JsonProperty("code")
-	private final String code;
-	
+	private String code;
+
 	@JsonProperty("redirect_uri")
-	private final String redirectUri;
-	
+	private String redirectUri;
+
+	public AccessTokenRequestBody() {
+		super();
+	}
+
 	public AccessTokenRequestBody(String grantType, String code, String redirectUri) {
 		this.grantType = grantType;
 		this.code = code;
@@ -25,7 +29,7 @@ public class AccessTokenRequestBody {
 	public String getCode() {
 		return code;
 	}
-	
+
 	public String getRedirectUri() {
 		return redirectUri;
 	}
