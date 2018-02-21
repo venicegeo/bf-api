@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.header.Header;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
@@ -306,8 +307,8 @@ public class JobService {
 		ResponseEntity<byte[]> response;
 		try {
 			response = this.restTemplate.exchange(geoJsonToGpkgUri, HttpMethod.POST, request, byte[].class);
-		} catch (RestClientException ex) {
-			throw new UserException("Error communicating with GeoPackage converter service", ex, HttpStatus.BAD_GATEWAY);
+		} catch (RestClientResponseException ex) {
+			throw new UserException("Error communicating with GeoPackage converter service", ex, HttpStatus.valueOf(ex.getRawStatusCode()));
 		}
 		
 		String contentType = response.getHeaders().getContentType().toString();
