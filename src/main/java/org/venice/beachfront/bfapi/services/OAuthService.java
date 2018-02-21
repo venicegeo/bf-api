@@ -59,7 +59,14 @@ public class OAuthService {
 		try {
 			response = this.restTemplate.exchange(this.oauthTokenUrl, HttpMethod.POST, entity, AccessTokenResponseBody.class);
 		} catch (RestClientResponseException ex) {
-			throw new UserException("Failed requesting OAuth access token", ex, HttpStatus.UNAUTHORIZED);
+			int code = ex.getRawStatusCode(); 
+			if (code >= 400 && code <= 499) {
+				throw new UserException("Unauthorized: Failed to acquire OAuth access token from access code", ex, HttpStatus.valueOf(code));
+			}
+			if (code >= 500 && code <= 599) {
+				throw new UserException("Upstream OAuth error acquiring OAuth access token from access code", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
+			}
+			throw new UserException("Unknown error acquiring OAuth access token from access code", ex, ex.getResponseBodyAsString(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return response.getBody().getAccessToken();
@@ -74,7 +81,14 @@ public class OAuthService {
 		try {
 			response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, ProfileResponseBody.class);
 		} catch (RestClientResponseException ex) {
-			throw new UserException("Failed requesting OAuth access token", ex, HttpStatus.UNAUTHORIZED);
+			int code = ex.getRawStatusCode(); 
+			if (code >= 400 && code <= 499) {
+				throw new UserException("Unauthorized: Failed to acquire user profile", ex, HttpStatus.valueOf(code));
+			}
+			if (code >= 500 && code <= 599) {
+				throw new UserException("Upstream acquiring user profile", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
+			}
+			throw new UserException("Unknown error acquiring user profile", ex, ex.getResponseBodyAsString(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		return response.getBody();
