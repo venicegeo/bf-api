@@ -1,0 +1,15 @@
+<StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld">
+	<NamedLayer>
+		<UserStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#FF00FF</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+		</UserStyle>
+	</NamedLayer>
+</StyledLayerDescriptor>
