@@ -85,7 +85,7 @@ public class JobController {
 		return jobService.forgetJob(job.getJobId(), currentUser.getUserId());
 	}
 
-	private static class CreateJobBody {
+	public static class CreateJobBody {
 		public final String jobName;
 		public final String algorithmId;
 		public final String sceneId;

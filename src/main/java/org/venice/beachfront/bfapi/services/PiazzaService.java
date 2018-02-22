@@ -261,6 +261,35 @@ public class PiazzaService {
 	}
 
 	/**
+	 * Returns all of the Statistics for the Beachfront Algorithm as reported by the Piazza Task-Managed service.
+	 * 
+	 * @return JSON block containing statistics. This contains, at least, the number of jobs in that algorithms queue.
+	 */
+	public JsonNode getAlgorithmStatistics(String algorithmId) throws UserException {
+		String piazzaDataUrl = String.format("%s/service/%s/task/metadata", PIAZZA_URL, algorithmId);
+		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
+		HttpEntity<String> request = new HttpEntity<>(headers);
+
+		// Execute the Request
+		ResponseEntity<String> response = null;
+		try {
+			response = restTemplate.exchange(URI.create(piazzaDataUrl), HttpMethod.GET, request, String.class);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			throw new UserException(String.format("There was an error fetching Service %s Metadata from Piazza.", algorithmId),
+					exception.getMessage(), exception.getStatusCode());
+		}
+
+		try {
+			JsonNode jsonNode = objectMapper.readTree(response.getBody());
+			return jsonNode;
+		} catch (IOException exception) {
+			exception.printStackTrace();
+			throw new UserException(String.format("There was an error parsing the Service Metadata for service %s.", algorithmId),
+					exception, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
 	 * Wraps up a Piazza Service JSON Node (from a /service response) in an Algorithm Object
 	 * 
 	 * @param serviceNode
