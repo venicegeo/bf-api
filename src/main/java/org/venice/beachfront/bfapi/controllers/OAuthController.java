@@ -6,6 +6,7 @@ import javax.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +17,7 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 import org.venice.beachfront.bfapi.services.OAuthService;
 
+@Controller
 public class OAuthController {
 	@Value("${DOMAIN}")
 	private String domain;
@@ -26,7 +28,7 @@ public class OAuthController {
 	@Value("${oauth.logout-url}")
 	private String oauthLogoutUrl;
 
-	@Value("${oauth.client-id}")
+	@Value("${OAUTH_CLIENT_ID}")
 	private String oauthClientId;
 
 	@Autowired
