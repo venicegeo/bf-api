@@ -130,7 +130,7 @@ public class BfApiConfig {
 
 		@Override
 		public void configure(WebSecurity web) throws Exception {
-			web.ignoring().antMatchers("/").antMatchers("/oauth/start").antMatchers("/oauth/callback").antMatchers("/oauth/logout")
+			web.ignoring().antMatchers("/").antMatchers("/login").antMatchers("/login/geoaxis").antMatchers("/oauth/logout")
 					.antMatchers(HttpMethod.OPTIONS);
 		}
 
