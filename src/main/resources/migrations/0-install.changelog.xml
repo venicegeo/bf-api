@@ -7,11 +7,16 @@
 
   <changeSet id="0-install" author="filips@imagemattersllc.com">
     <preConditions onFail="MARK_RAN" onFailMessage="Schema already installed, skipping">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(table_name)
-        FROM information_schema.tables
-        WHERE table_name LIKE '__beachfront__%';
-      </sqlCheck>
+      <and>
+        <sqlCheck expectedResult="0">
+            SELECT COUNT(table_name)
+            FROM information_schema.tables
+            WHERE table_name LIKE '__beachfront__%';
+        </sqlCheck>
+        <not>
+          <viewExists viewName="__beachfront__geoserver" schemaName="public"/>
+        </not>
+      </and>
     </preConditions>
     <sqlFile path="../sql/migration/schema.install.sql"
       relativeToChangelogFile="true"/>
