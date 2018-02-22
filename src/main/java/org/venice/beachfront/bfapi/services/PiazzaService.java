@@ -261,6 +261,15 @@ public class PiazzaService {
 	}
 
 	/**
+	 * Returns all of the Statistics for the Beachfront Algorithm as reported by the Piazza Task-Managed service.
+	 * 
+	 * @return JSON block containing statistics. This contains, at least, the number of jobs in that algorithms queue.
+	 */
+	public String getAlgorithmStatistics(String algorithmId) {
+
+	}
+
+	/**
 	 * Wraps up a Piazza Service JSON Node (from a /service response) in an Algorithm Object
 	 * 
 	 * @param serviceNode
