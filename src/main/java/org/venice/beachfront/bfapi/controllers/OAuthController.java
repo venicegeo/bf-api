@@ -32,7 +32,7 @@ public class OAuthController {
 	@Autowired
 	private OAuthService oauthService;
 
-	@RequestMapping(path = "/login/geoaxis", method = RequestMethod.GET, produces = { "text/plain" })
+	@RequestMapping(path = "/oauth/start", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
 	public String oauthStartExchange(HttpServletResponse response) {
 		String callbackRedirectUri = this.oauthService.getOauthRedirectUri();
@@ -46,7 +46,7 @@ public class OAuthController {
 		return "Redirecting to oauth provider...";
 	}
 
-	@RequestMapping(path = "/login", method = RequestMethod.GET, produces = { "text/plain" })
+	@RequestMapping(path = "/oauth/callback", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
 	public String oauthCallback(@RequestParam("code") String authCode, HttpSession session, HttpServletResponse response)
 			throws UserException {
