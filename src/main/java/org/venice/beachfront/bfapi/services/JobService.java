@@ -45,7 +45,7 @@ public class JobService {
 	private String GPKG_CONVERTER_SERVER;
 	@Value("${gpkg.converter.port}")
 	private int GPKG_CONVERTER_PORT;
-	@Value("${block.redundant.job.check")
+	@Value("${block.redundant.job.check}")
 	private Boolean blockRedundantJobCheck;
 
 	@Autowired
