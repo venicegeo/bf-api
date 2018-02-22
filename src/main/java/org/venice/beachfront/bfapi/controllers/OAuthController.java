@@ -76,7 +76,7 @@ public class OAuthController {
 		// Construct redirect url for server side logout
 		final String uiUrl = "beachfront." + domain;
 		// Forward user to server side logout
-		String logoutRedirectUri = UriComponentsBuilder.newInstance().scheme("https").host(oauthLogoutUrl).queryParam("end_url", uiUrl)
+		String logoutRedirectUri = UriComponentsBuilder.fromUriString(oauthLogoutUrl).queryParam("end_url", uiUrl)
 				.build().toUri().toString();
 
 		response.setStatus(HttpStatus.FOUND.value());

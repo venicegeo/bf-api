@@ -71,7 +71,7 @@ public class OAuthControllerTests {
 		assertEquals(servletResponse.getStatus(), HttpStatus.FOUND.value());
 		assertEquals(servletResponse.getHeader("Location"), "https://localhost?logged_in=true");
 	}
-	
+
 	@Test
 	public void testLogout() throws UserException {
 		// Mock
@@ -81,8 +81,6 @@ public class OAuthControllerTests {
 		String ack = oauthController.oauthLogout(session, servletResponse);
 		assertNotNull(ack);
 		assertEquals(servletResponse.getStatus(), HttpStatus.FOUND.value());
-		System.out.println(servletResponse.getHeader("Location"));
-		// TODO: Fails
-		assertEquals(servletResponse.getHeader("Location"), "https://localhost?end_url=true");
+		assertEquals(servletResponse.getHeader("Location"), "http://logout?end_url=beachfront.localhost");
 	}
 }
