@@ -84,11 +84,22 @@ node {
           cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}
           cf set-env ${appName} DOMAIN ${env.PROMOTE_DOMAIN}
           cf set-env ${appName} PIAZZA_API_KEY ${piazza_api_key}
-          cf set-env ${appName} OAUTH_DOMAIN ${env.GEOAXIS_DOMAIN}
+          cf set-env ${appName} OAUTH_AUTH_DOMAIN ${env.GEOAXIS_AUTH_DOMAIN}
+          cf set-env ${appName} OAUTH_API_DOMAIN ${env.GEOAXIS_DOMAIN}
+          cf set-env ${appName} OAUTH_LOGOUT_DOMAIN ${env.GEOAXIS_LOGOUT_DOMAIN}
           cf set-env ${appName} OAUTH_CLIENT_ID ${GEOAXIS_CLIENT_ID}
           cf set-env ${appName} OAUTH_SECRET ${GEOAXIS_SECRET}
+          cf set-env ${appName} JKS_FILE piazza.jks
+          cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
+          cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
           cf start ${appName}
         """
+        if (params.USE_GEOSERVER_PKI_AUTH) {
+           sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
+        } else {
+           sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,basic-geoserver-auth"
+        }
+        sh "cf start ${appName}"
       } catch (Exception e) {
         try {
           sh "cf logs --recent ${appName}"

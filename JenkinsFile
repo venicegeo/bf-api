@@ -61,13 +61,22 @@ node {
             cf set-env ${fullAppName} SPACE ${pcfSpace}
             cf set-env ${fullAppName} DOMAIN ${pcfDomain}
             cf set-env ${fullAppName} PIAZZA_API_KEY ${piazzaApiKey}
-            cf set-env ${fullAppName} OAUTH_AUTH_DOMAIN ${env.GEOAXIS_AUTH}
-            cf set-env ${fullAppName} OAUTH_API_DOMAIN ${env.GEOAXIS}
-            cf set-env ${fullAppName} OAUTH_LOGOUT_DOMAIN ${env.GEOAXIS_LOGOUT}
+            cf set-env ${fullAppName} OAUTH_AUTH_DOMAIN ${env.GEOAXIS_AUTH_DOMAIN}
+            cf set-env ${fullAppName} OAUTH_API_DOMAIN ${env.GEOAXIS_DOMAIN}
+            cf set-env ${fullAppName} OAUTH_LOGOUT_DOMAIN ${env.GEOAXIS_LOGOUT_DOMAIN}
             cf set-env ${fullAppName} OAUTH_CLIENT_ID ${GEOAXIS_CLIENT_ID}
             cf set-env ${fullAppName} OAUTH_SECRET ${GEOAXIS_SECRET}
+            cf set-env ${fullAppName} JKS_FILE piazza.jks
+            cf set-env ${fullAppName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
+            cf set-env ${fullAppName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
             cf start ${deployAppName}
           """
+          if (params.USE_GEOSERVER_PKI_AUTH) {
+             sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
+          } else {
+             sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,basic-geoserver-auth"
+          }
+          sh "cf start ${deployAppName}"
         } catch (Exception e) {
           printLogsFailsafe deployAppName
           sh "cf delete ${deployAppName} -f -r"
