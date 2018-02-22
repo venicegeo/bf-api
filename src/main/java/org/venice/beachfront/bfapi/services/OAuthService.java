@@ -30,7 +30,7 @@ public class OAuthService {
 	@Value("${oauth.token-url}")
 	private String oauthTokenUrl;
 
-	@Value("${oauth.profile-url")
+	@Value("${oauth.profile-url}")
 	private String oauthProfileUrl;
 
 	@Value("${OAUTH_CLIENT_ID}")
