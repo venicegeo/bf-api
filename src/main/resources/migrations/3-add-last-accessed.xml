@@ -16,12 +16,10 @@
 		</preConditions>
 
 		<sql>
-			-- DROP views so they are not preventing changing data type of
-			scene_id
+			-- DROP views so they are not preventing changing data type of scene_id
 
 			DROP VIEW IF EXISTS __beachfront__geoserver;
-			DROP VIEW IF
-			EXISTS __beachfront__provenance;
+			DROP VIEW IF EXISTS __beachfront__provenance;
 		</sql>
 
 		<addColumn schemaName="public" tableName="__beachfront__user">
