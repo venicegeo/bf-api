@@ -46,7 +46,7 @@ public class OAuthService {
 	private UserProfileService userProfileService;
 
 	public String getOauthRedirectUri() {
-		return UriComponentsBuilder.newInstance().host("bf-api." + this.domain).pathSegment("oauth", "callback").build().toUri().toString();
+		return UriComponentsBuilder.newInstance().host("bf-api." + this.domain).pathSegment("login").build().toUri().toString();
 	}
 
 	public String requestAccessToken(String authCode) throws UserException {
