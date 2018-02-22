@@ -52,25 +52,19 @@ public class GeoserverEnvironment {
 
 	@Value("${vcap.services.pz-geoserver.credentials.boundless_geoserver_url}")
 	private String GEOSERVER_HOST;
-
 	@Value("${geoserver.workspace.name}")
 	private String WORKSPACE_NAME;
-
 	@Value("${geoserver.datastore.name}")
 	private String DATASTORE_NAME;
-
 	@Value("${geoserver.layer.name}")
 	private String LAYER_NAME;
-
 	@Value("${geoserver.style.name}")
 	private String STYLE_NAME;
 
 	@Autowired
 	private RestTemplate restTemplate;
-
 	@Autowired
 	private AuthHeaders authHeaders;
-
 	@Autowired
 	private ObjectMapper objectMapper;
 
@@ -79,18 +73,16 @@ public class GeoserverEnvironment {
 	 */
 	@PostConstruct
 	public void initializeEnvironment() {
-
 		LOG.info("Checking to see if installation of GeoServer Style, Layer is required");
 
 		// Check GeoServer Layer
 		{
 			final String layerURL = String.format("%s/rest/layers/%s", getGeoServerBaseUrl(), LAYER_NAME);
 
-			if( !doesResourceExist(layerURL) ) {
+			if (!doesResourceExist(layerURL)) {
 				LOG.info("GeoServer Layer does not exist; Attempting creation...");
 				installLayer();
-			}
-			else {
+			} else {
 				LOG.info("GeoServer Layer exists and will not be reinstalled.");
 			}
 		}
@@ -99,11 +91,10 @@ public class GeoserverEnvironment {
 		{
 			final String styleURL = String.format("%s/rest/styles/%s", getGeoServerBaseUrl(), STYLE_NAME);
 
-			if( !doesResourceExist(styleURL) ) {
+			if (!doesResourceExist(styleURL)) {
 				LOG.info("GeoServer Style does not exist; Attempting creation...");
 				installStyle();
-			}
-			else {
+			} else {
 				LOG.info("GeoServer Style exists and will not be reinstalled.");
 			}
 		}
@@ -115,7 +106,6 @@ public class GeoserverEnvironment {
 	 * @return True if exists, false if not
 	 */
 	private boolean doesResourceExist(final String resourceUri) {
-
 		// Check if exists
 		final HttpEntity<String> request = new HttpEntity<>(authHeaders.get());
 
@@ -127,8 +117,7 @@ public class GeoserverEnvironment {
 			// Validate that the response body is JSON. Otherwise, an authentication redirect error may have occurred.
 			try {
 				objectMapper.readTree(response.getBody());
-			} 
-			catch (final IOException exception) {
+			} catch (final IOException exception) {
 				String error = String.format(
 						"Received a non-error response from GeoServer resource check for %s, but it was not valid JSON. Authentication may have failed. ",
 						resourceUri, response.getBody());
@@ -140,8 +129,7 @@ public class GeoserverEnvironment {
 			if (response.getStatusCode().is2xxSuccessful()) {
 				return true;
 			}
-		} 
-		catch (final HttpClientErrorException | HttpServerErrorException exception) {
+		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
 			// If it's a 404, then it does not exist. Fall through.
 			if (!exception.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
 				// If it's anything but a 404, then it's a server error and we should not proceed with creation. Throw
@@ -149,8 +137,7 @@ public class GeoserverEnvironment {
 				LOG.error("HTTP Status Error checking GeoServer Resource {} Exists : {}" + resourceUri,
 						exception.getStatusCode().toString(), exception);
 			}
-		} 
-		catch (final RestClientException exception) {
+		} catch (final RestClientException exception) {
 			LOG.error("Unexpected Error Checking GeoServer Resource Exists : " + resourceUri, exception);
 		}
 
@@ -158,31 +145,27 @@ public class GeoserverEnvironment {
 	}
 
 	private void installLayer() {
-
 		authHeaders.setContentType(MediaType.APPLICATION_XML);
-		final String layerURL = String.format("%s/rest/workspaces/%s/datastores/%s/featuretypes", getGeoServerBaseUrl(), WORKSPACE_NAME, DATASTORE_NAME);
+		final String layerURL = String.format("%s/rest/workspaces/%s/datastores/%s/featuretypes", getGeoServerBaseUrl(), WORKSPACE_NAME,
+				DATASTORE_NAME);
 
 		try {
 			final HttpEntity<String> request = new HttpEntity<>(getLayerCreationPayload(), authHeaders.get());
 			restTemplate.exchange(layerURL, HttpMethod.POST, request, String.class);
 
 			LOG.info("GeoServer Layer created successfully!");
-		}
-		catch (final HttpClientErrorException | HttpServerErrorException exception) {
+		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
 			final String error = String.format("HTTP Error occurred while trying to create Beachfront GeoServer Layer: %s",
 					exception.getResponseBodyAsString());
 			LOG.error(error, exception);
-		}
-		catch (final RestClientException exception) {
+		} catch (final RestClientException exception) {
 			LOG.error("Unexpected Error Creating GeoServer Layer!", exception);
-		}
-		catch (final IOException | URISyntaxException exception) {
+		} catch (final IOException | URISyntaxException exception) {
 			LOG.error("Unexpected Error Reading GeoServer Layer XML!", exception);
 		}
 	}
 
 	private void installStyle() {
-
 		authHeaders.setContentType(MediaType.parseMediaType("application/vnd.ogc.sld+xml"));
 		final String styleURL = String.format("%s/rest/styles?name=%s", getGeoServerBaseUrl(), STYLE_NAME);
 
@@ -191,28 +174,23 @@ public class GeoserverEnvironment {
 			restTemplate.exchange(styleURL, HttpMethod.POST, request, String.class);
 
 			LOG.info("GeoServer Style created successfully!");
-		}
-		catch (final HttpClientErrorException | HttpServerErrorException exception) {
+		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
 			final String error = String.format("HTTP Error occurred while trying to create Beachfront GeoServer Style: %s",
 					exception.getResponseBodyAsString());
 			LOG.error(error, exception);
-		} 
-		catch (final RestClientException exception) {
+		} catch (final RestClientException exception) {
 			LOG.error("Unexpected Error Creating GeoServer Style!", exception);
-		}
-		catch (final IOException | URISyntaxException exception) {
+		} catch (final IOException | URISyntaxException exception) {
 			LOG.error("Unexpected Error Reading GeoServer Layer XML!", exception);
 		}
 	}
 
 	private String getLayerCreationPayload() throws IOException, URISyntaxException {
-
 		return new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/layer_creation.xml").toURI())))
 				.replaceAll("LAYER_NAME", LAYER_NAME);
 	}
 
 	private String getStyleCreationPayload() throws IOException, URISyntaxException {
-
 		return new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/style_creation.xml").toURI())));
 	}
 

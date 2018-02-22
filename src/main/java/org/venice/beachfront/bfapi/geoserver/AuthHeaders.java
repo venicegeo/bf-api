@@ -19,9 +19,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 public interface AuthHeaders {
-
 	void add(String headerName, String headerValue);
-	
+
 	void setContentType(MediaType type);
 
 	HttpHeaders get();
