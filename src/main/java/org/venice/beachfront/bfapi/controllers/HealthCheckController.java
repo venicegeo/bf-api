@@ -15,14 +15,19 @@
  **/
 package org.venice.beachfront.bfapi.controllers;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.exception.UserException;
+import org.venice.beachfront.bfapi.services.JobService;
+import org.venice.beachfront.bfapi.services.PiazzaService;
 import org.venice.beachfront.bfapi.services.UptimeService;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Controller class for a simple health check endpoint.
@@ -33,34 +38,26 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class HealthCheckController {
 	@Autowired
 	private UptimeService uptimeService;
+	@Autowired
+	private PiazzaService piazzaService;
+	@Autowired
+	private JobService jobService;
 
 	@RequestMapping(path = "/", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public HealthCheckData healthCheckUptime() {
-		HealthCheckData data = new HealthCheckData();
-		data.setUptime(uptimeService.getUptimeSeconds());
-		return data;
-	}
-
-	public static class HealthCheckData {
-		@JsonProperty("uptime")
-		double uptime;
-
-		/**
-		 * @return the uptimeMillis
-		 */
-		public double getUptime() {
-			return this.uptime;
+	public Map<String, String> healthCheck() throws UserException {
+		Map<String, String> healthCheckData = new HashMap<String, String>();
+		// Show uptime
+		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
+		// Show algorithm Job Queue length as reported by Piazza
+		for (Algorithm algorithm : piazzaService.getRegisteredAlgorithms()) {
+			String jobCount = piazzaService.getAlgorithmStatistics(algorithm.getServiceId()).get("totalJobCount").textValue();
+			healthCheckData.put(String.format("%s queued jobs", algorithm.getName()), jobCount);
 		}
+		// Show outstanding Job length
+		healthCheckData.put("jobs", Integer.toString(jobService.getOutstandingJobs().size()));
 
-		/**
-		 * @param uptimeMillis
-		 *            the uptimeMillis to set
-		 */
-		public void setUptime(double uptime) {
-			this.uptime = uptime;
-		}
-
+		return healthCheckData;
 	}
 
 }
