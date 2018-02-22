@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
@@ -48,6 +49,8 @@ public class JobServiceTests {
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
+		
+		ReflectionTestUtils.setField(jobService, "blockRedundantJobCheck", false);
 	}
 
 	@Test
