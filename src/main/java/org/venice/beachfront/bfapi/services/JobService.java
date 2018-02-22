@@ -17,7 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -45,8 +44,10 @@ public class JobService {
 	@Value("${gpkg.converter.server}")
 	private String GPKG_CONVERTER_SERVER;
 	@Value("${gpkg.converter.port}")
-	private int GPKG_CONVERTER_PORT;	
-			
+	private int GPKG_CONVERTER_PORT;
+	@Value("${block.redundant.job.check")
+	private Boolean blockRedundantJobCheck;
+
 	@Autowired
 	private JobDao jobDao;
 	@Autowired
@@ -93,10 +94,12 @@ public class JobService {
 		Algorithm algorithm = algorithmService.getAlgorithm(algorithmId);
 		// First step is to check for any existing Jobs that match these parameters exactly. If so, then simply return
 		// that Job.
-		Job redundantJob = getExistingRedundantJob(sceneId, algorithm, computeMask);
-		if (redundantJob != null) {
-			jobUserDao.save(new JobUser(redundantJob, userProfileService.getUserProfileById(creatorUserId)));
-			return redundantJob;
+		if (!blockRedundantJobCheck) {
+			Job redundantJob = getExistingRedundantJob(sceneId, algorithm, computeMask);
+			if (redundantJob != null) {
+				jobUserDao.save(new JobUser(redundantJob, userProfileService.getUserProfileById(creatorUserId)));
+				return redundantJob;
+			}
 		}
 
 		// Fetch Scene Information
@@ -281,7 +284,7 @@ public class JobService {
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
-	
+
 	/**
 	 * Gets the detection data as a GPKG archive for a detection based on the Job ID
 	 * 
@@ -290,17 +293,13 @@ public class JobService {
 	 * @return The GPKG archive for the job
 	 */
 	public byte[] getDetectionGeoPackage(String jobId) throws UserException {
-		byte[] geoJsonData = this.getDetectionGeoJson(jobId);		
+		byte[] geoJsonData = this.getDetectionGeoJson(jobId);
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<byte[]> request = new HttpEntity<byte[]>(geoJsonData, headers);
-		
-		URI geoJsonToGpkgUri = UriComponentsBuilder.newInstance()
-				.scheme(this.GPKG_CONVERTER_PROTOCOL)
-				.host(this.GPKG_CONVERTER_SERVER)
-				.port(this.GPKG_CONVERTER_PORT)
-				.pathSegment("convert")
-				.build().toUri();
+
+		URI geoJsonToGpkgUri = UriComponentsBuilder.newInstance().scheme(this.GPKG_CONVERTER_PROTOCOL).host(this.GPKG_CONVERTER_SERVER)
+				.port(this.GPKG_CONVERTER_PORT).pathSegment("convert").build().toUri();
 
 		ResponseEntity<byte[]> response;
 		try {
@@ -308,12 +307,12 @@ public class JobService {
 		} catch (RestClientResponseException ex) {
 			throw new UserException("Error communicating with GeoPackage converter service", ex, HttpStatus.valueOf(ex.getRawStatusCode()));
 		}
-		
+
 		String contentType = response.getHeaders().getContentType().toString();
 		if (!contentType.equals("application/x-sqlite3")) {
 			throw new UserException("Unexpected content type from GeoPackage converter service: " + contentType, HttpStatus.BAD_GATEWAY);
 		}
-		
+
 		return geoJsonData;
 	}
 
