@@ -49,14 +49,18 @@ public class HealthCheckController {
 		Map<String, String> healthCheckData = new HashMap<String, String>();
 		// Show uptime
 		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
-		// Show algorithm Job Queue length as reported by Piazza
-		for (Algorithm algorithm : piazzaService.getRegisteredAlgorithms()) {
-			String jobCount = piazzaService.getAlgorithmStatistics(algorithm.getServiceId()).get("totalJobCount").textValue();
-			healthCheckData.put(String.format("%s queued jobs", algorithm.getName()), jobCount);
+		try {
+			// Show algorithm Job Queue length as reported by Piazza
+			for (Algorithm algorithm : piazzaService.getRegisteredAlgorithms()) {
+				int jobCount = piazzaService.getAlgorithmStatistics(algorithm.getServiceId()).get("totalJobCount").asInt();
+				healthCheckData.put(String.format("%s queued jobs", algorithm.getName()), Integer.toString(jobCount));
+			}
+			// Show outstanding Job length
+			healthCheckData.put("jobs", Integer.toString(jobService.getOutstandingJobs().size()));
+		} catch (UserException exception) {
+			healthCheckData.put("error",
+					String.format("There was an error retrieving Algorithm health check data: %s", exception.getMessage()));
 		}
-		// Show outstanding Job length
-		healthCheckData.put("jobs", Integer.toString(jobService.getOutstandingJobs().size()));
-
 		return healthCheckData;
 	}
 
