@@ -22,7 +22,15 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-		String apiKey = authentication.getName();
+		String apiKey;
+		if (authentication.getPrincipal() instanceof UserProfile) {
+			apiKey = ((UserProfile)authentication.getPrincipal()).getApiKey();
+		} else if (authentication.getPrincipal() instanceof String){
+			apiKey = authentication.getPrincipal().toString();
+		} else {
+			// Api Key can't be parsed
+			return null;
+		}
 		UserProfile userProfile = userProfileService.getUserProfileByApiKey(apiKey);
 		if (userProfile != null) {
 			// Valid API Key. Update the last time of access to now.
