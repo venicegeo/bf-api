@@ -105,7 +105,7 @@ public class SceneService {
 		Scene scene = new Scene();
 		try {
 			scene.setRawJson(responseJson);
-			scene.setSceneId(responseJson.get("id").asText());
+			scene.setSceneId(platform + ":" + responseJson.get("id").asText());
 			scene.setCloudCover(responseJson.get("properties").get("cloudCover").asDouble());
 			scene.setResolution(responseJson.get("properties").get("resolution").asInt());
 			scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));

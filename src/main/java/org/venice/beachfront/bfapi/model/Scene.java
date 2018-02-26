@@ -21,8 +21,8 @@ import com.vividsolutions.jts.geom.Geometry;
 public class Scene {
 	public static final String PLATFORM_PLANETSCOPE = "planetscope";
 	public static final String PLATFORM_RAPIDEYE = "rapideye";
-	public static final String PLATFORM_SENTINEL = "landsat";
-	public static final String PLATFORM_LANDSAT = "sentinel";
+	public static final String PLATFORM_SENTINEL = "sentinel";
+	public static final String PLATFORM_LANDSAT = "landsat";
 
 	public static final String STATUS_ACTIVE = "active";
 	public static final String STATUS_ACTIVATING = "activating";
@@ -151,7 +151,7 @@ public class Scene {
 	}
 
 	public String getExternalId() {
-		String[] idParts = this.sceneId.split(":", 1);
+		String[] idParts = this.sceneId.split(":", 2);
 		if (idParts.length < 2) {
 			throw new RuntimeException("Invalid scene ID: " + this.sceneId);
 		}
