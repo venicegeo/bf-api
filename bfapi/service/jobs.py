@@ -134,7 +134,7 @@ def create(
         scene_filenames = ['coastal.TIF', 'swir1.TIF']
         scene_urls = [scene.image_coastal, scene.image_swir1]
     elif scene.platform == scenes.PLATFORM_SENTINEL:
-        scene_filenames = ['B02.JP2', 'B08.JP2']
+        scene_filenames = ['coastal.JP2', 'swir1.JP2']
         scene_urls = [scene.image_coastal, scene.image_swir1]
     else:
         raise PreprocessingError('Unexpected platform')
