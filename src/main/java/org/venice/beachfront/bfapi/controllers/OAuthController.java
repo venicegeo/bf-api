@@ -1,11 +1,12 @@
 package org.venice.beachfront.bfapi.controllers;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -16,23 +17,26 @@ import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 import org.venice.beachfront.bfapi.services.OAuthService;
+import org.venice.beachfront.bfapi.services.UserProfileService;
 
 @Controller
 public class OAuthController {
 	@Value("${DOMAIN}")
 	private String domain;
-
 	@Value("${oauth.authorize-url}")
 	private String oauthAuthorizeUrl;
-
 	@Value("${oauth.logout-url}")
 	private String oauthLogoutUrl;
-
 	@Value("${OAUTH_CLIENT_ID}")
 	private String oauthClientId;
+	@Value("${cookie.expiry.seconds}")
+	private int COOKIE_EXPIRY_SECONDS;
 
 	@Autowired
 	private OAuthService oauthService;
+
+	@Autowired
+	private UserProfileService userProfileService;
 
 	@RequestMapping(path = "/login/geoaxis", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
@@ -50,8 +54,7 @@ public class OAuthController {
 
 	@RequestMapping(path = "/login", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
-	public String oauthCallback(@RequestParam("code") String authCode, HttpSession session, HttpServletResponse response)
-			throws UserException {
+	public String oauthCallback(@RequestParam("code") String authCode, HttpServletResponse response) throws UserException {
 		String accessToken = this.oauthService.requestAccessToken(authCode);
 		ProfileResponseBody profileResponse = this.oauthService.requestOAuthProfile(accessToken);
 
@@ -63,7 +66,7 @@ public class OAuthController {
 		String uiRedirectUri = UriComponentsBuilder.newInstance().scheme("https").host(this.domain).queryParam("logged_in", "true").build()
 				.toUri().toString();
 
-		session.setAttribute("api_key", userProfile.getApiKey());
+		response.addCookie(createCookie(userProfile.getApiKey(), COOKIE_EXPIRY_SECONDS));
 		response.setStatus(HttpStatus.FOUND.value());
 		response.setHeader("Location", uiRedirectUri);
 		return "Authentication successful. Redirecting back to application...";
@@ -71,18 +74,29 @@ public class OAuthController {
 
 	@RequestMapping(path = "/oauth/logout", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
-	public String oauthLogout(HttpSession session, HttpServletResponse response) throws UserException {
-		// Remove cookie
-		session.invalidate();
+	public String oauthLogout(HttpServletResponse response, Authentication authentication) throws UserException {
+		// Server-side invalidation of API Key
+		userProfileService.invalidateKey(userProfileService.getProfileFromAuthentication(authentication));
 
 		// Construct redirect url for server side logout
 		final String uiUrl = "beachfront." + domain;
 		// Forward user to server side logout
-		String logoutRedirectUri = UriComponentsBuilder.fromUriString(oauthLogoutUrl).queryParam("end_url", uiUrl)
-				.build().toUri().toString();
+		String logoutRedirectUri = UriComponentsBuilder.fromUriString(oauthLogoutUrl).queryParam("end_url", uiUrl).build().toUri()
+				.toString();
 
+		// Clear the session cookie
+		response.addCookie(createCookie(null, 0));
 		response.setStatus(HttpStatus.FOUND.value());
 		response.setHeader("Location", logoutRedirectUri);
 		return "Logging out. Redirecting to oauth logout...";
+	}
+
+	private Cookie createCookie(String apiKey, int expiry) {
+		Cookie cookie = new Cookie("api_key", apiKey);
+		cookie.setDomain(String.format("*.%s", domain));
+		cookie.setSecure(true);
+		cookie.setPath("/");
+		cookie.setMaxAge(expiry);
+		return cookie;
 	}
 }
