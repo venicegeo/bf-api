@@ -31,6 +31,8 @@ public class OAuthController {
 	private String oauthClientId;
 	@Value("${cookie.expiry.seconds}")
 	private int COOKIE_EXPIRY_SECONDS;
+	@Value("${cookie.name}")
+	private String COOKIE_NAME;
 
 	@Autowired
 	private OAuthService oauthService;
@@ -92,7 +94,7 @@ public class OAuthController {
 	}
 
 	private Cookie createCookie(String apiKey, int expiry) {
-		Cookie cookie = new Cookie("api_key", apiKey);
+		Cookie cookie = new Cookie(COOKIE_NAME, apiKey);
 		cookie.setDomain(String.format("*.%s", domain));
 		cookie.setSecure(true);
 		cookie.setPath("/");
