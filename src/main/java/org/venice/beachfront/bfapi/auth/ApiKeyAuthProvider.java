@@ -1,6 +1,11 @@
 package org.venice.beachfront.bfapi.auth;
 
+import java.util.Arrays;
+
+import javax.servlet.http.Cookie;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,20 +22,27 @@ import org.venice.beachfront.bfapi.services.UserProfileService;
  */
 @Component
 public class ApiKeyAuthProvider implements AuthenticationProvider {
+	@Value("${cookie.name}")
+	private String COOKIE_NAME;
+
 	@Autowired
 	private UserProfileService userProfileService;
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-		String apiKey;
-		if (authentication.getPrincipal() instanceof UserProfile) {
-			apiKey = ((UserProfile)authentication.getPrincipal()).getApiKey();
-		} else if (authentication.getPrincipal() instanceof String){
-			apiKey = authentication.getPrincipal().toString();
-		} else {
-			// Api Key can't be parsed
-			return null;
+		// First attempt to read the API Key from the auth header
+		String apiKey = authentication.getName();
+		if (apiKey == null) {
+			// No API Key set in auth header. Read the cookie.
+			ExtendedRequestDetails details = (ExtendedRequestDetails) authentication.getDetails();
+			Cookie[] cookies = details.getRequest().getCookies();
+			for (Cookie cookie : Arrays.asList(cookies)) {
+				if (COOKIE_NAME.equals(cookie.getName())) {
+					apiKey = cookie.getValue();
+				}
+			}
 		}
+
 		UserProfile userProfile = userProfileService.getUserProfileByApiKey(apiKey);
 		if (userProfile != null) {
 			// Valid API Key. Update the last time of access to now.
