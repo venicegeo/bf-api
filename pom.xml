@@ -136,6 +136,11 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.venice.piazza</groupId>
+			<artifactId>pz-jobcommon</artifactId>
+			<version>2-0-0-7-gb51fe13</version>
+		</dependency>
 	</dependencies>
 
 	<build>

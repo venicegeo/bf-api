@@ -37,6 +37,9 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.vividsolutions.jts.geom.Geometry;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 @Service
 public class JobService {
 	@Value("${gpkg.converter.protocol}")
@@ -66,6 +69,8 @@ public class JobService {
 	private PiazzaService piazzaService;
 	@Autowired
 	private RestTemplate restTemplate;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	/**
 	 * Creates a Beachfront Job. This will submit the Job request to Piazza, fetch the Job ID, and add all of the Job
@@ -90,6 +95,8 @@ public class JobService {
 	 */
 	public Job createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
 			JsonNode extras) throws UserException {
+		piazzaLogger.log(String.format("Processing Job Request for Job %s by user %s for Scene %s on Algorithm %s.", jobName, creatorUserId,
+				sceneId, algorithmId), Severity.INFORMATIONAL);
 		// Fetch the Algorithm
 		Algorithm algorithm = algorithmService.getAlgorithm(algorithmId);
 		// First step is to check for any existing Jobs that match these parameters exactly. If so, then simply return
@@ -97,6 +104,8 @@ public class JobService {
 		if (!blockRedundantJobCheck) {
 			Job redundantJob = getExistingRedundantJob(sceneId, algorithm, computeMask);
 			if (redundantJob != null) {
+				piazzaLogger.log(String.format("Found Redundant Job %s for %s's Job %s request. This detection will be reused.",
+						redundantJob.getJobId(), creatorUserId, jobName), Severity.INFORMATIONAL);
 				jobUserDao.save(new JobUser(redundantJob, userProfileService.getUserProfileById(creatorUserId)));
 				return redundantJob;
 			}
@@ -106,12 +115,12 @@ public class JobService {
 		Scene scene = null;
 		try {
 			scene = sceneService.getScene(sceneId, planetApiKey, true);
-		} catch (Exception exception) {
+		} catch (UserException exception) {
 			throw new UserException("There was an error getting the scene information.", exception.getMessage(), null);
 		}
 		try {
 			sceneService.activateScene(scene, planetApiKey);
-		} catch (Exception exception) {
+		} catch (UserException exception) {
 			throw new UserException("There was an error activating the requested scene.", exception.getMessage(), null);
 		}
 
@@ -128,6 +137,8 @@ public class JobService {
 
 		// Prepare Job Request
 		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
+		piazzaLogger.log(String.format("Generated CLI Command for Job %s (Scene %s) for User %s : %s", jobName, sceneId, creatorUserId,
+				algorithmCli), Severity.INFORMATIONAL);
 
 		// Dispatch Job to Piazza
 		String jobId = piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId);
@@ -140,6 +151,7 @@ public class JobService {
 		jobDao.save(job);
 		// Associate this Job with the User who requested it
 		jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
+		piazzaLogger.log(String.format("Saved Job ID %s for Job %s by User %s", jobId, jobName, creatorUserId), Severity.INFORMATIONAL);
 		return job;
 	}
 
@@ -163,7 +175,9 @@ public class JobService {
 		outstandingStatuses.add(Job.STATUS_PENDING);
 		outstandingStatuses.add(Job.STATUS_RUNNING);
 		outstandingStatuses.add(Job.STATUS_SUBMITTED);
-		return jobDao.findByStatusIn(outstandingStatuses);
+		List<Job> jobs = jobDao.findByStatusIn(outstandingStatuses);
+		piazzaLogger.log(String.format("Queried for outstanding Jobs. Found %s outstanding jobs.", jobs.size()), Severity.INFORMATIONAL);
+		return jobs;
 	}
 
 	/**
@@ -216,6 +230,7 @@ public class JobService {
 		for (JobUser jobRef : jobRefs) {
 			jobs.add(jobRef.getJobUserPK().getJob());
 		}
+		piazzaLogger.log(String.format("Queried Jobs for user %s. Found %s Jobs.", createdByUserId, jobs.size()), Severity.INFORMATIONAL);
 		return jobs;
 	}
 
@@ -227,6 +242,7 @@ public class JobService {
 		JobUser jobUser = jobUserDao.findByJobUserPK_Job_JobIdAndJobUserPK_User_UserId(jobId, userId);
 		if (jobUser != null) {
 			jobUserDao.delete(jobUser);
+			piazzaLogger.log(String.format("User %s has forgotten Job %s", userId, jobId), Severity.INFORMATIONAL);
 			return new Confirmation(jobId, true);
 		} else {
 			return new Confirmation(jobId, false);
@@ -256,6 +272,8 @@ public class JobService {
 	public void createJobError(Job job, String error) {
 		JobError jobError = new JobError(job, error, "Processing");
 		jobErrorDao.save(jobError);
+		piazzaLogger.log(String.format("Recorded Job error for Job %s (%s) with Error %s", job.getJobId(), job.getJobName(), error),
+				Severity.ERROR);
 	}
 
 	/**
@@ -266,6 +284,7 @@ public class JobService {
 	 * @return The GeoJSON detection for the job
 	 */
 	public byte[] getDetectionGeoJson(String jobId) throws UserException {
+		piazzaLogger.log(String.format("Querying Database for detection bytes for Job %s", jobId), Severity.INFORMATIONAL);
 		// Find the Detection
 		Detection detection = detectionDao.findByDetectionPK_Job_JobId(jobId);
 		if (detection == null) {
@@ -277,11 +296,14 @@ public class JobService {
 		StringWriter writer = new StringWriter();
 		try {
 			geojson.write(geometry, writer);
-			return writer.toString().getBytes();
+			byte[] bytes = writer.toString().getBytes();
+			piazzaLogger.log(String.format("Returning Detection bytes (length %s) for Job %s", bytes.length, jobId),
+					Severity.INFORMATIONAL);
+			return bytes;
 		} catch (IOException exception) {
-			exception.printStackTrace();
-			throw new UserException(String.format("There was an error reading the detection for Job %s.", jobId), exception,
-					HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = String.format("There was an error reading the detection for Job %s.", jobId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -293,6 +315,7 @@ public class JobService {
 	 * @return The GPKG archive for the job
 	 */
 	public byte[] getDetectionGeoPackage(String jobId) throws UserException {
+		piazzaLogger.log(String.format("Requesting GeoPackage for Detection of Job %s", jobId), Severity.INFORMATIONAL);
 		byte[] geoJsonData = this.getDetectionGeoJson(jobId);
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
@@ -304,7 +327,11 @@ public class JobService {
 		ResponseEntity<byte[]> response;
 		try {
 			response = this.restTemplate.exchange(geoJsonToGpkgUri, HttpMethod.POST, request, byte[].class);
+			piazzaLogger.log(String.format("Received GeoPackage bytes for Job %s to %s", jobId, geoJsonToGpkgUri.toString()),
+					Severity.INFORMATIONAL);
 		} catch (RestClientResponseException ex) {
+			piazzaLogger.log(String.format("Error downloading GeoPackage for Job %s with Status Code %s and Error %s", jobId,
+					ex.getStatusText(), ex.getResponseBodyAsString()), Severity.INFORMATIONAL);
 			throw new UserException("Error communicating with GeoPackage converter service", ex, HttpStatus.valueOf(ex.getRawStatusCode()));
 		}
 
