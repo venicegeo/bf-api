@@ -22,9 +22,13 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 import org.venice.beachfront.bfapi.services.OAuthService;
 
+import util.PiazzaLogger;
+
 public class OAuthControllerTests {
 	@Mock
 	private OAuthService oauthService;
+	@Mock
+	private PiazzaLogger piazzaLogger;
 	@InjectMocks
 	private OAuthController oauthController;
 
