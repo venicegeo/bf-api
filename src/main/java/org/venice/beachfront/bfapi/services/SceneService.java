@@ -114,7 +114,7 @@ public class SceneService {
 			piazzaLogger.log(String.format("Beginnining parsing of successful response of Scene %s data.", sceneId),
 					Severity.INFORMATIONAL);
 			scene.setRawJson(responseJson);
-			scene.setSceneId(responseJson.get("id").asText());
+			scene.setSceneId(platform + ":" + responseJson.get("id").asText());
 			scene.setCloudCover(responseJson.get("properties").get("cloudCover").asDouble());
 			scene.setResolution(responseJson.get("properties").get("resolution").asInt());
 			scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));

@@ -46,6 +46,7 @@ public class OAuthService {
 	private PiazzaLogger piazzaLogger;
 
 	public String getOauthRedirectUri() {
+		// TODO: should this be a configuration variable, since it needs to match 100% with the oauth provider config?
 		return UriComponentsBuilder.newInstance().host("bf-api." + this.domain).pathSegment("login").build().toUri().toString();
 	}
 
@@ -65,13 +66,11 @@ public class OAuthService {
 			if (code >= 400 && code <= 499) {
 				throw new UserException("Unauthorized: Failed to acquire OAuth access token from access code", ex,
 						HttpStatus.valueOf(code));
+			} else {
+				String message = String.format("Upstream server error acquiring OAuth access token from access code; upstream code=%d",
+						code);
+				throw new UserException(message, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			}
-			if (code >= 500 && code <= 599) {
-				throw new UserException("Upstream OAuth error acquiring OAuth access token from access code", ex,
-						ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
-			}
-			throw new UserException("Unknown error acquiring OAuth access token from access code", ex, ex.getResponseBodyAsString(),
-					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		piazzaLogger.log("Successfully retrieved access token for OAuth Token Request.", Severity.INFORMATIONAL);
@@ -92,12 +91,10 @@ public class OAuthService {
 			int code = ex.getRawStatusCode();
 			if (code >= 400 && code <= 499) {
 				throw new UserException("Unauthorized: Failed to acquire user profile", ex, HttpStatus.valueOf(code));
+			} else {
+				String message = String.format("Upstream server error acquiring user profile; upstream code=%d", code);
+				throw new UserException(message, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			}
-			if (code >= 500 && code <= 599) {
-				throw new UserException("Upstream acquiring user profile", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
-			}
-			throw new UserException("Unknown error acquiring user profile", ex, ex.getResponseBodyAsString(),
-					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		piazzaLogger.log("Successfully retrieved profile for OAuth Profile Request.", Severity.INFORMATIONAL);
