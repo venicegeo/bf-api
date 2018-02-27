@@ -245,6 +245,8 @@ public class JobService {
 			piazzaLogger.log(String.format("User %s has forgotten Job %s", userId, jobId), Severity.INFORMATIONAL);
 			return new Confirmation(jobId, true);
 		} else {
+			piazzaLogger.log(String.format("User %s tried to forget Job %s, but the Job User could not be found.", userId, jobId),
+					Severity.ERROR);
 			return new Confirmation(jobId, false);
 		}
 	}
