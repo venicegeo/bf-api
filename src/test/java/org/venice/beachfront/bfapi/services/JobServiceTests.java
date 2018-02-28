@@ -26,6 +26,8 @@ import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
+import util.PiazzaLogger;
+
 public class JobServiceTests {
 	@Mock
 	private JobDao jobDao;
@@ -43,13 +45,15 @@ public class JobServiceTests {
 	private DetectionDao detectionDao;
 	@Mock
 	private UserProfileService userProfileService;
+	@Mock
+	private PiazzaLogger piazzaLogger;
 	@InjectMocks
 	private JobService jobService;
 
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
-		
+
 		ReflectionTestUtils.setField(jobService, "blockRedundantJobCheck", false);
 	}
 

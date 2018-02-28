@@ -17,22 +17,24 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 import org.venice.beachfront.bfapi.services.OAuthService;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 @Controller
 public class OAuthController {
 	@Value("${DOMAIN}")
 	private String domain;
-
 	@Value("${oauth.authorize-url}")
 	private String oauthAuthorizeUrl;
-
 	@Value("${oauth.logout-url}")
 	private String oauthLogoutUrl;
-
 	@Value("${OAUTH_CLIENT_ID}")
 	private String oauthClientId;
 
 	@Autowired
 	private OAuthService oauthService;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	@RequestMapping(path = "/login/geoaxis", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
@@ -58,6 +60,9 @@ public class OAuthController {
 		String userId = profileResponse.getComputedUserId();
 		String userName = profileResponse.getComputedUserName();
 
+		piazzaLogger.log(String.format("User %s with Name %s Successfully authenticated with OAuth provider.", userId, userName),
+				Severity.INFORMATIONAL);
+
 		UserProfile userProfile = this.oauthService.getOrCreateUser(userId, userName);
 
 		String uiRedirectUri = UriComponentsBuilder.newInstance().scheme("https").host(this.domain).queryParam("logged_in", "true").build()
@@ -72,14 +77,15 @@ public class OAuthController {
 	@RequestMapping(path = "/oauth/logout", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
 	public String oauthLogout(HttpSession session, HttpServletResponse response) throws UserException {
+		// TODO: patrick LOG THE USER LOGGING OUT!
 		// Remove cookie
 		session.invalidate();
 
 		// Construct redirect url for server side logout
 		final String uiUrl = "beachfront." + domain;
 		// Forward user to server side logout
-		String logoutRedirectUri = UriComponentsBuilder.fromUriString(oauthLogoutUrl).queryParam("end_url", uiUrl)
-				.build().toUri().toString();
+		String logoutRedirectUri = UriComponentsBuilder.fromUriString(oauthLogoutUrl).queryParam("end_url", uiUrl).build().toUri()
+				.toString();
 
 		response.setStatus(HttpStatus.FOUND.value());
 		response.setHeader("Location", logoutRedirectUri);

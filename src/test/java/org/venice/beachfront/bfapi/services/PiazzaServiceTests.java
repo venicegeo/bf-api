@@ -11,18 +11,15 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -33,11 +30,15 @@ import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import util.PiazzaLogger;
+
 public class PiazzaServiceTests {
 	@Mock
 	private RestTemplate restTemplate;
 	@Spy
 	private ObjectMapper objectMapper;
+	@Mock
+	private PiazzaLogger piazzaLogger;
 	@InjectMocks
 	private PiazzaService piazzaService;
 

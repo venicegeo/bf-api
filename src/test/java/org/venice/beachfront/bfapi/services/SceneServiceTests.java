@@ -35,38 +35,41 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import util.PiazzaLogger;
+
 public class SceneServiceTests {
 	@Mock
 	private RestTemplate restTemplate;
-	
+	@Mock
+	private PiazzaLogger piazzaLogger;
 	@Mock
 	private ExecutorService executor;
-	
+
 	@InjectMocks
 	private SceneService sceneService;
-	
+
 	@Before
 	public void setup() {
-		MockitoAnnotations.initMocks(this);	
+		MockitoAnnotations.initMocks(this);
 		ReflectionTestUtils.setField(this.sceneService, "bfDomain", "bf-test.localdomain");
 		ReflectionTestUtils.setField(this.sceneService, "iaBrokerProtocol", "https");
 		ReflectionTestUtils.setField(this.sceneService, "iaBrokerServer", "bf-ia-broker-test.localdomain");
 		ReflectionTestUtils.setField(this.sceneService, "iaBrokerPort", 443);
 	}
-	
+
 	@Test
 	public void testGetSceneInputFileNames() {
 		Scene scene = new Scene();
 		List<String> inputFileNames;
-		
+
 		scene.setSceneId("rapideye:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
 		assertEquals(Arrays.asList("multispectral.TIF"), inputFileNames);
-		
+
 		scene.setSceneId("planetscope:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
 		assertEquals(Arrays.asList("multispectral.TIF"), inputFileNames);
-		
+
 		scene.setSceneId("landsat:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
 		assertEquals(Arrays.asList("coastal.TIF", "multispectral.TIF"), inputFileNames);
@@ -83,7 +86,7 @@ public class SceneServiceTests {
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
 		assertEquals(0, inputFileNames.size());
 	}
-	
+
 	@Test
 	public void testGetSceneInputURLs() {
 		ObjectNode bands = JsonNodeFactory.instance.objectNode();
@@ -92,21 +95,20 @@ public class SceneServiceTests {
 		bands.set("nir", JsonNodeFactory.instance.textNode("NIR_URL"));
 		JsonNode properties = JsonNodeFactory.instance.objectNode().set("bands", bands);
 		JsonNode rawJson = JsonNodeFactory.instance.objectNode().set("properties", properties);
-		
-		
+
 		Scene scene = new Scene();
 		scene.setUri("SCENE_URL");
 		scene.setRawJson(rawJson);
 		List<String> inputURLs;
-		
+
 		scene.setSceneId("rapideye:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
 		assertEquals(Arrays.asList("SCENE_URL"), inputURLs);
-		
+
 		scene.setSceneId("planetscope:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
 		assertEquals(Arrays.asList("SCENE_URL"), inputURLs);
-		
+
 		scene.setSceneId("landsat:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
 		assertEquals(Arrays.asList("COASTAL_URL", "SCENE_URL"), inputURLs);
@@ -123,43 +125,44 @@ public class SceneServiceTests {
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
 		assertEquals(0, inputURLs.size());
 	}
-	
+
 	@Test
 	public void testGetDownloadUri() {
 		Scene scene = new Scene();
 		scene.setSceneId("SCENE_ID");
-		
+
 		URI sceneDownloadUri = this.sceneService.getDownloadUri(scene, "api-abc-123");
 		assertEquals("https://bf-api.bf-test.localdomain/scene/SCENE_ID/download?planet_api_key=api-abc-123", sceneDownloadUri.toString());
 	}
-	
+
 	@Test
 	public void testActivateSceneSuccess() throws UserException {
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
 		scene.setSceneId("PLATFORM:EXTERNAL_ID");
-		
+
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(Object.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		         Object[] args = invocation.getArguments();
-		         assertEquals(URI.class, args[0].getClass());
-		         assertEquals("https://bf-ia-broker-test.localdomain:443/planet/activate/PLATFORM/EXTERNAL_ID?PLANET_API_KEY=api-abc-123", ((URI)args[0]).toString());
-		         return new ResponseEntity<Object>(null, HttpStatus.OK);
-		     }
-		 });
-		
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				Object[] args = invocation.getArguments();
+				assertEquals(URI.class, args[0].getClass());
+				assertEquals("https://bf-ia-broker-test.localdomain:443/planet/activate/PLATFORM/EXTERNAL_ID?PLANET_API_KEY=api-abc-123",
+						((URI) args[0]).toString());
+				return new ResponseEntity<Object>(null, HttpStatus.OK);
+			}
+		});
+
 		this.sceneService.activateScene(scene, "api-abc-123");
 	}
-	
+
 	@Test
 	public void testActivateSceneNotInactiveLeadsToNoop() throws UserException {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(Object.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	fail("this should not have been called");
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				fail("this should not have been called");
 				return null;
-		     }
-		 });
-		
+			}
+		});
+
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_ACTIVE);
 		this.sceneService.activateScene(scene, "api-abc-123");
@@ -167,20 +170,20 @@ public class SceneServiceTests {
 		scene.setStatus(Scene.STATUS_ACTIVATING);
 		this.sceneService.activateScene(scene, "api-abc-123");
 	}
-	
+
 	@Test
 	public void testActivateScene401() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(Object.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	 throw new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
-		     }
-		 });
-		
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				throw new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
+			}
+		});
+
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
 		scene.setSceneId("PLATFORM:EXTERNAL_ID");
 		try {
-			this.sceneService.activateScene(scene, "api-abc-123");			
+			this.sceneService.activateScene(scene, "api-abc-123");
 			fail("activation should not have succeeded");
 		} catch (UserException ex) {
 			assertEquals(HttpStatus.UNAUTHORIZED, ex.getRecommendedStatusCode());
@@ -191,16 +194,16 @@ public class SceneServiceTests {
 	@Test
 	public void testActivateScene404() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(Object.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	 throw new HttpClientErrorException(HttpStatus.NOT_FOUND);
-		     }
-		 });
-		
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				throw new HttpClientErrorException(HttpStatus.NOT_FOUND);
+			}
+		});
+
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
 		scene.setSceneId("PLATFORM:EXTERNAL_ID");
 		try {
-			this.sceneService.activateScene(scene, "api-abc-123");			
+			this.sceneService.activateScene(scene, "api-abc-123");
 			fail("activation should not have succeeded");
 		} catch (UserException ex) {
 			assertEquals(HttpStatus.NOT_FOUND, ex.getRecommendedStatusCode());
@@ -211,16 +214,16 @@ public class SceneServiceTests {
 	@Test
 	public void testActivateScene502() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(Object.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	 throw new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
-		     }
-		 });
-		
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				throw new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
+			}
+		});
+
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
 		scene.setSceneId("PLATFORM:EXTERNAL_ID");
 		try {
-			this.sceneService.activateScene(scene, "api-abc-123");			
+			this.sceneService.activateScene(scene, "api-abc-123");
 			fail("activation should not have succeeded");
 		} catch (UserException ex) {
 			assertEquals(HttpStatus.BAD_GATEWAY, ex.getRecommendedStatusCode());
@@ -230,16 +233,16 @@ public class SceneServiceTests {
 	@Test
 	public void testActivateSceneUnknownHttpStatus() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(Object.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	 throw new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
-		     }
-		 });
-		
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				throw new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
+			}
+		});
+
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
 		scene.setSceneId("PLATFORM:EXTERNAL_ID");
 		try {
-			this.sceneService.activateScene(scene, "api-abc-123");			
+			this.sceneService.activateScene(scene, "api-abc-123");
 			fail("activation should not have succeeded");
 		} catch (UserException ex) {
 			assertEquals(HttpStatus.BAD_GATEWAY, ex.getRecommendedStatusCode());
@@ -249,19 +252,23 @@ public class SceneServiceTests {
 
 	@Test
 	public void testGetSceneRapideyeWithTidesSuccess() throws UserException, IOException {
-		JsonNode responseJson = new ObjectMapper().readTree(getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "scene", File.separator, "getScene.json")));
-		
-		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class))).then(new Answer<ResponseEntity<JsonNode>>() {
-		     public ResponseEntity<JsonNode> answer(InvocationOnMock invocation) {
-		         Object[] args = invocation.getArguments();
-		         assertEquals(URI.class, args[0].getClass());
-		         assertEquals("https://bf-ia-broker-test.localdomain:443/planet/rapideye/EXTERNAL_ID?PLANET_API_KEY=api-abc-123&tides=true", ((URI)args[0]).toString());
-		         return new ResponseEntity<JsonNode>(responseJson, HttpStatus.OK);
-		     }
-		 });
-		
+		JsonNode responseJson = new ObjectMapper().readTree(
+				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "scene", File.separator, "getScene.json")));
+
+		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class)))
+				.then(new Answer<ResponseEntity<JsonNode>>() {
+					public ResponseEntity<JsonNode> answer(InvocationOnMock invocation) {
+						Object[] args = invocation.getArguments();
+						assertEquals(URI.class, args[0].getClass());
+						assertEquals(
+								"https://bf-ia-broker-test.localdomain:443/planet/rapideye/EXTERNAL_ID?PLANET_API_KEY=api-abc-123&tides=true",
+								((URI) args[0]).toString());
+						return new ResponseEntity<JsonNode>(responseJson, HttpStatus.OK);
+					}
+				});
+
 		Scene scene = this.sceneService.getScene("rapideye:EXTERNAL_ID", "api-abc-123", true);
-		
+
 		assertEquals("EXTERNAL_ID", scene.getExternalId());
 		assertEquals(0.1, scene.getCloudCover(), 0.0001);
 		assertEquals(3, scene.getResolution());
@@ -276,26 +283,31 @@ public class SceneServiceTests {
 
 	@Test
 	public void testGetSceneLandsatWithoutTidesSuccess() throws UserException, IOException {
-		JsonNode responseJson = new ObjectMapper().readTree(getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "scene", File.separator, "getScene.json")));
-		
-		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class))).then(new Answer<ResponseEntity<JsonNode>>() {
-		     public ResponseEntity<JsonNode> answer(InvocationOnMock invocation) {
-		         Object[] args = invocation.getArguments();
-		         assertEquals(URI.class, args[0].getClass());
-		         assertEquals("https://bf-ia-broker-test.localdomain:443/planet/landsat/EXTERNAL_ID?PLANET_API_KEY=api-abc-123&tides=false", ((URI)args[0]).toString());
-		         return new ResponseEntity<JsonNode>(responseJson, HttpStatus.OK);
-		     }
-		 });
-		
+		JsonNode responseJson = new ObjectMapper().readTree(
+				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "scene", File.separator, "getScene.json")));
+
+		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class)))
+				.then(new Answer<ResponseEntity<JsonNode>>() {
+					public ResponseEntity<JsonNode> answer(InvocationOnMock invocation) {
+						Object[] args = invocation.getArguments();
+						assertEquals(URI.class, args[0].getClass());
+						assertEquals(
+								"https://bf-ia-broker-test.localdomain:443/planet/landsat/EXTERNAL_ID?PLANET_API_KEY=api-abc-123&tides=false",
+								((URI) args[0]).toString());
+						return new ResponseEntity<JsonNode>(responseJson, HttpStatus.OK);
+					}
+				});
+
 		Scene scene = this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
-		
+
 		assertEquals("EXTERNAL_ID", scene.getExternalId());
 		assertEquals(0.1, scene.getCloudCover(), 0.0001);
 		assertEquals(3, scene.getResolution());
 		assertEquals(DateTime.parse("2018-02-26T07:28:08Z"), scene.getCaptureTime());
 		assertEquals("mockSensorName", scene.getSensorName());
 		assertEquals("https://mock-uri.localdomain/foo/tile.avi", scene.getUri());
-		assertEquals(Scene.STATUS_ACTIVE, scene.getStatus()); // This is the big difference from rapideye; landsat should always be active
+		assertEquals(Scene.STATUS_ACTIVE, scene.getStatus()); // This is the big difference from rapideye; landsat
+																// should always be active
 		assertNull(scene.getTide());
 		assertNull(scene.getTideMin24H());
 		assertNull(scene.getTideMax24H());
@@ -304,10 +316,10 @@ public class SceneServiceTests {
 	@Test
 	public void testGetScene401() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	 throw new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
-		     }
-		 });
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				throw new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
+			}
+		});
 
 		try {
 			this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
@@ -320,10 +332,10 @@ public class SceneServiceTests {
 	@Test
 	public void testGetScene404() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	 throw new HttpClientErrorException(HttpStatus.NOT_FOUND);
-		     }
-		 });
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				throw new HttpClientErrorException(HttpStatus.NOT_FOUND);
+			}
+		});
 
 		try {
 			this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
@@ -336,10 +348,10 @@ public class SceneServiceTests {
 	@Test
 	public void testGetScene502() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	 throw new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
-		     }
-		 });
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				throw new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
+			}
+		});
 
 		try {
 			this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
@@ -352,10 +364,10 @@ public class SceneServiceTests {
 	@Test
 	public void testGetSceneUnknownStatus() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class))).then(new Answer<ResponseEntity<?>>() {
-		     public ResponseEntity<?> answer(InvocationOnMock invocation) {
-		    	 throw new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
-		     }
-		 });
+			public ResponseEntity<?> answer(InvocationOnMock invocation) {
+				throw new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
+			}
+		});
 
 		try {
 			this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
@@ -365,6 +377,5 @@ public class SceneServiceTests {
 			assertTrue(ex.getMessage().contains("" + HttpStatus.I_AM_A_TEAPOT.value()));
 		}
 	}
-	
-	
+
 }

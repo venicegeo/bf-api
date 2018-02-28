@@ -26,6 +26,9 @@ import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 /**
  * Main controller class for the handling user profiles.
  * 
@@ -35,12 +38,16 @@ import org.venice.beachfront.bfapi.services.UserProfileService;
 public class UserProfileController {
 	@Autowired
 	private UserProfileService userProfileService;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	@RequestMapping(path = "/user", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public UserProfile getCurrentUserProfile(Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		if (currentUser != null) {
+			piazzaLogger.log(String.format("User %s requested their User profile information.", currentUser.getUserId()),
+					Severity.INFORMATIONAL);
 			return currentUser;
 		} else {
 			throw new UserException("User Profile not found for specified API Key.", HttpStatus.UNAUTHORIZED);
