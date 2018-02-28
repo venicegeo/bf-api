@@ -48,7 +48,7 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 			// Valid API Key. Update the last time of access to now.
 			userProfileService.updateLastAccessed(userProfile);
 			// Return the Token
-			return new UsernamePasswordAuthenticationToken(userProfile, apiKey);
+			return new BfAuthenticationToken(userProfile, apiKey);
 		}
 		// Invalid Key
 		return null;
