@@ -112,24 +112,11 @@ public class JobService {
 		}
 
 		// Fetch Scene Information
-		Scene scene = null;
-		try {
-			scene = sceneService.getScene(sceneId, planetApiKey, true);
-		} catch (UserException exception) {
-			throw new UserException("There was an error getting the scene information.", exception.getMessage(), null);
-		}
-		try {
-			sceneService.activateScene(scene, planetApiKey);
-		} catch (UserException exception) {
-			throw new UserException("There was an error activating the requested scene.", exception.getMessage(), null);
-		}
+		Scene scene = sceneService.getScene(sceneId, planetApiKey, true);
+		sceneService.activateScene(scene, planetApiKey);
 
 		// Re-fetch scene after activation
-		try {
-			scene = sceneService.getScene(sceneId, planetApiKey, true);
-		} catch (Exception exception) {
-			throw new UserException("There was an error getting the scene information.", exception.getMessage(), null);
-		}
+		scene = sceneService.getScene(sceneId, planetApiKey, true);
 
 		// Formulate the URLs for the Scene
 		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
