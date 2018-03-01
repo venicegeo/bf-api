@@ -142,8 +142,8 @@ public class BfApiConfig {
 				.and().sessionManagement()
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 				.and()
-					.authenticationProvider(this.apiKeyAuthProvider)
-					.csrf().disable();
+					.authenticationProvider(this.apiKeyAuthProvider);
+					//.csrf().disable();
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
