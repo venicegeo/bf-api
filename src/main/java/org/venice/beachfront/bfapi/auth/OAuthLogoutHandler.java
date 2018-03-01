@@ -50,6 +50,10 @@ public class OAuthLogoutHandler implements LogoutHandler {
 	}
 	
 	private void logoutWithErrors(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws UserException {
+		if (request.getMethod().equals("OPTIONS")) {
+			return;
+		}
+		
 		UserProfile userProfile = userProfileService.getProfileFromAuthentication(authentication);
 		if (userProfile == null) {
 			throw new UserException("No authentication found to log out from", HttpStatus.UNAUTHORIZED);

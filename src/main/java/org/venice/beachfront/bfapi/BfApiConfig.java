@@ -146,7 +146,10 @@ public class BfApiConfig {
 				.and().sessionManagement()
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)	// Do not create or manage sessions for security
 				.and().logout()
-					.logoutUrl("/logout")							// Configure spring security logout with a URL and custom handler
+					.permitAll(true)
+					.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "OPTIONS"))
+					.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))
+					.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "POST"))
 					.addLogoutHandler(this.oAuthLogoutHandler)
 				.and()
 					.authenticationProvider(this.apiKeyAuthProvider)	// Use this custom authentication provider to authenticate requests
