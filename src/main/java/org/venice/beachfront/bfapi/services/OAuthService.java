@@ -93,7 +93,7 @@ public class OAuthService {
 		return response.getBody().getAccessToken();
 	}
 
-	public ProfileResponseBody requestOAuthProfile(String accessToken) throws UserException, JsonProcessingException {
+	public ProfileResponseBody requestOAuthProfile(String accessToken) throws UserException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Bearer " + accessToken);
 		HttpEntity<Object> entity = new HttpEntity<>(null, headers);
@@ -102,7 +102,12 @@ public class OAuthService {
 		try {
 			response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, ProfileResponseBody.class);
 			// TODO: Remove
-			piazzaLogger.log(new ObjectMapper().writeValueAsString(response.getBody()), Severity.ERROR);
+			try {
+				piazzaLogger.log(new ObjectMapper().writeValueAsString(response.getBody()), Severity.ERROR);
+			} catch (JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			// TODO: Remove
 		} catch (RestClientResponseException ex) {
 			piazzaLogger.log(String.format("Failed call to OAuth Profile URL with Status %s and error %s", ex.getStatusText(),

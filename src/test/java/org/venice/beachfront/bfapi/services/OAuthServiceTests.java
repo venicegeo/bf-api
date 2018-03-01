@@ -64,7 +64,7 @@ public class OAuthServiceTests {
 	@Test
 	public void testGetOauthRedirectUri() {
 		String uri = this.oauthService.getOauthRedirectUri();
-		assertEquals("//bf-api.test.localdomain/login", uri);
+		assertEquals("https://bf-api.test.localdomain/login", uri);
 	}
 
 	@Test
