@@ -26,6 +26,9 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import model.logger.Severity;
 import util.PiazzaLogger;
 
@@ -51,11 +54,12 @@ public class OAuthService {
 
 	public String getOauthRedirectUri() {
 		// TODO: should this be a configuration variable, since it needs to match 100% with the oauth provider config?
-		return UriComponentsBuilder.newInstance().host("bf-api." + this.domain).pathSegment("login").build().toUri().toString();
+		return UriComponentsBuilder.newInstance().scheme("https").host("bf-api." + this.domain).pathSegment("login").build().toUri()
+				.toString();
 	}
 
 	public String requestAccessToken(String authCode) throws UserException {
-		MultiValueMap<String, String> body= new LinkedMultiValueMap<>();
+		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
 		body.add("grant_type", "authorization_code");
 		body.add("redirect_uri", this.getOauthRedirectUri());
 		body.add("code", authCode);
@@ -89,7 +93,7 @@ public class OAuthService {
 		return response.getBody().getAccessToken();
 	}
 
-	public ProfileResponseBody requestOAuthProfile(String accessToken) throws UserException {
+	public ProfileResponseBody requestOAuthProfile(String accessToken) throws UserException, JsonProcessingException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Bearer " + accessToken);
 		HttpEntity<Object> entity = new HttpEntity<>(null, headers);
@@ -97,6 +101,9 @@ public class OAuthService {
 		ResponseEntity<ProfileResponseBody> response;
 		try {
 			response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, ProfileResponseBody.class);
+			// TODO: Remove
+			piazzaLogger.log(new ObjectMapper().writeValueAsString(response.getBody()), Severity.ERROR);
+			// TODO: Remove
 		} catch (RestClientResponseException ex) {
 			piazzaLogger.log(String.format("Failed call to OAuth Profile URL with Status %s and error %s", ex.getStatusText(),
 					ex.getResponseBodyAsString()), Severity.ERROR);
