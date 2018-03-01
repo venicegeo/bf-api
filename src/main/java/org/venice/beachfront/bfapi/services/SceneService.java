@@ -1,5 +1,6 @@
 package org.venice.beachfront.bfapi.services;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,7 +8,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import org.geotools.geojson.feature.FeatureJSON;
 import org.joda.time.DateTime;
+import org.opengis.feature.simple.SimpleFeature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -16,10 +19,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.venice.beachfront.bfapi.database.dao.SceneDao;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vividsolutions.jts.geom.Geometry;
 
 import model.logger.Severity;
 import util.PiazzaLogger;
@@ -45,6 +51,8 @@ public class SceneService {
 	private ExecutorService executor;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private SceneDao sceneDao;
 
 	public void activateScene(Scene scene, String planetApiKey) throws UserException {
 		if (!scene.getStatus().equals(Scene.STATUS_INACTIVE)) {
@@ -121,6 +129,21 @@ public class SceneService {
 			scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
 			scene.setUri(responseJson.get("properties").get("location").asText());
 
+			try {
+				// The response from ia-broker is a GeoJSON feature. Convert to Geometry.
+				FeatureJSON featureReader = new FeatureJSON();
+				String geoJsonString = new ObjectMapper().writeValueAsString(responseJson);
+				SimpleFeature feature = featureReader.readFeature(geoJsonString);
+				Geometry geometry = (Geometry) feature.getDefaultGeometry();
+				scene.setGeometry(geometry);
+			} catch (IOException exception) {
+				String error = String.format(
+						"Could not convert Scene %s response to GeoJSON object. This scene will not store properly in the database.",
+						scene.getSceneId());
+				piazzaLogger.log(error, Severity.ERROR);
+				throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+
 			String status = "active";
 			if (platform.equals(Scene.PLATFORM_RAPIDEYE) || platform.equals(Scene.PLATFORM_PLANETSCOPE)) {
 				status = responseJson.get("properties").get("status").asText();
@@ -142,6 +165,7 @@ public class SceneService {
 		}
 
 		piazzaLogger.log(String.format("Successfully parsed Scene metadata for Scene %s", sceneId), Severity.INFORMATIONAL);
+		sceneDao.save(scene);
 		return scene;
 	}
 
