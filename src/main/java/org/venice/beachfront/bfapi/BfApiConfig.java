@@ -58,6 +58,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
@@ -68,6 +69,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 import org.venice.beachfront.bfapi.auth.ApiKeyAuthProvider;
+import org.venice.beachfront.bfapi.auth.ExtendedRequestDetails;
 import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
 import org.venice.beachfront.bfapi.geoserver.AuthHeaders;
 import org.venice.beachfront.bfapi.geoserver.BasicAuthHeaders;
@@ -98,14 +100,18 @@ public class BfApiConfig {
 	 */
 	@Configuration
 	protected static class AddCorsHeaders extends WebMvcConfigurerAdapter {
+		@Value("${DOMAIN}")
+		private String domain;
+
 		@Override
 		public void addInterceptors(InterceptorRegistry registry) {
 			registry.addInterceptor(new HandlerInterceptorAdapter() {
 				@Override
 				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-					response.setHeader("Access-Control-Allow-Headers", "authorization, content-type");
-					response.setHeader("Access-Control-Allow-Origin", "*");
+					response.setHeader("Access-Control-Allow-Headers", "authorization, content-type, X-Requested-With");
+					response.setHeader("Access-Control-Allow-Origin", "https://beachfront." + domain);
 					response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+					response.setHeader("Access-Control-Allow-Credentials", "true");
 					response.setHeader("Access-Control-Max-Age", "36000");
 					return true;
 				}
@@ -130,14 +136,23 @@ public class BfApiConfig {
 
 		@Override
 		public void configure(WebSecurity web) throws Exception {
-			web.ignoring().antMatchers("/").antMatchers("/login").antMatchers("/login/geoaxis").antMatchers("/oauth/logout")
-					.antMatchers(HttpMethod.OPTIONS);
+			web.ignoring().antMatchers("/").antMatchers("/login").antMatchers("/login/geoaxis").antMatchers(HttpMethod.OPTIONS);
 		}
 
 		@Override
 		protected void configure(HttpSecurity http) throws Exception {
-			http.httpBasic().authenticationEntryPoint(failureEntryPoint).and().authorizeRequests().anyRequest().authenticated().and()
-					.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable();
+			http.httpBasic().authenticationEntryPoint(failureEntryPoint).authenticationDetailsSource(authenticationDetailsSource()).and()
+					.authorizeRequests().anyRequest().authenticated().and().sessionManagement()
+					.sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable();
+		}
+
+		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
+			return new AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails>() {
+				@Override
+				public ExtendedRequestDetails buildDetails(HttpServletRequest request) {
+					return new ExtendedRequestDetails(request);
+				}
+			};
 		}
 	}
 

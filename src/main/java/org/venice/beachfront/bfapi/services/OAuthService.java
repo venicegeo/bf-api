@@ -11,14 +11,18 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
-import org.venice.beachfront.bfapi.model.oauth.AccessTokenRequestBody;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
@@ -51,10 +55,18 @@ public class OAuthService {
 	}
 
 	public String requestAccessToken(String authCode) throws UserException {
-		AccessTokenRequestBody body = new AccessTokenRequestBody("authorization_code", authCode, this.getOauthRedirectUri());
+		MultiValueMap<String, String> body= new LinkedMultiValueMap<>();
+		body.add("grant_type", "authorization_code");
+		body.add("redirect_uri", this.getOauthRedirectUri());
+		body.add("code", authCode);
+
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", this.createTokenAuthHeader());
-		HttpEntity<AccessTokenRequestBody> entity = new HttpEntity<>(body, headers);
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
+
+		restTemplate.getMessageConverters().add(new FormHttpMessageConverter());
+		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 
 		ResponseEntity<AccessTokenResponseBody> response;
 		try {
