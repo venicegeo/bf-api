@@ -26,9 +26,6 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import model.logger.Severity;
 import util.PiazzaLogger;
 
