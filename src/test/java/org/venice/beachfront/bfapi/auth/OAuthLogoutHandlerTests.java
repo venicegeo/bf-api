@@ -35,7 +35,7 @@ public class OAuthLogoutHandlerTests {
 	private UserProfileService userProfileService;
 	
 	@Mock
-	private Logger logger;
+	private PiazzaLogger logger;
 
 	@InjectMocks
 	private OAuthLogoutHandler oauthLogoutHandler;

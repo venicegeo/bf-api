@@ -18,6 +18,9 @@ import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 @Component
 public class OAuthLogoutHandler implements LogoutHandler {
 	@Value("${DOMAIN}")
@@ -31,19 +34,19 @@ public class OAuthLogoutHandler implements LogoutHandler {
 	private UserProfileService userProfileService;
 	
 	@Autowired
-	private Logger logger;
+	private PiazzaLogger logger;
 	
 	@Override
 	public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
 		try {
 			this.logoutWithErrors(request, response, authentication);
 		} catch (UserException e) {
-			this.logger.error(e);
+			this.logger.log(e.getMessage() + " " + e.getDetails(), Severity.ERROR);;
 			response.setStatus(e.getRecommendedStatusCode().value());
 			try {
 				response.getWriter().print(e.getMessage());
 			} catch (IOException e1) {
-				this.logger.error("Error writing logout error", e1);
+				this.logger.log(e1.getMessage(), Severity.CRITICAL);;
 				e1.printStackTrace();
 			}
 		}
