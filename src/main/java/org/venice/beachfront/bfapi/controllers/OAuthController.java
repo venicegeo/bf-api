@@ -82,7 +82,7 @@ public class OAuthController {
 		return "Authentication successful. Redirecting back to application...";
 	}
 
-	@RequestMapping(path = "/oauth/logout", method = RequestMethod.GET, produces = { "text/plain" })
+	@RequestMapping(path = "/logout", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
 	public String oauthLogout(HttpServletResponse response, Authentication authentication) throws UserException {
 		// Server-side invalidation of API Key
