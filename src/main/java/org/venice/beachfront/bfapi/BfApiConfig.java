@@ -138,6 +138,7 @@ public class BfApiConfig {
 					.anyRequest().authenticated()					// All other requests must be authenticated
 				.and().httpBasic()									// Use HTTP Basic authentication
 					.authenticationEntryPoint(this.failureEntryPoint)	// Entry point for starting a Basic auth exchange (i.e. "failed authentication" handling)
+					.authenticationDetailsSource(this.authenticationDetailsSource()) // Feed more request details into any providers
 				.and().sessionManagement()
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)	// Do not create or manage sessions for security
 				.and().logout()
