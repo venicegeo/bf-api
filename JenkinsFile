@@ -49,7 +49,13 @@ node {
     def piazzaApiKey = getPiazzaApiKey(pcfDomain)
 
     withEnv(["CF_HOME=.cf"]) {
-      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]]) {
+      withCredentials([
+      [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
+      [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+      [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"],
+      [$class: 'StringBinding', credentialsId: "${env.JKS_PASSPHRASE}", variable: "JKS_PASSPHRASE"],
+      [$class: 'StringBinding', credentialsId: "${env.PZ_PASSPHRASE}", variable: "PZ_PASSPHRASE"]
+      ]) {
         sh """
           cf api ${env.PCF_API_ENDPOINT}
           cf auth ${CFUSER} ${CFPASS}
