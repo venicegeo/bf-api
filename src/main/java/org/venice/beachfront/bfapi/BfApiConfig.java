@@ -141,10 +141,9 @@ public class BfApiConfig {
 				.and().sessionManagement()
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)	// Do not create or manage sessions for security
 				.and().logout()
-					.logoutRequestMatcher(new AntPathRequestMatcher("/logout")) // Allow /logoout as a legitimate path; https://stackoverflow.com/a/26155354
-				.and()
-					.authenticationProvider(this.apiKeyAuthProvider)	// Use this custom authentication provider to authenticate requests
-					.csrf().disable();									// Disable advanced CSRF protections for better statelessness
+					.disable() 										// Disable auto-magical Spring Security logout behavior
+				.authenticationProvider(this.apiKeyAuthProvider)	// Use this custom authentication provider to authenticate requests
+				.csrf().disable();									// Disable advanced CSRF protections for better statelessness
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
