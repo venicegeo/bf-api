@@ -101,14 +101,6 @@ public class OAuthService {
 		ResponseEntity<ProfileResponseBody> response;
 		try {
 			response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, ProfileResponseBody.class);
-			// TODO: Remove
-			try {
-				piazzaLogger.log(new ObjectMapper().writeValueAsString(response.getBody()), Severity.ERROR);
-			} catch (JsonProcessingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			// TODO: Remove
 		} catch (RestClientResponseException ex) {
 			piazzaLogger.log(String.format("Failed call to OAuth Profile URL with Status %s and error %s", ex.getStatusText(),
 					ex.getResponseBodyAsString()), Severity.ERROR);
