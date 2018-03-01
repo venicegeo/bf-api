@@ -130,20 +130,17 @@ public class BfApiConfig {
 		private FailedAuthEntryPoint failureEntryPoint;
 
 		@Override
-		protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-			auth.authenticationProvider(apiKeyAuthProvider);
-		}
-
-		@Override
-		public void configure(WebSecurity web) throws Exception {
-			web.ignoring().antMatchers("/").antMatchers("/login").antMatchers("/login/geoaxis").antMatchers(HttpMethod.OPTIONS);
-		}
-
-		@Override
-		protected void configure(HttpSecurity http) throws Exception {
-			http.httpBasic().authenticationEntryPoint(failureEntryPoint).authenticationDetailsSource(authenticationDetailsSource()).and()
-					.authorizeRequests().anyRequest().authenticated().and().sessionManagement()
-					.sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable();
+		public void configure(HttpSecurity http) throws Exception {
+			http.authorizeRequests()
+					.antMatchers(HttpMethod.OPTIONS).permitAll()
+					.antMatchers("/").permitAll()
+					.antMatchers("/login").permitAll()
+					.antMatchers("/login/geoaxis").permitAll()
+					.anyRequest().authenticated()
+				.and().httpBasic()
+					.authenticationEntryPoint(this.failureEntryPoint)
+				.and()
+					.authenticationProvider(this.apiKeyAuthProvider);
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
