@@ -139,8 +139,11 @@ public class BfApiConfig {
 					.anyRequest().authenticated()
 				.and().httpBasic()
 					.authenticationEntryPoint(this.failureEntryPoint)
+				.and().sessionManagement()
+					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 				.and()
-					.authenticationProvider(this.apiKeyAuthProvider);
+					.authenticationProvider(this.apiKeyAuthProvider)
+					.csrf().disable();
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
