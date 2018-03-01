@@ -75,7 +75,7 @@ public class OAuthControllerTests {
 		String ack = oauthController.oauthCallback(mockAuthCode, servletResponse);
 		assertNotNull(ack);
 		assertEquals(servletResponse.getStatus(), HttpStatus.FOUND.value());
-		assertEquals(servletResponse.getHeader("Location"), "https://localhost?logged_in=true");
+		assertEquals(servletResponse.getHeader("Location"), "https://beachfront.localhost?logged_in=true");
 	}
 
 	@Test
