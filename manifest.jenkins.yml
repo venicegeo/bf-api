@@ -2,6 +2,7 @@
 applications:
 - name: bf-api
   host: bf-api
+  path: bf-api.jar
   memory: 2G
   disk_quota: 4G
   instances: 1
