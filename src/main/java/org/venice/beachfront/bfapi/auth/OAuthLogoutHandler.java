@@ -6,6 +6,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -29,12 +30,22 @@ public class OAuthLogoutHandler implements LogoutHandler {
 	@Autowired
 	private UserProfileService userProfileService;
 	
+	@Autowired
+	private Logger logger;
+	
 	@Override
 	public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
 		try {
 			this.logoutWithErrors(request, response, authentication);
 		} catch (UserException e) {
-			throw new RuntimeException(e);
+			this.logger.error(e);
+			response.setStatus(e.getRecommendedStatusCode().value());
+			try {
+				response.getWriter().print(e.getMessage());
+			} catch (IOException e1) {
+				this.logger.error("Error writing logout error", e1);
+				e1.printStackTrace();
+			}
 		}
 	}
 	

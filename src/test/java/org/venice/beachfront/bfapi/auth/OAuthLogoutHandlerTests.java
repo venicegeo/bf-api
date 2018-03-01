@@ -8,6 +8,7 @@ import java.io.UnsupportedEncodingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -32,6 +33,9 @@ import util.PiazzaLogger;
 public class OAuthLogoutHandlerTests {
 	@Mock
 	private UserProfileService userProfileService;
+	
+	@Mock
+	private Logger logger;
 
 	@InjectMocks
 	private OAuthLogoutHandler oauthLogoutHandler;
@@ -81,11 +85,8 @@ public class OAuthLogoutHandlerTests {
 		Mockito.when(this.userProfileService.getProfileFromAuthentication(authentication)).thenReturn(null);
 		
 		// Test
-		try {
-			this.oauthLogoutHandler.logout(request, response, authentication);
-		} catch (RuntimeException e) {
-			UserException ue = (UserException)e.getCause();
-			assertEquals(HttpStatus.UNAUTHORIZED, ue.getRecommendedStatusCode());			
-		}
+		this.oauthLogoutHandler.logout(request, response, authentication);
+		
+		assertEquals(HttpStatus.UNAUTHORIZED.value(), response.getStatus());			
 	}
 }
