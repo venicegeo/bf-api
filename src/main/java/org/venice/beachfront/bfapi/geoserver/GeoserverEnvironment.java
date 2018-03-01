@@ -22,8 +22,6 @@ import java.nio.file.Paths;
 
 import javax.annotation.PostConstruct;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -39,6 +37,9 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 /**
  * Checks the GeoServer Layer, Style during initialization to ensure that they exist before use.
  * 
@@ -47,9 +48,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @Component
 public class GeoserverEnvironment {
-
-	private static final Logger LOG = LoggerFactory.getLogger(GeoserverEnvironment.class);
-
 	@Value("${vcap.services.pz-geoserver.credentials.boundless_geoserver_url}")
 	private String GEOSERVER_HOST;
 	@Value("${geoserver.workspace.name}")
@@ -67,23 +65,25 @@ public class GeoserverEnvironment {
 	private AuthHeaders authHeaders;
 	@Autowired
 	private ObjectMapper objectMapper;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	/**
 	 * Invokes initialization logic for Beachfront GeoServer Layer and Style
 	 */
 	@PostConstruct
 	public void initializeEnvironment() {
-		LOG.info("Checking to see if installation of GeoServer Style, Layer is required");
+		piazzaLogger.log("Checking to see if installation of GeoServer Detections Layer and Style is required", Severity.INFORMATIONAL);
 
 		// Check GeoServer Layer
 		{
 			final String layerURL = String.format("%s/rest/layers/%s", getGeoServerBaseUrl(), LAYER_NAME);
 
 			if (!doesResourceExist(layerURL)) {
-				LOG.info("GeoServer Layer does not exist; Attempting creation...");
+				piazzaLogger.log("GeoServer Layer does not exist; Attempting creation.", Severity.INFORMATIONAL);
 				installLayer();
 			} else {
-				LOG.info("GeoServer Layer exists and will not be reinstalled.");
+				piazzaLogger.log("GeoServer Layer exists and will not be recreated.", Severity.INFORMATIONAL);
 			}
 		}
 
@@ -92,10 +92,10 @@ public class GeoserverEnvironment {
 			final String styleURL = String.format("%s/rest/styles/%s", getGeoServerBaseUrl(), STYLE_NAME);
 
 			if (!doesResourceExist(styleURL)) {
-				LOG.info("GeoServer Style does not exist; Attempting creation...");
+				piazzaLogger.log("GeoServer Style does not exist; Attempting creation.", Severity.INFORMATIONAL);
 				installStyle();
 			} else {
-				LOG.info("GeoServer Style exists and will not be reinstalled.");
+				piazzaLogger.log("GeoServer Style exists and will not be recreated.", Severity.INFORMATIONAL);
 			}
 		}
 	}
@@ -110,7 +110,7 @@ public class GeoserverEnvironment {
 		final HttpEntity<String> request = new HttpEntity<>(authHeaders.get());
 
 		try {
-			LOG.info("Checking if GeoServer Resource Exists at {}", resourceUri);
+			piazzaLogger.log(String.format("Checking if GeoServer Resource Exists at %s", resourceUri), Severity.INFORMATIONAL);
 
 			final ResponseEntity<String> response = restTemplate.exchange(resourceUri, HttpMethod.GET, request, String.class);
 
@@ -119,10 +119,9 @@ public class GeoserverEnvironment {
 				objectMapper.readTree(response.getBody());
 			} catch (final IOException exception) {
 				String error = String.format(
-						"Received a non-error response from GeoServer resource check for %s, but it was not valid JSON. Authentication may have failed. ",
+						"Received a non-error response from GeoServer resource check for %s, but it was not valid JSON. Authentication may have failed.",
 						resourceUri, response.getBody());
-				LOG.error(error, exception);
-
+				piazzaLogger.log(error, Severity.ERROR);
 				return false;
 			}
 
@@ -134,11 +133,12 @@ public class GeoserverEnvironment {
 			if (!exception.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
 				// If it's anything but a 404, then it's a server error and we should not proceed with creation. Throw
 				// an exception.
-				LOG.error("HTTP Status Error checking GeoServer Resource {} Exists : {}" + resourceUri,
-						exception.getStatusCode().toString(), exception);
+				piazzaLogger.log(String.format("HTTP Status Error checking GeoServer Resource %s Exists with message %s", resourceUri,
+						exception.getStatusCode().toString()), Severity.ERROR);
 			}
 		} catch (final RestClientException exception) {
-			LOG.error("Unexpected Error Checking GeoServer Resource Exists : " + resourceUri, exception);
+			piazzaLogger.log(String.format("Unexpected Error while checking for GeoServer Resource %s with error %s", resourceUri,
+					exception.getMessage()), Severity.ERROR);
 		}
 
 		return false;
@@ -152,16 +152,13 @@ public class GeoserverEnvironment {
 		try {
 			final HttpEntity<String> request = new HttpEntity<>(getLayerCreationPayload(), authHeaders.get());
 			restTemplate.exchange(layerURL, HttpMethod.POST, request, String.class);
-
-			LOG.info("GeoServer Layer created successfully!");
+			piazzaLogger.log("GeoServer Detections Layer created successfully.", Severity.INFORMATIONAL);
 		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
-			final String error = String.format("HTTP Error occurred while trying to create Beachfront GeoServer Layer: %s",
-					exception.getResponseBodyAsString());
-			LOG.error(error, exception);
-		} catch (final RestClientException exception) {
-			LOG.error("Unexpected Error Creating GeoServer Layer!", exception);
+			piazzaLogger.log(String.format("HTTP Error occurred while trying to create Beachfront GeoServer Layer: %s",
+					exception.getResponseBodyAsString()), Severity.ERROR);
 		} catch (final IOException | URISyntaxException exception) {
-			LOG.error("Unexpected Error Reading GeoServer Layer XML!", exception);
+			piazzaLogger.log(String.format("Unexpected Error Reading GeoServer Layer XML with message %s", exception.getMessage()),
+					Severity.ERROR);
 		}
 	}
 
@@ -172,16 +169,13 @@ public class GeoserverEnvironment {
 		try {
 			final HttpEntity<String> request = new HttpEntity<>(getStyleCreationPayload(), authHeaders.get());
 			restTemplate.exchange(styleURL, HttpMethod.POST, request, String.class);
-
-			LOG.info("GeoServer Style created successfully!");
+			piazzaLogger.log("GeoServer Style Layer created successfully.", Severity.INFORMATIONAL);
 		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
-			final String error = String.format("HTTP Error occurred while trying to create Beachfront GeoServer Style: %s",
-					exception.getResponseBodyAsString());
-			LOG.error(error, exception);
-		} catch (final RestClientException exception) {
-			LOG.error("Unexpected Error Creating GeoServer Style!", exception);
+			piazzaLogger.log(String.format("HTTP Error occurred while trying to create Beachfront GeoServer Style: %s",
+					exception.getResponseBodyAsString()), Severity.ERROR);
 		} catch (final IOException | URISyntaxException exception) {
-			LOG.error("Unexpected Error Reading GeoServer Layer XML!", exception);
+			piazzaLogger.log(String.format("Unexpected Error Reading GeoServer Style XML with message %s", exception.getMessage()),
+					Severity.ERROR);
 		}
 	}
 

@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 /**
  * Handles the authentication and authorization for all REST Controller methods to the API that require API Key
  * authentication.
@@ -27,6 +30,8 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 
 	@Autowired
 	private UserProfileService userProfileService;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -51,6 +56,7 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 			return new BfAuthenticationToken(userProfile, apiKey);
 		}
 		// Invalid Key
+		piazzaLogger.log("Invalid Authentication API Key received from the client. Discarding request.", Severity.ERROR);
 		return null;
 	}
 

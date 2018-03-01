@@ -27,30 +27,31 @@ import org.venice.beachfront.bfapi.model.oauth.AccessTokenRequestBody;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 @Service
 public class OAuthService {
 	@Value("${DOMAIN}")
 	private String domain;
-
 	@Value("${oauth.token-url}")
 	private String oauthTokenUrl;
-
 	@Value("${oauth.profile-url}")
 	private String oauthProfileUrl;
-
 	@Value("${OAUTH_CLIENT_ID}")
 	private String oauthClientId;
-
 	@Value("${OAUTH_SECRET}")
 	private String oauthClientSecret;
 
 	@Autowired
 	private RestTemplate restTemplate;
-
 	@Autowired
 	private UserProfileService userProfileService;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	public String getOauthRedirectUri() {
+		// TODO: should this be a configuration variable, since it needs to match 100% with the oauth provider config?
 		return UriComponentsBuilder.newInstance().host("bf-api." + this.domain).pathSegment("login").build().toUri().toString();
 	}
 
@@ -72,16 +73,20 @@ public class OAuthService {
 		try {
 			response = this.restTemplate.exchange(this.oauthTokenUrl, HttpMethod.POST, entity, AccessTokenResponseBody.class);
 		} catch (RestClientResponseException ex) {
-			int code = ex.getRawStatusCode(); 
+			piazzaLogger.log(String.format("Failed call to OAuth Token URL with Status %s and error %s", ex.getStatusText(),
+					ex.getResponseBodyAsString()), Severity.ERROR);
+			int code = ex.getRawStatusCode();
 			if (code >= 400 && code <= 499) {
-				throw new UserException("Unauthorized: Failed to acquire OAuth access token from access code", ex, HttpStatus.valueOf(code));
+				throw new UserException("Unauthorized: Failed to acquire OAuth access token from access code", ex,
+						HttpStatus.valueOf(code));
+			} else {
+				String message = String.format("Upstream server error acquiring OAuth access token from access code; upstream code=%d",
+						code);
+				throw new UserException(message, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			}
-			if (code >= 500 && code <= 599) {
-				throw new UserException("Upstream OAuth error acquiring OAuth access token from access code", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
-			}
-			throw new UserException("Unknown error acquiring OAuth access token from access code", ex, ex.getResponseBodyAsString(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
+		piazzaLogger.log("Successfully retrieved access token for OAuth Token Request.", Severity.INFORMATIONAL);
 		return response.getBody().getAccessToken();
 	}
 
@@ -94,16 +99,18 @@ public class OAuthService {
 		try {
 			response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, ProfileResponseBody.class);
 		} catch (RestClientResponseException ex) {
-			int code = ex.getRawStatusCode(); 
+			piazzaLogger.log(String.format("Failed call to OAuth Profile URL with Status %s and error %s", ex.getStatusText(),
+					ex.getResponseBodyAsString()), Severity.ERROR);
+			int code = ex.getRawStatusCode();
 			if (code >= 400 && code <= 499) {
 				throw new UserException("Unauthorized: Failed to acquire user profile", ex, HttpStatus.valueOf(code));
+			} else {
+				String message = String.format("Upstream server error acquiring user profile; upstream code=%d", code);
+				throw new UserException(message, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
 			}
-			if (code >= 500 && code <= 599) {
-				throw new UserException("Upstream acquiring user profile", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
-			}
-			throw new UserException("Unknown error acquiring user profile", ex, ex.getResponseBodyAsString(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
+		piazzaLogger.log("Successfully retrieved profile for OAuth Profile Request.", Severity.INFORMATIONAL);
 		return response.getBody();
 	}
 
@@ -116,12 +123,16 @@ public class OAuthService {
 				user.setApiKey(generateApiKey());
 				userProfileService.updateLastAccessed(user);
 			}
+			piazzaLogger.log(String.format("Returning User %s with Name %s has successfully logged in.", userId, userName),
+					Severity.INFORMATIONAL);
 			return user;
 		}
 
 		String apiKey = generateApiKey();
 		user = new UserProfile(userId, userName, apiKey, DateTime.now());
 		userProfileService.saveUserProfile(user);
+		piazzaLogger.log(String.format("Successful first time login for User %s with Name %s. This User's Profile has been created.",
+				userId, userName), Severity.INFORMATIONAL);
 		return user;
 	}
 

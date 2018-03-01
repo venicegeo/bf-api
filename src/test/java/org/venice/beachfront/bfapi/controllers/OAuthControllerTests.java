@@ -21,11 +21,16 @@ import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 import org.venice.beachfront.bfapi.services.OAuthService;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import util.PiazzaLogger;
+
 public class OAuthControllerTests {
 	@Mock
 	private OAuthService oauthService;
 	@Mock
 	private UserProfileService userProfileService;
+	@Mock
+	private PiazzaLogger piazzaLogger;
+
 	@InjectMocks
 	private OAuthController oauthController;
 

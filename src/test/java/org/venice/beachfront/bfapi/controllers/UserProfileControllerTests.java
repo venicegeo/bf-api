@@ -14,9 +14,13 @@ import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import util.PiazzaLogger;
+
 public class UserProfileControllerTests {
 	@Mock
 	private UserProfileService userProfileService;
+	@Mock
+	private PiazzaLogger piazzaLogger;
 	@InjectMocks
 	private UserProfileController userProfileController;
 

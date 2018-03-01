@@ -36,6 +36,9 @@ import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import com.vividsolutions.jts.geom.Geometry;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 /**
  * Scheduling class that manages the constant polling for Status of Shoreline detections Jobs in Piazza
  */
@@ -50,6 +53,8 @@ public class PiazzaJobPoller {
 	private JobService jobService;
 	@Autowired
 	private PiazzaService piazzaService;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	private PollStatusTask pollStatusTask = new PollStatusTask();
 	private Timer pollTimer = new Timer();
@@ -59,10 +64,12 @@ public class PiazzaJobPoller {
 	 */
 	@PostConstruct
 	public void startPolling() {
+		piazzaLogger.log("Beginning Job Polling to Piazza.", Severity.INFORMATIONAL);
 		pollTimer.schedule(pollStatusTask, 10000, POLL_FREQUENCY_SECONDS * (long) 1000);
 	}
 
 	public void stopPolling() {
+		piazzaLogger.log("Cancelling Job Polling to Piazza. Jobs will not be updated.", Severity.INFORMATIONAL);
 		pollTimer.cancel();
 	}
 
@@ -83,8 +90,11 @@ public class PiazzaJobPoller {
 					// If the Job has exceeded it's time-to-live, then mark that job a failure.
 					int timeDelta = Hours.hoursBetween(new DateTime(), job.getCreatedOn()).getHours();
 					if (timeDelta >= JOB_TIMEOUT_HOURS) {
+						String error = String.format("Job % has timed out after %s hours and will be set as failure.", job.getJobId(),
+								timeDelta);
+						piazzaLogger.log(error, Severity.ERROR);
 						// Kill the Job
-						jobService.createJobError(job, "The Job has timed out.");
+						jobService.createJobError(job, error);
 						job.setStatus(Job.STATUS_ERROR);
 						jobService.updateJob(job);
 					}
@@ -112,6 +122,8 @@ public class PiazzaJobPoller {
 				try {
 					// Download the file bytes from Piazza
 					byte[] detectionBytes = piazzaService.downloadData(status.getDataId());
+					piazzaLogger.log(String.format("Downloaded Detection bytes, filesize %s from Piazza for Job %s", detectionBytes.length,
+							job.getJobId()), Severity.INFORMATIONAL);
 					// Convert the bytes into a Geometry object that Hibernate can store
 					InputStream inputStream = new ByteArrayInputStream(detectionBytes);
 					GeometryJSON geojson = new GeometryJSON();
@@ -120,21 +132,27 @@ public class PiazzaJobPoller {
 					jobService.createDetection(job, geometry);
 					// Finally, mark the Job as successful
 					job.setStatus(Job.STATUS_SUCCESS);
+					piazzaLogger.log(
+							String.format("Successfully recorded Detection geometry for Job %s and marking as Success.", job.getJobId()),
+							Severity.INFORMATIONAL);
 				} catch (IOException exception) {
 					exception.printStackTrace();
 					String error = String.format("Job %s failed because of an internal error while reading the detection geometry.",
 							job.getJobId());
+					piazzaLogger.log(error, Severity.ERROR);
 					jobService.createJobError(job, error);
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
 					exception.printStackTrace();
 					String error = String.format("Job %s failed because of an internal error downloading the detection geometry.",
 							job.getJobId());
+					piazzaLogger.log(error, Severity.ERROR);
 					jobService.createJobError(job, error);
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
 				}
 			} else if (status.isStatusError()) {
+				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza.", job.getJobId()), Severity.ERROR);
 				job.setStatus(status.getStatus());
 				jobService.createJobError(job, status.getErrorMessage());
 			}

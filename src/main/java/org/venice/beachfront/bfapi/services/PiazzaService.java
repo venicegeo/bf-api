@@ -27,6 +27,9 @@ import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 @Service
 public class PiazzaService {
 	@Value("${piazza.server}")
@@ -38,6 +41,8 @@ public class PiazzaService {
 	private RestTemplate restTemplate;
 	@Autowired
 	private ObjectMapper objectMapper;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	/**
 	 * Executes the service, sending the payload to Piazza and parsing the response for the Job ID
@@ -58,6 +63,9 @@ public class PiazzaService {
 	public String execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId)
 			throws UserException {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
+		piazzaLogger
+				.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s with Command %s.",
+						piazzaJobUrl, serviceId, userId, cliCommand), Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		// Structure the Job Request
 		String requestJson = null;
@@ -76,6 +84,8 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			piazzaLogger.log(String.format("Piazza Job Request by User %s has failed with Code %s and Error %s", userId,
+					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
 			throw new UserException("There was an error submitting the Job Request to Piazza.", exception.getMessage(),
 					exception.getStatusCode());
 		}
@@ -91,8 +101,12 @@ public class PiazzaService {
 		try {
 			JsonNode responseJson = objectMapper.readTree(response.getBody());
 			String jobId = responseJson.get("data").get("jobId").asText();
+			piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
+					Severity.INFORMATIONAL);
 			return jobId;
 		} catch (IOException exception) {
+			piazzaLogger.log(String.format("Error parsing the successful Piazza Job Response by User %s with Error %s", userId,
+					exception.getMessage()), Severity.ERROR);
 			throw new UserException("There was an error parsing the Piazza response when submitting the Job.", exception.getMessage(),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -107,6 +121,7 @@ public class PiazzaService {
 	 */
 	public StatusMetadata getJobStatus(String jobId) throws UserException {
 		String piazzaJobUrl = String.format("%s/job/%s", PIAZZA_URL, jobId);
+		piazzaLogger.log(String.format("Checking Piazza Job Status for Job %s", jobId), Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -115,8 +130,9 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			throw new UserException(String.format("There was an error fetching Job %s Status from Piazza.", jobId), exception.getMessage(),
-					exception.getStatusCode());
+			String error = String.format("There was an error fetching Job %s Status from Piazza.", jobId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception.getMessage(), exception.getStatusCode());
 		}
 
 		// Ensure the response succeeded
@@ -140,8 +156,9 @@ public class PiazzaService {
 			}
 			return status;
 		} catch (IOException exception) {
-			throw new UserException(String.format("There was an error parsing the Piazza response when Requesting Job %s Status.", jobId),
-					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = String.format("There was an error parsing the Piazza response when Requesting Job %s Status.", jobId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -152,6 +169,7 @@ public class PiazzaService {
 	 */
 	public List<Algorithm> getRegisteredAlgorithms() throws UserException {
 		String piazzaServicesUrl = String.format("%s/service/me", PIAZZA_URL);
+		piazzaLogger.log("Checking Piazza Registered Algorithms.", Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -160,6 +178,8 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaServicesUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			piazzaLogger.log(String.format("Error fetching Algorithms from Piazza with Code %s, Response was %s", exception.getStatusText(),
+					exception.getResponseBodyAsString()), Severity.ERROR);
 			throw new UserException("There was an error fetching Algorithm List from Piazza.", exception.getMessage(),
 					exception.getStatusCode());
 		}
@@ -180,10 +200,13 @@ public class PiazzaService {
 				// For each Registered Service, wrap it in the Algorithm Object and add to the list
 				algorithms.add(getAlgorithmFromServiceNode(algorithmJson));
 			}
+			piazzaLogger.log(String.format("Returning full Piazza algorithm list. Found %s Algorithms.", algorithms.size()),
+					Severity.INFORMATIONAL);
 			return algorithms;
 		} catch (IOException exception) {
-			throw new UserException("There was an error parsing the Piazza response when Requesting registered Algorithm List.",
-					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = "There was an error parsing the Piazza response when Requesting registered Algorithm List.";
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -197,6 +220,7 @@ public class PiazzaService {
 	 */
 	public Algorithm getRegisteredAlgorithm(String serviceId) throws UserException {
 		String piazzaServiceUrl = String.format("%s/service/%s", PIAZZA_URL, serviceId);
+		piazzaLogger.log(String.format("Checking Piazza Registered Algorithm %s.", serviceId), Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -205,6 +229,8 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaServiceUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			piazzaLogger.log(String.format("Error fetching Algorithm %s from Piazza with Code %s, Response was %s", serviceId,
+					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
 			throw new UserException(String.format("There was an error fetching Algorithm %s from Piazza.", serviceId),
 					exception.getMessage(), exception.getStatusCode());
 		}
@@ -222,9 +248,10 @@ public class PiazzaService {
 			JsonNode algorithmJson = responseJson.get("data");
 			return getAlgorithmFromServiceNode(algorithmJson);
 		} catch (IOException exception) {
-			throw new UserException(
-					String.format("There was an error parsing the Piazza response when Requesting registered Algorithm %s.", serviceId),
-					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = String.format("There was an error parsing the Piazza response when Requesting registered Algorithm %s.",
+					serviceId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -238,6 +265,7 @@ public class PiazzaService {
 	 */
 	public byte[] downloadData(String dataId) throws UserException {
 		String piazzaDataUrl = String.format("%s/file/%s", PIAZZA_URL, dataId);
+		piazzaLogger.log(String.format("Requesting data %s bytes from Piazza at %s", dataId, piazzaDataUrl), Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -246,6 +274,8 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaDataUrl), HttpMethod.GET, request, byte[].class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			piazzaLogger.log(String.format("Error downloading Data Bytes for Data %s from Piazza. Failed with Code %s and Body %s", dataId,
+					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
 			throw new UserException(String.format("There was an error fetching Data bytes %s from Piazza.", dataId), exception.getMessage(),
 					exception.getStatusCode());
 		}
@@ -257,7 +287,10 @@ public class PiazzaService {
 					response.getStatusCode().toString(), response.getStatusCode());
 		}
 
-		return response.getBody();
+		byte[] data = response.getBody();
+		piazzaLogger.log(String.format("Successfully retrieved Bytes for Data %s from Piazza. File size was %s", dataId, data.length),
+				Severity.INFORMATIONAL);
+		return data;
 	}
 
 	/**
@@ -266,26 +299,29 @@ public class PiazzaService {
 	 * @return JSON block containing statistics. This contains, at least, the number of jobs in that algorithms queue.
 	 */
 	public JsonNode getAlgorithmStatistics(String algorithmId) throws UserException {
-		String piazzaDataUrl = String.format("%s/service/%s/task/metadata", PIAZZA_URL, algorithmId);
+		String piazzaTaskUrl = String.format("%s/service/%s/task/metadata", PIAZZA_URL, algorithmId);
+		piazzaLogger.log(String.format("Fetching Algorithm Tasks Metadata for %s at URL %s", algorithmId, piazzaTaskUrl),
+				Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
 		// Execute the Request
 		ResponseEntity<String> response = null;
 		try {
-			response = restTemplate.exchange(URI.create(piazzaDataUrl), HttpMethod.GET, request, String.class);
+			response = restTemplate.exchange(URI.create(piazzaTaskUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			throw new UserException(String.format("There was an error fetching Service %s Metadata from Piazza.", algorithmId),
-					exception.getMessage(), exception.getStatusCode());
+			String error = String.format("There was an error fetching Service %s Metadata from Piazza.", algorithmId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception.getMessage(), exception.getStatusCode());
 		}
 
 		try {
 			JsonNode jsonNode = objectMapper.readTree(response.getBody());
 			return jsonNode;
 		} catch (IOException exception) {
-			exception.printStackTrace();
-			throw new UserException(String.format("There was an error parsing the Service Metadata for service %s.", algorithmId),
-					exception, HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = String.format("There was an error parsing the Service Metadata for service %s.", algorithmId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 

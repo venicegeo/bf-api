@@ -19,6 +19,9 @@ import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 import org.venice.beachfront.bfapi.services.OAuthService;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 @Controller
 public class OAuthController {
 	@Value("${DOMAIN}")
@@ -36,6 +39,8 @@ public class OAuthController {
 
 	@Autowired
 	private OAuthService oauthService;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	@Autowired
 	private UserProfileService userProfileService;
@@ -62,6 +67,9 @@ public class OAuthController {
 
 		String userId = profileResponse.getComputedUserId();
 		String userName = profileResponse.getComputedUserName();
+
+		piazzaLogger.log(String.format("User %s with Name %s Successfully authenticated with OAuth provider.", userId, userName),
+				Severity.INFORMATIONAL);
 
 		UserProfile userProfile = this.oauthService.getOrCreateUser(userId, userName);
 
