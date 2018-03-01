@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+	<changeSet id="3-add-last-accessed" author="patrick.doody@rgi-corp.com">
+
+		<preConditions onFail="MARK_RAN"
+			onFailMessage="Last Accessed column found, Skipping">
+			<not>
+				<columnExists schemaName="public" tableName="__beachfront__user"
+					columnName="last_accessed" />
+			</not>
+		</preConditions>
+
+		<sql>
+			-- DROP views so they are not preventing changing data type of scene_id
+
+			DROP VIEW IF EXISTS __beachfront__geoserver;
+			DROP VIEW IF EXISTS __beachfront__provenance;
+		</sql>
+
+		<addColumn schemaName="public" tableName="__beachfront__user">
+			<column name="last_accessed" type="TIMESTAMPTZ" />
+		</addColumn>
+
+		<!-- Re-create views -->
+		<sqlFile path="../sql/migration/views.install.sql"
+			relativeToChangelogFile="true" />
+
+	</changeSet>
+</databaseChangeLog>

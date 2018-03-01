@@ -1,0 +1,25 @@
+{
+	"type": "service-list",
+	"data": [
+		{
+      "serviceId": "service123",
+      "resourceMetadata": {
+        "name": "Test Algorithm",
+        "description": "Test Description",
+        "version": "1.0.0",
+        "metadata": {
+          "SvcType": "beachfront",
+          "Interface": "test-algorithm",
+          "ArbAttribute": "arbitrary",
+          "ImgReq - bands": "coastal,swir1",
+          "ImgReq - cloudCover": "10"
+        }
+      }
+		}
+	],
+	"pagination": {
+		"count": 1,
+		"page": 0,
+		"perPage": 10
+	}
+}
