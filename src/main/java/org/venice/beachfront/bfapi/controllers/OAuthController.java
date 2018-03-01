@@ -65,7 +65,7 @@ public class OAuthController {
 
 		UserProfile userProfile = this.oauthService.getOrCreateUser(userId, userName);
 
-		String uiRedirectUri = UriComponentsBuilder.newInstance().scheme("https").host(this.domain).queryParam("logged_in", "true").build()
+		String uiRedirectUri = UriComponentsBuilder.newInstance().scheme("https").host("beachfront." + this.domain).queryParam("logged_in", "true").build()
 				.toUri().toString();
 
 		response.addCookie(createCookie(userProfile.getApiKey(), COOKIE_EXPIRY_SECONDS));
@@ -95,7 +95,7 @@ public class OAuthController {
 
 	private Cookie createCookie(String apiKey, int expiry) {
 		Cookie cookie = new Cookie(COOKIE_NAME, apiKey);
-		cookie.setDomain(String.format(".%s", domain));
+		cookie.setDomain(domain);
 		cookie.setSecure(true);
 		cookie.setPath("/");
 		cookie.setMaxAge(expiry);

@@ -100,14 +100,18 @@ public class BfApiConfig {
 	 */
 	@Configuration
 	protected static class AddCorsHeaders extends WebMvcConfigurerAdapter {
+		@Value("${DOMAIN}")
+		private String domain;
+
 		@Override
 		public void addInterceptors(InterceptorRegistry registry) {
 			registry.addInterceptor(new HandlerInterceptorAdapter() {
 				@Override
 				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-					response.setHeader("Access-Control-Allow-Headers", "authorization, content-type");
-					response.setHeader("Access-Control-Allow-Origin", "*");
+					response.setHeader("Access-Control-Allow-Headers", "authorization, content-type, X-Requested-With");
+					response.setHeader("Access-Control-Allow-Origin", "https://beachfront." + domain);
 					response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+					response.setHeader("Access-Control-Allow-Credentials", "true");
 					response.setHeader("Access-Control-Max-Age", "36000");
 					return true;
 				}

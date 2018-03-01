@@ -51,7 +51,6 @@ public class OAuthService {
 	private UserProfileService userProfileService;
 
 	public String getOauthRedirectUri() {
-		// TODO: remove dev code. return "http://localhost:8080/login";
 		return UriComponentsBuilder.newInstance().host("bf-api." + this.domain).pathSegment("login").build().toUri().toString();
 	}
 

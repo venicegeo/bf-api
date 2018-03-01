@@ -32,7 +32,7 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 		// First attempt to read the API Key from the auth header
 		String apiKey = authentication.getName();
-		if (apiKey == null) {
+		if (apiKey == null || "".equals(apiKey)) {
 			// No API Key set in auth header. Read the cookie.
 			ExtendedRequestDetails details = (ExtendedRequestDetails) authentication.getDetails();
 			Cookie[] cookies = details.getRequest().getCookies();
