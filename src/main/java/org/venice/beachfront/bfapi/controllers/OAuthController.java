@@ -102,26 +102,6 @@ public class OAuthController {
 		return logoutRedirectUri;
 	}
 
-	@RequestMapping(path = "/logout2", method = RequestMethod.GET, produces = { "text/plain" })
-	@ResponseBody
-	public String oauthLogout2(HttpServletResponse response, Authentication authentication) throws UserException {
-		// Server-side invalidation of API Key
-		userProfileService.invalidateKey(userProfileService.getProfileFromAuthentication(authentication));
-
-		// Construct redirect url for server side logout
-		final String uiUrl = "beachfront." + domain;
-		// Forward user to server side logout
-		String logoutRedirectUri = UriComponentsBuilder.fromUriString(oauthLogoutUrl).queryParam("end_url", uiUrl).build().toUri()
-				.toString();
-
-		// Clear the session cookie
-		response.addCookie(createCookie(null, 0));
-		response.setStatus(HttpStatus.OK.value());
-		// TODO: Maybe we can change bf-ui to use a proper redirect?
-		//response.setHeader("Location", logoutRedirectUri);
-		return logoutRedirectUri;
-	}
-
 	private Cookie createCookie(String apiKey, int expiry) {
 		Cookie cookie = new Cookie(COOKIE_NAME, apiKey);
 		cookie.setDomain(domain);
