@@ -142,7 +142,8 @@ public class BfApiConfig {
 		@Override
 		protected void configure(HttpSecurity http) throws Exception {
 			http.httpBasic().authenticationEntryPoint(failureEntryPoint).authenticationDetailsSource(authenticationDetailsSource()).and()
-					.authorizeRequests().anyRequest().authenticated().and().csrf().disable();
+					.authorizeRequests().anyRequest().authenticated().and().sessionManagement()
+					.sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable();
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
