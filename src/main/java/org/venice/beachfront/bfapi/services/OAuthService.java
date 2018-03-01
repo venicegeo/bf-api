@@ -23,7 +23,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
-import org.venice.beachfront.bfapi.model.oauth.AccessTokenRequestBody;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
