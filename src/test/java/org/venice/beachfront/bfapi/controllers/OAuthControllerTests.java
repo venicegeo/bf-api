@@ -77,14 +77,4 @@ public class OAuthControllerTests {
 		assertEquals(servletResponse.getStatus(), HttpStatus.FOUND.value());
 		assertEquals(servletResponse.getHeader("Location"), "https://beachfront.localhost?logged_in=true");
 	}
-
-	@Test
-	public void testLogout() throws UserException {
-		// Mock
-		HttpServletResponse servletResponse = new MockHttpServletResponse();
-		// Test
-		String redirectUrl = oauthController.oauthLogout(servletResponse, null);
-		assertEquals(servletResponse.getStatus(), HttpStatus.OK.value());
-		assertEquals(redirectUrl, "http://logout?end_url=beachfront.localhost");
-	}
 }

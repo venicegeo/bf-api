@@ -62,6 +62,8 @@ import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -70,6 +72,7 @@ import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 import org.venice.beachfront.bfapi.auth.ApiKeyAuthProvider;
 import org.venice.beachfront.bfapi.auth.ExtendedRequestDetails;
 import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
+import org.venice.beachfront.bfapi.auth.OAuthLogoutHandler;
 import org.venice.beachfront.bfapi.geoserver.AuthHeaders;
 import org.venice.beachfront.bfapi.geoserver.BasicAuthHeaders;
 import org.venice.beachfront.bfapi.geoserver.PKIAuthHeaders;
@@ -127,6 +130,8 @@ public class BfApiConfig {
 		private ApiKeyAuthProvider apiKeyAuthProvider;
 		@Autowired
 		private FailedAuthEntryPoint failureEntryPoint;
+		@Autowired
+		private OAuthLogoutHandler oAuthLogoutHandler;
 
 		@Override
 		public void configure(HttpSecurity http) throws Exception {
@@ -141,12 +146,13 @@ public class BfApiConfig {
 				.and().sessionManagement()
 					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)	// Do not create or manage sessions for security
 				.and().logout()
-					.logoutRequestMatcher(new AntPathRequestMatcher("/logout")) // Allow /logoout as a legitimate path; https://stackoverflow.com/a/26155354
+					.logoutUrl("/logout")							// Configure spring security logout with a URL and custom handler
+					.addLogoutHandler(this.oAuthLogoutHandler)
 				.and()
 					.authenticationProvider(this.apiKeyAuthProvider)	// Use this custom authentication provider to authenticate requests
 					.csrf().disable();									// Disable advanced CSRF protections for better statelessness
 		}
-
+		
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
 			return new AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails>() {
 				@Override
