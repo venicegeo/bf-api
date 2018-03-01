@@ -96,7 +96,7 @@ public class OAuthController {
 
 		// Clear the session cookie
 		response.addCookie(createCookie(null, 0));
-		//response.setStatus(HttpStatus.FOUND.value());
+		response.setStatus(HttpStatus.OK.value());
 		// TODO: Maybe we can change bf-ui to use a proper redirect?
 		//response.setHeader("Location", logoutRedirectUri);
 		return logoutRedirectUri;
