@@ -16,4 +16,7 @@
 	<include file="3-add-last-accessed.xml"
 		relativeToChangelogFile="true" />
 
+	<include file="4-modify-api-key-nullable.xml"
+		relativeToChangelogFile="true" />
+
 </databaseChangeLog>
