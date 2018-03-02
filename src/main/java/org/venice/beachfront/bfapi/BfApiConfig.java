@@ -59,11 +59,10 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -130,19 +129,22 @@ public class BfApiConfig {
 		private FailedAuthEntryPoint failureEntryPoint;
 
 		@Override
-		protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-			auth.authenticationProvider(apiKeyAuthProvider);
-		}
-
-		@Override
-		public void configure(WebSecurity web) throws Exception {
-			web.ignoring().antMatchers("/").antMatchers("/login").antMatchers("/login/geoaxis").antMatchers(HttpMethod.OPTIONS);
-		}
-
-		@Override
-		protected void configure(HttpSecurity http) throws Exception {
-			http.httpBasic().authenticationEntryPoint(failureEntryPoint).authenticationDetailsSource(authenticationDetailsSource()).and()
-					.authorizeRequests().anyRequest().authenticated().and().csrf().disable();
+		public void configure(HttpSecurity http) throws Exception {
+			http.authorizeRequests()
+					.antMatchers(HttpMethod.OPTIONS).permitAll() 	// Allow any OPTIONS for REST best practices
+					.antMatchers("/").permitAll()					// Allow unauthenticated queries to root (health check) path
+					.antMatchers("/login").permitAll()				// Allow unauthenticated queries to login callback path
+					.antMatchers("/login/geoaxis").permitAll()		// Allow unauthenticated queries to OAuth login start path
+					.anyRequest().authenticated()					// All other requests must be authenticated
+				.and().httpBasic()									// Use HTTP Basic authentication
+					.authenticationEntryPoint(this.failureEntryPoint)	// Entry point for starting a Basic auth exchange (i.e. "failed authentication" handling)
+					.authenticationDetailsSource(this.authenticationDetailsSource()) // Feed more request details into any providers
+				.and().sessionManagement()
+					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)	// Do not create or manage sessions for security
+				.and().logout()
+					.disable() 										// Disable auto-magical Spring Security logout behavior
+				.authenticationProvider(this.apiKeyAuthProvider)	// Use this custom authentication provider to authenticate requests
+				.csrf().disable();									// Disable advanced CSRF protections for better statelessness
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
