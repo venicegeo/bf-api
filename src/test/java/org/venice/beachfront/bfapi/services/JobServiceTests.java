@@ -5,8 +5,13 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.commons.io.IOUtils;
+import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.Seconds;
@@ -25,6 +30,9 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.vividsolutions.jts.geom.Geometry;
 
 import util.PiazzaLogger;
 
@@ -121,5 +129,29 @@ public class JobServiceTests {
 		assertTrue(Days.daysBetween(new DateTime(), job.getCreatedOn()).getDays() <= 7);
 		assertEquals(job.getSceneId(), sceneId);
 		assertEquals(job.getStatus(), Job.STATUS_SUCCESS);
+	}
+
+	@Test
+	public void testJobGeoJson() throws UserException, IOException {
+		// Mock two Jobs with 2 corresponding scenes
+		List<Job> mockJobs = new ArrayList<Job>();
+		Job mockJob = new Job("job123", "Test Job", Job.STATUS_SUCCESS, null, new DateTime().minusDays(7), "algId", "algName", "algVersion",
+				"scene1", 0.0, 0.0, 0.0, null, true);
+		mockJobs.add(mockJob);
+		mockJob = new Job("job321", "Test Job", Job.STATUS_SUCCESS, null, new DateTime().minusDays(7), "algId", "algName", "algVersion",
+				"scene1", 0.0, 0.0, 0.0, null, true);
+		mockJobs.add(mockJob);
+		// Mock a scene with some GeoJSON Geometry
+		String geometryString = IOUtils.toString(
+				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "scene", File.separator, "geometry.json")),
+				"UTF-8");
+		GeometryJSON geometryJson = new GeometryJSON();
+		Geometry geometry = geometryJson.read(geometryString);
+		Scene mockScene = new Scene("scene123", new DateTime(), 10, geometry, 10, "Sensor", "URI");
+		Mockito.doReturn(mockScene).when(sceneService).getSceneFromLocalDatabase(Mockito.eq("scene1"));
+		// Test
+		JsonNode geoJson = jobService.getJobsGeoJson(mockJobs);
+		// Verify
+		assertNotNull(geoJson);
 	}
 }

@@ -34,7 +34,6 @@ import org.venice.beachfront.bfapi.model.JobUser;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -75,6 +74,8 @@ public class JobService {
 	private RestTemplate restTemplate;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	/**
 	 * Creates a Beachfront Job. This will submit the Job request to Piazza, fetch the Job ID, and add all of the Job
@@ -227,24 +228,22 @@ public class JobService {
 
 	/**
 	 * The Jobs list in Beachfront expects raw GeoJSON. The feature is the scene geometry, while the properties are that
-	 * of the job and scene combined.
+	 * of the job and scene combined. This method will return the GeoJSON form of the Jobs array.
 	 * 
-	 * @param createdByUserId
-	 *            The ID of the user whose Jobs to retrieve
+	 * @param jobs
+	 *            The Jobs to convert into a FeatureCollection GeoJSON
 	 * @return The GeoJSON representing all of the user jobs, where the geometry is the polygon of the scene footprint
 	 */
-	public JsonNode getJobsGeoJsonForUser(String createdByUserId) throws UserException {
-		List<Job> userJobs = getJobsForUser(createdByUserId);
-		ObjectMapper mapper = new ObjectMapper();
+	public JsonNode getJobsGeoJson(List<Job> userJobs) throws UserException {
 		GeometryJSON geometryJson = new GeometryJSON();
 		// Wrapper for the Job FeatureCollection
-		ObjectNode jobs = mapper.createObjectNode();
+		ObjectNode jobs = objectMapper.createObjectNode();
 		jobs.put("type", "FeatureCollection");
 		// Create Feature Collection for each Job
-		ArrayNode features = mapper.createArrayNode();
+		ArrayNode features = objectMapper.createArrayNode();
 		for (Job job : userJobs) {
 			// Create the Feature object for this Job
-			ObjectNode jobFeature = mapper.createObjectNode();
+			ObjectNode jobFeature = objectMapper.createObjectNode();
 			jobFeature.put("type", "Feature");
 			jobFeature.put("id", job.getJobId());
 			// Add the Geometry from the Scene used to create this job
@@ -252,7 +251,7 @@ public class JobService {
 			if (scene != null) {
 				String sceneGeometry = geometryJson.toString(scene.getGeometry());
 				try {
-					JsonNode geometry = mapper.readTree(sceneGeometry);
+					JsonNode geometry = objectMapper.readTree(sceneGeometry);
 					jobFeature.set("geometry", geometry);
 				} catch (IOException exception) {
 					String error = String.format(
@@ -269,7 +268,7 @@ public class JobService {
 				throw new UserException(error, HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 			// Add the properties to the Feature
-			JsonNode properties = mapper.valueToTree(job);
+			JsonNode properties = objectMapper.valueToTree(job);
 			jobFeature.set("properties", properties);
 			features.add(jobFeature);
 		}

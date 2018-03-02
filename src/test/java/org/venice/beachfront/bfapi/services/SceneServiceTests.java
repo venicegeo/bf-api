@@ -27,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.venice.beachfront.bfapi.database.dao.SceneDao;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
@@ -44,6 +45,8 @@ public class SceneServiceTests {
 	private PiazzaLogger piazzaLogger;
 	@Mock
 	private ExecutorService executor;
+	@Mock
+	private SceneDao sceneDao;
 
 	@InjectMocks
 	private SceneService sceneService;
