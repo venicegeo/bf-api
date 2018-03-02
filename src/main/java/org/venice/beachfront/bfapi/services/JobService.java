@@ -35,6 +35,9 @@ import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vividsolutions.jts.geom.Geometry;
 
 import model.logger.Severity;
@@ -71,6 +74,8 @@ public class JobService {
 	private RestTemplate restTemplate;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	/**
 	 * Creates a Beachfront Job. This will submit the Job request to Piazza, fetch the Job ID, and add all of the Job
@@ -219,6 +224,72 @@ public class JobService {
 		}
 		piazzaLogger.log(String.format("Queried Jobs for user %s. Found %s Jobs.", createdByUserId, jobs.size()), Severity.INFORMATIONAL);
 		return jobs;
+	}
+
+	/**
+	 * The Jobs list in Beachfront expects raw GeoJSON. The feature is the scene geometry, while the properties are that
+	 * of the job and scene combined. This method will return the GeoJSON form of the Jobs array.
+	 * 
+	 * @param jobs
+	 *            The Jobs to convert into a FeatureCollection GeoJSON
+	 * @return The GeoJSON representing all of the user jobs, where the geometry is the polygon of the scene footprint
+	 */
+	public JsonNode getJobsGeoJson(List<Job> userJobs) throws UserException {
+		// Wrapper for the Job FeatureCollection
+		ObjectNode response = objectMapper.createObjectNode();
+		ObjectNode jobWrapper = objectMapper.createObjectNode();
+		jobWrapper.put("type", "FeatureCollection");
+		// Create Feature Collection for each Job
+		ArrayNode features = objectMapper.createArrayNode();
+		for (Job job : userJobs) {
+			features.add(convertJobToGeoJsonFeature(job));
+		}
+		jobWrapper.set("features", features);
+		response.set("jobs", jobWrapper);
+		return response;
+	}
+
+	/**
+	 * Converts a Job object into a single GeoJSON Feature. The geometry will be the Polygon bounding box of the Scene
+	 * use to create the job.
+	 * 
+	 * @param job
+	 *            The Job object
+	 * @return GeoJSON Feature
+	 */
+	private ObjectNode convertJobToGeoJsonFeature(Job job) throws UserException {
+		GeometryJSON geometryJson = new GeometryJSON();
+		// Create the Feature object for this Job
+		ObjectNode jobFeature = objectMapper.createObjectNode();
+		jobFeature.put("type", "Feature");
+		jobFeature.put("id", job.getJobId());
+		// Add the Geometry from the Scene used to create this job
+		Scene scene = sceneService.getSceneFromLocalDatabase(job.getSceneId());
+		if (scene != null) {
+			String sceneGeometry = geometryJson.toString(scene.getGeometry());
+			try {
+				JsonNode geometry = objectMapper.readTree(sceneGeometry);
+				jobFeature.set("geometry", geometry);
+			} catch (IOException exception) {
+				String error = String.format(
+						"Could not populate Jobs GeoJSON. Error converting Geometry from Scene %s as stored in the database.",
+						scene.getSceneId());
+				piazzaLogger.log(error, Severity.ERROR);
+				throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		} else {
+			String error = String.format(
+					"Could not populate Jobs GeoJSON, because the Scene information for Scene %s was not present in the database.",
+					job.getSceneId());
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		// Add the properties to the Feature
+		ObjectNode properties = objectMapper.valueToTree(job);
+		// Explicit Date Set for proper format
+		properties.put("created_on", job.getCreatedOn().toString());
+		jobFeature.set("properties", properties);
+		return jobFeature;
 	}
 
 	public Job getJob(String jobId) {

@@ -62,9 +62,10 @@ public class JobController {
 
 	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public List<Job> listJobs(Authentication authentication) throws UserException {
+	public JsonNode listJobs(Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
-		return jobService.getJobsForUser(currentUser.getUserId());
+		List<Job> jobs = jobService.getJobsForUser(currentUser.getUserId());
+		return jobService.getJobsGeoJson(jobs);
 	}
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.GET, produces = { "application/json" })

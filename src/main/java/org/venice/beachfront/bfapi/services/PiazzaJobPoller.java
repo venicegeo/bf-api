@@ -24,9 +24,10 @@ import java.util.TimerTask;
 
 import javax.annotation.PostConstruct;
 
-import org.geotools.geojson.geom.GeometryJSON;
+import org.geotools.geojson.feature.FeatureJSON;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
+import org.opengis.feature.simple.SimpleFeature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -126,8 +127,9 @@ public class PiazzaJobPoller {
 							job.getJobId()), Severity.INFORMATIONAL);
 					// Convert the bytes into a Geometry object that Hibernate can store
 					InputStream inputStream = new ByteArrayInputStream(detectionBytes);
-					GeometryJSON geojson = new GeometryJSON();
-					Geometry geometry = geojson.read(inputStream);
+					FeatureJSON featureJson = new FeatureJSON();
+					SimpleFeature feature = featureJson.readFeature(inputStream);
+					Geometry geometry = (Geometry) feature.getDefaultGeometry();
 					// Commit the Detection to the Detections table
 					jobService.createDetection(job, geometry);
 					// Finally, mark the Job as successful
