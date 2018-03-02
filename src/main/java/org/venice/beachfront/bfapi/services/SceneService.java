@@ -86,6 +86,36 @@ public class SceneService {
 		}
 	}
 
+	/**
+	 * Gets the Scene object from the local scene database. This does not reach out to the IA-broker, but rather, the
+	 * Beachfront database.
+	 * <p>
+	 * The Scenes get written to this database as they are requested through Planet. If a Scene ID is requested for a
+	 * valid scene that has not been queried through planet, then that scene will not be present in the database.
+	 * <p>
+	 * The purpose of this function is to return scene geometries immediately through the database for fast and large
+	 * lookups of Job geometries, without having to broker each request back through the IA-Broker.
+	 * 
+	 * @param sceneId
+	 * @return
+	 */
+	public Scene getSceneFromLocalDatabase(String sceneId) {
+		return sceneDao.findBySceneId(sceneId);
+	}
+
+	/**
+	 * Gets Scene information from the IA-broker.
+	 * <p>
+	 * As part of this process, the Scene metadata will be written to the local Beachfront database.
+	 * 
+	 * @param sceneId
+	 *            The scene ID
+	 * @param planetApiKey
+	 *            The users planet key
+	 * @param withTides
+	 *            Include tides information or not
+	 * @return The Scene object
+	 */
 	public Scene getScene(String sceneId, String planetApiKey, boolean withTides) throws UserException {
 		piazzaLogger.log(String.format("Requesting Scene %s information.", sceneId), Severity.INFORMATIONAL);
 		String platform = Scene.parsePlatform(sceneId);
