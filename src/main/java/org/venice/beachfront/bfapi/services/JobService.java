@@ -237,8 +237,9 @@ public class JobService {
 	public JsonNode getJobsGeoJson(List<Job> userJobs) throws UserException {
 		GeometryJSON geometryJson = new GeometryJSON();
 		// Wrapper for the Job FeatureCollection
-		ObjectNode jobs = objectMapper.createObjectNode();
-		jobs.put("type", "FeatureCollection");
+		ObjectNode response = objectMapper.createObjectNode();
+		ObjectNode jobWrapper = objectMapper.createObjectNode();
+		jobWrapper.put("type", "FeatureCollection");
 		// Create Feature Collection for each Job
 		ArrayNode features = objectMapper.createArrayNode();
 		for (Job job : userJobs) {
@@ -268,12 +269,15 @@ public class JobService {
 				throw new UserException(error, HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 			// Add the properties to the Feature
-			JsonNode properties = objectMapper.valueToTree(job);
+			ObjectNode properties = objectMapper.valueToTree(job);
+			// Explicit Date Set for proper format
+			properties.put("created_on", job.getCreatedOn().toString());
 			jobFeature.set("properties", properties);
 			features.add(jobFeature);
 		}
-		jobs.set("features", features);
-		return jobs;
+		jobWrapper.set("features", features);
+		response.set("jobs", jobWrapper);
+		return response;
 	}
 
 	public Job getJob(String jobId) {

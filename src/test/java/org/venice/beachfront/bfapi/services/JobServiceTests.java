@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
@@ -32,6 +33,7 @@ import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vividsolutions.jts.geom.Geometry;
 
 import util.PiazzaLogger;
@@ -55,6 +57,8 @@ public class JobServiceTests {
 	private UserProfileService userProfileService;
 	@Mock
 	private PiazzaLogger piazzaLogger;
+	@Spy
+	private ObjectMapper objectMapper;
 	@InjectMocks
 	private JobService jobService;
 
@@ -153,5 +157,23 @@ public class JobServiceTests {
 		JsonNode geoJson = jobService.getJobsGeoJson(mockJobs);
 		// Verify
 		assertNotNull(geoJson);
+		JsonNode featureCollection = geoJson.get("jobs");
+		JsonNode features = featureCollection.get("features");
+		assertEquals(featureCollection.get("type").textValue(), "FeatureCollection");
+		assertEquals(features.size(), 2);
+		assertEquals(features.get(0).get("id").textValue(), "job123");
+		assertEquals(features.get(0).get("type").textValue(), "Feature");
+		assertEquals(features.get(0).get("geometry").get("type").textValue(), "Polygon");
+		assertEquals(features.get(0).get("geometry").get("coordinates").get(0).size(), geometry.getNumPoints());
+		assertEquals(features.get(0).get("properties").get("job_id").textValue(), "job123");
+		assertEquals(features.get(0).get("properties").get("status").textValue(), "Success");
+		assertEquals(features.get(0).get("properties").get("compute_mask").booleanValue(), true);
+		assertEquals(features.get(1).get("id").textValue(), "job321");
+		assertEquals(features.get(1).get("type").textValue(), "Feature");
+		assertEquals(features.get(1).get("geometry").get("type").textValue(), "Polygon");
+		assertEquals(features.get(1).get("geometry").get("coordinates").get(0).size(), geometry.getNumPoints());
+		assertEquals(features.get(1).get("properties").get("job_id").textValue(), "job321");
+		assertEquals(features.get(1).get("properties").get("status").textValue(), "Success");
+		assertEquals(features.get(1).get("properties").get("compute_mask").booleanValue(), true);
 	}
 }
