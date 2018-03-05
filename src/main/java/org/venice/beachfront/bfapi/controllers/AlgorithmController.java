@@ -27,6 +27,10 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.AlgorithmService;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 /**
  * Main controller class for the retrieving information about available algorithms.
  * 
@@ -36,11 +40,17 @@ import org.venice.beachfront.bfapi.services.AlgorithmService;
 public class AlgorithmController {
 	@Autowired
 	private AlgorithmService algorithmService;
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	@RequestMapping(path = "/algorithm", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public List<Algorithm> getAllAlgorithms() throws UserException {
-		return algorithmService.getAllAlgorithms();
+	public JsonNode getAllAlgorithms() throws UserException {
+		List<Algorithm> algorithms = algorithmService.getAllAlgorithms();
+		// Algorithms must be wrapped in a parent container
+		ObjectNode container = objectMapper.createObjectNode();
+		container.set("algorithms", objectMapper.convertValue(algorithms, JsonNode.class));
+		return container;
 	}
 
 	@RequestMapping(path = "/algorithm/{id}", method = RequestMethod.GET, produces = { "application/json" })
