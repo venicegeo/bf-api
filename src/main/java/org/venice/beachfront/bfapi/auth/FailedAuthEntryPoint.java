@@ -20,8 +20,8 @@ public class FailedAuthEntryPoint extends BasicAuthenticationEntryPoint {
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authEx)
 			throws IOException, ServletException {
-		response.addHeader("WWW-Authenticate", "Basic realm=\"" + getRealmName() + "\"");
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+		response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication Failed");
 		PrintWriter writer = response.getWriter();
 		writer.println("Invalid API Key specified.");
 		// TODO: Audit log this
