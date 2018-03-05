@@ -66,7 +66,7 @@ public class SceneService {
 
 		try {
 			this.restTemplate.getForEntity(UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer)
-					.port(this.iaBrokerPort).path(activationPath).queryParam("PLANET_API_KEY", planetApiKey).build().toUri(), Object.class);
+					.port(this.iaBrokerPort).path(activationPath).queryParam("PL_API_KEY", planetApiKey).build().toUri(), Object.class);
 			piazzaLogger.log(String.format("Successfully requested Activation of Scene %s to URL %s", scene.getSceneId(), activationPath),
 					Severity.INFORMATIONAL);
 		} catch (RestClientResponseException ex) {
