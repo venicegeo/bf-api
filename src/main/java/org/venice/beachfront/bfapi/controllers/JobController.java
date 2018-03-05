@@ -56,7 +56,7 @@ public class JobController {
 	@ResponseBody
 	public Job createJob(@RequestBody CreateJobBody body, Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
-		return jobService.createJob(body.jobName, currentUser.getUserId(), body.algorithmId, body.sceneId, body.planetApiKey,
+		return jobService.createJob(body.jobName, currentUser.getUserId(), body.sceneId, body.algorithmId, body.planetApiKey,
 				body.computeMask, body.extras);
 	}
 
