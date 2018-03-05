@@ -38,7 +38,7 @@ public class SceneService {
 	private int asyncActivationPollMaxAttempts;
 	@Value("${ia.broker.protocol}")
 	private String iaBrokerProtocol;
-	@Value("${ia.broker.server")
+	@Value("${ia.broker.server}")
 	private String iaBrokerServer;
 	@Value("${ia.broker.port}")
 	private int iaBrokerPort;
