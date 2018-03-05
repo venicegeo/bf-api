@@ -148,7 +148,7 @@ public class SceneServiceTests {
 			public ResponseEntity<?> answer(InvocationOnMock invocation) {
 				Object[] args = invocation.getArguments();
 				assertEquals(URI.class, args[0].getClass());
-				assertEquals("https://bf-ia-broker-test.localdomain:443/planet/activate/PLATFORM/EXTERNAL_ID?PLANET_API_KEY=api-abc-123",
+				assertEquals("https://bf-ia-broker-test.localdomain:443/planet/activate/PLATFORM/EXTERNAL_ID?PL_API_KEY=api-abc-123",
 						((URI) args[0]).toString());
 				return new ResponseEntity<Object>(null, HttpStatus.OK);
 			}
@@ -264,7 +264,7 @@ public class SceneServiceTests {
 						Object[] args = invocation.getArguments();
 						assertEquals(URI.class, args[0].getClass());
 						assertEquals(
-								"https://bf-ia-broker-test.localdomain:443/planet/rapideye/EXTERNAL_ID?PLANET_API_KEY=api-abc-123&tides=true",
+								"https://bf-ia-broker-test.localdomain:443/planet/rapideye/EXTERNAL_ID?PL_API_KEY=api-abc-123&tides=true",
 								((URI) args[0]).toString());
 						return new ResponseEntity<JsonNode>(responseJson, HttpStatus.OK);
 					}
@@ -295,7 +295,7 @@ public class SceneServiceTests {
 						Object[] args = invocation.getArguments();
 						assertEquals(URI.class, args[0].getClass());
 						assertEquals(
-								"https://bf-ia-broker-test.localdomain:443/planet/landsat/EXTERNAL_ID?PLANET_API_KEY=api-abc-123&tides=false",
+								"https://bf-ia-broker-test.localdomain:443/planet/landsat/EXTERNAL_ID?PL_API_KEY=api-abc-123&tides=false",
 								((URI) args[0]).toString());
 						return new ResponseEntity<JsonNode>(responseJson, HttpStatus.OK);
 					}

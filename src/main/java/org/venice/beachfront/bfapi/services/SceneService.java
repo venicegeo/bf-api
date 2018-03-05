@@ -127,7 +127,7 @@ public class SceneService {
 		try {
 			response = this.restTemplate.getForEntity(
 					UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
-							.path(scenePath).queryParam("PLANET_API_KEY", planetApiKey).queryParam("tides", withTides).build().toUri(),
+							.path(scenePath).queryParam("PL_API_KEY", planetApiKey).queryParam("tides", withTides).build().toUri(),
 					JsonNode.class);
 		} catch (RestClientResponseException ex) {
 			piazzaLogger.log(String.format("Error Requesting Information for Scene %s with Code %s and Message %s", sceneId,
