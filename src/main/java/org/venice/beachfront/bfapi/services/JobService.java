@@ -288,6 +288,7 @@ public class JobService {
 		ObjectNode properties = objectMapper.valueToTree(job);
 		// Explicit Date Set for proper format
 		properties.put("created_on", job.getCreatedOn().toString());
+		properties.put("type", "JOB");
 		jobFeature.set("properties", properties);
 		return jobFeature;
 	}
