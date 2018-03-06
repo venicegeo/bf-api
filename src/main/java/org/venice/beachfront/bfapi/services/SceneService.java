@@ -149,7 +149,7 @@ public class SceneService {
 
 		Scene scene = new Scene();
 		try {
-			piazzaLogger.log(String.format("Beginnining parsing of successful response of Scene %s data.", sceneId),
+			piazzaLogger.log(String.format("Beginning parsing of successful response of Scene %s data.", sceneId),
 					Severity.INFORMATIONAL);
 			scene.setRawJson(responseJson);
 			scene.setSceneId(platform + ":" + responseJson.get("id").asText());
@@ -157,12 +157,11 @@ public class SceneService {
 			scene.setResolution(responseJson.get("properties").get("resolution").asInt());
 			scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
 			scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
-			if (responseJson.get("properties").has("location")) {
-				scene.setUri(responseJson.get("properties").get("location").asText());
-			}
+			scene.setUri(UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
+							.path(scenePath).toUriString());
 
 			try {
-				// The response from ia-broker is a GeoJSON feature. Convert to Geometry.
+				// The response from IA-Broker is a GeoJSON feature. Convert to Geometry.
 				FeatureJSON featureReader = new FeatureJSON();
 				String geoJsonString = new ObjectMapper().writeValueAsString(responseJson);
 				SimpleFeature feature = featureReader.readFeature(geoJsonString);
@@ -259,7 +258,7 @@ public class SceneService {
 		switch (Scene.parsePlatform(scene.getSceneId())) {
 		case Scene.PLATFORM_RAPIDEYE:
 		case Scene.PLATFORM_PLANETSCOPE:
-			return Arrays.asList(scene.getUri().toString());
+			return Arrays.asList(scene.getLocationProperty());
 		case Scene.PLATFORM_LANDSAT:
 			return Arrays.asList(scene.getImageBand("coastal"), scene.getImageBand("swir1"));
 		case Scene.PLATFORM_SENTINEL:
