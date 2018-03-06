@@ -75,11 +75,11 @@ public class SceneServiceTests {
 
 		scene.setSceneId("landsat:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
-		assertEquals(Arrays.asList("coastal.TIF", "multispectral.TIF"), inputFileNames);
+		assertEquals(Arrays.asList("coastal.TIF", "swir1.TIF"), inputFileNames);
 
 		scene.setSceneId("sentinel:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
-		assertEquals(Arrays.asList("B02.JP2", "B08.JP2"), inputFileNames);
+		assertEquals(Arrays.asList("coastal.JP2", "swir1.JP2"), inputFileNames);
 
 		scene.setSceneId("bogus:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
@@ -96,6 +96,7 @@ public class SceneServiceTests {
 		bands.set("coastal", JsonNodeFactory.instance.textNode("COASTAL_URL"));
 		bands.set("blue", JsonNodeFactory.instance.textNode("BLUE_URL"));
 		bands.set("nir", JsonNodeFactory.instance.textNode("NIR_URL"));
+		bands.set("swir1", JsonNodeFactory.instance.textNode("SWIR1_URL"));
 		JsonNode properties = JsonNodeFactory.instance.objectNode().set("bands", bands);
 		JsonNode rawJson = JsonNodeFactory.instance.objectNode().set("properties", properties);
 
@@ -114,7 +115,7 @@ public class SceneServiceTests {
 
 		scene.setSceneId("landsat:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
-		assertEquals(Arrays.asList("COASTAL_URL", "SCENE_URL"), inputURLs);
+		assertEquals(Arrays.asList("COASTAL_URL", "SWIR1_URL"), inputURLs);
 
 		scene.setSceneId("sentinel:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);

@@ -157,7 +157,9 @@ public class SceneService {
 			scene.setResolution(responseJson.get("properties").get("resolution").asInt());
 			scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
 			scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
-			scene.setUri(responseJson.get("properties").get("location").asText());
+			if (responseJson.get("properties").has("location")) {
+				scene.setUri(responseJson.get("properties").get("location").asText());
+			}
 
 			try {
 				// The response from ia-broker is a GeoJSON feature. Convert to Geometry.
@@ -189,9 +191,11 @@ public class SceneService {
 				scene.setTideMax24H(responseJson.get("properties").get("MaximumTide24Hours").asDouble());
 			}
 		} catch (NullPointerException ex) {
-			piazzaLogger.log(String.format("Error parsing of successful response of Scene %s data with Error %s", sceneId, ex.getMessage()),
-					Severity.ERROR);
-			throw new UserException("Error parsing JSON response from upstream", ex, HttpStatus.INTERNAL_SERVER_ERROR);
+			piazzaLogger.log(String.format(
+					"Error parsing of successful response from IA-Broker for Scene %s data with Error %s. Raw Response content: %s",
+					sceneId, ex.getMessage(), responseJson.toString()), Severity.ERROR);
+			throw new UserException("Error parsing JSON Scene Response from Upstream Broker Service.", ex,
+					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		piazzaLogger.log(String.format("Successfully parsed Scene metadata for Scene %s", sceneId), Severity.INFORMATIONAL);
@@ -244,9 +248,9 @@ public class SceneService {
 		case Scene.PLATFORM_PLANETSCOPE:
 			return Arrays.asList("multispectral.TIF");
 		case Scene.PLATFORM_LANDSAT:
-			return Arrays.asList("coastal.TIF", "multispectral.TIF");
+			return Arrays.asList("coastal.TIF", "swir1.TIF");
 		case Scene.PLATFORM_SENTINEL:
-			return Arrays.asList("B02.JP2", "B08.JP2");
+			return Arrays.asList("coastal.JP2", "swir1.JP2");
 		}
 		return new ArrayList<String>();
 	}
@@ -257,7 +261,7 @@ public class SceneService {
 		case Scene.PLATFORM_PLANETSCOPE:
 			return Arrays.asList(scene.getUri().toString());
 		case Scene.PLATFORM_LANDSAT:
-			return Arrays.asList(scene.getImageBand("coastal"), scene.getUri().toString());
+			return Arrays.asList(scene.getImageBand("coastal"), scene.getImageBand("swir1"));
 		case Scene.PLATFORM_SENTINEL:
 			return Arrays.asList(scene.getImageBand("blue"), scene.getImageBand("nir"));
 		}
