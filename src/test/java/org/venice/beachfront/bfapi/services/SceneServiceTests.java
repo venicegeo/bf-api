@@ -75,11 +75,11 @@ public class SceneServiceTests {
 
 		scene.setSceneId("landsat:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
-		assertEquals(Arrays.asList("coastal.TIF", "multispectral.TIF"), inputFileNames);
+		assertEquals(Arrays.asList("coastal.TIF", "swir1.TIF"), inputFileNames);
 
 		scene.setSceneId("sentinel:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
-		assertEquals(Arrays.asList("B02.JP2", "B08.JP2"), inputFileNames);
+		assertEquals(Arrays.asList("coastal.JP2", "swir1.JP2"), inputFileNames);
 
 		scene.setSceneId("bogus:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
@@ -96,7 +96,9 @@ public class SceneServiceTests {
 		bands.set("coastal", JsonNodeFactory.instance.textNode("COASTAL_URL"));
 		bands.set("blue", JsonNodeFactory.instance.textNode("BLUE_URL"));
 		bands.set("nir", JsonNodeFactory.instance.textNode("NIR_URL"));
+		bands.set("swir1", JsonNodeFactory.instance.textNode("SWIR1_URL"));
 		JsonNode properties = JsonNodeFactory.instance.objectNode().set("bands", bands);
+		((ObjectNode) properties).put("location", "LOCATION_URL");
 		JsonNode rawJson = JsonNodeFactory.instance.objectNode().set("properties", properties);
 
 		Scene scene = new Scene();
@@ -106,15 +108,15 @@ public class SceneServiceTests {
 
 		scene.setSceneId("rapideye:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
-		assertEquals(Arrays.asList("SCENE_URL"), inputURLs);
+		assertEquals(Arrays.asList("LOCATION_URL"), inputURLs);
 
 		scene.setSceneId("planetscope:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
-		assertEquals(Arrays.asList("SCENE_URL"), inputURLs);
+		assertEquals(Arrays.asList("LOCATION_URL"), inputURLs);
 
 		scene.setSceneId("landsat:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
-		assertEquals(Arrays.asList("COASTAL_URL", "SCENE_URL"), inputURLs);
+		assertEquals(Arrays.asList("COASTAL_URL", "SWIR1_URL"), inputURLs);
 
 		scene.setSceneId("sentinel:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
@@ -277,7 +279,7 @@ public class SceneServiceTests {
 		assertEquals(3, scene.getResolution());
 		assertEquals(DateTime.parse("2018-02-26T07:28:08Z"), scene.getCaptureTime());
 		assertEquals("mockSensorName", scene.getSensorName());
-		assertEquals("https://mock-uri.localdomain/foo/tile.avi", scene.getUri());
+		assertEquals("https://bf-ia-broker-test.localdomain:443/planet/rapideye/EXTERNAL_ID", scene.getUri());
 		assertEquals(Scene.STATUS_INACTIVE, scene.getStatus());
 		assertEquals(0.5, scene.getTide(), 0.0001);
 		assertEquals(0.1, scene.getTideMin24H(), 0.0001);
@@ -308,12 +310,40 @@ public class SceneServiceTests {
 		assertEquals(3, scene.getResolution());
 		assertEquals(DateTime.parse("2018-02-26T07:28:08Z"), scene.getCaptureTime());
 		assertEquals("mockSensorName", scene.getSensorName());
-		assertEquals("https://mock-uri.localdomain/foo/tile.avi", scene.getUri());
+		assertEquals("https://bf-ia-broker-test.localdomain:443/planet/landsat/EXTERNAL_ID", scene.getUri());
 		assertEquals(Scene.STATUS_ACTIVE, scene.getStatus()); // This is the big difference from rapideye; landsat
 																// should always be active
 		assertNull(scene.getTide());
 		assertNull(scene.getTideMin24H());
 		assertNull(scene.getTideMax24H());
+	}
+
+	@Test
+	public void testGetLandsatScene() throws UserException, IOException {
+		// Mock
+		JsonNode responseJson = new ObjectMapper().readTree(
+				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "scene", File.separator, "getLandsatScene.json")));
+		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class)))
+				.then(new Answer<ResponseEntity<JsonNode>>() {
+					public ResponseEntity<JsonNode> answer(InvocationOnMock invocation) {
+						Object[] args = invocation.getArguments();
+						assertEquals(URI.class, args[0].getClass());
+						assertEquals(
+								"https://bf-ia-broker-test.localdomain:443/planet/landsat/EXTERNAL_ID?PL_API_KEY=api-abc-123&tides=false",
+								((URI) args[0]).toString());
+						return new ResponseEntity<JsonNode>(responseJson, HttpStatus.OK);
+					}
+				});
+		// Test
+		Scene scene = this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
+		// Verify
+		assertEquals("test", scene.getExternalId());
+		assertEquals(50, scene.getCloudCover(), 0.0001);
+		assertEquals(30, scene.getResolution());
+		assertEquals(DateTime.parse("2016-09-30T09:45:02.625661Z"), scene.getCaptureTime());
+		assertEquals("Landsat8", scene.getSensorName());
+		assertEquals(Scene.STATUS_ACTIVE, scene.getStatus()); // This is the big difference from rapideye; landsat
+																// should always be active
 	}
 
 	@Test

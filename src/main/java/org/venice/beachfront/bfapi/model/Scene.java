@@ -217,4 +217,13 @@ public class Scene {
 	public String getImageBand(String bandName) {
 		return this.rawJson.get("properties").get("bands").get(bandName).asText();
 	}
+	
+	public String getLocationProperty() {
+		JsonNode locationNode = this.rawJson.get("properties").get("location");
+		if (locationNode != null) {
+			return locationNode.asText();
+		} else {
+			return null;
+		}
+	}
 }
