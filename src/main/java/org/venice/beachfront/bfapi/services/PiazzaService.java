@@ -71,8 +71,19 @@ public class PiazzaService {
 		// Structure the Job Request
 		String requestJson = null;
 		try {
-			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", fileNames),
-					String.join(", ", fileUrls), userId);
+			// Add quotations to each element in the files lists, to ensure that JSON has the quotes after the
+			// string-replace.
+			List<String> quotedFileNames = new ArrayList<String>();
+			List<String> quotedFileUrls = new ArrayList<String>();
+			for (String fileName : fileNames) {
+				quotedFileNames.add(String.format("\"%s\"", fileName));
+			}
+			for (String fileUrl : fileUrls) {
+				quotedFileUrls.add(String.format("\"%s\"", fileUrl));
+			}
+			// Replace all user values into the execute request JSON template
+			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", quotedFileNames),
+					String.join(", ", quotedFileUrls), userId);
 		} catch (Exception exception) {
 			exception.printStackTrace();
 			throw new UserException("Could not load local resource file for Job Request.", exception.getMessage(),
@@ -85,8 +96,10 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			piazzaLogger.log(String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s", userId,
-					exception.getStatusText(), exception.getResponseBodyAsString(), requestJson), Severity.ERROR);
+			piazzaLogger.log(
+					String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s",
+							userId, exception.getStatusText(), exception.getResponseBodyAsString(), requestJson),
+					Severity.ERROR);
 			throw new UserException("There was an error submitting the Job Request to Piazza.", exception.getMessage(),
 					exception.getStatusCode());
 		}
