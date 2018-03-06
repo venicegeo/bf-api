@@ -336,7 +336,7 @@ public class SceneServiceTests {
 		// Test
 		Scene scene = this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
 		// Verify
-		assertEquals("EXTERNAL_ID", scene.getExternalId());
+		assertEquals("test", scene.getExternalId());
 		assertEquals(50, scene.getCloudCover(), 0.0001);
 		assertEquals(30, scene.getResolution());
 		assertEquals(DateTime.parse("2016-09-30T09:45:02.625661Z"), scene.getCaptureTime());
