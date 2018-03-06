@@ -122,7 +122,7 @@ public class PiazzaJobPoller {
 			} else if (status.isStatusSuccess()) {
 				try {
 					// Download the file bytes from Piazza
-					byte[] detectionBytes = piazzaService.downloadData(status.getDataId());
+					byte[] detectionBytes = piazzaService.getBytesFromSuccessfulServiceJobData(status.getDataId(), job);
 					piazzaLogger.log(String.format("Downloaded Detection bytes, filesize %s from Piazza for Job %s", detectionBytes.length,
 							job.getJobId()), Severity.INFORMATIONAL);
 					// Convert the bytes into a Geometry object that Hibernate can store
