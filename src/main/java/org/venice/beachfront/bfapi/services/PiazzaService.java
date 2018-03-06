@@ -76,14 +76,14 @@ public class PiazzaService {
 			List<String> quotedFileNames = new ArrayList<String>();
 			List<String> quotedFileUrls = new ArrayList<String>();
 			for (String fileName : fileNames) {
-				quotedFileNames.add(String.format("\"%s\"", fileName));
+				quotedFileNames.add(String.format("\\\"%s\\\"", fileName));
 			}
 			for (String fileUrl : fileUrls) {
-				quotedFileUrls.add(String.format("\"%s\"", fileUrl));
+				quotedFileUrls.add(String.format("\\\"%s\\\"", fileUrl));
 			}
 			// Replace all user values into the execute request JSON template
-			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", quotedFileNames),
-					String.join(", ", quotedFileUrls), userId);
+			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", quotedFileUrls),
+					String.join(", ", quotedFileNames), userId);
 		} catch (Exception exception) {
 			exception.printStackTrace();
 			throw new UserException("Could not load local resource file for Job Request.", exception.getMessage(),
