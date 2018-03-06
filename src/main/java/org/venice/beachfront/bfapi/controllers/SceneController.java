@@ -58,10 +58,5 @@ public class SceneController {
 			return ResponseEntity.status(HttpStatus.FOUND).headers(headers).build();
 		});
 	}
-	
-	@ExceptionHandler(UserException.class)
-	public ResponseEntity<String> handleUserException(UserException ex) {
-		return ResponseEntity.status(ex.getRecommendedStatusCode()).body(ex.getMessage());
-	}
 }
 
