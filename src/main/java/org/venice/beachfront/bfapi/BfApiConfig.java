@@ -103,11 +103,8 @@ public class BfApiConfig {
 		@Value("${DOMAIN}")
 		private String domain;
 
-		private List<String> allowedOrigins = Arrays.asList(
-				"https://beachfront." + domain,
-				"https://beachfront." + domain + ":8080",
-				"https://localhost:8080"
-		);
+		@Value("${auth.allowedOrigins}")
+		private String allowedOrigins;
 
 		@Override
 		public void addInterceptors(InterceptorRegistry registry) {
@@ -115,7 +112,8 @@ public class BfApiConfig {
 				@Override
 				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 					final String origin = request.getHeader("Origin");
-					final boolean isAllowed = allowedOrigins.stream().anyMatch(str -> str.trim().equals(origin));
+					final List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
+					final boolean isAllowed = allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
 					if (isAllowed) {
 						response.setHeader("Access-Control-Allow-Origin", origin);
 					}
