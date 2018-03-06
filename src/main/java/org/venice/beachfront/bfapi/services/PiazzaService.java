@@ -85,8 +85,8 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			piazzaLogger.log(String.format("Piazza Job Request by User %s has failed with Code %s and Error %s", userId,
-					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
+			piazzaLogger.log(String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s", userId,
+					exception.getStatusText(), exception.getResponseBodyAsString(), requestJson), Severity.ERROR);
 			throw new UserException("There was an error submitting the Job Request to Piazza.", exception.getMessage(),
 					exception.getStatusCode());
 		}
