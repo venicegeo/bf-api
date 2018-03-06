@@ -10,6 +10,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -102,13 +103,23 @@ public class BfApiConfig {
 		@Value("${DOMAIN}")
 		private String domain;
 
+		private List<String> allowedOrigins = Arrays.asList(
+				"https://beachfront." + domain,
+				"https://beachfront." + domain + ":8080",
+				"https://localhost:8080"
+		);
+
 		@Override
 		public void addInterceptors(InterceptorRegistry registry) {
 			registry.addInterceptor(new HandlerInterceptorAdapter() {
 				@Override
 				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+					final String origin = request.getHeader("Origin");
+					final boolean isAllowed = allowedOrigins.stream().anyMatch(str -> str.trim().equals(origin));
+					if (isAllowed) {
+						response.setHeader("Access-Control-Allow-Origin", origin);
+					}
 					response.setHeader("Access-Control-Allow-Headers", "authorization, content-type, X-Requested-With");
-					response.setHeader("Access-Control-Allow-Origin", "https://beachfront." + domain);
 					response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 					response.setHeader("Access-Control-Allow-Credentials", "true");
 					response.setHeader("Access-Control-Max-Age", "36000");
