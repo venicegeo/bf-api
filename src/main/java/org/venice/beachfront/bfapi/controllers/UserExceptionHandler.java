@@ -17,7 +17,7 @@ public class UserExceptionHandler {
 	
 	@ExceptionHandler(UserException.class)
 	public ResponseEntity<String> handleUserException(UserException ex) {
-		String logMessage = String.format("[%d] %s -- %s", ex.getRecommendedStatusCode(), ex.getMessage(), ex.getDetails());
+		String logMessage = String.format("[%d] %s -- %s", ex.getRecommendedStatusCode().value(), ex.getMessage(), ex.getDetails());
 		this.logger.log(logMessage, Severity.ERROR);
 		return ResponseEntity.status(ex.getRecommendedStatusCode())
 				.contentType(MediaType.TEXT_PLAIN)
