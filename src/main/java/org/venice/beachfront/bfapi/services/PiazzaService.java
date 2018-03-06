@@ -322,6 +322,9 @@ public class PiazzaService {
 	 * @return The raw GeoJSON bytes of the shoreline detection.
 	 */
 	public byte[] getBytesFromSuccessfulServiceJobData(String dataId, Job job) throws UserException {
+		piazzaLogger.log(
+				String.format("Attempting to download GeoJSON data from Successful Job %s with Data Id %s.", job.getJobId(), dataId),
+				Severity.INFORMATIONAL);
 		byte[] metadata = downloadData(dataId);
 		String geoJsonDataId = null;
 		// Parse the real GeoJSON Data ID from the Metadata block
