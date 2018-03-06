@@ -41,6 +41,8 @@ public class OAuthService {
 	private String oauthClientId;
 	@Value("${OAUTH_SECRET}")
 	private String oauthClientSecret;
+	@Value("${oauth.redirect-url}")
+	private String redirectUrl;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -50,9 +52,7 @@ public class OAuthService {
 	private PiazzaLogger piazzaLogger;
 
 	public String getOauthRedirectUri() {
-		// TODO: should this be a configuration variable, since it needs to match 100% with the oauth provider config?
-		return UriComponentsBuilder.newInstance().scheme("https").host("bf-api." + this.domain).pathSegment("login").build().toUri()
-				.toString();
+		return redirectUrl;
 	}
 
 	public String requestAccessToken(String authCode) throws UserException {
