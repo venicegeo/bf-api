@@ -1,0 +1,57 @@
+{
+    "type": "Feature",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [
+                    15.924750537604071,
+                    51.34596904618805
+                ],
+                [
+                    18.50200153028106,
+                    50.89916674100784
+                ],
+                [
+                    17.730005198796224,
+                    49.20070207975821
+                ],
+                [
+                    15.243013317912679,
+                    49.64207902545733
+                ],
+                [
+                    15.924750537604071,
+                    51.34596904618805
+                ]
+            ]
+        ]
+    },
+    "properties": {
+        "acquiredDate": "2016-09-30T09:45:02.625661Z",
+        "bands": {
+            "blue": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B2.TIF",
+            "cirrus": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B9.TIF",
+            "coastal": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B1.TIF",
+            "green": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B3.TIF",
+            "nir": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B5.TIF",
+            "panchromatic": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B8.TIF",
+            "red": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B4.TIF",
+            "swir1": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B6.TIF",
+            "swir2": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B7.TIF",
+            "tirs1": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B10.TIF",
+            "tirs2": "https://mocktest.s3.amazonaws.com/L8/190/025/test/test_B11.TIF"
+        },
+        "cloudCover": 50,
+        "fileFormat": "geotiff",
+        "resolution": 30,
+        "sensorName": "Landsat8"
+    },
+    "id": "test",
+    "bbox": [
+        15.243013317912679,
+        49.20070207975821,
+        18.50200153028106,
+        51.34596904618805
+    ]
+}

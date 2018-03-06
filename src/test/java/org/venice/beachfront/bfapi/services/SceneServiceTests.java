@@ -317,6 +317,34 @@ public class SceneServiceTests {
 	}
 
 	@Test
+	public void testGetLandsatScene() throws UserException, IOException {
+		// Mock
+		JsonNode responseJson = new ObjectMapper().readTree(
+				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "scene", File.separator, "getLandsatScene.json")));
+		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class)))
+		.then(new Answer<ResponseEntity<JsonNode>>() {
+			public ResponseEntity<JsonNode> answer(InvocationOnMock invocation) {
+				Object[] args = invocation.getArguments();
+				assertEquals(URI.class, args[0].getClass());
+				assertEquals(
+						"https://bf-ia-broker-test.localdomain:443/planet/landsat/EXTERNAL_ID?PL_API_KEY=api-abc-123&tides=false",
+						((URI) args[0]).toString());
+				return new ResponseEntity<JsonNode>(responseJson, HttpStatus.OK);
+			}
+		});
+		// Test
+		Scene scene = this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
+		// Verify
+		assertEquals("EXTERNAL_ID", scene.getExternalId());
+		assertEquals(50, scene.getCloudCover(), 0.0001);
+		assertEquals(30, scene.getResolution());
+		assertEquals(DateTime.parse("2016-09-30T09:45:02.625661Z"), scene.getCaptureTime());
+		assertEquals("Landsat8", scene.getSensorName());
+		assertEquals(Scene.STATUS_ACTIVE, scene.getStatus()); // This is the big difference from rapideye; landsat
+																// should always be active
+	}
+
+	@Test
 	public void testGetScene401() {
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class))).then(new Answer<ResponseEntity<?>>() {
 			public ResponseEntity<?> answer(InvocationOnMock invocation) {
