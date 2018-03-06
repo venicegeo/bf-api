@@ -49,6 +49,7 @@ public class OAuthServiceTests {
 	private String oauthProfileUrl = "https://oauth-test.localdomain/profile";
 	private String oauthClientId = "TEST_CLIENT_ID";
 	private String oauthClientSecret = "TEST_CLIENT_SECRET";
+	private String redirectUrl = "https://bf-api.test.localdomain/login";
 
 	@Before
 	public void setup() {
@@ -56,6 +57,7 @@ public class OAuthServiceTests {
 
 		ReflectionTestUtils.setField(this.oauthService, "domain", "test.localdomain");
 		ReflectionTestUtils.setField(this.oauthService, "oauthTokenUrl", this.oauthTokenUrl);
+		ReflectionTestUtils.setField(this.oauthService, "redirectUrl", this.redirectUrl);
 		ReflectionTestUtils.setField(this.oauthService, "oauthProfileUrl", this.oauthProfileUrl);
 		ReflectionTestUtils.setField(this.oauthService, "oauthClientId", this.oauthClientId);
 		ReflectionTestUtils.setField(this.oauthService, "oauthClientSecret", this.oauthClientSecret);
