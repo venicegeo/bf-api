@@ -22,6 +22,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
@@ -305,6 +306,42 @@ public class PiazzaService {
 		piazzaLogger.log(String.format("Successfully retrieved Bytes for Data %s from Piazza. File size was %s", dataId, data.length),
 				Severity.INFORMATIONAL);
 		return data;
+	}
+
+	/**
+	 * Downloads the data for a successful Beachfront Detection Service Job's Metadata..
+	 * <p>
+	 * The Data will be textual data containing all of the relevent metadata for the Detection job. As part of the
+	 * metadata contained in this Text Data, will be the Identifier to the Piazza Data Item that will contain the
+	 * GeoJSON detection. This function will parse out that Data ID and fetch the detection GeoJSON from that Data ID.
+	 * 
+	 * @param dataId
+	 *            The Data ID of the Service Execution Job Metadata
+	 * @param job
+	 *            The Job object. Used mostly for just reporting accurate logging upon failures.
+	 * @return The raw GeoJSON bytes of the shoreline detection.
+	 */
+	public byte[] getBytesFromSuccessfulServiceJobData(String dataId, Job job) throws UserException {
+		piazzaLogger.log(
+				String.format("Attempting to download GeoJSON data from Successful Job %s with Data Id %s.", job.getJobId(), dataId),
+				Severity.INFORMATIONAL);
+		byte[] metadata = downloadData(dataId);
+		String geoJsonDataId = null;
+		// Parse the real GeoJSON Data ID from the Metadata block
+		try {
+			JsonNode metadataJson = objectMapper.readTree(metadata);
+			geoJsonDataId = metadataJson.get("OutFiles").get("shoreline.geojson").asText();
+		} catch (IOException exception) {
+			String error = String.format(
+					"There was an error parsing the Detection Metadata for Job %s Metadata Data Id %s. The raw content was: %s",
+					job.getJobId(), dataId, new String(metadata));
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		// Use the GeoJSON Data ID to fetch the raw GeoJSON Bytes from Piazza
+		piazzaLogger.log(String.format("Fetching GeoJSON for Job %s with Data %s from Piazza.", job.getJobId(), geoJsonDataId),
+				Severity.INFORMATIONAL);
+		return downloadData(geoJsonDataId);
 	}
 
 	/**
