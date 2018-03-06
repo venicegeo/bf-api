@@ -32,6 +32,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -156,7 +157,7 @@ public class GeoserverEnvironment {
 		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("HTTP Error occurred while trying to create Beachfront GeoServer Layer: %s",
 					exception.getResponseBodyAsString()), Severity.ERROR);
-		} catch (final IOException | URISyntaxException exception) {
+		} catch (final IOException | URISyntaxException | ResourceAccessException exception) {
 			piazzaLogger.log(String.format("Unexpected Error Reading GeoServer Layer XML with message %s", exception.getMessage()),
 					Severity.ERROR);
 		}
@@ -173,7 +174,7 @@ public class GeoserverEnvironment {
 		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("HTTP Error occurred while trying to create Beachfront GeoServer Style: %s",
 					exception.getResponseBodyAsString()), Severity.ERROR);
-		} catch (final IOException | URISyntaxException exception) {
+		} catch (final IOException | URISyntaxException | ResourceAccessException exception) {
 			piazzaLogger.log(String.format("Unexpected Error Reading GeoServer Style XML with message %s", exception.getMessage()),
 					Severity.ERROR);
 		}
