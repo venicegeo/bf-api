@@ -60,7 +60,7 @@ public class HealthCheckController {
 				healthCheckData.put(String.format("%s queued jobs", algorithm.getName()), Integer.toString(jobCount));
 			}
 			// Show outstanding Job length
-			healthCheckData.put("jobs", Integer.toString(jobService.getOutstandingJobs().size()));
+			healthCheckData.put("outstanding-jobs", Integer.toString(jobService.getOutstandingJobs().size()));
 		} catch (UserException exception) {
 			healthCheckData.put("error",
 					String.format("There was an error retrieving Algorithm health check data: %s", exception.getMessage()));
