@@ -5,10 +5,12 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -177,4 +179,40 @@ public class PiazzaServiceTests {
 		// Assert
 		assertEquals(new String(data), testData);
 	}
+
+	@Test
+	public void testDataToShapefile() throws UserException, URISyntaxException, IOException {
+		java.net.URL url = ClassLoader.getSystemResource("converter/shorelines-fc.geojson");
+		java.nio.file.Path resPath = java.nio.file.Paths.get(url.toURI());
+		final byte[] geojsonBytes = java.nio.file.Files.readAllBytes(resPath);
+        Assert.assertNotNull(geojsonBytes);
+
+        // Mock
+		String testData = new String(geojsonBytes);
+		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
+				Mockito.<Class<byte[]>>any())).thenReturn(new ResponseEntity<byte[]>(testData.getBytes(), HttpStatus.OK));
+
+		// Test
+		byte[] shapefileBytes = piazzaService.downloadDataAsShapefile("data123");
+        Assert.assertNotNull(shapefileBytes);
+	}
+
+//	@Test
+//	public void testDataToGeoPackage() throws UserException, URISyntaxException, IOException {
+//		java.net.URL url = ClassLoader.getSystemResource("converter/shorelines-fc.geojson");
+//		java.nio.file.Path resPath = java.nio.file.Paths.get(url.toURI());
+//		final byte[] geojsonBytes = java.nio.file.Files.readAllBytes(resPath);
+//        Assert.assertNotNull(geojsonBytes);
+//
+//        // Mock
+//		String testData = new String(geojsonBytes);
+//		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
+//				Mockito.<Class<byte[]>>any())).thenReturn(new ResponseEntity<byte[]>(testData.getBytes(), HttpStatus.OK));
+//
+//		// Test
+//		byte[] testBytes = piazzaService.downloadData("data123");
+//		GeoPackageConverter gpkgc = new GeoPackageConverter();
+//		final byte[] gpkgBytes = gpkgc.apply(testBytes);
+//        Assert.assertNotNull(gpkgBytes);
+//	}
 }

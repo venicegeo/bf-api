@@ -40,6 +40,7 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -321,6 +322,24 @@ public class PiazzaService {
 		piazzaLogger.log(String.format("Successfully retrieved Bytes for Data %s from Piazza. File size was %s", dataId, data.length),
 				Severity.INFORMATIONAL);
 		return data;
+	}
+
+	/**
+	 * After calling downloadData, converts the GeoJSON to Shapefile
+	 * These bytes are the raw zipfile containing the Shapefile of the 
+	 * shoreline detection vectors.
+	 * 
+	 * @param dataId
+	 *            Data ID
+	 * @return The bytes of the ingested data, as a .zip file containing a Shapefile
+	 */
+	public byte[] downloadDataAsShapefile(String dataId) throws UserException {
+		
+		byte[] gjBytes = downloadData(dataId);
+		piazzaLogger.log(String.format("Converting data %s to Shapefile", dataId), Severity.INFORMATIONAL);
+		ShapefileConverter sfc = new ShapefileConverter();
+		final byte[] shapefileBytes = sfc.apply(gjBytes);
+		return shapefileBytes;
 	}
 
 	/**
