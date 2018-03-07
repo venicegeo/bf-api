@@ -18,12 +18,15 @@ package org.venice.beachfront.bfapi.services;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.annotation.PostConstruct;
 
+import org.geotools.feature.FeatureCollection;
+import org.geotools.feature.FeatureIterator;
 import org.geotools.geojson.feature.FeatureJSON;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
@@ -36,6 +39,8 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.GeometryFactory;
 
 import model.logger.Severity;
 import util.PiazzaLogger;
@@ -117,6 +122,7 @@ public class PiazzaJobPoller {
 		 * @param status
 		 *            The Status of the corresponding Piazza Job
 		 */
+		@SuppressWarnings("rawtypes")
 		public void processJobStatus(Job job, StatusMetadata status) {
 			// Update the Status of the Job
 			job.setStatus(status.getStatus());
@@ -131,11 +137,19 @@ public class PiazzaJobPoller {
 							job.getJobId()), Severity.INFORMATIONAL);
 					// Convert the bytes into a Geometry object that Hibernate can store
 					InputStream inputStream = new ByteArrayInputStream(detectionBytes);
-					FeatureJSON featureJson = new FeatureJSON();
-					SimpleFeature feature = featureJson.readFeature(inputStream);
-					Geometry geometry = (Geometry) feature.getDefaultGeometry();
+					FeatureJSON jsonParser = new FeatureJSON();
+					FeatureCollection featureCollection = jsonParser.readFeatureCollection(inputStream);
+					FeatureIterator iterator = featureCollection.features();
+					List<Geometry> geometries = new ArrayList<Geometry>();
+					while (iterator.hasNext()) {
+						SimpleFeature feature = (SimpleFeature) iterator.next();
+						geometries.add((Geometry) feature.getDefaultGeometry());
+					}
+					Geometry[] geometryArray = new Geometry[geometries.size()];
+					GeometryFactory factory = new GeometryFactory();
+					GeometryCollection geometry = factory.createGeometryCollection(geometries.toArray(geometryArray));
 					if (geometry == null) {
-						throw new IOException("The geometry object is null.");
+						throw new IOException("The parsed Geometry from the Shoreline is null.");
 					}
 					// Commit the Detection to the Detections table
 					jobService.createDetection(job, geometry);

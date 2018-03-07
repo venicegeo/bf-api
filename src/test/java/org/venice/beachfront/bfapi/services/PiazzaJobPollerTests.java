@@ -73,5 +73,6 @@ public class PiazzaJobPollerTests {
 
 		// Verify no Errors
 		Mockito.verify(jobService, Mockito.times(0)).createJobError(Mockito.any(), Mockito.any());
+		Mockito.verify(jobService, Mockito.times(1)).updateJob(Mockito.any());
 	}
 }

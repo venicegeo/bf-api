@@ -3,7 +3,7 @@ applications:
 - name: bf-api
   host: bf-api
   path: bf-api.jar
-  memory: 2G
+  memory: 4G
   disk_quota: 4G
   instances: 1
   buildpack: java_buildpack
