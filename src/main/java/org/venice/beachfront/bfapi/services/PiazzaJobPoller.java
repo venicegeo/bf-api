@@ -134,6 +134,9 @@ public class PiazzaJobPoller {
 					FeatureJSON featureJson = new FeatureJSON();
 					SimpleFeature feature = featureJson.readFeature(inputStream);
 					Geometry geometry = (Geometry) feature.getDefaultGeometry();
+					if (geometry == null) {
+						throw new IOException("The geometry object is null.");
+					}
 					// Commit the Detection to the Detections table
 					jobService.createDetection(job, geometry);
 					// Finally, mark the Job as successful

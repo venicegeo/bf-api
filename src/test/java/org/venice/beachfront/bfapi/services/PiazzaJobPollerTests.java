@@ -70,5 +70,8 @@ public class PiazzaJobPollerTests {
 
 		// Test
 		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus);
+
+		// Verify no Errors
+		Mockito.verify(jobService, Mockito.times(0)).createJobError(Mockito.any(), Mockito.any());
 	}
 }
