@@ -74,6 +74,10 @@ public class PiazzaJobPoller {
 		pollTimer.cancel();
 	}
 
+	public PollStatusTask getTask() {
+		return pollStatusTask;
+	}
+
 	/**
 	 * Timer Task that will, on a schedule, poll for the Status of Piazza Jobs
 	 */
@@ -113,7 +117,7 @@ public class PiazzaJobPoller {
 		 * @param status
 		 *            The Status of the corresponding Piazza Job
 		 */
-		private void processJobStatus(Job job, StatusMetadata status) {
+		public void processJobStatus(Job job, StatusMetadata status) {
 			// Update the Status of the Job
 			job.setStatus(status.getStatus());
 			// Process based on the status
