@@ -346,7 +346,7 @@ public class JobService {
 	 *            The error encountered
 	 */
 	public void createJobError(Job job, String error) {
-		JobError jobError = new JobError(job, error, "Processing");
+		JobError jobError = new JobError(job, "error", "Processing");
 		jobErrorDao.save(jobError);
 		piazzaLogger.log(String.format("Recorded Job error for Job %s (%s) with Error %s", job.getJobId(), job.getJobName(), error),
 				Severity.ERROR);
