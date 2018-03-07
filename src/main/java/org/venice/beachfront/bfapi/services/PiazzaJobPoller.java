@@ -138,17 +138,24 @@ public class PiazzaJobPoller {
 							String.format("Successfully recorded Detection geometry for Job %s and marking as Success.", job.getJobId()),
 							Severity.INFORMATIONAL);
 				} catch (IOException exception) {
-					exception.printStackTrace();
 					String error = String.format("Job %s failed because of an internal error while reading the detection geometry.",
 							job.getJobId());
 					piazzaLogger.log(error, Severity.ERROR);
 					jobService.createJobError(job, error);
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
-					exception.printStackTrace();
 					String error = String.format("Job %s failed because of an internal error downloading the detection geometry.",
 							job.getJobId());
 					piazzaLogger.log(error, Severity.ERROR);
+					jobService.createJobError(job, error);
+					// Fail the Job as we have failed to download the bytes
+					job.setStatus(Job.STATUS_ERROR);
+				} catch (Exception exception) {
+					String error = String.format(
+							"Successful Piazza Job %s failed because of an unknown internal error of type %s. Full trace will be printed to logs.",
+							job.getJobId(), exception.getClass().toString());
+					piazzaLogger.log(error, Severity.ERROR);
+					exception.printStackTrace();
 					jobService.createJobError(job, error);
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
