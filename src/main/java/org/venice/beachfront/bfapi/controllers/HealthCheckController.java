@@ -1,5 +1,5 @@
 /**
- * Copyright 2016, RadiantBlue Technologies, Inc.
+ * Copyright 2018, Radiant Solutions, Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.venice.beachfront.bfapi.geoserver.GeoserverEnvironment;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.JobService;
@@ -42,6 +43,8 @@ public class HealthCheckController {
 	private PiazzaService piazzaService;
 	@Autowired
 	private JobService jobService;
+	@Autowired
+	private GeoserverEnvironment geoserverEnvironment;
 
 	@RequestMapping(path = "/", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
@@ -49,6 +52,7 @@ public class HealthCheckController {
 		Map<String, String> healthCheckData = new HashMap<String, String>();
 		// Show uptime
 		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
+		healthCheckData.put("geoserver", geoserverEnvironment.getGeoServerBaseUrl());
 		try {
 			// Show algorithm Job Queue length as reported by Piazza
 			for (Algorithm algorithm : piazzaService.getRegisteredAlgorithms()) {
