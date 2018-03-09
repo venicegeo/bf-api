@@ -54,7 +54,7 @@ public class JobController {
 
 	@RequestMapping(path = "/job", method = RequestMethod.POST, consumes = { "application/json" }, produces = { "application/json" })
 	@ResponseBody
-	public Job createJob(@RequestBody CreateJobBody body, Authentication authentication) throws UserException {
+	public JsonNode createJob(@RequestBody CreateJobBody body, Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		return jobService.createJob(body.jobName, currentUser.getUserId(), body.sceneId, body.algorithmId, body.planetApiKey,
 				body.computeMask, body.extras);
