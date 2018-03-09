@@ -212,27 +212,27 @@ public class Job {
 		this.sceneId = sceneId;
 	}
 
-	public double getTide() {
+	public Double getTide() {
 		return tide;
 	}
 
-	public void setTide(double tide) {
+	public void setTide(Double tide) {
 		this.tide = tide;
 	}
 
-	public double getTideMin24h() {
+	public Double getTideMin24h() {
 		return tideMin24h;
 	}
 
-	public void setTideMin24h(double tideMin24h) {
+	public void setTideMin24h(Double tideMin24h) {
 		this.tideMin24h = tideMin24h;
 	}
 
-	public double getTideMax24h() {
+	public Double getTideMax24h() {
 		return tideMax24h;
 	}
 
-	public void setTideMax24h(double tideMax24h) {
+	public void setTideMax24h(Double tideMax24h) {
 		this.tideMax24h = tideMax24h;
 	}
 
