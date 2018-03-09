@@ -116,7 +116,7 @@ public class JobService {
 	 *            The JSON Extras
 	 * @return The fully created (and already committed) Job object
 	 */
-	public Job createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
+	public JsonNode createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
 			JsonNode extras) throws UserException {
 		piazzaLogger.log(String.format("Processing Job Request for Job %s by user %s for Scene %s on Algorithm %s.", jobName, creatorUserId,
 				sceneId, algorithmId), Severity.INFORMATIONAL);
@@ -130,7 +130,7 @@ public class JobService {
 				piazzaLogger.log(String.format("Found Redundant Job %s for %s's Job %s request. This detection will be reused.",
 						redundantJob.getJobId(), creatorUserId, jobName), Severity.INFORMATIONAL);
 				jobUserDao.save(new JobUser(redundantJob, userProfileService.getUserProfileById(creatorUserId)));
-				return redundantJob;
+				return getJobGeoJson(redundantJob);
 			}
 		}
 
@@ -162,7 +162,7 @@ public class JobService {
 		// Associate this Job with the User who requested it
 		jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
 		piazzaLogger.log(String.format("Saved Job ID %s for Job %s by User %s", jobId, jobName, creatorUserId), Severity.INFORMATIONAL);
-		return job;
+		return getJobGeoJson(job);
 	}
 
 	/**
@@ -264,6 +264,12 @@ public class JobService {
 		}
 		jobWrapper.set("features", features);
 		response.set("jobs", jobWrapper);
+		return response;
+	}
+
+	private JsonNode getJobGeoJson(Job job) throws UserException {
+		ObjectNode response = objectMapper.createObjectNode();
+		response.set("job", convertJobToGeoJsonFeature(job));
 		return response;
 	}
 
