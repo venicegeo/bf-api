@@ -93,6 +93,7 @@ public class JobServiceTests {
 		Mockito.doReturn(mockAlgorithm).when(algorithmService).getAlgorithm(Mockito.eq(serviceId));
 		Scene mockScene = new Scene("scene123", new DateTime(), 10, null, 10, "Sensor", "URI");
 		Mockito.doReturn(mockScene).when(sceneService).getScene(Mockito.eq("scene123"), Mockito.any(), Mockito.anyBoolean());
+		Mockito.doReturn(mockScene).when(sceneService).getSceneFromLocalDatabase(Mockito.eq("scene123"));
 		// No redundant jobs
 		Mockito.doReturn(new ArrayList<Job>()).when(jobDao).findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatus(
 				Mockito.eq(mockScene.getSceneId()), Mockito.eq(serviceId), Mockito.eq(mockAlgorithm.getVersion()), Mockito.any(),
@@ -134,6 +135,8 @@ public class JobServiceTests {
 		mockJobs.add(mockJob);
 		Mockito.doReturn(mockJobs).when(jobDao).findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatus(Mockito.eq(sceneId),
 				Mockito.eq(serviceId), Mockito.eq(mockAlgorithm.getVersion()), Mockito.eq(true), Mockito.eq(Job.STATUS_SUCCESS));
+		Scene mockScene = new Scene(sceneId, new DateTime(), 10, null, 10, "Sensor", "URI");
+		Mockito.doReturn(mockScene).when(sceneService).getSceneFromLocalDatabase(Mockito.eq("scene123"));
 
 		// Test
 		String creatorId = "New Creator";
