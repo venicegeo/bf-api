@@ -40,6 +40,7 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
 import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -58,7 +59,9 @@ public class PiazzaService {
 	@Autowired
 	private RestTemplate restTemplate;
 	@Autowired
-	private ShapefileConverter shapefileConverter;
+	private ShapefileConverter shpConverter;
+	@Autowired
+	private GeoPackageConverter gpkgConverter;
 	@Autowired
 	private ObjectMapper objectMapper;
 	@Autowired
@@ -339,7 +342,7 @@ public class PiazzaService {
 		
 		byte[] gjBytes = downloadData(dataId);
 		piazzaLogger.log(String.format("Converting data %s to Shapefile", dataId), Severity.INFORMATIONAL);
-		final byte[] shapefileBytes = shapefileConverter.apply(gjBytes);
+		final byte[] shapefileBytes = shpConverter.apply(gjBytes);
 		return shapefileBytes;
 	}
 
@@ -356,8 +359,8 @@ public class PiazzaService {
 		
 		byte[] gjBytes = downloadData(dataId);
 		piazzaLogger.log(String.format("Converting data %s to GeoPackage", dataId), Severity.INFORMATIONAL);
-		final byte[] shapefileBytes = shapefileConverter.apply(gjBytes);
-		return shapefileBytes;
+		final byte[] gpkgBytes = gpkgConverter.apply(gjBytes);
+		return gpkgBytes;
 	}
 
 	/**

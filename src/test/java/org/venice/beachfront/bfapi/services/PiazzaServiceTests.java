@@ -30,6 +30,7 @@ import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
+import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -40,6 +41,10 @@ public class PiazzaServiceTests {
 	private RestTemplate restTemplate;
 	@Spy
 	private ObjectMapper objectMapper;
+	@Spy
+	private ShapefileConverter shpConverter;
+	@Spy
+	private GeoPackageConverter gpkgConverter;
 	@Mock
 	private PiazzaLogger piazzaLogger;
 	@InjectMocks
@@ -196,6 +201,9 @@ public class PiazzaServiceTests {
 		// Test
 		byte[] shapefileBytes = piazzaService.downloadDataAsShapefile("data123");
         Assert.assertNotNull(shapefileBytes);
+
+        // TODO: re-open the results to confirm they are valid
+        
 	}
 
 	@Test
@@ -211,9 +219,10 @@ public class PiazzaServiceTests {
 				Mockito.<Class<byte[]>>any())).thenReturn(new ResponseEntity<byte[]>(testData.getBytes(), HttpStatus.OK));
 
 		// Test
-		byte[] testBytes = piazzaService.downloadData("data123");
-		GeoPackageConverter gpkgc = new GeoPackageConverter();
-		final byte[] gpkgBytes = gpkgc.apply(testBytes);
+		byte[] gpkgBytes = piazzaService.downloadDataAsGeoPackage("data123");
         Assert.assertNotNull(gpkgBytes);
+
+        // TODO: re-open the results to confirm they are valid
+        
 	}
 }
