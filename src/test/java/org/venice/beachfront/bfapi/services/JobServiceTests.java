@@ -138,7 +138,6 @@ public class JobServiceTests {
 		Scene mockScene = new Scene(sceneId, new DateTime(), 10, null, 10, "Sensor", "URI");
 		Mockito.doReturn(mockScene).when(sceneService).getSceneFromLocalDatabase(Mockito.eq("scene123"));
 
-
 		// Test
 		String creatorId = "New Creator";
 		JsonNode jobParent = jobService.createJob("Test Job", creatorId, sceneId, serviceId, null, true, null);
