@@ -32,8 +32,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.support.RequestPartServletServerHttpRequest;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
@@ -405,10 +408,18 @@ public class JobService {
 			response = this.restTemplate.exchange(geoJsonToGpkgUri, HttpMethod.POST, request, byte[].class);
 			piazzaLogger.log(String.format("Received GeoPackage bytes for Job %s to %s", jobId, geoJsonToGpkgUri.toString()),
 					Severity.INFORMATIONAL);
-		} catch (RestClientResponseException ex) {
+		} catch (HttpClientErrorException | HttpServerErrorException ex) {
 			piazzaLogger.log(String.format("Error downloading GeoPackage for Job %s with Status Code %s and Error %s", jobId,
 					ex.getStatusText(), ex.getResponseBodyAsString()), Severity.INFORMATIONAL);
-			throw new UserException("Error communicating with GeoPackage converter service", ex, HttpStatus.valueOf(ex.getRawStatusCode()));
+			
+			HttpStatus recommendedErrorStatus = ex.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+			}
+			
+			String message = String.format("Error communicating with GeoPackage converter service (%d)", ex.getRawStatusCode());
+			
+			throw new UserException(message, ex, recommendedErrorStatus);
 		}
 
 		String contentType = response.getHeaders().getContentType().toString();

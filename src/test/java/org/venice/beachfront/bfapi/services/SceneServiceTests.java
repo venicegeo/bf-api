@@ -206,7 +206,7 @@ public class SceneServiceTests {
 			this.sceneService.activateScene(scene, "api-abc-123");
 			fail("activation should not have succeeded");
 		} catch (UserException ex) {
-			assertEquals(HttpStatus.UNAUTHORIZED, ex.getRecommendedStatusCode());
+			assertEquals(HttpStatus.BAD_REQUEST, ex.getRecommendedStatusCode());
 			return;
 		}
 	}
@@ -247,26 +247,6 @@ public class SceneServiceTests {
 			fail("activation should not have succeeded");
 		} catch (UserException ex) {
 			assertEquals(HttpStatus.BAD_GATEWAY, ex.getRecommendedStatusCode());
-		}
-	}
-
-	@Test
-	public void testActivateSceneUnknownHttpStatus() {
-		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(Object.class))).then(new Answer<ResponseEntity<?>>() {
-			public ResponseEntity<?> answer(InvocationOnMock invocation) {
-				throw new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
-			}
-		});
-
-		Scene scene = new Scene();
-		scene.setStatus(Scene.STATUS_INACTIVE);
-		scene.setSceneId("PLATFORM:EXTERNAL_ID");
-		try {
-			this.sceneService.activateScene(scene, "api-abc-123");
-			fail("activation should not have succeeded");
-		} catch (UserException ex) {
-			assertEquals(HttpStatus.BAD_GATEWAY, ex.getRecommendedStatusCode());
-			assertTrue(ex.getMessage().contains("" + HttpStatus.I_AM_A_TEAPOT.value()));
 		}
 	}
 
@@ -373,7 +353,7 @@ public class SceneServiceTests {
 			this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
 			fail("get scene should not have succeeded");
 		} catch (UserException ex) {
-			assertEquals(HttpStatus.UNAUTHORIZED, ex.getRecommendedStatusCode());
+			assertEquals(HttpStatus.BAD_REQUEST, ex.getRecommendedStatusCode());
 		}
 	}
 
@@ -408,22 +388,4 @@ public class SceneServiceTests {
 			assertEquals(HttpStatus.BAD_GATEWAY, ex.getRecommendedStatusCode());
 		}
 	}
-
-	@Test
-	public void testGetSceneUnknownStatus() {
-		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(JsonNode.class))).then(new Answer<ResponseEntity<?>>() {
-			public ResponseEntity<?> answer(InvocationOnMock invocation) {
-				throw new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
-			}
-		});
-
-		try {
-			this.sceneService.getScene("landsat:EXTERNAL_ID", "api-abc-123", false);
-			fail("get scene should not have succeeded");
-		} catch (UserException ex) {
-			assertEquals(HttpStatus.BAD_GATEWAY, ex.getRecommendedStatusCode());
-			assertTrue(ex.getMessage().contains("" + HttpStatus.I_AM_A_TEAPOT.value()));
-		}
-	}
-
 }

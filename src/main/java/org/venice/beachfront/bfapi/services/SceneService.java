@@ -31,6 +31,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -84,20 +86,17 @@ public class SceneService {
 					.port(this.iaBrokerPort).path(activationPath).queryParam("PL_API_KEY", planetApiKey).build().toUri(), Object.class);
 			piazzaLogger.log(String.format("Successfully requested Activation of Scene %s to URL %s", scene.getSceneId(), activationPath),
 					Severity.INFORMATIONAL);
-		} catch (RestClientResponseException ex) {
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Error activating Scene %s with Code %s and Message %s", scene.getSceneId(),
-					ex.getRawStatusCode(), ex.getResponseBodyAsString()), Severity.ERROR);
-			switch (ex.getRawStatusCode()) {
-			case 401:
-				throw new UserException("Broker returned 401: Unauthorized", ex, HttpStatus.UNAUTHORIZED);
-			case 404:
-				throw new UserException("Scene not found", ex, HttpStatus.NOT_FOUND);
-			case 502:
-				throw new UserException("Upstream broker error", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
-			default:
-				String simpleMessage = String.format("Received non-OK status %d from broker", ex.getRawStatusCode());
-				throw new UserException(simpleMessage, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
+					exception.getRawStatusCode(), exception.getResponseBodyAsString()), Severity.ERROR);
+			
+			HttpStatus recommendedErrorStatus = exception.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+			  recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
 			}
+
+			String message = String.format("Upstream error activating Planet scene. (%d) platform=%s id=%s", exception.getStatusCode().value(), platform, scene.getExternalId());
+			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 	}
 
@@ -144,20 +143,17 @@ public class SceneService {
 					UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
 							.path(scenePath).queryParam("PL_API_KEY", planetApiKey).queryParam("tides", withTides).build().toUri(),
 					JsonNode.class);
-		} catch (RestClientResponseException ex) {
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Error Requesting Information for Scene %s with Code %s and Message %s", sceneId,
-					ex.getRawStatusCode(), ex.getResponseBodyAsString()), Severity.ERROR);
-			switch (ex.getRawStatusCode()) {
-			case 401:
-				throw new UserException("Broker returned 401: Unauthorized", ex, HttpStatus.UNAUTHORIZED);
-			case 404:
-				throw new UserException("Scene not found", ex, HttpStatus.NOT_FOUND);
-			case 502:
-				throw new UserException("Upstream broker error", ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
-			default:
-				String simpleMessage = String.format("Received non-OK status %d from broker", ex.getRawStatusCode());
-				throw new UserException(simpleMessage, ex, ex.getResponseBodyAsString(), HttpStatus.BAD_GATEWAY);
+					exception.getRawStatusCode(), exception.getResponseBodyAsString()), Severity.ERROR);
+			
+			HttpStatus recommendedErrorStatus = exception.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+			  recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
 			}
+
+			String message = String.format("Upstream error getting Planet scene. (%d) platform=%s id=%s", exception.getStatusCode().value(), platform, externalId);
+			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
 		JsonNode responseJson = response.getBody();
