@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -39,12 +38,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
-import org.venice.beachfront.bfapi.model.oauth.AccessTokenRequestBody;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
@@ -85,8 +84,6 @@ public class OAuthServiceTests {
 	}
 
 	@Test
-	@Ignore
-	// TODO: Filip this test is breaking
 	public void testRequestAccessTokenSuccess() throws UserException {
 		String mockAuthCode = "mock-auth-code-123";
 		String mockAccessToken = "mock-access-token-321";
@@ -98,11 +95,11 @@ public class OAuthServiceTests {
 				Mockito.eq(AccessTokenResponseBody.class))).then(new Answer<ResponseEntity<AccessTokenResponseBody>>() {
 					@Override
 					public ResponseEntity<AccessTokenResponseBody> answer(InvocationOnMock invocation) {
-						HttpEntity<AccessTokenRequestBody> entity = invocation.getArgumentAt(2, HttpEntity.class);
-						AccessTokenRequestBody body = entity.getBody();
-						assertEquals(mockAuthCode, body.getCode());
-						assertEquals("authorization_code", body.getGrantType());
-						assertEquals(oauthService.getOauthRedirectUri(), body.getRedirectUri());
+						HttpEntity<MultiValueMap<String, String>> entity = invocation.getArgumentAt(2, HttpEntity.class);
+						MultiValueMap<String, String> body = entity.getBody();
+						assertEquals(mockAuthCode, body.get("code").get(0));
+						assertEquals("authorization_code", body.get("grant_type").get(0));
+						assertEquals(oauthService.getOauthRedirectUri(), body.get("redirect_uri").get(0));
 						return new ResponseEntity<AccessTokenResponseBody>(mockResponse, HttpStatus.OK);
 					}
 				});
