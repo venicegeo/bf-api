@@ -16,29 +16,14 @@
 package org.venice.beachfront.bfapi.services.converter;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.Reader;
-import java.io.Serializable;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
-import org.geotools.data.DataStore;
-import org.geotools.data.DefaultTransaction;
-import org.geotools.data.FileDataStoreFactorySpi;
-import org.geotools.data.Transaction;
-import org.geotools.data.shapefile.ShapefileDataStoreFactory;
-import org.geotools.data.simple.SimpleFeatureSource;
-import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.feature.DefaultFeatureCollection;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
@@ -51,6 +36,8 @@ import org.geotools.feature.type.GeometryDescriptorImpl;
 import org.geotools.feature.type.GeometryTypeImpl;
 import org.geotools.geojson.feature.FeatureJSON;
 import org.geotools.geojson.geom.GeometryJSON;
+import org.geotools.geopkg.FeatureEntry;
+import org.geotools.geopkg.GeoPackage;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
@@ -75,7 +62,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * @version 1.0
  */
 @Service
-public class ShapefileConverter {
+public class GeoPackageConverter {
 	
 	private static Map<String, String> PROPERTIES = createProperties();
 	private static Map<String, String> createProperties(){
@@ -95,10 +82,10 @@ public class ShapefileConverter {
 	}
 	
     /**
-     * Perform the actual conversion from GeoJSON to Shapefile.
+     * Perform the actual conversion from GeoJSON to GeoPackage.
      *
      * @param geojson A byte array containing GeoJSON data
-     * @return A byte array containing SHP data in a .zip
+     * @return A byte array containing GPKG data
      * @throws UserException 
      */
     public byte[] apply(byte[] geojson) throws UserException {
@@ -115,13 +102,12 @@ public class ShapefileConverter {
             FeatureType shorelineFeatureType = fc.getSchema();
 
             // DataStore
-            FileDataStoreFactorySpi factory = new ShapefileDataStoreFactory();
-    		File shapefile = File.createTempFile("shorelines", ".shp");
-            Map<String, Serializable> params = new HashMap<String, Serializable>();
-            params.put("url", shapefile.toURI().toURL());
-            params.put("create spatial index", Boolean.TRUE);            
-            DataStore dataStore = factory.createNewDataStore(params);
-
+            final File inputFile = File.createTempFile("shorelines", ".gpkg");
+//            final File inputFile = new File("test.gpkg");
+            inputFile.delete();
+    		GeoPackage gpkg = new GeoPackage(inputFile);
+    		gpkg.init();
+    		
             // Feature Type
             SimpleFeatureTypeBuilder sftb = new SimpleFeatureTypeBuilder();
             sftb.setName(shorelineFeatureType.getName());
@@ -173,118 +159,21 @@ public class ShapefileConverter {
             }
             sftb.addAll(ads);
             SimpleFeatureType featureType = sftb.buildFeatureType();
-            dataStore.createSchema(featureType);
 
-            // Feature Store
-            String typeName = dataStore.getTypeNames()[0];
-            SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-
-            // Transaction
-            Transaction transaction = new DefaultTransaction("create");
-            featureStore.setTransaction(transaction);
-            try {
-            	featureStore.addFeatures(fcToSFC(fc, featureType));
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
+            FeatureEntry featureEntry = new FeatureEntry();
+            gpkg.add(featureEntry, fcToSFC(fc, featureType));
+            gpkg.createSpatialIndex(featureEntry);
             
-            File zipFile = zipResults(shapefile);
-
             // Return the results
-            result = java.nio.file.Files.readAllBytes(zipFile.toPath());
-            
-            // TODO: re-open the results to confirm they are valid
-            
-            cleanup(shapefile);
-            cleanup(zipFile);
+    		File gpkgFile = gpkg.getFile();
+            result = java.nio.file.Files.readAllBytes(gpkgFile.toPath());
+            gpkgFile.delete();
         } catch (Exception e) {
             throw new UserException("Your message here", e, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return result;
     }
 
-    private File zipResults(File input) throws IOException {
-    	File result = File.createTempFile("shorelines", ".zip");
-
-        byte[] buffer = new byte[1024];
-        FileOutputStream fos = null;
-        ZipOutputStream zos = null;
-        try {
-            fos = new FileOutputStream(result);
-            zos = new ZipOutputStream(fos);
-
-            FileInputStream in = null;
-            
-            for (File file: getFiles(input)) {
-                System.out.println("File Added : " + file);
-                ZipEntry ze = new ZipEntry(file.getName());
-                zos.putNextEntry(ze);
-                try {
-                    in = new FileInputStream(file.getAbsolutePath());
-                    int len;
-                    while ((len = in .read(buffer)) > 0) {
-                        zos.write(buffer, 0, len);
-                    }
-                } finally {
-                    in.close();
-                }
-            }
-
-            zos.closeEntry();
-            System.out.println("Folder successfully compressed");
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        } finally {
-            try {
-                zos.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        
-    	return result;
-    }
-    
-    private File[] getFiles(File rootFile){
-    	File[] result = new File[0];
-    	ArrayList<File> files = new ArrayList<File>();
-    	String fileName = rootFile.getName();
-    	FilenameFilter ff = new FilenameFilter(fileName);
-        File parentFile = rootFile.getParentFile();
-        for (String filename: parentFile.list()) {
-        	if (ff.accept(rootFile, filename)) {
-        		files.add(new File(parentFile, filename));
-        	}
-        }
-        
-        return files.toArray(result);
-    }
-    
-    /**
-     * Remove the temporary files that were created
-     * @param shapefile
-     * @return the list of files that weren't deleted 
-     * (possibly useful for error reporting)
-     */
-    private Set<File> cleanup(File shapefile){
-    	
-    	final Set<File> result = new HashSet<File>();
-    	final File folder = new File(shapefile.getParent());
-		final File[] files = folder.listFiles(new FilenameFilter(shapefile.getName()));
-		for ( final File file : files ) {
-		    if ( !file.delete() ) {
-		        System.err.println( "Can't remove " + file.getAbsolutePath() );
-		    	result.add(file);
-		    }
-		}    
-		return result;
-	}
     
     private DefaultFeatureCollection fcToSFC(FeatureCollection<?, ?> input, SimpleFeatureType featureType){
     	DefaultFeatureCollection result = new DefaultFeatureCollection();
@@ -322,16 +211,5 @@ public class ShapefileConverter {
     		result.add(sf);
     	}
     	return result;
-    }
-    private class FilenameFilter implements java.io.FilenameFilter {
-    	FilenameFilter(String fileName){
-    		this.root = fileName.substring(0, fileName.lastIndexOf('.'));
-    	}
-    	private String root;
-
-		@Override
-		public boolean accept(File dir, String name) {
-			return name.startsWith(root);
-		}
     }
 }

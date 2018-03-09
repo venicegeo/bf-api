@@ -29,6 +29,7 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -197,22 +198,22 @@ public class PiazzaServiceTests {
         Assert.assertNotNull(shapefileBytes);
 	}
 
-//	@Test
-//	public void testDataToGeoPackage() throws UserException, URISyntaxException, IOException {
-//		java.net.URL url = ClassLoader.getSystemResource("converter/shorelines-fc.geojson");
-//		java.nio.file.Path resPath = java.nio.file.Paths.get(url.toURI());
-//		final byte[] geojsonBytes = java.nio.file.Files.readAllBytes(resPath);
-//        Assert.assertNotNull(geojsonBytes);
-//
-//        // Mock
-//		String testData = new String(geojsonBytes);
-//		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
-//				Mockito.<Class<byte[]>>any())).thenReturn(new ResponseEntity<byte[]>(testData.getBytes(), HttpStatus.OK));
-//
-//		// Test
-//		byte[] testBytes = piazzaService.downloadData("data123");
-//		GeoPackageConverter gpkgc = new GeoPackageConverter();
-//		final byte[] gpkgBytes = gpkgc.apply(testBytes);
-//        Assert.assertNotNull(gpkgBytes);
-//	}
+	@Test
+	public void testDataToGeoPackage() throws UserException, URISyntaxException, IOException {
+		java.net.URL url = ClassLoader.getSystemResource("converter/shorelines-fc.geojson");
+		java.nio.file.Path resPath = java.nio.file.Paths.get(url.toURI());
+		final byte[] geojsonBytes = java.nio.file.Files.readAllBytes(resPath);
+        Assert.assertNotNull(geojsonBytes);
+
+        // Mock
+		String testData = new String(geojsonBytes);
+		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
+				Mockito.<Class<byte[]>>any())).thenReturn(new ResponseEntity<byte[]>(testData.getBytes(), HttpStatus.OK));
+
+		// Test
+		byte[] testBytes = piazzaService.downloadData("data123");
+		GeoPackageConverter gpkgc = new GeoPackageConverter();
+		final byte[] gpkgBytes = gpkgc.apply(testBytes);
+        Assert.assertNotNull(gpkgBytes);
+	}
 }

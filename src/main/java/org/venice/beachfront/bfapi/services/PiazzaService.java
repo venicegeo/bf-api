@@ -58,6 +58,8 @@ public class PiazzaService {
 	@Autowired
 	private RestTemplate restTemplate;
 	@Autowired
+	private ShapefileConverter shapefileConverter;
+	@Autowired
 	private ObjectMapper objectMapper;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
@@ -337,8 +339,24 @@ public class PiazzaService {
 		
 		byte[] gjBytes = downloadData(dataId);
 		piazzaLogger.log(String.format("Converting data %s to Shapefile", dataId), Severity.INFORMATIONAL);
-		ShapefileConverter sfc = new ShapefileConverter();
-		final byte[] shapefileBytes = sfc.apply(gjBytes);
+		final byte[] shapefileBytes = shapefileConverter.apply(gjBytes);
+		return shapefileBytes;
+	}
+
+	/**
+	 * After calling downloadData, converts the GeoJSON to Shapefile
+	 * These bytes are the raw zipfile containing the Shapefile of the 
+	 * shoreline detection vectors.
+	 * 
+	 * @param dataId
+	 *            Data ID
+	 * @return The bytes of the ingested data, as a GeoPackage
+	 */
+	public byte[] downloadDataAsGeoPackage(String dataId) throws UserException {
+		
+		byte[] gjBytes = downloadData(dataId);
+		piazzaLogger.log(String.format("Converting data %s to GeoPackage", dataId), Severity.INFORMATIONAL);
+		final byte[] shapefileBytes = shapefileConverter.apply(gjBytes);
 		return shapefileBytes;
 	}
 
