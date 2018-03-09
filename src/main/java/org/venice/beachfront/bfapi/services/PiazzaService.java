@@ -40,6 +40,8 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
+import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,6 +58,10 @@ public class PiazzaService {
 
 	@Autowired
 	private RestTemplate restTemplate;
+	@Autowired
+	private ShapefileConverter shpConverter;
+	@Autowired
+	private GeoPackageConverter gpkgConverter;
 	@Autowired
 	private ObjectMapper objectMapper;
 	@Autowired
@@ -321,6 +327,40 @@ public class PiazzaService {
 		piazzaLogger.log(String.format("Successfully retrieved Bytes for Data %s from Piazza. File size was %s", dataId, data.length),
 				Severity.INFORMATIONAL);
 		return data;
+	}
+
+	/**
+	 * After calling downloadData, converts the GeoJSON to Shapefile
+	 * These bytes are the raw zipfile containing the Shapefile of the 
+	 * shoreline detection vectors.
+	 * 
+	 * @param dataId
+	 *            Data ID
+	 * @return The bytes of the ingested data, as a .zip file containing a Shapefile
+	 */
+	public byte[] downloadDataAsShapefile(String dataId) throws UserException {
+		
+		byte[] gjBytes = downloadData(dataId);
+		piazzaLogger.log(String.format("Converting data %s to Shapefile", dataId), Severity.INFORMATIONAL);
+		final byte[] shapefileBytes = shpConverter.apply(gjBytes);
+		return shapefileBytes;
+	}
+
+	/**
+	 * After calling downloadData, converts the GeoJSON to Shapefile
+	 * These bytes are the raw zipfile containing the Shapefile of the 
+	 * shoreline detection vectors.
+	 * 
+	 * @param dataId
+	 *            Data ID
+	 * @return The bytes of the ingested data, as a GeoPackage
+	 */
+	public byte[] downloadDataAsGeoPackage(String dataId) throws UserException {
+		
+		byte[] gjBytes = downloadData(dataId);
+		piazzaLogger.log(String.format("Converting data %s to GeoPackage", dataId), Severity.INFORMATIONAL);
+		final byte[] gpkgBytes = gpkgConverter.apply(gjBytes);
+		return gpkgBytes;
 	}
 
 	/**
