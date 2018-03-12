@@ -34,9 +34,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.support.RequestPartServletServerHttpRequest;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
@@ -116,8 +114,8 @@ public class JobService {
 	 *            The JSON Extras
 	 * @return The fully created (and already committed) Job object
 	 */
-	public JsonNode createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey,
-			Boolean computeMask, JsonNode extras) throws UserException {
+	public Job createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
+			JsonNode extras) throws UserException {
 		piazzaLogger.log(String.format("Processing Job Request for Job %s by user %s for Scene %s on Algorithm %s.", jobName, creatorUserId,
 				sceneId, algorithmId), Severity.INFORMATIONAL);
 		// Fetch the Algorithm
@@ -130,7 +128,7 @@ public class JobService {
 				piazzaLogger.log(String.format("Found Redundant Job %s for %s's Job %s request. This detection will be reused.",
 						redundantJob.getJobId(), creatorUserId, jobName), Severity.INFORMATIONAL);
 				jobUserDao.save(new JobUser(redundantJob, userProfileService.getUserProfileById(creatorUserId)));
-				return getJobGeoJson(redundantJob);
+				return redundantJob;
 			}
 		}
 
@@ -162,7 +160,7 @@ public class JobService {
 		// Associate this Job with the User who requested it
 		jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
 		piazzaLogger.log(String.format("Saved Job ID %s for Job %s by User %s", jobId, jobName, creatorUserId), Severity.INFORMATIONAL);
-		return getJobGeoJson(job);
+		return job;
 	}
 
 	/**
@@ -267,7 +265,7 @@ public class JobService {
 		return response;
 	}
 
-	private JsonNode getJobGeoJson(Job job) throws UserException {
+	public JsonNode getJobGeoJson(Job job) throws UserException {
 		ObjectNode response = objectMapper.createObjectNode();
 		response.set("job", convertJobToGeoJsonFeature(job));
 		return response;
