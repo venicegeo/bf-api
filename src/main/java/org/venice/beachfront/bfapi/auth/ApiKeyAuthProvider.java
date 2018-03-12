@@ -56,9 +56,11 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 			// No API Key set in auth header. Read the cookie.
 			ExtendedRequestDetails details = (ExtendedRequestDetails) authentication.getDetails();
 			Cookie[] cookies = details.getRequest().getCookies();
-			for (Cookie cookie : Arrays.asList(cookies)) {
-				if (COOKIE_NAME.equals(cookie.getName())) {
-					apiKey = cookie.getValue();
+			if (cookies != null) {
+				for (Cookie cookie : Arrays.asList(cookies)) {
+					if (COOKIE_NAME.equals(cookie.getName())) {
+						apiKey = cookie.getValue();
+					}
 				}
 			}
 		}
