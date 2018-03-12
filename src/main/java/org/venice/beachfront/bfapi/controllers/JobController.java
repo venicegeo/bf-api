@@ -86,6 +86,20 @@ public class JobController {
 		return jobService.forgetJob(job.getJobId(), currentUser.getUserId());
 	}
 
+	@RequestMapping(path = "/job", method = RequestMethod.DELETE, produces = { "application/json" })
+	@ResponseBody
+	public Confirmation deleteAllJobs(@RequestParam(value = "confirm", required = false) Boolean confirm, Authentication authentication)
+			throws UserException {
+		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
+		// Check the confirm flag in the request. This might prevent an accidental deletion.
+		if ((confirm != null) && (confirm.booleanValue())) {
+			return jobService.forgetAllJobs(currentUser.getUserId());
+		} else {
+			// Confirm flag must be set
+			return new Confirmation("delete jobs", false);
+		}
+	}
+
 	public static class CreateJobBody {
 		public final String jobName;
 		public final String algorithmId;

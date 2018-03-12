@@ -116,8 +116,8 @@ public class JobService {
 	 *            The JSON Extras
 	 * @return The fully created (and already committed) Job object
 	 */
-	public JsonNode createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
-			JsonNode extras) throws UserException {
+	public JsonNode createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey,
+			Boolean computeMask, JsonNode extras) throws UserException {
 		piazzaLogger.log(String.format("Processing Job Request for Job %s by user %s for Scene %s on Algorithm %s.", jobName, creatorUserId,
 				sceneId, algorithmId), Severity.INFORMATIONAL);
 		// Fetch the Algorithm
@@ -334,6 +334,18 @@ public class JobService {
 		}
 	}
 
+	public Confirmation forgetAllJobs(String userId) throws UserException {
+		List<Job> jobs = getJobsForUser(userId);
+		for (Job job : jobs) {
+			Confirmation confirmation = forgetJob(job.getJobId(), userId);
+			if (confirmation.getSuccess() == false) {
+				throw new UserException(String.format("Could not delete Job %s for User %s. Something went wrong.", job.getJobId(), userId),
+						HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		}
+		return new Confirmation("delete jobs", true);
+	}
+
 	/**
 	 * Creates a Detection entry to associate the detection geometry with the Job object
 	 * 
@@ -417,14 +429,15 @@ public class JobService {
 		} catch (HttpClientErrorException | HttpServerErrorException ex) {
 			piazzaLogger.log(String.format("Error downloading GeoPackage for Job %s with Status Code %s and Error %s", jobId,
 					ex.getStatusText(), ex.getResponseBodyAsString()), Severity.INFORMATIONAL);
-			
+
 			HttpStatus recommendedErrorStatus = ex.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
-			
+
 			String message = String.format("Error communicating with GeoPackage converter service (%d)", ex.getRawStatusCode());
-			
+
 			throw new UserException(message, ex, recommendedErrorStatus);
 		}
 
