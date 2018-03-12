@@ -2,10 +2,12 @@
 applications:
 - name: bf-api
   host: bf-api
-  memory: 2G
+  path: bf-api.jar
+  memory: 4G
   disk_quota: 4G
   instances: 1
   buildpack: java_buildpack
   services:
     - pz-postgres
     - pz-geoserver
+    - pz-postgres-service-key

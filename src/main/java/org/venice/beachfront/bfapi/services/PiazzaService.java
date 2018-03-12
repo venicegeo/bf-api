@@ -1,3 +1,18 @@
+/**
+ * Copyright 2018, Radiant Solutions, Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ **/
 package org.venice.beachfront.bfapi.services;
 
 import java.io.File;
@@ -15,17 +30,24 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
+import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import model.logger.Severity;
+import util.PiazzaLogger;
 
 @Service
 public class PiazzaService {
@@ -37,7 +59,13 @@ public class PiazzaService {
 	@Autowired
 	private RestTemplate restTemplate;
 	@Autowired
+	private ShapefileConverter shpConverter;
+	@Autowired
+	private GeoPackageConverter gpkgConverter;
+	@Autowired
 	private ObjectMapper objectMapper;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	/**
 	 * Executes the service, sending the payload to Piazza and parsing the response for the Job ID
@@ -58,12 +86,26 @@ public class PiazzaService {
 	public String execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId)
 			throws UserException {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
+		piazzaLogger
+				.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s with Command %s.",
+						piazzaJobUrl, serviceId, userId, cliCommand), Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		// Structure the Job Request
 		String requestJson = null;
 		try {
-			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", fileNames),
-					String.join(", ", fileUrls), userId);
+			// Add quotations to each element in the files lists, to ensure that JSON has the quotes after the
+			// string-replace.
+			List<String> quotedFileNames = new ArrayList<String>();
+			List<String> quotedFileUrls = new ArrayList<String>();
+			for (String fileName : fileNames) {
+				quotedFileNames.add(String.format("\\\"%s\\\"", fileName));
+			}
+			for (String fileUrl : fileUrls) {
+				quotedFileUrls.add(String.format("\\\"%s\\\"", fileUrl));
+			}
+			// Replace all user values into the execute request JSON template
+			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", quotedFileUrls),
+					String.join(", ", quotedFileNames), userId);
 		} catch (Exception exception) {
 			exception.printStackTrace();
 			throw new UserException("Could not load local resource file for Job Request.", exception.getMessage(),
@@ -76,23 +118,33 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			throw new UserException("There was an error submitting the Job Request to Piazza.", exception.getMessage(),
-					exception.getStatusCode());
-		}
+			piazzaLogger.log(
+					String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s",
+							userId, exception.getStatusText(), exception.getResponseBodyAsString(), requestJson),
+					Severity.ERROR);
 
-		// Ensure the response succeeded
-		if (!response.getStatusCode().is2xxSuccessful()) {
-			// Error occurred - report back to the user
-			throw new UserException("Piazza returned a non-OK status code when submitting the Job.", response.getStatusCode().toString(),
-					response.getStatusCode());
+			HttpStatus recommendedErrorStatus = exception.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
+			}
+
+			String message = String.format("There was an upstream error submitting the Job Request to Piazza. (%d)",
+					exception.getStatusCode().value());
+
+			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
 		// Parse the Job ID from the response and return
 		try {
 			JsonNode responseJson = objectMapper.readTree(response.getBody());
 			String jobId = responseJson.get("data").get("jobId").asText();
+			piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
+					Severity.INFORMATIONAL);
 			return jobId;
 		} catch (IOException exception) {
+			piazzaLogger.log(String.format("Error parsing the successful Piazza Job Response by User %s with Error %s", userId,
+					exception.getMessage()), Severity.ERROR);
 			throw new UserException("There was an error parsing the Piazza response when submitting the Job.", exception.getMessage(),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -107,6 +159,7 @@ public class PiazzaService {
 	 */
 	public StatusMetadata getJobStatus(String jobId) throws UserException {
 		String piazzaJobUrl = String.format("%s/job/%s", PIAZZA_URL, jobId);
+		piazzaLogger.log(String.format("Checking Piazza Job Status for Job %s", jobId), Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -115,15 +168,16 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			throw new UserException(String.format("There was an error fetching Job %s Status from Piazza.", jobId), exception.getMessage(),
-					exception.getStatusCode());
-		}
+			HttpStatus recommendedErrorStatus = exception.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
+			}
 
-		// Ensure the response succeeded
-		if (!response.getStatusCode().is2xxSuccessful()) {
-			// Error occurred - report back to the user
-			throw new UserException(String.format("Piazza returned a non-OK status when requesting Job %s Status.", jobId),
-					response.getStatusCode().toString(), response.getStatusCode());
+			String message = String.format("There was an error fetching Job Status from Piazza. (%d) id=%s",
+					exception.getStatusCode().value(), jobId);
+
+			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
 		// Parse out the Status from the Response
@@ -136,12 +190,19 @@ public class PiazzaService {
 				status.setDataId(responseJson.get("data").get("result").get("dataId").asText());
 			} else if (status.isStatusError()) {
 				// If the status is errored, then attach the error information
-				status.setErrorMessage(responseJson.get("data").get("message").asText());
+				JsonNode messageNode = responseJson.get("data").get("message");
+				if (messageNode != null) {
+					status.setErrorMessage(messageNode.asText());
+				} else {
+					status.setErrorMessage(
+							"The Job contained an Error status but the cause was unable to be parsed from the resposne object.");
+				}
 			}
 			return status;
-		} catch (IOException exception) {
-			throw new UserException(String.format("There was an error parsing the Piazza response when Requesting Job %s Status.", jobId),
-					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (IOException | NullPointerException exception) {
+			String error = String.format("There was an error parsing the Piazza response when Requesting Job %s Status.", jobId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -152,6 +213,7 @@ public class PiazzaService {
 	 */
 	public List<Algorithm> getRegisteredAlgorithms() throws UserException {
 		String piazzaServicesUrl = String.format("%s/service/me", PIAZZA_URL);
+		piazzaLogger.log("Checking Piazza Registered Algorithms.", Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -160,8 +222,18 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaServicesUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			throw new UserException("There was an error fetching Algorithm List from Piazza.", exception.getMessage(),
-					exception.getStatusCode());
+			piazzaLogger.log(String.format("Error fetching Algorithms from Piazza with Code %s, Response was %s", exception.getStatusText(),
+					exception.getResponseBodyAsString()), Severity.ERROR);
+
+			HttpStatus recommendedErrorStatus = exception.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
+			}
+
+			String message = String.format("There was an error fetching Algorithm List from Piazza. (%d)",
+					exception.getStatusCode().value());
+			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
 		// Ensure the response succeeded
@@ -180,10 +252,13 @@ public class PiazzaService {
 				// For each Registered Service, wrap it in the Algorithm Object and add to the list
 				algorithms.add(getAlgorithmFromServiceNode(algorithmJson));
 			}
+			piazzaLogger.log(String.format("Returning full Piazza algorithm list. Found %s Algorithms.", algorithms.size()),
+					Severity.INFORMATIONAL);
 			return algorithms;
 		} catch (IOException exception) {
-			throw new UserException("There was an error parsing the Piazza response when Requesting registered Algorithm List.",
-					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = "There was an error parsing the Piazza response when Requesting registered Algorithm List.";
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -197,6 +272,7 @@ public class PiazzaService {
 	 */
 	public Algorithm getRegisteredAlgorithm(String serviceId) throws UserException {
 		String piazzaServiceUrl = String.format("%s/service/%s", PIAZZA_URL, serviceId);
+		piazzaLogger.log(String.format("Checking Piazza Registered Algorithm %s.", serviceId), Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -205,8 +281,18 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaServiceUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			throw new UserException(String.format("There was an error fetching Algorithm %s from Piazza.", serviceId),
-					exception.getMessage(), exception.getStatusCode());
+			piazzaLogger.log(String.format("Error fetching Algorithm %s from Piazza with Code %s, Response was %s", serviceId,
+					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
+
+			HttpStatus recommendedErrorStatus = exception.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
+			}
+
+			String message = String.format("There was an error fetching Algorithm from Piazza. (%d) id=%s",
+					exception.getStatusCode().value(), serviceId);
+			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
 		// Ensure the response succeeded
@@ -222,9 +308,10 @@ public class PiazzaService {
 			JsonNode algorithmJson = responseJson.get("data");
 			return getAlgorithmFromServiceNode(algorithmJson);
 		} catch (IOException exception) {
-			throw new UserException(
-					String.format("There was an error parsing the Piazza response when Requesting registered Algorithm %s.", serviceId),
-					exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = String.format("There was an error parsing the Piazza response when Requesting registered Algorithm %s.",
+					serviceId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -238,6 +325,7 @@ public class PiazzaService {
 	 */
 	public byte[] downloadData(String dataId) throws UserException {
 		String piazzaDataUrl = String.format("%s/file/%s", PIAZZA_URL, dataId);
+		piazzaLogger.log(String.format("Requesting data %s bytes from Piazza at %s", dataId, piazzaDataUrl), Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
@@ -246,18 +334,93 @@ public class PiazzaService {
 		try {
 			response = restTemplate.exchange(URI.create(piazzaDataUrl), HttpMethod.GET, request, byte[].class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			throw new UserException(String.format("There was an error fetching Data bytes %s from Piazza.", dataId), exception.getMessage(),
-					exception.getStatusCode());
+			piazzaLogger.log(String.format("Error downloading Data Bytes for Data %s from Piazza. Failed with Code %s and Body %s", dataId,
+					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
+
+			HttpStatus recommendedErrorStatus = exception.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
+			}
+
+			String message = String.format("There was an upstream error fetching data bytes from Piazza. (%d) id=%s",
+					exception.getStatusCode().value(), dataId);
+
+			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
-		// Ensure the response succeeded
-		if (!response.getStatusCode().is2xxSuccessful()) {
-			// Error occurred - report back to the user
-			throw new UserException(String.format("Piazza returned a non-OK status when requesting Data bytes %s.", dataId),
-					response.getStatusCode().toString(), response.getStatusCode());
-		}
+		byte[] data = response.getBody();
+		piazzaLogger.log(String.format("Successfully retrieved Bytes for Data %s from Piazza. File size was %s", dataId, data.length),
+				Severity.INFORMATIONAL);
+		return data;
+	}
 
-		return response.getBody();
+	/**
+	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
+	 * Shapefile of the shoreline detection vectors.
+	 * 
+	 * @param dataId
+	 *            Data ID
+	 * @return The bytes of the ingested data, as a .zip file containing a Shapefile
+	 */
+	public byte[] downloadDataAsShapefile(String dataId) throws UserException {
+
+		byte[] gjBytes = downloadData(dataId);
+		piazzaLogger.log(String.format("Converting data %s to Shapefile", dataId), Severity.INFORMATIONAL);
+		final byte[] shapefileBytes = shpConverter.apply(gjBytes);
+		return shapefileBytes;
+	}
+
+	/**
+	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
+	 * Shapefile of the shoreline detection vectors.
+	 * 
+	 * @param dataId
+	 *            Data ID
+	 * @return The bytes of the ingested data, as a GeoPackage
+	 */
+	public byte[] downloadDataAsGeoPackage(String dataId) throws UserException {
+
+		byte[] gjBytes = downloadData(dataId);
+		piazzaLogger.log(String.format("Converting data %s to GeoPackage", dataId), Severity.INFORMATIONAL);
+		final byte[] gpkgBytes = gpkgConverter.apply(gjBytes);
+		return gpkgBytes;
+	}
+
+	/**
+	 * Downloads the data for a successful Beachfront Detection Service Job's Metadata..
+	 * <p>
+	 * The Data will be textual data containing all of the relevent metadata for the Detection job. As part of the
+	 * metadata contained in this Text Data, will be the Identifier to the Piazza Data Item that will contain the
+	 * GeoJSON detection. This function will parse out that Data ID and fetch the detection GeoJSON from that Data ID.
+	 * 
+	 * @param dataId
+	 *            The Data ID of the Service Execution Job Metadata
+	 * @param job
+	 *            The Job object. Used mostly for just reporting accurate logging upon failures.
+	 * @return The raw GeoJSON bytes of the shoreline detection.
+	 */
+	public byte[] getBytesFromSuccessfulServiceJobData(String dataId, Job job) throws UserException {
+		piazzaLogger.log(
+				String.format("Attempting to download GeoJSON data from Successful Job %s with Data Id %s.", job.getJobId(), dataId),
+				Severity.INFORMATIONAL);
+		byte[] metadata = downloadData(dataId);
+		String geoJsonDataId = null;
+		// Parse the real GeoJSON Data ID from the Metadata block
+		try {
+			JsonNode metadataJson = objectMapper.readTree(metadata);
+			geoJsonDataId = metadataJson.get("OutFiles").get("shoreline.geojson").asText();
+		} catch (IOException exception) {
+			String error = String.format(
+					"There was an error parsing the Detection Metadata for Job %s Metadata Data Id %s. The raw content was: %s",
+					job.getJobId(), dataId, new String(metadata));
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		// Use the GeoJSON Data ID to fetch the raw GeoJSON Bytes from Piazza
+		piazzaLogger.log(String.format("Fetching GeoJSON for Job %s with Data %s from Piazza.", job.getJobId(), geoJsonDataId),
+				Severity.INFORMATIONAL);
+		return downloadData(geoJsonDataId);
 	}
 
 	/**
@@ -266,26 +429,35 @@ public class PiazzaService {
 	 * @return JSON block containing statistics. This contains, at least, the number of jobs in that algorithms queue.
 	 */
 	public JsonNode getAlgorithmStatistics(String algorithmId) throws UserException {
-		String piazzaDataUrl = String.format("%s/service/%s/task/metadata", PIAZZA_URL, algorithmId);
+		String piazzaTaskUrl = String.format("%s/service/%s/task/metadata", PIAZZA_URL, algorithmId);
+		piazzaLogger.log(String.format("Fetching Algorithm Tasks Metadata for %s at URL %s", algorithmId, piazzaTaskUrl),
+				Severity.INFORMATIONAL);
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
 		// Execute the Request
 		ResponseEntity<String> response = null;
 		try {
-			response = restTemplate.exchange(URI.create(piazzaDataUrl), HttpMethod.GET, request, String.class);
+			response = restTemplate.exchange(URI.create(piazzaTaskUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			throw new UserException(String.format("There was an error fetching Service %s Metadata from Piazza.", algorithmId),
-					exception.getMessage(), exception.getStatusCode());
+			HttpStatus recommendedErrorStatus = exception.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
+			}
+
+			String message = String.format("There was an error fetching Service Metadata from Piazza (%d) id=%s",
+					exception.getStatusCode().value(), algorithmId);
+			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
 		try {
 			JsonNode jsonNode = objectMapper.readTree(response.getBody());
 			return jsonNode;
 		} catch (IOException exception) {
-			exception.printStackTrace();
-			throw new UserException(String.format("There was an error parsing the Service Metadata for service %s.", algorithmId),
-					exception, HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = String.format("There was an error parsing the Service Metadata for service %s.", algorithmId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -319,6 +491,7 @@ public class PiazzaService {
 		String base64Creds = new String(base64CredsBytes);
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", "Basic " + base64Creds);
+		headers.setContentType(MediaType.APPLICATION_JSON);
 		return headers;
 	}
 

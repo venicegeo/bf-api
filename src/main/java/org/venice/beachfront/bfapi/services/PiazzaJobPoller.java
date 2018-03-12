@@ -1,5 +1,5 @@
 /**
- * Copyright 2016, RadiantBlue Technologies, Inc.
+ * Copyright 2018, Radiant Solutions, Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,15 +18,19 @@ package org.venice.beachfront.bfapi.services;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.annotation.PostConstruct;
 
-import org.geotools.geojson.geom.GeometryJSON;
+import org.geotools.feature.FeatureCollection;
+import org.geotools.feature.FeatureIterator;
+import org.geotools.geojson.feature.FeatureJSON;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
+import org.opengis.feature.simple.SimpleFeature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -35,6 +39,11 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.GeometryFactory;
+
+import model.logger.Severity;
+import util.PiazzaLogger;
 
 /**
  * Scheduling class that manages the constant polling for Status of Shoreline detections Jobs in Piazza
@@ -50,6 +59,8 @@ public class PiazzaJobPoller {
 	private JobService jobService;
 	@Autowired
 	private PiazzaService piazzaService;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	private PollStatusTask pollStatusTask = new PollStatusTask();
 	private Timer pollTimer = new Timer();
@@ -59,11 +70,17 @@ public class PiazzaJobPoller {
 	 */
 	@PostConstruct
 	public void startPolling() {
+		piazzaLogger.log("Beginning Job Polling to Piazza.", Severity.INFORMATIONAL);
 		pollTimer.schedule(pollStatusTask, 10000, POLL_FREQUENCY_SECONDS * (long) 1000);
 	}
 
 	public void stopPolling() {
+		piazzaLogger.log("Cancelling Job Polling to Piazza. Jobs will not be updated.", Severity.INFORMATIONAL);
 		pollTimer.cancel();
+	}
+
+	public PollStatusTask getTask() {
+		return pollStatusTask;
 	}
 
 	/**
@@ -83,8 +100,11 @@ public class PiazzaJobPoller {
 					// If the Job has exceeded it's time-to-live, then mark that job a failure.
 					int timeDelta = Hours.hoursBetween(new DateTime(), job.getCreatedOn()).getHours();
 					if (timeDelta >= JOB_TIMEOUT_HOURS) {
+						String error = String.format("Job % has timed out after %s hours and will be set as failure.", job.getJobId(),
+								timeDelta);
+						piazzaLogger.log(error, Severity.ERROR);
 						// Kill the Job
-						jobService.createJobError(job, "The Job has timed out.");
+						jobService.createJobError(job, error);
 						job.setStatus(Job.STATUS_ERROR);
 						jobService.updateJob(job);
 					}
@@ -102,7 +122,8 @@ public class PiazzaJobPoller {
 		 * @param status
 		 *            The Status of the corresponding Piazza Job
 		 */
-		private void processJobStatus(Job job, StatusMetadata status) {
+		@SuppressWarnings("rawtypes")
+		public void processJobStatus(Job job, StatusMetadata status) {
 			// Update the Status of the Job
 			job.setStatus(status.getStatus());
 			// Process based on the status
@@ -111,30 +132,57 @@ public class PiazzaJobPoller {
 			} else if (status.isStatusSuccess()) {
 				try {
 					// Download the file bytes from Piazza
-					byte[] detectionBytes = piazzaService.downloadData(status.getDataId());
+					byte[] detectionBytes = piazzaService.getBytesFromSuccessfulServiceJobData(status.getDataId(), job);
+					piazzaLogger.log(String.format("Downloaded Detection bytes, filesize %s from Piazza for Job %s", detectionBytes.length,
+							job.getJobId()), Severity.INFORMATIONAL);
 					// Convert the bytes into a Geometry object that Hibernate can store
 					InputStream inputStream = new ByteArrayInputStream(detectionBytes);
-					GeometryJSON geojson = new GeometryJSON();
-					Geometry geometry = geojson.read(inputStream);
+					FeatureJSON jsonParser = new FeatureJSON();
+					FeatureCollection featureCollection = jsonParser.readFeatureCollection(inputStream);
+					FeatureIterator iterator = featureCollection.features();
+					List<Geometry> geometries = new ArrayList<Geometry>();
+					while (iterator.hasNext()) {
+						SimpleFeature feature = (SimpleFeature) iterator.next();
+						geometries.add((Geometry) feature.getDefaultGeometry());
+					}
+					Geometry[] geometryArray = new Geometry[geometries.size()];
+					GeometryFactory factory = new GeometryFactory();
+					GeometryCollection geometry = factory.createGeometryCollection(geometries.toArray(geometryArray));
+					if (geometry == null) {
+						throw new IOException("The parsed Geometry from the Shoreline is null.");
+					}
 					// Commit the Detection to the Detections table
 					jobService.createDetection(job, geometry);
 					// Finally, mark the Job as successful
 					job.setStatus(Job.STATUS_SUCCESS);
+					piazzaLogger.log(
+							String.format("Successfully recorded Detection geometry for Job %s and marking as Success.", job.getJobId()),
+							Severity.INFORMATIONAL);
 				} catch (IOException exception) {
-					exception.printStackTrace();
 					String error = String.format("Job %s failed because of an internal error while reading the detection geometry.",
 							job.getJobId());
+					piazzaLogger.log(error, Severity.ERROR);
 					jobService.createJobError(job, error);
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
-					exception.printStackTrace();
 					String error = String.format("Job %s failed because of an internal error downloading the detection geometry.",
 							job.getJobId());
+					piazzaLogger.log(error, Severity.ERROR);
+					jobService.createJobError(job, error);
+					// Fail the Job as we have failed to download the bytes
+					job.setStatus(Job.STATUS_ERROR);
+				} catch (Exception exception) {
+					String error = String.format(
+							"Successful Piazza Job %s failed because of an unknown internal error of type %s. Full trace will be printed to logs.",
+							job.getJobId(), exception.getClass().toString());
+					piazzaLogger.log(error, Severity.ERROR);
+					exception.printStackTrace();
 					jobService.createJobError(job, error);
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
 				}
 			} else if (status.isStatusError()) {
+				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza.", job.getJobId()), Severity.ERROR);
 				job.setStatus(status.getStatus());
 				jobService.createJobError(job, status.getErrorMessage());
 			}

@@ -1,12 +1,12 @@
 /**
- * Copyright 2016, RadiantBlue Technologies, Inc.
- *
+ * Copyright 2018, Radiant Solutions, Inc.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -54,27 +54,29 @@ public class JobController {
 
 	@RequestMapping(path = "/job", method = RequestMethod.POST, consumes = { "application/json" }, produces = { "application/json" })
 	@ResponseBody
-	public Job createJob(@RequestBody CreateJobBody body, Authentication authentication) throws UserException {
+	public JsonNode createJob(@RequestBody CreateJobBody body, Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
-		return jobService.createJob(body.jobName, currentUser.getUserId(), body.algorithmId, body.sceneId, body.planetApiKey,
+		Job createdJob = jobService.createJob(body.jobName, currentUser.getUserId(), body.sceneId, body.algorithmId, body.planetApiKey,
 				body.computeMask, body.extras);
+		return jobService.getJobGeoJson(createdJob);
 	}
 
 	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public List<Job> listJobs(Authentication authentication) throws UserException {
+	public JsonNode listJobs(Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
-		return jobService.getJobsForUser(currentUser.getUserId());
+		List<Job> jobs = jobService.getJobsForUser(currentUser.getUserId());
+		return jobService.getJobsGeoJson(jobs);
 	}
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public Job getJobById(@PathVariable("id") String id) {
+	public JsonNode getJobById(@PathVariable("id") String id) throws UserException {
 		Job job = jobService.getJob(id);
 		if (job == null) {
 			throw new JobNotFoundException();
 		}
-		return job;
+		return jobService.getJobGeoJson(job);
 	}
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.DELETE, produces = { "application/json" })
@@ -83,6 +85,20 @@ public class JobController {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		Job job = jobService.getJob(id);
 		return jobService.forgetJob(job.getJobId(), currentUser.getUserId());
+	}
+
+	@RequestMapping(path = "/job", method = RequestMethod.DELETE, produces = { "application/json" })
+	@ResponseBody
+	public Confirmation deleteAllJobs(@RequestParam(value = "confirm", required = false) Boolean confirm, Authentication authentication)
+			throws UserException {
+		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
+		// Check the confirm flag in the request. This might prevent an accidental deletion.
+		if ((confirm != null) && (confirm.booleanValue())) {
+			return jobService.forgetAllJobs(currentUser.getUserId());
+		} else {
+			// Confirm flag must be set
+			return new Confirmation("delete jobs", false);
+		}
 	}
 
 	public static class CreateJobBody {

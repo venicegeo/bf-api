@@ -1,3 +1,18 @@
+/**
+ * Copyright 2018, Radiant Solutions, Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ **/
 package org.venice.beachfront.bfapi.controllers;
 
 import static org.junit.Assert.assertEquals;
@@ -48,13 +63,12 @@ public class JobControllerTests {
 	@Test
 	public void testGetJob() throws UserException {
 		// Mock
-		Job mockJob = new Job();
+		Job mockJob = new Job("job123", "Test Job", Job.STATUS_SUCCESS, null, new DateTime().minusDays(7), "algId", "algName", "algVersion",
+				"scene1", 0.0, 0.0, 0.0, null, true);
 		mockJob.setJobId("JobId");
 		Mockito.doReturn(mockJob).when(jobService).getJob(Mockito.eq(mockJob.getJobId()));
 		// Test
-		Job job = jobController.getJobById(mockJob.getJobId());
-		assertNotNull(job);
-		assertEquals(job.getJobId(), mockJob.getJobId());
+		jobController.getJobById(mockJob.getJobId());
 	}
 
 	@Test

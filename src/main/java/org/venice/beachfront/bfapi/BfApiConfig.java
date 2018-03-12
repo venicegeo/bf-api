@@ -1,3 +1,18 @@
+/**
+ * Copyright 2018, Radiant Solutions, Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ **/
 package org.venice.beachfront.bfapi;
 
 import java.io.IOException;
@@ -10,6 +25,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -58,9 +74,8 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.web.client.RestTemplate;
@@ -68,6 +83,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 import org.venice.beachfront.bfapi.auth.ApiKeyAuthProvider;
+import org.venice.beachfront.bfapi.auth.ExtendedRequestDetails;
 import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
 import org.venice.beachfront.bfapi.geoserver.AuthHeaders;
 import org.venice.beachfront.bfapi.geoserver.BasicAuthHeaders;
@@ -98,14 +114,26 @@ public class BfApiConfig {
 	 */
 	@Configuration
 	protected static class AddCorsHeaders extends WebMvcConfigurerAdapter {
+		@Value("${DOMAIN}")
+		private String domain;
+
+		@Value("${auth.allowedOrigins}")
+		private String allowedOrigins;
+
 		@Override
 		public void addInterceptors(InterceptorRegistry registry) {
 			registry.addInterceptor(new HandlerInterceptorAdapter() {
 				@Override
 				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-					response.setHeader("Access-Control-Allow-Headers", "authorization, content-type");
-					response.setHeader("Access-Control-Allow-Origin", "*");
+					final String origin = request.getHeader("Origin");
+					final List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
+					final boolean isAllowed = allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
+					if (isAllowed) {
+						response.setHeader("Access-Control-Allow-Origin", origin);
+					}
+					response.setHeader("Access-Control-Allow-Headers", "authorization, content-type, X-Requested-With");
 					response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+					response.setHeader("Access-Control-Allow-Credentials", "true");
 					response.setHeader("Access-Control-Max-Age", "36000");
 					return true;
 				}
@@ -124,20 +152,31 @@ public class BfApiConfig {
 		private FailedAuthEntryPoint failureEntryPoint;
 
 		@Override
-		protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-			auth.authenticationProvider(apiKeyAuthProvider);
+		public void configure(HttpSecurity http) throws Exception {
+			http.authorizeRequests()
+					.antMatchers(HttpMethod.OPTIONS).permitAll() 	// Allow any OPTIONS for REST best practices
+					.antMatchers("/").permitAll()					// Allow unauthenticated queries to root (health check) path
+					.antMatchers("/oauth/callback").permitAll()		// Allow unauthenticated queries to login callback path
+					.antMatchers("/oauth/start").permitAll()		// Allow unauthenticated queries to OAuth login start path
+					.anyRequest().authenticated()					// All other requests must be authenticated
+				.and().httpBasic()									// Use HTTP Basic authentication
+					.authenticationEntryPoint(this.failureEntryPoint)	// Entry point for starting a Basic auth exchange (i.e. "failed authentication" handling)
+					.authenticationDetailsSource(this.authenticationDetailsSource()) // Feed more request details into any providers
+				.and().sessionManagement()
+					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)	// Do not create or manage sessions for security
+				.and().logout()
+					.disable() 										// Disable auto-magical Spring Security logout behavior
+				.authenticationProvider(this.apiKeyAuthProvider)	// Use this custom authentication provider to authenticate requests
+				.csrf().disable();									// Disable advanced CSRF protections for better statelessness
 		}
 
-		@Override
-		public void configure(WebSecurity web) throws Exception {
-			web.ignoring().antMatchers("/").antMatchers("/oauth/start").antMatchers("/oauth/callback").antMatchers("/oauth/logout")
-					.antMatchers(HttpMethod.OPTIONS);
-		}
-
-		@Override
-		protected void configure(HttpSecurity http) throws Exception {
-			http.httpBasic().authenticationEntryPoint(failureEntryPoint).and().authorizeRequests().anyRequest().authenticated().and()
-					.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable();
+		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
+			return new AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails>() {
+				@Override
+				public ExtendedRequestDetails buildDetails(HttpServletRequest request) {
+					return new ExtendedRequestDetails(request);
+				}
+			};
 		}
 	}
 

@@ -1,3 +1,18 @@
+/**
+ * Copyright 2018, Radiant Solutions, Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ **/
 package org.venice.beachfront.bfapi.services;
 
 import java.util.ArrayList;
@@ -13,6 +28,9 @@ import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.JobUser;
 import org.venice.beachfront.bfapi.model.UserProfile;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 @Service
 public class JobUserService {
 	@Autowired
@@ -21,12 +39,13 @@ public class JobUserService {
 	private JobDao jobDao;
 	@Autowired
 	private UserProfileDao userProfileDao;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	public JobUser createJobUser(String jobId, String userId) {
 		Job job = jobDao.findByJobId(jobId);
 		UserProfile user = userProfileDao.findByUserId(userId);
-		System.out.println("saving user-job JobID: " + job.getJobId());
-		System.out.println("saving user-job UserID: " + user.getUserId());
+		piazzaLogger.log(String.format("Saving Job User with Job ID %s and User ID %s", jobId, userId), Severity.INFORMATIONAL);
 		return jobUserDao.save(new JobUser(job, user));
 	}
 
@@ -39,9 +58,7 @@ public class JobUserService {
 
 	public Confirmation deleteJobUser(JobUser jobUser) {
 		jobUserDao.delete(jobUser);
-		return new Confirmation(
-				jobUser.getJobUserPK().getJob().getJobId(),
-				true);
+		return new Confirmation(jobUser.getJobUserPK().getJob().getJobId(), true);
 	}
 
 	public List<JobUser> searchByUser(String userId) {

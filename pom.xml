@@ -83,12 +83,22 @@
 			<artifactId>gt-jdbc-postgis</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-geojson</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-shapefile</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
 		<dependency>
-			<groupId>org.geotools</groupId>
-			<artifactId>gt-geojson</artifactId>
-			<version>${geotools.version}</version>
-		</dependency>
-		<dependency>
+		    <groupId>org.geotools</groupId>
+		    <artifactId>gt-geopkg</artifactId>
+		    <version>${geotools.version}</version>
+	    </dependency>
+ 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-referencing</artifactId>
 			<version>${geotools.version}</version>
@@ -135,6 +145,11 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.venice.piazza</groupId>
+			<artifactId>pz-jobcommon</artifactId>
+			<version>2-0-0-7-gb51fe13</version>
 		</dependency>
 	</dependencies>
 

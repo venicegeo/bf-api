@@ -1,5 +1,5 @@
 /**
- * Copyright 2016, RadiantBlue Technologies, Inc.
+ * Copyright 2018, Radiant Solutions, Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.venice.beachfront.bfapi.services.IABrokerPassthroughService;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 /**
  * Main controller class for the passthrough to bf-ia-broker.
  * 
@@ -37,10 +40,15 @@ import org.venice.beachfront.bfapi.services.IABrokerPassthroughService;
 public class IABrokerPassthroughController {
 	@Autowired
 	private IABrokerPassthroughService iaBrokerPassthroughService;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
 
 	@RequestMapping(path = "/ia/**")
 	@ResponseBody
 	public ResponseEntity<byte[]> passthrough(HttpMethod method, HttpServletRequest request) throws IOException, URISyntaxException {
+		piazzaLogger.log(
+				String.format("Received IA-broker passthrough request for Method %s to URL %s", method.toString(), request.getRequestURI()),
+				Severity.INFORMATIONAL);
 		return iaBrokerPassthroughService.passthroughRequest(method, request);
 	}
 }

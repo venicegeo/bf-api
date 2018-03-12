@@ -1,3 +1,18 @@
+/**
+ * Copyright 2018, Radiant Solutions, Inc.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ **/
 package org.venice.beachfront.bfapi.services;
 
 import java.io.IOException;
@@ -17,7 +32,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
@@ -35,7 +51,13 @@ import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vividsolutions.jts.geom.Geometry;
+
+import model.logger.Severity;
+import util.PiazzaLogger;
 
 @Service
 public class JobService {
@@ -45,7 +67,7 @@ public class JobService {
 	private String GPKG_CONVERTER_SERVER;
 	@Value("${gpkg.converter.port}")
 	private int GPKG_CONVERTER_PORT;
-	@Value("${block.redundant.job.check")
+	@Value("${block.redundant.job.check}")
 	private Boolean blockRedundantJobCheck;
 
 	@Autowired
@@ -66,6 +88,10 @@ public class JobService {
 	private PiazzaService piazzaService;
 	@Autowired
 	private RestTemplate restTemplate;
+	@Autowired
+	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	/**
 	 * Creates a Beachfront Job. This will submit the Job request to Piazza, fetch the Job ID, and add all of the Job
@@ -90,6 +116,8 @@ public class JobService {
 	 */
 	public Job createJob(String jobName, String creatorUserId, String sceneId, String algorithmId, String planetApiKey, Boolean computeMask,
 			JsonNode extras) throws UserException {
+		piazzaLogger.log(String.format("Processing Job Request for Job %s by user %s for Scene %s on Algorithm %s.", jobName, creatorUserId,
+				sceneId, algorithmId), Severity.INFORMATIONAL);
 		// Fetch the Algorithm
 		Algorithm algorithm = algorithmService.getAlgorithm(algorithmId);
 		// First step is to check for any existing Jobs that match these parameters exactly. If so, then simply return
@@ -97,30 +125,19 @@ public class JobService {
 		if (!blockRedundantJobCheck) {
 			Job redundantJob = getExistingRedundantJob(sceneId, algorithm, computeMask);
 			if (redundantJob != null) {
+				piazzaLogger.log(String.format("Found Redundant Job %s for %s's Job %s request. This detection will be reused.",
+						redundantJob.getJobId(), creatorUserId, jobName), Severity.INFORMATIONAL);
 				jobUserDao.save(new JobUser(redundantJob, userProfileService.getUserProfileById(creatorUserId)));
 				return redundantJob;
 			}
 		}
 
 		// Fetch Scene Information
-		Scene scene = null;
-		try {
-			scene = sceneService.getScene(sceneId, planetApiKey, true);
-		} catch (Exception exception) {
-			throw new UserException("There was an error getting the scene information.", exception.getMessage(), null);
-		}
-		try {
-			sceneService.activateScene(scene, planetApiKey);
-		} catch (Exception exception) {
-			throw new UserException("There was an error activating the requested scene.", exception.getMessage(), null);
-		}
+		Scene scene = sceneService.getScene(sceneId, planetApiKey, true);
+		sceneService.activateScene(scene, planetApiKey);
 
 		// Re-fetch scene after activation
-		try {
-			scene = sceneService.getScene(sceneId, planetApiKey, true);
-		} catch (Exception exception) {
-			throw new UserException("There was an error getting the scene information.", exception.getMessage(), null);
-		}
+		scene = sceneService.getScene(sceneId, planetApiKey, true);
 
 		// Formulate the URLs for the Scene
 		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
@@ -128,6 +145,8 @@ public class JobService {
 
 		// Prepare Job Request
 		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
+		piazzaLogger.log(String.format("Generated CLI Command for Job %s (Scene %s) for User %s : %s", jobName, sceneId, creatorUserId,
+				algorithmCli), Severity.INFORMATIONAL);
 
 		// Dispatch Job to Piazza
 		String jobId = piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId);
@@ -140,6 +159,7 @@ public class JobService {
 		jobDao.save(job);
 		// Associate this Job with the User who requested it
 		jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
+		piazzaLogger.log(String.format("Saved Job ID %s for Job %s by User %s", jobId, jobName, creatorUserId), Severity.INFORMATIONAL);
 		return job;
 	}
 
@@ -163,7 +183,9 @@ public class JobService {
 		outstandingStatuses.add(Job.STATUS_PENDING);
 		outstandingStatuses.add(Job.STATUS_RUNNING);
 		outstandingStatuses.add(Job.STATUS_SUBMITTED);
-		return jobDao.findByStatusIn(outstandingStatuses);
+		List<Job> jobs = jobDao.findByStatusIn(outstandingStatuses);
+		piazzaLogger.log(String.format("Queried for outstanding Jobs. Found %s outstanding jobs.", jobs.size()), Severity.INFORMATIONAL);
+		return jobs;
 	}
 
 	/**
@@ -216,7 +238,81 @@ public class JobService {
 		for (JobUser jobRef : jobRefs) {
 			jobs.add(jobRef.getJobUserPK().getJob());
 		}
+		piazzaLogger.log(String.format("Queried Jobs for user %s. Found %s Jobs.", createdByUserId, jobs.size()), Severity.INFORMATIONAL);
 		return jobs;
+	}
+
+	/**
+	 * The Jobs list in Beachfront expects raw GeoJSON. The feature is the scene geometry, while the properties are that
+	 * of the job and scene combined. This method will return the GeoJSON form of the Jobs array.
+	 * 
+	 * @param jobs
+	 *            The Jobs to convert into a FeatureCollection GeoJSON
+	 * @return The GeoJSON representing all of the user jobs, where the geometry is the polygon of the scene footprint
+	 */
+	public JsonNode getJobsGeoJson(List<Job> userJobs) throws UserException {
+		// Wrapper for the Job FeatureCollection
+		ObjectNode response = objectMapper.createObjectNode();
+		ObjectNode jobWrapper = objectMapper.createObjectNode();
+		jobWrapper.put("type", "FeatureCollection");
+		// Create Feature Collection for each Job
+		ArrayNode features = objectMapper.createArrayNode();
+		for (Job job : userJobs) {
+			features.add(convertJobToGeoJsonFeature(job));
+		}
+		jobWrapper.set("features", features);
+		response.set("jobs", jobWrapper);
+		return response;
+	}
+
+	public JsonNode getJobGeoJson(Job job) throws UserException {
+		ObjectNode response = objectMapper.createObjectNode();
+		response.set("job", convertJobToGeoJsonFeature(job));
+		return response;
+	}
+
+	/**
+	 * Converts a Job object into a single GeoJSON Feature. The geometry will be the Polygon bounding box of the Scene
+	 * use to create the job.
+	 * 
+	 * @param job
+	 *            The Job object
+	 * @return GeoJSON Feature
+	 */
+	private ObjectNode convertJobToGeoJsonFeature(Job job) throws UserException {
+		GeometryJSON geometryJson = new GeometryJSON();
+		// Create the Feature object for this Job
+		ObjectNode jobFeature = objectMapper.createObjectNode();
+		jobFeature.put("type", "Feature");
+		jobFeature.put("id", job.getJobId());
+		// Add the Geometry from the Scene used to create this job
+		Scene scene = sceneService.getSceneFromLocalDatabase(job.getSceneId());
+		if (scene != null) {
+			String sceneGeometry = geometryJson.toString(scene.getGeometry());
+			try {
+				JsonNode geometry = objectMapper.readTree(sceneGeometry);
+				jobFeature.set("geometry", geometry);
+			} catch (IOException exception) {
+				String error = String.format(
+						"Could not populate Jobs GeoJSON. Error converting Geometry from Scene %s as stored in the database.",
+						scene.getSceneId());
+				piazzaLogger.log(error, Severity.ERROR);
+				throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		} else {
+			String error = String.format(
+					"Could not populate Jobs GeoJSON, because the Scene information for Scene %s was not present in the database.",
+					job.getSceneId());
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		// Add the properties to the Feature
+		ObjectNode properties = objectMapper.valueToTree(job);
+		// Explicit Date Set for proper format
+		properties.put("created_on", job.getCreatedOn().toString());
+		properties.put("type", "JOB");
+		jobFeature.set("properties", properties);
+		return jobFeature;
 	}
 
 	public Job getJob(String jobId) {
@@ -227,10 +323,25 @@ public class JobService {
 		JobUser jobUser = jobUserDao.findByJobUserPK_Job_JobIdAndJobUserPK_User_UserId(jobId, userId);
 		if (jobUser != null) {
 			jobUserDao.delete(jobUser);
+			piazzaLogger.log(String.format("User %s has forgotten Job %s", userId, jobId), Severity.INFORMATIONAL);
 			return new Confirmation(jobId, true);
 		} else {
+			piazzaLogger.log(String.format("User %s tried to forget Job %s, but the Job User could not be found.", userId, jobId),
+					Severity.ERROR);
 			return new Confirmation(jobId, false);
 		}
+	}
+
+	public Confirmation forgetAllJobs(String userId) throws UserException {
+		List<Job> jobs = getJobsForUser(userId);
+		for (Job job : jobs) {
+			Confirmation confirmation = forgetJob(job.getJobId(), userId);
+			if (confirmation.getSuccess() == false) {
+				throw new UserException(String.format("Could not delete Job %s for User %s. Something went wrong.", job.getJobId(), userId),
+						HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		}
+		return new Confirmation("delete jobs", true);
 	}
 
 	/**
@@ -254,8 +365,10 @@ public class JobService {
 	 *            The error encountered
 	 */
 	public void createJobError(Job job, String error) {
-		JobError jobError = new JobError(job, error, "Processing");
+		JobError jobError = new JobError(job, "error", "Processing");
 		jobErrorDao.save(jobError);
+		piazzaLogger.log(String.format("Recorded Job error for Job %s (%s) with Error %s", job.getJobId(), job.getJobName(), error),
+				Severity.ERROR);
 	}
 
 	/**
@@ -266,6 +379,7 @@ public class JobService {
 	 * @return The GeoJSON detection for the job
 	 */
 	public byte[] getDetectionGeoJson(String jobId) throws UserException {
+		piazzaLogger.log(String.format("Querying Database for detection bytes for Job %s", jobId), Severity.INFORMATIONAL);
 		// Find the Detection
 		Detection detection = detectionDao.findByDetectionPK_Job_JobId(jobId);
 		if (detection == null) {
@@ -277,11 +391,14 @@ public class JobService {
 		StringWriter writer = new StringWriter();
 		try {
 			geojson.write(geometry, writer);
-			return writer.toString().getBytes();
+			byte[] bytes = writer.toString().getBytes();
+			piazzaLogger.log(String.format("Returning Detection bytes (length %s) for Job %s", bytes.length, jobId),
+					Severity.INFORMATIONAL);
+			return bytes;
 		} catch (IOException exception) {
-			exception.printStackTrace();
-			throw new UserException(String.format("There was an error reading the detection for Job %s.", jobId), exception,
-					HttpStatus.INTERNAL_SERVER_ERROR);
+			String error = String.format("There was an error reading the detection for Job %s.", jobId);
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -293,6 +410,7 @@ public class JobService {
 	 * @return The GPKG archive for the job
 	 */
 	public byte[] getDetectionGeoPackage(String jobId) throws UserException {
+		piazzaLogger.log(String.format("Requesting GeoPackage for Detection of Job %s", jobId), Severity.INFORMATIONAL);
 		byte[] geoJsonData = this.getDetectionGeoJson(jobId);
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
@@ -304,8 +422,21 @@ public class JobService {
 		ResponseEntity<byte[]> response;
 		try {
 			response = this.restTemplate.exchange(geoJsonToGpkgUri, HttpMethod.POST, request, byte[].class);
-		} catch (RestClientResponseException ex) {
-			throw new UserException("Error communicating with GeoPackage converter service", ex, HttpStatus.valueOf(ex.getRawStatusCode()));
+			piazzaLogger.log(String.format("Received GeoPackage bytes for Job %s to %s", jobId, geoJsonToGpkgUri.toString()),
+					Severity.INFORMATIONAL);
+		} catch (HttpClientErrorException | HttpServerErrorException ex) {
+			piazzaLogger.log(String.format("Error downloading GeoPackage for Job %s with Status Code %s and Error %s", jobId,
+					ex.getStatusText(), ex.getResponseBodyAsString()), Severity.INFORMATIONAL);
+
+			HttpStatus recommendedErrorStatus = ex.getStatusCode();
+			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
+			}
+
+			String message = String.format("Error communicating with GeoPackage converter service (%d)", ex.getRawStatusCode());
+
+			throw new UserException(message, ex, recommendedErrorStatus);
 		}
 
 		String contentType = response.getHeaders().getContentType().toString();
