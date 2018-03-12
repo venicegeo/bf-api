@@ -15,10 +15,6 @@
  **/
 package org.venice.beachfront.bfapi.auth;
 
-import java.util.Arrays;
-
-import javax.servlet.http.Cookie;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -40,9 +36,6 @@ import util.PiazzaLogger;
  */
 @Component
 public class ApiKeyAuthProvider implements AuthenticationProvider {
-	@Value("${cookie.name}")
-	private String COOKIE_NAME; // TODO: This present value is not necessary and should be removed
-
 	@Autowired
 	private UserProfileService userProfileService;
 	@Autowired
@@ -52,16 +45,6 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 		// First attempt to read the API Key from the auth header
 		String apiKey = authentication.getName();
-		if (apiKey == null || "".equals(apiKey)) { // TODO: This should not be necessary!
-			// No API Key set in auth header. Read the cookie.
-			ExtendedRequestDetails details = (ExtendedRequestDetails) authentication.getDetails();
-			Cookie[] cookies = details.getRequest().getCookies();
-			for (Cookie cookie : Arrays.asList(cookies)) {
-				if (COOKIE_NAME.equals(cookie.getName())) {
-					apiKey = cookie.getValue();
-				}
-			}
-		}
 
 		UserProfile userProfile = userProfileService.getUserProfileByApiKey(apiKey);
 		if (userProfile != null) {
