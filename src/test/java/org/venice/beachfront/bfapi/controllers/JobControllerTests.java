@@ -63,13 +63,12 @@ public class JobControllerTests {
 	@Test
 	public void testGetJob() throws UserException {
 		// Mock
-		Job mockJob = new Job();
+		Job mockJob = new Job("job123", "Test Job", Job.STATUS_SUCCESS, null, new DateTime().minusDays(7), "algId", "algName", "algVersion",
+				"scene1", 0.0, 0.0, 0.0, null, true);
 		mockJob.setJobId("JobId");
 		Mockito.doReturn(mockJob).when(jobService).getJob(Mockito.eq(mockJob.getJobId()));
 		// Test
-		Job job = jobController.getJobById(mockJob.getJobId());
-		assertNotNull(job);
-		assertEquals(job.getJobId(), mockJob.getJobId());
+		jobController.getJobById(mockJob.getJobId());
 	}
 
 	@Test

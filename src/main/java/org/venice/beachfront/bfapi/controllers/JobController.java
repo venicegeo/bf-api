@@ -56,8 +56,9 @@ public class JobController {
 	@ResponseBody
 	public JsonNode createJob(@RequestBody CreateJobBody body, Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
-		return jobService.createJob(body.jobName, currentUser.getUserId(), body.sceneId, body.algorithmId, body.planetApiKey,
+		Job createdJob = jobService.createJob(body.jobName, currentUser.getUserId(), body.sceneId, body.algorithmId, body.planetApiKey,
 				body.computeMask, body.extras);
+		return jobService.getJobGeoJson(createdJob);
 	}
 
 	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })
@@ -70,12 +71,12 @@ public class JobController {
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public Job getJobById(@PathVariable("id") String id) {
+	public JsonNode getJobById(@PathVariable("id") String id) throws UserException {
 		Job job = jobService.getJob(id);
 		if (job == null) {
 			throw new JobNotFoundException();
 		}
-		return job;
+		return jobService.getJobGeoJson(job);
 	}
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.DELETE, produces = { "application/json" })

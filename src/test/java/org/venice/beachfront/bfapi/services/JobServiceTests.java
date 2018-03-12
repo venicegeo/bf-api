@@ -16,7 +16,6 @@
 package org.venice.beachfront.bfapi.services;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -105,20 +104,19 @@ public class JobServiceTests {
 
 		// Test
 		String jobName = "Test Job";
-		JsonNode jobParent = jobService.createJob(jobName, creatorId, mockScene.getSceneId(), serviceId, null, true, null);
-		JsonNode job = jobParent.get("job").get("properties");
+		Job job = jobService.createJob(jobName, creatorId, mockScene.getSceneId(), serviceId, null, true, null);
 
 		// Verify
 		assertNotNull(job);
-		assertEquals(job.get("job_id").textValue(), jobId);
-		assertEquals(job.get("algorithm_id").textValue(), serviceId);
-		assertEquals(job.get("algorithm_name").textValue(), mockAlgorithm.getName());
-		assertEquals(job.get("algorithm_version").textValue(), mockAlgorithm.getVersion());
-		assertEquals(job.get("created_by").textValue(), creatorId);
-		assertTrue(Seconds.secondsBetween(new DateTime(), new DateTime(job.get("created_on").textValue())).getSeconds() <= 5);
-		assertEquals(job.get("name").textValue(), jobName);
-		assertEquals(job.get("scene_id").textValue(), mockScene.getSceneId());
-		assertEquals(job.get("status").textValue(), Job.STATUS_SUBMITTED);
+		assertEquals(job.getJobId(), jobId);
+		assertEquals(job.getAlgorithmId(), serviceId);
+		assertEquals(job.getAlgorithmName(), mockAlgorithm.getName());
+		assertEquals(job.getAlgorithmVersion(), mockAlgorithm.getVersion());
+		assertEquals(job.getCreatedByUserId(), creatorId);
+		assertTrue(Seconds.secondsBetween(new DateTime(), job.getCreatedOn()).getSeconds() <= 5);
+		assertEquals(job.getJobName(), jobName);
+		assertEquals(job.getSceneId(), mockScene.getSceneId());
+		assertEquals(job.getStatus(), Job.STATUS_SUBMITTED);
 	}
 
 	@Test
@@ -140,19 +138,18 @@ public class JobServiceTests {
 
 		// Test
 		String creatorId = "New Creator";
-		JsonNode jobParent = jobService.createJob("Test Job", creatorId, sceneId, serviceId, null, true, null);
-		JsonNode job = jobParent.get("job").get("properties");
+		Job job = jobService.createJob("Test Job", creatorId, sceneId, serviceId, null, true, null);
 
 		// Verify
 		assertNotNull(job);
-		assertEquals(job.get("job_id").textValue(), mockJob.getJobId());
-		assertEquals(job.get("algorithm_id").textValue(), serviceId);
-		assertEquals(job.get("algorithm_name").textValue(), mockAlgorithm.getName());
-		assertEquals(job.get("algorithm_version").textValue(), mockAlgorithm.getVersion());
-		assertNotEquals(job.get("created_by").textValue(), creatorId);
-		assertTrue(Days.daysBetween(new DateTime(), DateTime.parse(job.get("created_on").textValue())).getDays() <= 7);
-		assertEquals(job.get("scene_id").textValue(), sceneId);
-		assertEquals(job.get("status").textValue(), Job.STATUS_SUCCESS);
+		assertEquals(job.getJobId(), mockJob.getJobId());
+		assertEquals(job.getAlgorithmId(), serviceId);
+		assertEquals(job.getAlgorithmName(), mockAlgorithm.getName());
+		assertEquals(job.getAlgorithmVersion(), mockAlgorithm.getVersion());
+		assertEquals(job.getCreatedByUserId(), mockJob.getCreatedByUserId());
+		assertTrue(Days.daysBetween(new DateTime(), job.getCreatedOn()).getDays() <= 7);
+		assertEquals(job.getSceneId(), mockScene.getSceneId());
+		assertEquals(job.getStatus(), Job.STATUS_SUCCESS);
 	}
 
 	@Test
