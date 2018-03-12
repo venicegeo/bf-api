@@ -122,14 +122,16 @@ public class PiazzaService {
 					String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s",
 							userId, exception.getStatusText(), exception.getResponseBodyAsString(), requestJson),
 					Severity.ERROR);
-			
+
 			HttpStatus recommendedErrorStatus = exception.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
-			
-			String message = String.format("There was an upstream error submitting the Job Request to Piazza. (%d)", exception.getStatusCode().value());
-			
+
+			String message = String.format("There was an upstream error submitting the Job Request to Piazza. (%d)",
+					exception.getStatusCode().value());
+
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
@@ -168,10 +170,12 @@ public class PiazzaService {
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			HttpStatus recommendedErrorStatus = exception.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-			  recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
 
-			String message = String.format("There was an error fetching Job Status from Piazza. (%d) id=%s", exception.getStatusCode().value(), jobId);
+			String message = String.format("There was an error fetching Job Status from Piazza. (%d) id=%s",
+					exception.getStatusCode().value(), jobId);
 
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
@@ -186,10 +190,16 @@ public class PiazzaService {
 				status.setDataId(responseJson.get("data").get("result").get("dataId").asText());
 			} else if (status.isStatusError()) {
 				// If the status is errored, then attach the error information
-				status.setErrorMessage(responseJson.get("data").get("message").asText());
+				JsonNode messageNode = responseJson.get("data").get("message");
+				if (messageNode != null) {
+					status.setErrorMessage(messageNode.asText());
+				} else {
+					status.setErrorMessage(
+							"The Job contained an Error status but the cause was unable to be parsed from the resposne object.");
+				}
 			}
 			return status;
-		} catch (IOException exception) {
+		} catch (IOException | NullPointerException exception) {
 			String error = String.format("There was an error parsing the Piazza response when Requesting Job %s Status.", jobId);
 			piazzaLogger.log(error, Severity.ERROR);
 			throw new UserException(error, exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -214,13 +224,15 @@ public class PiazzaService {
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Error fetching Algorithms from Piazza with Code %s, Response was %s", exception.getStatusText(),
 					exception.getResponseBodyAsString()), Severity.ERROR);
-			
+
 			HttpStatus recommendedErrorStatus = exception.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-			  recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
 
-			String message = String.format("There was an error fetching Algorithm List from Piazza. (%d)", exception.getStatusCode().value());
+			String message = String.format("There was an error fetching Algorithm List from Piazza. (%d)",
+					exception.getStatusCode().value());
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
@@ -271,13 +283,15 @@ public class PiazzaService {
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Error fetching Algorithm %s from Piazza with Code %s, Response was %s", serviceId,
 					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
-			
+
 			HttpStatus recommendedErrorStatus = exception.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-			  recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
 
-			String message = String.format("There was an error fetching Algorithm from Piazza. (%d) id=%s", exception.getStatusCode().value(), serviceId);
+			String message = String.format("There was an error fetching Algorithm from Piazza. (%d) id=%s",
+					exception.getStatusCode().value(), serviceId);
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
@@ -322,14 +336,16 @@ public class PiazzaService {
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Error downloading Data Bytes for Data %s from Piazza. Failed with Code %s and Body %s", dataId,
 					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
-			
+
 			HttpStatus recommendedErrorStatus = exception.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
-			
-			String message = String.format("There was an upstream error fetching data bytes from Piazza. (%d) id=%s", exception.getStatusCode().value(), dataId);
-			
+
+			String message = String.format("There was an upstream error fetching data bytes from Piazza. (%d) id=%s",
+					exception.getStatusCode().value(), dataId);
+
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
@@ -340,16 +356,15 @@ public class PiazzaService {
 	}
 
 	/**
-	 * After calling downloadData, converts the GeoJSON to Shapefile
-	 * These bytes are the raw zipfile containing the Shapefile of the 
-	 * shoreline detection vectors.
+	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
+	 * Shapefile of the shoreline detection vectors.
 	 * 
 	 * @param dataId
 	 *            Data ID
 	 * @return The bytes of the ingested data, as a .zip file containing a Shapefile
 	 */
 	public byte[] downloadDataAsShapefile(String dataId) throws UserException {
-		
+
 		byte[] gjBytes = downloadData(dataId);
 		piazzaLogger.log(String.format("Converting data %s to Shapefile", dataId), Severity.INFORMATIONAL);
 		final byte[] shapefileBytes = shpConverter.apply(gjBytes);
@@ -357,16 +372,15 @@ public class PiazzaService {
 	}
 
 	/**
-	 * After calling downloadData, converts the GeoJSON to Shapefile
-	 * These bytes are the raw zipfile containing the Shapefile of the 
-	 * shoreline detection vectors.
+	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
+	 * Shapefile of the shoreline detection vectors.
 	 * 
 	 * @param dataId
 	 *            Data ID
 	 * @return The bytes of the ingested data, as a GeoPackage
 	 */
 	public byte[] downloadDataAsGeoPackage(String dataId) throws UserException {
-		
+
 		byte[] gjBytes = downloadData(dataId);
 		piazzaLogger.log(String.format("Converting data %s to GeoPackage", dataId), Severity.INFORMATIONAL);
 		final byte[] gpkgBytes = gpkgConverter.apply(gjBytes);
@@ -428,10 +442,12 @@ public class PiazzaService {
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			HttpStatus recommendedErrorStatus = exception.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-			  recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
 
-			String message = String.format("There was an error fetching Service Metadata from Piazza (%d) id=%s", exception.getStatusCode().value(), algorithmId);
+			String message = String.format("There was an error fetching Service Metadata from Piazza (%d) id=%s",
+					exception.getStatusCode().value(), algorithmId);
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
