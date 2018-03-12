@@ -156,8 +156,8 @@ public class BfApiConfig {
 			http.authorizeRequests()
 					.antMatchers(HttpMethod.OPTIONS).permitAll() 	// Allow any OPTIONS for REST best practices
 					.antMatchers("/").permitAll()					// Allow unauthenticated queries to root (health check) path
-					.antMatchers("/login").permitAll()				// Allow unauthenticated queries to login callback path
-					.antMatchers("/login/geoaxis").permitAll()		// Allow unauthenticated queries to OAuth login start path
+					.antMatchers("/oauth/callback").permitAll()		// Allow unauthenticated queries to login callback path
+					.antMatchers("/oauth/start").permitAll()		// Allow unauthenticated queries to OAuth login start path
 					.anyRequest().authenticated()					// All other requests must be authenticated
 				.and().httpBasic()									// Use HTTP Basic authentication
 					.authenticationEntryPoint(this.failureEntryPoint)	// Entry point for starting a Basic auth exchange (i.e. "failed authentication" handling)

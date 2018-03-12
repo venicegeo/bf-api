@@ -60,7 +60,7 @@ public class OAuthController {
 	@Autowired
 	private UserProfileService userProfileService;
 
-	@RequestMapping(path = "/login/geoaxis", method = RequestMethod.GET, produces = { "text/plain" })
+	@RequestMapping(path = "/oauth/start", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
 	public String oauthStartExchange(HttpServletResponse response) {
 		String callbackRedirectUri = this.oauthService.getOauthRedirectUri();
@@ -74,7 +74,7 @@ public class OAuthController {
 		return "Redirecting to oauth provider...";
 	}
 
-	@RequestMapping(path = "/login", method = RequestMethod.GET, produces = { "text/plain" })
+	@RequestMapping(path = "/oauth/callback", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
 	public String oauthCallback(@RequestParam("code") String authCode, HttpServletResponse response) throws UserException {
 		String accessToken = this.oauthService.requestAccessToken(authCode);
@@ -97,7 +97,7 @@ public class OAuthController {
 		return "Authentication successful. Redirecting back to application...";
 	}
 
-	@RequestMapping(path = "/logout", method = RequestMethod.GET, produces = { "text/plain" })
+	@RequestMapping(path = "/oauth/logout", method = RequestMethod.GET, produces = { "text/plain" })
 	@ResponseBody
 	public String oauthLogout(HttpServletResponse response, Authentication authentication) throws UserException {
 		// Server-side invalidation of API Key

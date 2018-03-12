@@ -41,7 +41,7 @@ import util.PiazzaLogger;
 @Component
 public class ApiKeyAuthProvider implements AuthenticationProvider {
 	@Value("${cookie.name}")
-	private String COOKIE_NAME; // TODO: This present value is not necessary and should be removed
+	private String COOKIE_NAME;
 
 	@Autowired
 	private UserProfileService userProfileService;

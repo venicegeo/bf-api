@@ -66,7 +66,7 @@ public class OAuthService {
 	private PiazzaLogger piazzaLogger;
 
 	public String getOauthRedirectUri() {
-		return redirectUrl;
+		return this.redirectUrl;
 	}
 
 	public String requestAccessToken(String authCode) throws UserException {
