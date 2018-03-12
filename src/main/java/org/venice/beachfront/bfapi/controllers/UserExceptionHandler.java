@@ -15,7 +15,6 @@
  **/
 package org.venice.beachfront.bfapi.controllers;
 
-import java.io.BufferedWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
