@@ -59,7 +59,7 @@ public class AlgorithmController {
 		Algorithm algorithm = algorithmService.getAlgorithm(serviceId);
 		// Algorithm Wrapped in a parent container
 		ObjectNode container = objectMapper.createObjectNode();
-		container.set("algorithms", objectMapper.convertValue(algorithm, JsonNode.class));
+		container.set("algorithm", objectMapper.convertValue(algorithm, JsonNode.class));
 		return container;
 	}
 
