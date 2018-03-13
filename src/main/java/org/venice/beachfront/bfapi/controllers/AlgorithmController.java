@@ -55,8 +55,12 @@ public class AlgorithmController {
 
 	@RequestMapping(path = "/algorithm/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public Algorithm getAlgorithmByServiceId(@PathVariable("id") String serviceId) throws UserException {
-		return algorithmService.getAlgorithm(serviceId);
+	public JsonNode getAlgorithmByServiceId(@PathVariable("id") String serviceId) throws UserException {
+		Algorithm algorithm = algorithmService.getAlgorithm(serviceId);
+		// Algorithm Wrapped in a parent container
+		ObjectNode container = objectMapper.createObjectNode();
+		container.set("algorithms", objectMapper.convertValue(algorithm, JsonNode.class));
+		return container;
 	}
 
 }
