@@ -18,8 +18,10 @@ package org.venice.beachfront.bfapi.model.oauth;
 import org.springframework.http.HttpStatus;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProfileResponseBody {
 	@JsonProperty(value = "DN", required = false)
 	private String dn;
