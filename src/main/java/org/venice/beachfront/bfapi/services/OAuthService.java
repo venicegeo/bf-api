@@ -135,16 +135,17 @@ public class OAuthService {
 		// Convert the raw response into the Profile Model
 		try {
 			ProfileResponseBody profile = objectMapper.readValue(response.getBody(), ProfileResponseBody.class);
+			profile.validate();
 			piazzaLogger.log("Successfully retrieved profile for OAuth Profile Request.", Severity.INFORMATIONAL);
 			return profile;
-		} catch (IOException exception) {
+		} catch (IOException | UserException exception) {
 			String message = String.format(
 					"There was an error converting the OAuth Profile Response object into a readable Beachfront Profile. The user could not be logged in. %s",
 					exception.getMessage());
 			piazzaLogger.log(message, Severity.ERROR);
 			if (oauthResponseLogOnError) {
 				// Write response to console if enabled
-				System.out.println("OAuth Raw Response was: " + response);
+				piazzaLogger.log("OAuth Raw Response was: " + response, Severity.INFORMATIONAL);
 			}
 			throw new UserException(message, exception, HttpStatus.BAD_GATEWAY);
 		}

@@ -73,4 +73,9 @@ public class ProfileResponseBody {
 				HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
+	public void validate() throws UserException {
+		getComputedUserId();
+		getComputedUserName();
+	}
+
 }
