@@ -50,9 +50,9 @@ public class UserExceptionHandler {
 		if (ex.getCause() != null && ex.getCause().getClass() == UserException.class) {
 			// Handle User Exceptions separately
 			return this.handleUserException((UserException) ex.getCause());
-		} else if (ex.getCause() != null && (ex.getCause().getClass() == HttpMessageNotReadableException.class)
-				|| (ex.getCause().getClass() == JsonMappingException.class)) {
-			// Message parse errors return 400
+		} else if (ex.getCause() != null && (ex.getCause().getClass() == HttpMessageNotReadableException.class)) {
+			status = HttpStatus.BAD_REQUEST;
+		} else if (ex.getCause() != null && (ex.getCause().getClass() == JsonMappingException.class)) {
 			status = HttpStatus.BAD_REQUEST;
 		}
 		String logMessage = String.format("[%d] Unknown runtime error -- %s", status.value(), ex.getMessage());
