@@ -31,6 +31,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.http.HttpEntity;
@@ -47,6 +48,9 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import util.PiazzaLogger;
 
 public class OAuthServiceTests {
@@ -56,6 +60,8 @@ public class OAuthServiceTests {
 	private UserProfileService userProfileService;
 	@Mock
 	private PiazzaLogger piazzaLogger;
+	@Spy
+	private ObjectMapper objectMapper;
 	@InjectMocks
 	private OAuthService oauthService;
 
@@ -75,6 +81,7 @@ public class OAuthServiceTests {
 		ReflectionTestUtils.setField(this.oauthService, "oauthProfileUrl", this.oauthProfileUrl);
 		ReflectionTestUtils.setField(this.oauthService, "oauthClientId", this.oauthClientId);
 		ReflectionTestUtils.setField(this.oauthService, "oauthClientSecret", this.oauthClientSecret);
+		ReflectionTestUtils.setField(this.oauthService, "oauthResponseLogOnError", false);
 	}
 
 	@Test
@@ -155,20 +162,23 @@ public class OAuthServiceTests {
 		ProfileResponseBody mockResponseBody = new ProfileResponseBody("test-dn", mockAccessToken, "test-member-of");
 
 		Mockito.when(this.restTemplate.exchange(Mockito.eq(this.oauthProfileUrl), Mockito.eq(HttpMethod.GET), Mockito.any(),
-				Mockito.eq(ProfileResponseBody.class))).then(new Answer<ResponseEntity<ProfileResponseBody>>() {
+				Mockito.eq(String.class))).then(new Answer<ResponseEntity<String>>() {
 					@Override
-					public ResponseEntity<ProfileResponseBody> answer(InvocationOnMock invocation) {
+					public ResponseEntity<String> answer(InvocationOnMock invocation) throws JsonProcessingException {
 						HttpEntity<?> entity = invocation.getArgumentAt(2, HttpEntity.class);
 						List<String> headerValues = entity.getHeaders().get("Authorization");
 						assertEquals(1, headerValues.size());
 						assertEquals("Bearer " + mockAccessToken, headerValues.get(0));
-						return new ResponseEntity<>(mockResponseBody, HttpStatus.OK);
+						return new ResponseEntity<>(objectMapper.writeValueAsString(mockResponseBody), HttpStatus.OK);
 					}
 				});
 
 		ProfileResponseBody receivedResponseBody = this.oauthService.requestOAuthProfile(mockAccessToken);
 
-		assertSame(mockResponseBody, receivedResponseBody);
+		assertEquals(mockResponseBody.getCommonName(), receivedResponseBody.getCommonName());
+		assertEquals(mockResponseBody.getDn(), receivedResponseBody.getDn());
+		assertEquals(mockResponseBody.getComputedUserId(), mockResponseBody.getComputedUserId());
+		assertEquals(mockResponseBody.getComputedUserName(), mockResponseBody.getComputedUserName());
 	}
 
 	@Test
@@ -176,9 +186,9 @@ public class OAuthServiceTests {
 		String mockAccessToken = "mock-access-token-321";
 
 		Mockito.when(this.restTemplate.exchange(Mockito.eq(this.oauthProfileUrl), Mockito.eq(HttpMethod.GET), Mockito.any(),
-				Mockito.eq(ProfileResponseBody.class))).then(new Answer<ResponseEntity<ProfileResponseBody>>() {
+				Mockito.eq(String.class))).then(new Answer<ResponseEntity<String>>() {
 					@Override
-					public ResponseEntity<ProfileResponseBody> answer(InvocationOnMock invocation) {
+					public ResponseEntity<String> answer(InvocationOnMock invocation) {
 						throw new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
 					}
 				});
@@ -196,9 +206,9 @@ public class OAuthServiceTests {
 		String mockAccessToken = "mock-access-token-321";
 
 		Mockito.when(this.restTemplate.exchange(Mockito.eq(this.oauthProfileUrl), Mockito.eq(HttpMethod.GET), Mockito.any(),
-				Mockito.eq(ProfileResponseBody.class))).then(new Answer<ResponseEntity<ProfileResponseBody>>() {
+				Mockito.eq(String.class))).then(new Answer<ResponseEntity<String>>() {
 					@Override
-					public ResponseEntity<ProfileResponseBody> answer(InvocationOnMock invocation) {
+					public ResponseEntity<String> answer(InvocationOnMock invocation) {
 						throw new HttpServerErrorException(HttpStatus.GATEWAY_TIMEOUT);
 					}
 				});
