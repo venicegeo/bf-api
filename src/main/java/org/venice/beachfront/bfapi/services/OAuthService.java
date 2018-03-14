@@ -15,6 +15,7 @@
  **/
 package org.venice.beachfront.bfapi.services;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.UUID;
@@ -40,6 +41,8 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import model.logger.Severity;
 import util.PiazzaLogger;
 
@@ -57,6 +60,8 @@ public class OAuthService {
 	private String oauthClientSecret;
 	@Value("${oauth.redirect-url}")
 	private String redirectUrl;
+	@Value("${oauth.response.log-on-error}")
+	private boolean oauthResponseLogOnError;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -64,6 +69,8 @@ public class OAuthService {
 	private UserProfileService userProfileService;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	public String getOauthRedirectUri() {
 		return this.redirectUrl;
@@ -109,9 +116,10 @@ public class OAuthService {
 		headers.set("Authorization", "Bearer " + accessToken);
 		HttpEntity<Object> entity = new HttpEntity<>(null, headers);
 
-		ResponseEntity<ProfileResponseBody> response;
+		ResponseEntity<String> response;
 		try {
-			response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, ProfileResponseBody.class);
+			// Execute the Request to get the raw Response
+			response = this.restTemplate.exchange(this.oauthProfileUrl, HttpMethod.GET, entity, String.class);
 		} catch (RestClientResponseException ex) {
 			piazzaLogger.log(String.format("Failed call to OAuth Profile URL with Status %s and error %s", ex.getStatusText(),
 					ex.getResponseBodyAsString()), Severity.ERROR);
@@ -124,8 +132,22 @@ public class OAuthService {
 			}
 		}
 
-		piazzaLogger.log("Successfully retrieved profile for OAuth Profile Request.", Severity.INFORMATIONAL);
-		return response.getBody();
+		// Convert the raw response into the Profile Model
+		try {
+			ProfileResponseBody profile = objectMapper.readValue(response.getBody(), ProfileResponseBody.class);
+			piazzaLogger.log("Successfully retrieved profile for OAuth Profile Request.", Severity.INFORMATIONAL);
+			return profile;
+		} catch (IOException exception) {
+			String message = String.format(
+					"There was an error converting the OAuth Profile Response object into a readable Beachfront Profile. The user could not be logged in. %s",
+					exception.getMessage());
+			piazzaLogger.log(message, Severity.ERROR);
+			if (oauthResponseLogOnError) {
+				// Write response to console if enabled
+				System.out.println("OAuth Raw Response was: " + response);
+			}
+			throw new UserException(message, exception, HttpStatus.BAD_GATEWAY);
+		}
 	}
 
 	public UserProfile getOrCreateUser(String userId, String userName) {
