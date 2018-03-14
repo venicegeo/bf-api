@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.venice.beachfront.bfapi.model.exception.UserException;
@@ -33,30 +34,31 @@ import util.PiazzaLogger;
 public class UserExceptionHandler {
 	@Autowired
 	private PiazzaLogger logger;
-	
+
 	@ExceptionHandler(UserException.class)
 	public ResponseEntity<String> handleUserException(UserException ex) {
 		String logMessage = String.format("[%d] %s -- %s", ex.getRecommendedStatusCode().value(), ex.getMessage(), ex.getDetails());
-		this.logger.log(logMessage, Severity.ERROR);
-		return ResponseEntity.status(ex.getRecommendedStatusCode())
-				.contentType(MediaType.TEXT_PLAIN)
-				.body(ex.getMessage());
+		logger.log(logMessage, Severity.ERROR);
+		return ResponseEntity.status(ex.getRecommendedStatusCode()).contentType(MediaType.TEXT_PLAIN).body(ex.getMessage());
 	}
-	
+
 	@ExceptionHandler(RuntimeException.class)
 	public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
 		if (ex.getCause() != null && ex.getCause().getClass() == UserException.class) {
-			return this.handleUserException((UserException)ex.getCause());
+			// Handle User Exceptions separately
+			return this.handleUserException((UserException) ex.getCause());
+		} else if (ex.getCause() != null && ex.getCause().getClass() == HttpMessageNotReadableException.class) {
+			// Message parse errors return 400
+			status = HttpStatus.BAD_REQUEST;
 		}
-		String logMessage = String.format("[500] Unknown runtime error -- %s", ex.getMessage());
-		this.logger.log(logMessage, Severity.ERROR);
-		
+		String logMessage = String.format("[%d] Unknown runtime error -- %s", status.value(), ex.getMessage());
+		logger.log(logMessage, Severity.ERROR);
+
 		StringWriter sw = new StringWriter();
 		ex.printStackTrace(new PrintWriter(sw));
-		this.logger.log(sw.toString(), Severity.ERROR);
-		
-		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-			.contentType(MediaType.TEXT_PLAIN)
-			.body(ex.getMessage());
+		logger.log(sw.toString(), Severity.ERROR);
+
+		return ResponseEntity.status(status).contentType(MediaType.TEXT_PLAIN).body(ex.getMessage());
 	}
 }

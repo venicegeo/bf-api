@@ -85,6 +85,9 @@ public class JobController {
 	public Confirmation deleteJob(@PathVariable("id") String id, Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		Job job = jobService.getJob(id);
+		if (job == null) {
+			throw new UserException(String.format("Job %s not found.", id), HttpStatus.NOT_FOUND);
+		}
 		return jobService.forgetJob(job.getJobId(), currentUser.getUserId());
 	}
 
