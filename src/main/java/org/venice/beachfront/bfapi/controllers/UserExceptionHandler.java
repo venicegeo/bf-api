@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+
 import model.logger.Severity;
 import util.PiazzaLogger;
 
@@ -48,7 +50,8 @@ public class UserExceptionHandler {
 		if (ex.getCause() != null && ex.getCause().getClass() == UserException.class) {
 			// Handle User Exceptions separately
 			return this.handleUserException((UserException) ex.getCause());
-		} else if (ex.getCause() != null && ex.getCause().getClass() == HttpMessageNotReadableException.class) {
+		} else if (ex.getCause() != null && (ex.getCause().getClass() == HttpMessageNotReadableException.class)
+				|| (ex.getCause().getClass() == JsonMappingException.class)) {
 			// Message parse errors return 400
 			status = HttpStatus.BAD_REQUEST;
 		}
