@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.venice.beachfront.bfapi.model.Confirmation;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.JobStatus;
@@ -76,7 +75,7 @@ public class JobController {
 	public JsonNode getJobById(@PathVariable("id") String id) throws UserException {
 		Job job = jobService.getJob(id);
 		if (job == null) {
-			throw new JobNotFoundException();
+			throw new UserException(String.format("Job %s not found.", id), HttpStatus.NOT_FOUND);
 		}
 		return jobService.getJobGeoJson(job);
 	}
@@ -137,11 +136,6 @@ public class JobController {
 	@ResponseBody
 	public byte[] downloadJobGeoPackage(@PathVariable("id") String id) throws UserException {
 		return jobService.getDetectionGeoPackage(id);
-	}
-
-	@ResponseStatus(value = HttpStatus.NOT_FOUND)
-	private static class JobNotFoundException extends RuntimeException {
-		private static final long serialVersionUID = 1L;
 	}
 
 	@RequestMapping(path = "/job/searchByInputs", method = RequestMethod.GET, produces = { "application/json" })
