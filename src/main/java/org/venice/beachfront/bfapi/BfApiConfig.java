@@ -91,6 +91,10 @@ import org.venice.beachfront.bfapi.geoserver.PKIAuthHeaders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
+import org.springframework.http.HttpHeaders;
+
+import model.logger.Severity;
+import util.PiazzaLogger;
 
 @Configuration
 public class BfApiConfig {
@@ -138,6 +142,70 @@ public class BfApiConfig {
 					return true;
 				}
 			});
+		}
+	}
+
+	/**
+	 * Ensures proper CORS headers are present in all requests
+	 */
+	@Configuration
+	protected static class AddCrsfFilter extends WebMvcConfigurerAdapter {
+		@Value("${auth.allowedOrigins}")
+		private String allowedOrigins;
+
+		@Value("${auth.publicEndpoints}")
+		private String publicEndpoints;
+
+		@Autowired
+		private PiazzaLogger piazzaLogger;
+
+		@Override
+		public void addInterceptors(InterceptorRegistry registry) {
+			registry.addInterceptor(new HandlerInterceptorAdapter() {
+				@Override
+				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+					// Allow OPTIONS for these purposes
+					if ("OPTIONS".equals(request.getMethod())) {
+						return true;
+					}
+					// Allow public endpoints
+					if (isPublicEndpoint(request.getServletPath())) {
+						return true;
+					}
+					final String origin = request.getHeader(HttpHeaders.ORIGIN);
+					final String referer = request.getHeader(HttpHeaders.REFERER);
+					final String requestedWith = request.getHeader("X-Requested-With");
+					final boolean isXhr = "XMLHttpRequest".equals(requestedWith);
+
+					if (isAllowedOrigin(origin) && isXhr) {
+						// Allow cors request from approved endpoint
+						return true;
+					} else if ((origin == null || origin.isEmpty()) && (referer == null || referer.isEmpty()) ) {
+						// Allow non-CORS request
+						return true;
+					}
+					piazzaLogger.log(String.format("Possible CSRF attempt: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s` is_xhr=`%s`",
+							request.getServletPath(),
+							origin,
+							referer,
+							request.getRemoteAddr(),
+							isXhr), Severity.WARNING);
+					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: CORS request validation failed");
+					return false;
+				}
+			});
+		}
+
+		private boolean isAllowedOrigin(String origin) {
+			final List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
+			final boolean isAllowed = allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
+			return isAllowed;
+		}
+
+		private boolean isPublicEndpoint(String path) {
+			final List<String> pubicEndpointsList = Arrays.asList(publicEndpoints.split(","));
+			final boolean isPublic = pubicEndpointsList.stream().anyMatch(str -> str.trim().equals(path));
+			return isPublic;
 		}
 	}
 
