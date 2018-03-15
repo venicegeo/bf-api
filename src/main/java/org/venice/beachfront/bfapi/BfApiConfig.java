@@ -69,6 +69,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -91,7 +92,6 @@ import org.venice.beachfront.bfapi.geoserver.PKIAuthHeaders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
-import org.springframework.http.HttpHeaders;
 
 import model.logger.Severity;
 import util.PiazzaLogger;
@@ -183,16 +183,12 @@ public class BfApiConfig {
 					if (isAllowedOrigin(origin) && isXhr) {
 						// Allow cors request from approved endpoint
 						return true;
-					} else if ((origin == null || origin.isEmpty()) && (referer == null || referer.isEmpty()) ) {
+					} else if ((origin == null || origin.isEmpty()) && (referer == null || referer.isEmpty())) {
 						// Allow non-CORS request
 						return true;
 					}
 					piazzaLogger.log(String.format("Possible CSRF attempt: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s` is_xhr=`%s`",
-							request.getServletPath(),
-							origin,
-							referer,
-							request.getRemoteAddr(),
-							isXhr), Severity.WARNING);
+							request.getServletPath(), origin, referer, request.getRemoteAddr(), isXhr), Severity.WARNING);
 					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: CORS request validation failed");
 					return false;
 				}
@@ -224,21 +220,25 @@ public class BfApiConfig {
 
 		@Override
 		public void configure(HttpSecurity http) throws Exception {
-			http.authorizeRequests()
-					.antMatchers(HttpMethod.OPTIONS).permitAll() 	// Allow any OPTIONS for REST best practices
-					.antMatchers("/").permitAll()					// Allow unauthenticated queries to root (health check) path
-					.antMatchers("/oauth/callback").permitAll()		// Allow unauthenticated queries to login callback path
-					.antMatchers("/oauth/start").permitAll()		// Allow unauthenticated queries to OAuth login start path
-					.anyRequest().authenticated()					// All other requests must be authenticated
-				.and().httpBasic()									// Use HTTP Basic authentication
-					.authenticationEntryPoint(this.failureEntryPoint)	// Entry point for starting a Basic auth exchange (i.e. "failed authentication" handling)
-					.authenticationDetailsSource(this.authenticationDetailsSource()) // Feed more request details into any providers
-				.and().sessionManagement()
-					.sessionCreationPolicy(SessionCreationPolicy.STATELESS)	// Do not create or manage sessions for security
-				.and().logout()
-					.disable() 										// Disable auto-magical Spring Security logout behavior
-				.authenticationProvider(this.apiKeyAuthProvider)	// Use this custom authentication provider to authenticate requests
-				.csrf().disable();									// Disable advanced CSRF protections for better statelessness
+			http.authorizeRequests().antMatchers(HttpMethod.OPTIONS).permitAll() // Allow any OPTIONS for REST best
+																					// practices
+					.antMatchers("/").permitAll() // Allow unauthenticated queries to root (health check) path
+					.antMatchers("/oauth/callback").permitAll() // Allow unauthenticated queries to login callback path
+					.antMatchers("/oauth/start").permitAll() // Allow unauthenticated queries to OAuth login start path
+					.anyRequest().authenticated() // All other requests must be authenticated
+					.and().httpBasic() // Use HTTP Basic authentication
+					.authenticationEntryPoint(this.failureEntryPoint) // Entry point for starting a Basic auth exchange
+																		// (i.e. "failed authentication" handling)
+					.authenticationDetailsSource(this.authenticationDetailsSource()) // Feed more request details into
+																						// any providers
+					.and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Do not create
+																										// or manage
+																										// sessions for
+																										// security
+					.and().logout().disable() // Disable auto-magical Spring Security logout behavior
+					.authenticationProvider(this.apiKeyAuthProvider) // Use this custom authentication provider to
+																		// authenticate requests
+					.csrf().disable(); // Disable advanced CSRF protections for better statelessness
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
