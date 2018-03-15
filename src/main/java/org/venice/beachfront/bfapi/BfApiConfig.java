@@ -93,6 +93,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import org.springframework.http.HttpHeaders;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 @Configuration
 public class BfApiConfig {
 	@Value("${http.keep.alive.duration.seconds}")
@@ -147,27 +150,26 @@ public class BfApiConfig {
 	 */
 	@Configuration
 	protected static class AddCrsfFilter extends WebMvcConfigurerAdapter {
-		@Value("${DOMAIN}")
-		private String domain;
-
 		@Value("${auth.allowedOrigins}")
 		private String allowedOrigins;
 
 		@Value("${auth.publicEndpoints}")
 		private String publicEndpoints;
 
+		@Autowired
+		private PiazzaLogger piazzaLogger;
+
 		@Override
 		public void addInterceptors(InterceptorRegistry registry) {
 			registry.addInterceptor(new HandlerInterceptorAdapter() {
 				@Override
 				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-					System.out.println("servlet path = " + request.getServletPath());
-					System.out.println("request method = " + request.getMethod());
+					// Allow OPTIONS for these purposes
 					if ("OPTIONS".equals(request.getMethod())) {
 						return true;
 					}
+					// Allow public endpoints
 					if (isPublicEndpoint(request.getServletPath())) {
-						System.out.println("endpoint is public");
 						return true;
 					}
 					final String origin = request.getHeader(HttpHeaders.ORIGIN);
@@ -177,13 +179,17 @@ public class BfApiConfig {
 
 					if (isAllowedOrigin(origin) && isXhr) {
 						// Allow cors request from approved endpoint
-						System.out.println("Allowing approved cors request");
 						return true;
 					} else if ((origin == null || origin.isEmpty()) && (referer == null || referer.isEmpty()) ) {
 						// Allow non-CORS request
-						System.out.println("Allowing non-cors request");
 						return true;
 					}
+					piazzaLogger.log(String.format("Possible CSRF attempt: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s` is_xhr=`%s`",
+							request.getServletPath(),
+							origin,
+							referer,
+							request.getRemoteAddr(),
+							isXhr), Severity.WARNING);
 					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: CORS request validation failed");
 					return false;
 				}
