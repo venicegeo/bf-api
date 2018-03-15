@@ -175,7 +175,9 @@ public class BfApiConfig {
 					final String origin = request.getHeader(HttpHeaders.ORIGIN);
 					final String referer = request.getHeader(HttpHeaders.REFERER);
 					final String requestedWith = request.getHeader("X-Requested-With");
-					final boolean isXhr = "XMLHttpRequest".equals(requestedWith);
+					final String allowedRequestHeaders = request.getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS);
+					final boolean isRequestXhr = "XMLHttpRequest".equals(requestedWith);
+					final boolean isXhr = isRequestXhr || allowedRequestHeaders.contains("X-Requested-With");
 
 					if (isAllowedOrigin(origin) && isXhr) {
 						// Allow cors request from approved endpoint
