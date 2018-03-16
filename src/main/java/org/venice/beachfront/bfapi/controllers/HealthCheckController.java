@@ -30,6 +30,12 @@ import org.venice.beachfront.bfapi.services.JobService;
 import org.venice.beachfront.bfapi.services.PiazzaService;
 import org.venice.beachfront.bfapi.services.UptimeService;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+
 /**
  * Controller class for a simple health check endpoint.
  * 
@@ -48,6 +54,10 @@ public class HealthCheckController {
 
 	@RequestMapping(path = "/", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
+	@ApiOperation(value = "Health and Status Check", notes = "General health check information", tags = "Health")
+	@ApiResponses(value = {
+			@ApiResponse(code = 200, message = "Health check information, including server uptime and job counts", response = HashMap.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = JsonNode.class) })
 	public Map<String, String> healthCheck() throws UserException {
 		Map<String, String> healthCheckData = new HashMap<String, String>();
 		// Show uptime
