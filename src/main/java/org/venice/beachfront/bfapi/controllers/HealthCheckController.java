@@ -32,6 +32,7 @@ import org.venice.beachfront.bfapi.services.UptimeService;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
@@ -42,6 +43,7 @@ import io.swagger.annotations.ApiResponses;
  * @version 1.0
  */
 @Controller
+@Api(value = "Health")
 public class HealthCheckController {
 	@Autowired
 	private UptimeService uptimeService;

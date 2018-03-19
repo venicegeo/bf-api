@@ -33,6 +33,7 @@ import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.SceneService;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -44,6 +45,7 @@ import io.swagger.annotations.ApiResponses;
  * @version 1.0
  */
 @Controller
+@Api(value = "Scene")
 public class SceneController {
 	@Autowired
 	private SceneService iaBrokerService;

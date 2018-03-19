@@ -23,6 +23,8 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
 /**
  * Main application class.
  * 
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * @version 2.0
  */
 @SpringBootApplication
+@EnableSwagger2
 @EnableTransactionManagement
 @EnableJpaRepositories(excludeFilters = { @Filter(type = FilterType.REGEX, pattern = "model.*.*"),
 		@Filter(type = FilterType.REGEX, pattern = "org.venice.piazza.common.hibernate.*.*") })

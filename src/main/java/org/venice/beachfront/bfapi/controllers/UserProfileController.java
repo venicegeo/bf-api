@@ -27,6 +27,7 @@ import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
@@ -39,6 +40,7 @@ import util.PiazzaLogger;
  * @version 1.0
  */
 @Controller
+@Api(value = "Profile")
 public class UserProfileController {
 	@Autowired
 	private UserProfileService userProfileService;
@@ -47,7 +49,7 @@ public class UserProfileController {
 
 	@RequestMapping(path = "/user", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	@ApiOperation(value = "Get User Profile Information", notes = "Returns information on the current User Profile", tags = "User")
+	@ApiOperation(value = "Get User Profile Information", notes = "Returns information on the current User Profile", tags = "Profile")
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "The Job information", response = Job.class),
 			@ApiResponse(code = 401, message = "Unauthorized API Key", response = UserProfile.class),
 			@ApiResponse(code = 404, message = "User not found", response = String.class),

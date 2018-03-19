@@ -30,6 +30,7 @@ import org.venice.beachfront.bfapi.services.IABrokerPassthroughService;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
@@ -42,6 +43,7 @@ import util.PiazzaLogger;
  * @version 1.0
  */
 @Controller
+@Api(value = "IA Broker")
 public class IABrokerPassthroughController {
 	@Autowired
 	private IABrokerPassthroughService iaBrokerPassthroughService;

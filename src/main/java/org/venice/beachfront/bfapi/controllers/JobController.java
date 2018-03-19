@@ -40,6 +40,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -51,6 +52,7 @@ import io.swagger.annotations.ApiResponses;
  * @version 1.0
  */
 @Controller
+@Api(value = "Job")
 public class JobController {
 	@Autowired
 	private JobService jobService;
