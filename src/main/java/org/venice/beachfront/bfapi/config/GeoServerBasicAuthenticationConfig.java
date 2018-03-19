@@ -1,0 +1,48 @@
+package org.venice.beachfront.bfapi.config;
+
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
+import org.venice.beachfront.bfapi.geoserver.AuthHeaders;
+import org.venice.beachfront.bfapi.geoserver.BasicAuthHeaders;
+
+/**
+ * Configures the API to use basic HTTP authentication when communicating with GeoServer
+ */
+@Configuration
+@Profile({ "basic-geoserver-auth" })
+public class GeoServerBasicAuthenticationConfig extends GeoServerBaseAuthenticationConfig {
+
+	@Value("${http.max.total}")
+	private int httpMaxTotal;
+
+	@Value("${http.max.route}")
+	private int httpMaxRoute;
+
+	@Bean
+	public RestTemplate restTemplate() {
+		final RestTemplate restTemplate = new RestTemplate();
+		// @formatter:off
+		final HttpClient httpClient =
+				HttpClientBuilder.create()
+					.setMaxConnTotal(httpMaxTotal)
+					.setMaxConnPerRoute(httpMaxRoute)
+					.setSSLHostnameVerifier(new NoopHostnameVerifier())
+					.setKeepAliveStrategy(getKeepAliveStrategy())
+					.build();
+		// @formatter:on
+		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
+		return restTemplate;
+	}
+
+	@Bean
+	public AuthHeaders authHeaders() {
+		return new BasicAuthHeaders();
+	}
+}
