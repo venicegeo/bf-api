@@ -28,6 +28,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.venice.beachfront.bfapi.services.IABrokerPassthroughService;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import model.logger.Severity;
 import util.PiazzaLogger;
 
@@ -45,6 +50,10 @@ public class IABrokerPassthroughController {
 
 	@RequestMapping(path = "/ia/**")
 	@ResponseBody
+	@ApiOperation(value = "IA Broker Proxy", notes = "Proxies requests to the IA Broker component", tags = "IA Broker")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "The proxied response", response = JsonNode.class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
 	public ResponseEntity<byte[]> passthrough(HttpMethod method, HttpServletRequest request) throws IOException, URISyntaxException {
 		piazzaLogger.log(
 				String.format("Received IA-broker passthrough request for Method %s to URL %s", method.toString(), request.getRequestURI()),

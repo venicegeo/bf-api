@@ -33,6 +33,11 @@ import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.SceneService;
 
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+
 /**
  * Main controller class for managing and downloading scenes.
  * 
@@ -45,7 +50,13 @@ public class SceneController {
 
 	@RequestMapping(path = "/scene/{id}/download", method = RequestMethod.GET, params = { "planet_api_key" })
 	@ResponseBody
-	public CompletableFuture<ResponseEntity<?>> downloadScene(@PathVariable(value = "id") String sceneId,
+	@ApiOperation(value = "Download Scene Imagery", notes = "Downloads the raw scene imagery for the specified Scene", tags = "Scene")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Scene Bytes", response = byte[].class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 404, message = "Scene not found", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
+	public CompletableFuture<ResponseEntity<?>> downloadScene(
+			@ApiParam(value = "ID of the Scene", required = true) @PathVariable(value = "id") String sceneId,
 			@RequestParam(value = "planet_api_key", required = true) String planetApiKey) throws UserException {
 		return this.iaBrokerService.asyncGetActiveScene(sceneId, planetApiKey, true).thenApply((Scene activeScene) -> {
 			HttpHeaders headers = new HttpHeaders();
@@ -58,4 +69,3 @@ public class SceneController {
 		});
 	}
 }
-
