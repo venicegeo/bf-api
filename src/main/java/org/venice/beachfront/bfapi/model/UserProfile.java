@@ -26,26 +26,33 @@ import org.venice.beachfront.bfapi.model.converter.TimestampConverter;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.swagger.annotations.ApiModelProperty;
+
 @Entity
 @Table(name = "__beachfront__user")
 public class UserProfile {
 	@Id
 	@Column(name = "user_id")
 	@JsonProperty("user_id")
+	@ApiModelProperty(required = true, value = "Unique ID of the user")
 	private String userId;
 	@Column(name = "user_name")
 	@JsonProperty("user_name")
+	@ApiModelProperty(required = true, value = "Display name of the user")
 	private String name;
 	@Column(name = "api_key")
 	@JsonProperty("api_key")
+	@ApiModelProperty(required = true, value = "The API Key used for service interaction")
 	private String apiKey;
 	@Convert(converter = TimestampConverter.class)
 	@Column(name = "created_on")
 	@JsonProperty("created_on")
+	@ApiModelProperty(required = true, value = "The time the user profile was first created")
 	private DateTime createdOn;
 	@Convert(converter = TimestampConverter.class)
 	@Column(name = "last_accessed")
 	@JsonProperty("last_accessed")
+	@ApiModelProperty(required = true, value = "The time the user profile was last used to access services")
 	private DateTime lastAccessed;
 
 	/**

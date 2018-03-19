@@ -40,12 +40,19 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+
 /**
  * Main controller class for the Job CRUD endpoints.
  * 
  * @version 1.0
  */
 @Controller
+@Api(value = "Job")
 public class JobController {
 	@Autowired
 	private JobService jobService;
@@ -54,7 +61,12 @@ public class JobController {
 
 	@RequestMapping(path = "/job", method = RequestMethod.POST, consumes = { "application/json" }, produces = { "application/json" })
 	@ResponseBody
-	public ResponseEntity<JsonNode> createJob(@RequestBody CreateJobBody body, Authentication authentication) throws UserException {
+	@ApiOperation(value = "Submit Job", notes = "Creates a new shoreline detection job request", tags = "Job")
+	@ApiResponses(value = { @ApiResponse(code = 201, message = "The created Job information", response = Job.class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
+	public ResponseEntity<JsonNode> createJob(@ApiParam(value = "Job request parameters", required = true) @RequestBody CreateJobBody body,
+			Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		Job createdJob = jobService.createJob(body.jobName, currentUser.getUserId(), body.sceneId, body.algorithmId, body.planetApiKey,
 				body.computeMask, body.extras);
@@ -64,6 +76,10 @@ public class JobController {
 
 	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
+	@ApiOperation(value = "Get User Jobs", notes = "Retrieves all Jobs owned by the User", tags = "Job")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "The list of Jobs", response = JsonNode.class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
 	public JsonNode listJobs(Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		List<Job> jobs = jobService.getJobsForUser(currentUser.getUserId());
@@ -72,7 +88,12 @@ public class JobController {
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public JsonNode getJobById(@PathVariable("id") String id) throws UserException {
+	@ApiOperation(value = "Get Job Information", notes = "Returns information on a specific Job", tags = "Job")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "The Job information", response = Job.class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 404, message = "Job not found", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
+	public JsonNode getJobById(@ApiParam(value = "ID of the Job", required = true) @PathVariable("id") String id) throws UserException {
 		Job job = jobService.getJob(id);
 		if (job == null) {
 			throw new UserException(String.format("Job %s not found.", id), HttpStatus.NOT_FOUND);
@@ -82,7 +103,13 @@ public class JobController {
 
 	@RequestMapping(path = "/job/{id}", method = RequestMethod.DELETE, produces = { "application/json" })
 	@ResponseBody
-	public Confirmation deleteJob(@PathVariable("id") String id, Authentication authentication) throws UserException {
+	@ApiOperation(value = "Delete a Job", notes = "Removes the Job from the User table", tags = "Job")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Deletion Confirmation", response = Confirmation.class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 404, message = "Job not found", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
+	public Confirmation deleteJob(@ApiParam(value = "ID of the Job", required = true) @PathVariable("id") String id,
+			Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		Job job = jobService.getJob(id);
 		if (job == null) {
@@ -93,8 +120,13 @@ public class JobController {
 
 	@RequestMapping(path = "/job", method = RequestMethod.DELETE, produces = { "application/json" })
 	@ResponseBody
-	public Confirmation deleteAllJobs(@RequestParam(value = "confirm", required = false) Boolean confirm, Authentication authentication)
-			throws UserException {
+	@ApiOperation(value = "Delete all Jobs", notes = "Removes all Jobs from the User's table", tags = "Job")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Deletion Confirmation", response = Confirmation.class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
+	public Confirmation deleteAllJobs(
+			@ApiParam(value = "Confirmation boolean", required = true) @RequestParam(value = "confirm", required = false) Boolean confirm,
+			Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		// Check the confirm flag in the request. This might prevent an accidental deletion.
 		if ((confirm != null) && (confirm.booleanValue())) {
@@ -131,13 +163,25 @@ public class JobController {
 
 	@RequestMapping(path = "/job/{id}.geojson", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	public byte[] downloadJobGeoJson(@PathVariable("id") String id) throws UserException {
+	@ApiOperation(value = "Download Detection GeoJSON", notes = "Downloads GeoJSON for the specified Job", tags = "Job")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "GeoJSON Bytes", response = byte[].class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 404, message = "Job not found", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
+	public byte[] downloadJobGeoJson(@ApiParam(value = "ID of the Job", required = true) @PathVariable("id") String id)
+			throws UserException {
 		return jobService.getDetectionGeoJson(id);
 	}
 
 	@RequestMapping(path = "/job/{id}.gpkg", method = RequestMethod.GET, produces = { "application/x-sqlite3" })
 	@ResponseBody
-	public byte[] downloadJobGeoPackage(@PathVariable("id") String id) throws UserException {
+	@ApiOperation(value = "Download Detection GeoPackage", notes = "Downloads GeoPackage for the specified Job", tags = "Job")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "GeoPackage Bytes", response = byte[].class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 404, message = "Job not found", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
+	public byte[] downloadJobGeoPackage(@ApiParam(value = "ID of the Job", required = true) @PathVariable("id") String id)
+			throws UserException {
 		return jobService.getDetectionGeoPackage(id);
 	}
 

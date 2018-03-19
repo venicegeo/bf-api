@@ -28,6 +28,8 @@ import org.venice.beachfront.bfapi.model.converter.TimestampConverter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.swagger.annotations.ApiModelProperty;
+
 @Entity
 @Table(name = "__beachfront__job")
 public class Job {
@@ -42,46 +44,60 @@ public class Job {
 	@Id
 	@Column(name = "job_id")
 	@JsonProperty("job_id")
+	@ApiModelProperty(required = true, value = "The unique ID of the Job in correlation with Piazza")
 	private String jobId;
 	@Column(name = "name")
 	@JsonProperty("name")
+	@ApiModelProperty(required = true, value = "The user-provided name the job")
 	private String jobName;
 	@Column(name = "status")
 	@JsonProperty("status")
+	@ApiModelProperty(required = true, value = "The current status of the job")
 	private String status;
 	@Column(name = "created_by")
 	@JsonProperty("created_by")
+	@ApiModelProperty(required = true, value = "The ID of the first requesting user for this job")
 	private String createdByUserId;
 	@Convert(converter = TimestampConverter.class)
 	@Column(name = "created_on")
 	@JsonProperty("created_on")
+	@ApiModelProperty(required = true, value = "The date the job was first requested")
 	private DateTime createdOn;
 	@Column(name = "algorithm_id")
 	@JsonProperty("algorithm_id")
+	@ApiModelProperty(required = true, value = "The unique ID of the Algorithm used to process this Job")
 	private String algorithmId;
 	@Column(name = "algorithm_name")
 	@JsonProperty("algorithm_name")
+	@ApiModelProperty(required = true, value = "The friendly name of the Algorithm used to process this Job")
 	private String algorithmName;
 	@Column(name = "algorithm_version")
 	@JsonProperty("algorithm_version")
+	@ApiModelProperty(required = true, value = "The version of the Algorithm used")
 	private String algorithmVersion;
 	@Column(name = "scene_id")
 	@JsonProperty("scene_id")
+	@ApiModelProperty(required = true, value = "The unique ID of the Scene used as Job input")
 	private String sceneId;
 	@Column(name = "tide")
 	@JsonProperty("tide")
+	@ApiModelProperty(required = true, value = "The current tide information of the Scene")
 	private Double tide;
 	@Column(name = "tide_min_24h")
 	@JsonProperty("tide_min_24h")
+	@ApiModelProperty(required = true, value = "24-hour minimum Tide metadata of the Scene")
 	private Double tideMin24h;
 	@Column(name = "tide_max_24h")
 	@JsonProperty("tide_max_24h")
+	@ApiModelProperty(required = true, value = "24-hour maximum Tide metadata of the Scene")
 	private Double tideMax24h;
 	@JsonProperty("extras")
 	@Transient // TODO: This must be added to the Liquibase Migrations
+	@ApiModelProperty(required = false, value = "User-defined bag of properties used for extra Job input")
 	private JsonNode extras;
 	@Column(name = "compute_mask")
 	@JsonProperty("compute_mask")
+	@ApiModelProperty(required = true, value = "Determines if the Algorithm should apply a compute mask for non-coastal areas")
 	private Boolean computeMask;
 
 	/**

@@ -22,10 +22,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import model.logger.Severity;
 import util.PiazzaLogger;
 
@@ -35,6 +40,7 @@ import util.PiazzaLogger;
  * @version 1.0
  */
 @Controller
+@Api(value = "Profile")
 public class UserProfileController {
 	@Autowired
 	private UserProfileService userProfileService;
@@ -43,6 +49,11 @@ public class UserProfileController {
 
 	@RequestMapping(path = "/user", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
+	@ApiOperation(value = "Get User Profile Information", notes = "Returns information on the current User Profile", tags = "Profile")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "The Job information", response = Job.class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = UserProfile.class),
+			@ApiResponse(code = 404, message = "User not found", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
 	public UserProfile getCurrentUserProfile(Authentication authentication) throws UserException {
 		UserProfile currentUser = userProfileService.getProfileFromAuthentication(authentication);
 		if (currentUser != null) {

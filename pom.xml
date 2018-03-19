@@ -148,6 +148,18 @@
 			<artifactId>pz-jobcommon</artifactId>
 			<version>2-0-0-7-gb51fe13</version>
 		</dependency>
+		<dependency>
+			<groupId>io.springfox</groupId>
+			<artifactId>springfox-swagger-ui</artifactId>
+			<version>2.5.0</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.springfox</groupId>
+			<artifactId>springfox-swagger2</artifactId>
+			<version>2.5.0</version>
+			<scope>compile</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -79,6 +79,7 @@ import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -93,7 +94,16 @@ import org.venice.beachfront.bfapi.geoserver.PKIAuthHeaders;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 
+import io.swagger.annotations.ApiOperation;
 import model.logger.Severity;
+import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
+import springfox.documentation.service.Contact;
+import springfox.documentation.service.Tag;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spring.web.plugins.Docket;
 import util.PiazzaLogger;
 
 @Configuration
@@ -176,7 +186,8 @@ public class BfApiConfig {
 					final String referer = request.getHeader(HttpHeaders.REFERER);
 					final String requestedWith = request.getHeader("X-Requested-With");
 					final String allowedRequestHeaders = request.getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS);
-					final boolean isAccessControlRequestHeader = (allowedRequestHeaders != null) ? allowedRequestHeaders.contains("X-Requested-With") : false;
+					final boolean isAccessControlRequestHeader = (allowedRequestHeaders != null)
+							? allowedRequestHeaders.contains("X-Requested-With") : false;
 					final boolean isRequestXhr = "XMLHttpRequest".equals(requestedWith);
 					final boolean isXhr = isRequestXhr || isAccessControlRequestHeader;
 
@@ -225,6 +236,7 @@ public class BfApiConfig {
 					.antMatchers("/").permitAll() // Allow unauthenticated queries to root (health check) path
 					.antMatchers("/oauth/callback").permitAll() // Allow unauthenticated queries to login callback path
 					.antMatchers("/oauth/start").permitAll() // Allow unauthenticated queries to OAuth login start path
+					.antMatchers("/v2/api-docs").permitAll() // Allow unauthenticated queries for Swagger documentation
 					.anyRequest().authenticated() // All other requests must be authenticated
 					.and().httpBasic() // Use HTTP Basic authentication
 					.authenticationEntryPoint(this.failureEntryPoint) // Entry point for starting a Basic auth exchange
@@ -393,4 +405,13 @@ public class BfApiConfig {
 			return httpKeepAliveDurationSeconds * 1000;
 		};
 	}
+
+	@Bean
+	public Docket beachfrontApi() {
+		ApiInfo apiInfo = new ApiInfoBuilder().title("Beachfront API").description("Beachfront Web Services")
+				.contact(new Contact("The VeniceGeo Project", "http://radiantblue.com", "venice@radiantblue.com")).version("0.1.0").build();
+		return new Docket(DocumentationType.SWAGGER_2).useDefaultResponseMessages(false).ignoredParameterTypes(Authentication.class)
+				.groupName("Beachfront").apiInfo(apiInfo).select().apis(RequestHandlerSelectors.withMethodAnnotation(ApiOperation.class)).paths(PathSelectors.any()).build();
+	}
+
 }
