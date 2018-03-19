@@ -17,18 +17,26 @@ package org.venice.beachfront.bfapi.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.swagger.annotations.ApiModelProperty;
+
 public class Algorithm {
 	@JsonProperty("description")
+	@ApiModelProperty(required = true, value = "description of the Algorithm function")
 	private final String description;
 	@JsonProperty("interface")
+	@ApiModelProperty(required = true, value = "unique name of the Algorithm")
 	private final String interface_;
 	@JsonProperty("max_cloud_cover")
+	@ApiModelProperty(required = true, value = "The maximum percentage of cloud cover acceptable to this Algorithm")
 	private final int maxCloudCover;
 	@JsonProperty("name")
+	@ApiModelProperty(required = true, value = "friendly name for this Algorithm")
 	private final String name;
 	@JsonProperty("service_id")
+	@ApiModelProperty(required = true, value = "The unique ID of the Algorithm as registed as a Piazza service")
 	private final String serviceId;
 	@JsonProperty("version")
+	@ApiModelProperty(required = true, value = "current version of this Algorithm")
 	private final String version;
 
 	/**
