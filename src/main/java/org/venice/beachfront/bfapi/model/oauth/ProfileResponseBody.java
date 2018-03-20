@@ -32,14 +32,26 @@ public class ProfileResponseBody {
 	@JsonProperty(value = "memberof", required = false)
 	private String memberOf;
 
+	@JsonProperty(value = "firstname", required = false)
+	private String firstname;
+
+	@JsonProperty(value = "lastname", required = false)
+	private String lastname;
+
+	@JsonProperty(value = "ID", required = false)
+	private String id;
+
 	public ProfileResponseBody() {
 		super();
 	}
 
-	public ProfileResponseBody(String dn, String commonName, String memberOf) {
+	public ProfileResponseBody(String dn, String commonName, String memberOf, String firstname, String lastname, String id) {
 		this.dn = dn;
 		this.commonName = commonName;
 		this.memberOf = memberOf;
+		this.firstname = firstname;
+		this.lastname = lastname;
+		this.id = id;
 	}
 
 	public String getDn() {
@@ -54,12 +66,24 @@ public class ProfileResponseBody {
 		return memberOf;
 	}
 
+	public String getFirstname() { return firstname; }
+
+	public String getLastname() { return lastname; }
+
+	public String getId() { return id; }
+
 	public String getComputedUserId() throws UserException {
 		if (this.dn != null && this.dn.length() > 0) {
 			return this.dn;
 		}
 		if (this.commonName != null && this.commonName.length() > 0 && this.memberOf != null && this.memberOf.length() > 0) {
 			return String.format("%s@%s", this.commonName, this.memberOf);
+		}
+		if (this.firstname != null && this.firstname.length() > 0 &&
+				this.lastname != null && this.lastname.length() > 0 &&
+				this.id != null && this.id.length() > 0) {
+			// This user is an ID.me user
+			return String.format("%s@%s-%s", this.id, this.lastname, this.firstname);
 		}
 		throw new UserException("Could not obtain a user ID from OAuth profile response", this.toString(),
 				HttpStatus.INTERNAL_SERVER_ERROR);
@@ -68,6 +92,9 @@ public class ProfileResponseBody {
 	public String getComputedUserName() throws UserException {
 		if (this.commonName != null && this.commonName.length() > 0) {
 			return this.commonName;
+		}
+		if (this.id != null && this.id.length() > 0) {
+			return this.id;
 		}
 		throw new UserException("Could not obtain a user name from OAuth profile response", this.commonName,
 				HttpStatus.INTERNAL_SERVER_ERROR);
