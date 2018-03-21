@@ -159,7 +159,7 @@ public class OAuthServiceTests {
 	@Test
 	public void testRequestOAuthProfileSuccess() throws UserException {
 		String mockAccessToken = "mock-access-token-321";
-		ProfileResponseBody mockResponseBody = new ProfileResponseBody("test-dn", mockAccessToken, "test-member-of");
+		ProfileResponseBody mockResponseBody = new ProfileResponseBody("test-dn", mockAccessToken, "test-member-of", null, null, null);
 
 		Mockito.when(this.restTemplate.exchange(Mockito.eq(this.oauthProfileUrl), Mockito.eq(HttpMethod.GET), Mockito.any(),
 				Mockito.eq(String.class))).then(new Answer<ResponseEntity<String>>() {

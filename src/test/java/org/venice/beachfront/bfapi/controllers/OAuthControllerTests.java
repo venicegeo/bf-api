@@ -80,7 +80,7 @@ public class OAuthControllerTests {
 		String mockAuthCode = "mockAuthCode";
 		String mockToken = "mockToken";
 		Mockito.doReturn(mockToken).when(oauthService).requestAccessToken(Mockito.eq(mockAuthCode));
-		ProfileResponseBody mockProfileResponse = new ProfileResponseBody("dn", "common", "member");
+		ProfileResponseBody mockProfileResponse = new ProfileResponseBody("dn", "common", "member", null, null, null);
 		Mockito.doReturn(mockProfileResponse).when(oauthService).requestOAuthProfile(Mockito.eq(mockToken));
 		UserProfile mockUserProfile = new UserProfile("userId", "userName", "apiKey", new DateTime());
 		Mockito.doReturn(mockUserProfile).when(oauthService).getOrCreateUser(Mockito.eq(mockProfileResponse.getComputedUserId()),
