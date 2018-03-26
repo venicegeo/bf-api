@@ -514,7 +514,7 @@ public class JobService {
 	 * @param extras
 	 */
 	private boolean doBlockRedundantJobs(JsonNode extras) {
-		if (extras instanceof JsonNode && extras.has(BLOCK_REDUNDANT_JOB_EXTRAS_NAME)) {
+		if (extras != null && extras.has(BLOCK_REDUNDANT_JOB_EXTRAS_NAME)) {
 			return extras.get(BLOCK_REDUNDANT_JOB_EXTRAS_NAME).asBoolean();
 		} else {
 			return blockRedundantJobCheck;
