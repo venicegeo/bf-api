@@ -146,7 +146,7 @@
 		<dependency>
 			<groupId>org.venice.piazza</groupId>
 			<artifactId>pz-jobcommon</artifactId>
-			<version>TWO-VERS</version>
+			<version>2-0-1-s4-0-gb51fe13</version>
 		</dependency>
 		<dependency>
 			<groupId>io.springfox</groupId>
