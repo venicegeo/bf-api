@@ -69,6 +69,8 @@ public class JobService {
 	private int GPKG_CONVERTER_PORT;
 	@Value("${block.redundant.job.check}")
 	private Boolean blockRedundantJobCheck;
+	@Value("${block.redundant.job.check.extras.name}")
+	private String BLOCK_REDUNDANT_JOB_EXTRAS_NAME;
 
 	@Autowired
 	private JobDao jobDao;
@@ -122,7 +124,7 @@ public class JobService {
 		Algorithm algorithm = algorithmService.getAlgorithm(algorithmId);
 		// First step is to check for any existing Jobs that match these parameters exactly. If so, then simply return
 		// that Job.
-		if (!blockRedundantJobCheck) {
+		if (doBlockRedundantJobs(extras) == false) {
 			Job redundantJob = getExistingRedundantJob(sceneId, algorithm, computeMask);
 			if (redundantJob != null) {
 				piazzaLogger.log(String.format("Found Redundant Job %s for %s's Job %s request. This detection will be reused.",
@@ -501,6 +503,22 @@ public class JobService {
 			command.append(" --coastmask");
 		}
 		return command.toString();
+	}
+
+	/**
+	 * Determines if the Redundant Job Check should be blocked. This is either determined globally by the redundant flag
+	 * environment variable, which will block all jobs - or individually via an individual job request.
+	 * <p>
+	 * The Redundant Job Check for the specific Job will override the environment variable in all cases.
+	 * 
+	 * @param extras
+	 */
+	private boolean doBlockRedundantJobs(JsonNode extras) {
+		if (extras != null && extras.has(BLOCK_REDUNDANT_JOB_EXTRAS_NAME)) {
+			return extras.get(BLOCK_REDUNDANT_JOB_EXTRAS_NAME).asBoolean();
+		} else {
+			return blockRedundantJobCheck;
+		}
 	}
 
 }
