@@ -62,12 +62,6 @@ import util.PiazzaLogger;
 
 @Service
 public class JobService {
-	@Value("${gpkg.converter.protocol}")
-	private String GPKG_CONVERTER_PROTOCOL;
-	@Value("${gpkg.converter.server}")
-	private String GPKG_CONVERTER_SERVER;
-	@Value("${gpkg.converter.port}")
-	private int GPKG_CONVERTER_PORT;
 	@Value("${block.redundant.job.check}")
 	private Boolean blockRedundantJobCheck;
 	@Value("${block.redundant.job.check.extras.name}")
