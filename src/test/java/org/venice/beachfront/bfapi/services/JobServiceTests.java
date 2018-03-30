@@ -29,6 +29,7 @@ import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.Seconds;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -36,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
@@ -45,6 +47,7 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
+import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -192,5 +195,70 @@ public class JobServiceTests {
 		assertEquals(features.get(1).get("properties").get("job_id").textValue(), "job321");
 		assertEquals(features.get(1).get("properties").get("status").textValue(), "Success");
 		assertEquals(features.get(1).get("properties").get("compute_mask").booleanValue(), true);
+	}
+	
+	@Test
+	public void testDownloadJobData_StatusError() throws UserException {
+		// Setup
+		StatusMetadata mockStatus = Mockito.mock(StatusMetadata.class);
+		Mockito.when(mockStatus.isStatusError()).thenReturn(true);
+		Mockito.when(mockStatus.isStatusIncomplete()).thenReturn(false);
+		Mockito.when(mockStatus.isStatusSuccess()).thenReturn(false);
+		Mockito.when(this.piazzaService.getJobStatus("test-job-id-123")).thenReturn(mockStatus);
+		
+		// Test
+		try {
+			this.jobService.downloadJobData("test-job-id-123", null);
+			Assert.fail("Expected job result download to fail, but it did not");
+		} catch (UserException ex) {
+			Assert.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getRecommendedStatusCode());
+		}
+	}
+	
+	@Test
+	public void testDownloadJobData_StatusIncomplete() throws UserException {
+		// Setup
+		StatusMetadata mockStatus = Mockito.mock(StatusMetadata.class);
+		Mockito.when(mockStatus.isStatusError()).thenReturn(false);
+		Mockito.when(mockStatus.isStatusIncomplete()).thenReturn(true);
+		Mockito.when(mockStatus.isStatusSuccess()).thenReturn(false);
+		Mockito.when(this.piazzaService.getJobStatus("test-job-id-123")).thenReturn(mockStatus);
+		
+		// Test and asserts
+		try {
+			this.jobService.downloadJobData("test-job-id-123", null);
+			Assert.fail("Expected job result download to fail, but it did not");
+		} catch (UserException ex) {
+			Assert.assertEquals(HttpStatus.NOT_FOUND, ex.getRecommendedStatusCode());
+		}
+	}
+	
+	@Test
+	public void testDownloadJobData_StatusSuccess() throws UserException {
+		// Setup
+		StatusMetadata mockStatus = Mockito.mock(StatusMetadata.class);
+		Mockito.when(mockStatus.isStatusError()).thenReturn(false);
+		Mockito.when(mockStatus.isStatusIncomplete()).thenReturn(false);
+		Mockito.when(mockStatus.isStatusSuccess()).thenReturn(true);
+		Mockito.when(mockStatus.getDataId()).thenReturn("data-id-321");
+		Mockito.when(this.piazzaService.getJobStatus("test-job-id-123")).thenReturn(mockStatus);
+
+		byte[] mockJSONResult = "{\"foo\": 123}".getBytes();
+		Mockito.when(this.piazzaService.downloadData("data-id-321")).thenReturn(mockJSONResult);
+		byte[] mockGeoPackageResult = "mock-geopackage-result".getBytes();
+		Mockito.when(this.piazzaService.downloadDataAsGeoPackage("data-id-321")).thenReturn(mockGeoPackageResult);
+		byte[] mockShapefileResult = "mock-shapefile-result".getBytes();
+		Mockito.when(this.piazzaService.downloadDataAsShapefile("data-id-321")).thenReturn(mockShapefileResult);
+		
+		
+		// Test
+		byte[] actualJSONResult = this.jobService.downloadJobData("test-job-id-123", JobService.DownloadDataType.GEOJSON);
+		byte[] actualGeoPackageResult = this.jobService.downloadJobData("test-job-id-123", JobService.DownloadDataType.GEOPACKAGE);
+		byte[] actualShapefileResult = this.jobService.downloadJobData("test-job-id-123", JobService.DownloadDataType.SHAPEFILE);
+		
+		// Asserts
+		Assert.assertArrayEquals(mockJSONResult, actualJSONResult);
+		Assert.assertArrayEquals(mockGeoPackageResult, actualGeoPackageResult);
+		Assert.assertArrayEquals(mockShapefileResult, actualShapefileResult);
 	}
 }
