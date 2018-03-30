@@ -49,6 +49,7 @@ import org.venice.beachfront.bfapi.model.JobStatus;
 import org.venice.beachfront.bfapi.model.JobUser;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
+import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -373,82 +374,6 @@ public class JobService {
 				Severity.ERROR);
 	}
 
-	/**
-	 * Gets the raw GeoJSON for a detection based on the Job ID
-	 * 
-	 * @param jobId
-	 *            The ID of the Job
-	 * @return The GeoJSON detection for the job
-	 */
-	public byte[] getDetectionGeoJson(String jobId) throws UserException {
-		piazzaLogger.log(String.format("Querying Database for detection bytes for Job %s", jobId), Severity.INFORMATIONAL);
-		// Find the Detection
-		Detection detection = detectionDao.findByDetectionPK_Job_JobId(jobId);
-		if (detection == null) {
-			throw new UserException(String.format("Could not find any detection for Job %s", jobId), HttpStatus.NOT_FOUND);
-		}
-		// Get the raw GeoJSON bytes from the Detection Geometry
-		Geometry geometry = detection.getGeometry();
-		GeometryJSON geojson = new GeometryJSON();
-		StringWriter writer = new StringWriter();
-		try {
-			geojson.write(geometry, writer);
-			byte[] bytes = writer.toString().getBytes();
-			piazzaLogger.log(String.format("Returning Detection bytes (length %s) for Job %s", bytes.length, jobId),
-					Severity.INFORMATIONAL);
-			return bytes;
-		} catch (IOException exception) {
-			String error = String.format("There was an error reading the detection for Job %s.", jobId);
-			piazzaLogger.log(error, Severity.ERROR);
-			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	/**
-	 * Gets the detection data as a GPKG archive for a detection based on the Job ID
-	 * 
-	 * @param jobId
-	 *            The ID of the Job
-	 * @return The GPKG archive for the job
-	 */
-	public byte[] getDetectionGeoPackage(String jobId) throws UserException {
-		piazzaLogger.log(String.format("Requesting GeoPackage for Detection of Job %s", jobId), Severity.INFORMATIONAL);
-		byte[] geoJsonData = this.getDetectionGeoJson(jobId);
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<byte[]> request = new HttpEntity<byte[]>(geoJsonData, headers);
-
-		URI geoJsonToGpkgUri = UriComponentsBuilder.newInstance().scheme(this.GPKG_CONVERTER_PROTOCOL).host(this.GPKG_CONVERTER_SERVER)
-				.port(this.GPKG_CONVERTER_PORT).pathSegment("convert").build().toUri();
-
-		ResponseEntity<byte[]> response;
-		try {
-			response = this.restTemplate.exchange(geoJsonToGpkgUri, HttpMethod.POST, request, byte[].class);
-			piazzaLogger.log(String.format("Received GeoPackage bytes for Job %s to %s", jobId, geoJsonToGpkgUri.toString()),
-					Severity.INFORMATIONAL);
-		} catch (HttpClientErrorException | HttpServerErrorException ex) {
-			piazzaLogger.log(String.format("Error downloading GeoPackage for Job %s with Status Code %s and Error %s", jobId,
-					ex.getStatusText(), ex.getResponseBodyAsString()), Severity.INFORMATIONAL);
-
-			HttpStatus recommendedErrorStatus = ex.getStatusCode();
-			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
-																	// want that
-			}
-
-			String message = String.format("Error communicating with GeoPackage converter service (%d)", ex.getRawStatusCode());
-
-			throw new UserException(message, ex, recommendedErrorStatus);
-		}
-
-		String contentType = response.getHeaders().getContentType().toString();
-		if (!contentType.equals("application/x-sqlite3")) {
-			throw new UserException("Unexpected content type from GeoPackage converter service: " + contentType, HttpStatus.BAD_GATEWAY);
-		}
-
-		return geoJsonData;
-	}
-
 	public List<JobStatus> searchJobsByInputs(String algorithmId, String sceneId) {
 		List<Job> jobs = jobDao.findByAlgorithmIdAndSceneId(algorithmId, sceneId);
 		List<JobStatus> statuses = new ArrayList<JobStatus>();
@@ -521,4 +446,34 @@ public class JobService {
 		}
 	}
 
+	public static enum DownloadDataType { GEOJSON, GEOPACKAGE, SHAPEFILE }
+	/**
+	 * Downloads the results of a job as GeoJSON, GeoPackage, or Shapefile. If the job is incomplete,
+	 * or otherwise encountered an error, throws an appropriate UserException.
+	 * 
+	 * @param jobId
+	 *            The job ID
+	 * @return byte array with job data
+	 */
+	public byte[] downloadJobData(String jobId, DownloadDataType dataType) throws UserException {
+		this.piazzaLogger.log(String.format("Querying Piazza for status of Job %s", jobId), Severity.INFORMATIONAL);
+		StatusMetadata statusMetadata = this.piazzaService.getJobStatus(jobId);
+		
+		if (statusMetadata.isStatusError()) {
+			throw new UserException(statusMetadata.getErrorMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		if (statusMetadata.isStatusIncomplete()) {
+			throw new UserException("Job not finished yet", HttpStatus.NOT_FOUND);
+		}
+		if (statusMetadata.isStatusSuccess()) {
+			String dataId = statusMetadata.getDataId();
+			switch(dataType) {
+			case GEOJSON: return this.piazzaService.downloadData(dataId);
+			case GEOPACKAGE: return this.piazzaService.downloadDataAsGeoPackage(dataId);
+			case SHAPEFILE: return this.piazzaService.downloadDataAsShapefile(dataId);
+			}
+			throw new UserException("Unknown download data type: " + dataType, HttpStatus.INTERNAL_SERVER_ERROR);	
+		}
+		throw new UserException("Unknown job status: " + statusMetadata.getStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
+	}
 }
