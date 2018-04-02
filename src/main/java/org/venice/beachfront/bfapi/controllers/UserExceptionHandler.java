@@ -19,6 +19,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -36,11 +37,22 @@ import util.PiazzaLogger;
 public class UserExceptionHandler {
 	@Autowired
 	private PiazzaLogger logger;
+	
+	@Value("${debug.tracebacks.user-exception}")
+	private boolean printUserExceptionTracebacks;
+
+	@Value("${debug.tracebacks.runtime-exception}")
+	private boolean printRuntimeExceptionTracebacks;
 
 	@ExceptionHandler(UserException.class)
 	public ResponseEntity<String> handleUserException(UserException ex) {
 		String logMessage = String.format("[%d] %s -- %s", ex.getRecommendedStatusCode().value(), ex.getMessage(), ex.getDetails());
 		logger.log(logMessage, Severity.ERROR);
+		if (this.printUserExceptionTracebacks) {
+			StringWriter sw = new StringWriter();
+			ex.printStackTrace(new PrintWriter(sw));
+			logger.log(sw.toString(), Severity.ERROR);
+		}
 		return ResponseEntity.status(ex.getRecommendedStatusCode()).contentType(MediaType.TEXT_PLAIN).body(ex.getMessage());
 	}
 
@@ -58,9 +70,11 @@ public class UserExceptionHandler {
 		String logMessage = String.format("[%d] Unknown runtime error -- %s", status.value(), ex.getMessage());
 		logger.log(logMessage, Severity.ERROR);
 
-		StringWriter sw = new StringWriter();
-		ex.printStackTrace(new PrintWriter(sw));
-		logger.log(sw.toString(), Severity.ERROR);
+		if (this.printRuntimeExceptionTracebacks) {
+			StringWriter sw = new StringWriter();
+			ex.printStackTrace(new PrintWriter(sw));
+			logger.log(sw.toString(), Severity.ERROR);			
+		}
 
 		return ResponseEntity.status(status).contentType(MediaType.TEXT_PLAIN).body(ex.getMessage());
 	}
