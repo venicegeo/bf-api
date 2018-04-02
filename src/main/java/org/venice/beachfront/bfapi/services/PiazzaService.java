@@ -359,14 +359,16 @@ public class PiazzaService {
 	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
 	 * Shapefile of the shoreline detection vectors.
 	 * 
-	 * @param dataId
-	 *            Data ID
+	 * @param metaDataId
+	 *            Piazza data ID of the job metadata
+	 * @param jobId
+	 *            Job ID (used for logging)
 	 * @return The bytes of the ingested data, as a .zip file containing a Shapefile
 	 */
-	public byte[] downloadDataAsShapefile(String dataId) throws UserException {
+	public byte[] getJobResultBytesAsShapefile(String metaDataId, String jobId) throws UserException {
 
-		byte[] gjBytes = downloadData(dataId);
-		piazzaLogger.log(String.format("Converting data %s to Shapefile", dataId), Severity.INFORMATIONAL);
+		byte[] gjBytes = this.getJobResultBytesAsGeoJson(metaDataId, jobId);
+		piazzaLogger.log(String.format("Converting data for job %s to Shapefile", jobId), Severity.INFORMATIONAL);
 		final byte[] shapefileBytes = shpConverter.apply(gjBytes);
 		return shapefileBytes;
 	}
@@ -375,14 +377,15 @@ public class PiazzaService {
 	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
 	 * Shapefile of the shoreline detection vectors.
 	 * 
-	 * @param dataId
-	 *            Data ID
+	 * @param metaDataId
+	 *            Piazza data ID of the job metadata
+	 * @param jobId
+	 *            Job ID (used for logging)
 	 * @return The bytes of the ingested data, as a GeoPackage
 	 */
-	public byte[] downloadDataAsGeoPackage(String dataId) throws UserException {
-
-		byte[] gjBytes = downloadData(dataId);
-		piazzaLogger.log(String.format("Converting data %s to GeoPackage", dataId), Severity.INFORMATIONAL);
+	public byte[] getJobResultBytesAsGeoPackage(String metaDataId, String jobId) throws UserException {
+		byte[] gjBytes = this.getJobResultBytesAsGeoJson(metaDataId, jobId);
+		piazzaLogger.log(String.format("Converting data for job %s to GeoPackage", jobId), Severity.INFORMATIONAL);
 		final byte[] gpkgBytes = gpkgConverter.apply(gjBytes);
 		return gpkgBytes;
 	}
@@ -394,17 +397,17 @@ public class PiazzaService {
 	 * metadata contained in this Text Data, will be the Identifier to the Piazza Data Item that will contain the
 	 * GeoJSON detection. This function will parse out that Data ID and fetch the detection GeoJSON from that Data ID.
 	 * 
-	 * @param dataId
+	 * @param metaDataId
 	 *            The Data ID of the Service Execution Job Metadata
-	 * @param job
-	 *            The Job object. Used mostly for just reporting accurate logging upon failures.
+	 * @param jobId
+	 *            The Job ID. Used mostly for just reporting accurate logging upon failures.
 	 * @return The raw GeoJSON bytes of the shoreline detection.
 	 */
-	public byte[] getBytesFromSuccessfulServiceJobData(String dataId, Job job) throws UserException {
+	public byte[] getJobResultBytesAsGeoJson(String metaDataId, String jobId) throws UserException {
 		piazzaLogger.log(
-				String.format("Attempting to download GeoJSON data from Successful Job %s with Data Id %s.", job.getJobId(), dataId),
+				String.format("Attempting to download GeoJSON data from Successful Job %s with Metadata Data Id %s.", jobId, metaDataId),
 				Severity.INFORMATIONAL);
-		byte[] metadata = downloadData(dataId);
+		byte[] metadata = downloadData(metaDataId);
 		String geoJsonDataId = null;
 		// Parse the real GeoJSON Data ID from the Metadata block
 		try {
@@ -413,12 +416,12 @@ public class PiazzaService {
 		} catch (IOException exception) {
 			String error = String.format(
 					"There was an error parsing the Detection Metadata for Job %s Metadata Data Id %s. The raw content was: %s",
-					job.getJobId(), dataId, new String(metadata));
+					jobId, metaDataId, new String(metadata));
 			piazzaLogger.log(error, Severity.ERROR);
 			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		// Use the GeoJSON Data ID to fetch the raw GeoJSON Bytes from Piazza
-		piazzaLogger.log(String.format("Fetching GeoJSON for Job %s with Data %s from Piazza.", job.getJobId(), geoJsonDataId),
+		piazzaLogger.log(String.format("Fetching GeoJSON for Job %s with Data %s from Piazza.", jobId, geoJsonDataId),
 				Severity.INFORMATIONAL);
 		return downloadData(geoJsonDataId);
 	}

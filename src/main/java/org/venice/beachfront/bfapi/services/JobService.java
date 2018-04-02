@@ -460,11 +460,11 @@ public class JobService {
 			throw new UserException("Job not finished yet", HttpStatus.NOT_FOUND);
 		}
 		if (statusMetadata.isStatusSuccess()) {
-			String dataId = statusMetadata.getDataId();
+			String metaDataId = statusMetadata.getDataId();
 			switch(dataType) {
-			case GEOJSON: return this.piazzaService.downloadData(dataId);
-			case GEOPACKAGE: return this.piazzaService.downloadDataAsGeoPackage(dataId);
-			case SHAPEFILE: return this.piazzaService.downloadDataAsShapefile(dataId);
+			case GEOJSON: return this.piazzaService.getJobResultBytesAsGeoJson(metaDataId, jobId);
+			case GEOPACKAGE: return this.piazzaService.getJobResultBytesAsGeoPackage(metaDataId, jobId);
+			case SHAPEFILE: return this.piazzaService.getJobResultBytesAsShapefile(metaDataId, jobId);
 			}
 			throw new UserException("Unknown download data type: " + dataType, HttpStatus.INTERNAL_SERVER_ERROR);	
 		}
