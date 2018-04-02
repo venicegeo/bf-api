@@ -163,26 +163,38 @@ public class JobController {
 
 	@RequestMapping(path = "/job/{id}.geojson", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
-	@ApiOperation(value = "Download Detection GeoJSON", notes = "Downloads GeoJSON for the specified Job", tags = "Job")
+	@ApiOperation(value = "Download Detection GeoJSON", notes = "Downloads GeoJSON result for the specified Job", tags = "Job")
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "GeoJSON Bytes", response = byte[].class),
 			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
-			@ApiResponse(code = 404, message = "Job not found", response = String.class),
+			@ApiResponse(code = 404, message = "Job or job results not found", response = String.class),
 			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
 	public byte[] downloadJobGeoJson(@ApiParam(value = "ID of the Job", required = true) @PathVariable("id") String id)
 			throws UserException {
-		return jobService.getDetectionGeoJson(id);
+		return jobService.downloadJobData(id, JobService.DownloadDataType.GEOJSON);
 	}
 
 	@RequestMapping(path = "/job/{id}.gpkg", method = RequestMethod.GET, produces = { "application/x-sqlite3" })
 	@ResponseBody
-	@ApiOperation(value = "Download Detection GeoPackage", notes = "Downloads GeoPackage for the specified Job", tags = "Job")
+	@ApiOperation(value = "Download Detection GeoPackage", notes = "Downloads GeoPackage result for the specified Job", tags = "Job")
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "GeoPackage Bytes", response = byte[].class),
 			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
-			@ApiResponse(code = 404, message = "Job not found", response = String.class),
+			@ApiResponse(code = 404, message = "Job or job results not found", response = String.class),
 			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
 	public byte[] downloadJobGeoPackage(@ApiParam(value = "ID of the Job", required = true) @PathVariable("id") String id)
 			throws UserException {
-		return jobService.getDetectionGeoPackage(id);
+		return jobService.downloadJobData(id, JobService.DownloadDataType.GEOPACKAGE);
+	}
+
+	@RequestMapping(path = "/job/{id}.shp", method = RequestMethod.GET, produces = { "application/x-sqlite3" })
+	@ResponseBody
+	@ApiOperation(value = "Download Detection Shapefile", notes = "Downloads Shapefile result for the specified Job", tags = "Job")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "GeoPackage Bytes", response = byte[].class),
+			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
+			@ApiResponse(code = 404, message = "Job or job results not found", response = String.class),
+			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
+	public byte[] downloadJobShapefile(@ApiParam(value = "ID of the Job", required = true) @PathVariable("id") String id)
+			throws UserException {
+		return jobService.downloadJobData(id, JobService.DownloadDataType.SHAPEFILE);
 	}
 
 	@RequestMapping(path = "/job/searchByInputs", method = RequestMethod.GET, produces = { "application/json" })
