@@ -108,7 +108,7 @@ public class ShapefileConverter extends AbstractConverter{
             cleanup(shapefile);
             cleanup(zipFile);
         } catch (Exception e) {
-            throw new UserException("Failed to export ", e, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new UserException("Failed to export to Shapefile: " + e.getMessage(), e, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return result;
     }
