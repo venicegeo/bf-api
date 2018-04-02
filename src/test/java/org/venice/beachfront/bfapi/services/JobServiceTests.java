@@ -244,11 +244,11 @@ public class JobServiceTests {
 		Mockito.when(this.piazzaService.getJobStatus("test-job-id-123")).thenReturn(mockStatus);
 
 		byte[] mockJSONResult = "{\"foo\": 123}".getBytes();
-		Mockito.when(this.piazzaService.downloadData("data-id-321")).thenReturn(mockJSONResult);
+		Mockito.when(this.piazzaService.getJobResultBytesAsGeoJson("data-id-321", "test-job-id-123")).thenReturn(mockJSONResult);
 		byte[] mockGeoPackageResult = "mock-geopackage-result".getBytes();
-		Mockito.when(this.piazzaService.downloadDataAsGeoPackage("data-id-321")).thenReturn(mockGeoPackageResult);
+		Mockito.when(this.piazzaService.getJobResultBytesAsGeoPackage("data-id-321", "test-job-id-123")).thenReturn(mockGeoPackageResult);
 		byte[] mockShapefileResult = "mock-shapefile-result".getBytes();
-		Mockito.when(this.piazzaService.downloadDataAsShapefile("data-id-321")).thenReturn(mockShapefileResult);
+		Mockito.when(this.piazzaService.getJobResultBytesAsShapefile("data-id-321", "test-job-id-123")).thenReturn(mockShapefileResult);
 		
 		
 		// Test

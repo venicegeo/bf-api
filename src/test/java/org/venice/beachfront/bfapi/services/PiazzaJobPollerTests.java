@@ -65,7 +65,7 @@ public class PiazzaJobPollerTests {
 		InputStream geoJsonData = getClass().getClassLoader()
 				.getResourceAsStream(String.format("%s%s%s", "detection", File.separator, "detection.geojson"));
 		String mockGeoJson = IOUtils.toString(geoJsonData, "UTF-8");
-		Mockito.doReturn(mockGeoJson.getBytes()).when(piazzaService).getBytesFromSuccessfulServiceJobData(Mockito.anyString(),
+		Mockito.doReturn(mockGeoJson.getBytes()).when(piazzaService).getJobResultBytesAsGeoJson(Mockito.anyString(),
 				Mockito.any());
 
 		// Test
