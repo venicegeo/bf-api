@@ -185,9 +185,9 @@ public class JobController {
 		return jobService.downloadJobData(id, JobService.DownloadDataType.GEOPACKAGE);
 	}
 
-	@RequestMapping(path = "/job/{id}.shp", method = RequestMethod.GET, produces = { "application/x-sqlite3" })
+	@RequestMapping(path = "/job/{id}.shp.zip", method = RequestMethod.GET, produces = { "application/zip" })
 	@ResponseBody
-	@ApiOperation(value = "Download Detection Shapefile", notes = "Downloads Shapefile result for the specified Job", tags = "Job")
+	@ApiOperation(value = "Download Zipped Detection Shapefile", notes = "Downloads Shapefile result for the specified Job", tags = "Job")
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "GeoPackage Bytes", response = byte[].class),
 			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
 			@ApiResponse(code = 404, message = "Job or job results not found", response = String.class),
