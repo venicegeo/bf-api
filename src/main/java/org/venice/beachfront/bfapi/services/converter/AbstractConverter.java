@@ -44,6 +44,8 @@ import org.opengis.feature.type.GeometryType;
 import org.opengis.feature.type.Name;
 import org.opengis.feature.type.PropertyDescriptor;
 import org.opengis.feature.type.PropertyType;
+import org.springframework.http.HttpStatus;
+import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -70,9 +72,13 @@ public abstract class AbstractConverter {
 		result.put("sensor_name", "sensor");
 		return result;
 	}
-	protected SimpleFeatureType createSimpleFeatureType(FeatureCollection<?, ?> fc){
+	protected SimpleFeatureType createSimpleFeatureType(FeatureCollection<?, ?> fc) throws UserException{
         FeatureType inputFeatureType = fc.getSchema();
 
+        if (inputFeatureType == null){
+        	throw new UserException("The feature collection provided has no schema.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        
         // Feature Type
         SimpleFeatureTypeBuilder sftb = new SimpleFeatureTypeBuilder();
         sftb.setName(inputFeatureType.getName());
