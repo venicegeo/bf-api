@@ -19,6 +19,7 @@ node {
     dir(configDir) {
       git url: "${env.CONFIGURATION_URL}", branch: "master", credentialsId: "${env.CONFIGURATION_CREDS}"
       sh "mv ${configDir}/${ENVIRONMENT}-config.json ${configFile}"
+      sh "cat ${configFile}"
       deleteDir()
     }
     // read the current configuration
