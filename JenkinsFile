@@ -17,7 +17,7 @@ node {
     def configDir = "${root}/configuration"
     def configFile = "${root}/config.json"
     dir(configDir) {
-      git url: "${env.CONFIGURATION_URL}", credentialsId: "${env.CONFIGURATION_CREDS}"
+      git url: "${env.CONFIGURATION_URL}", branch: "master", credentialsId: "${env.CONFIGURATION_CREDS}"
       sh "mv ${configDir}/${ENVIRONMENT}-config.json ${configFile}"
       deleteDir()
     }
