@@ -57,7 +57,7 @@ public class IABrokerPassthroughController {
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "The proxied response", response = JsonNode.class),
 			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
 			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
-	public ResponseEntity<byte[]> passthrough(HttpMethod method, HttpServletRequest request) throws IOException, URISyntaxException, UserException {
+	public ResponseEntity<String> passthrough(HttpMethod method, HttpServletRequest request) throws IOException, URISyntaxException, UserException {
 		piazzaLogger.log(
 				String.format("Received IA-broker passthrough request for Method %s to URL %s", method.toString(), request.getRequestURI()),
 				Severity.INFORMATIONAL);

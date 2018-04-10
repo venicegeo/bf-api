@@ -54,7 +54,7 @@ public class IABrokerPassthroughService {
 	@Autowired
 	private PiazzaLogger piazzaLogger;
 
-	public ResponseEntity<byte[]> passthroughRequest(HttpMethod method, HttpServletRequest request)
+	public ResponseEntity<String> passthroughRequest(HttpMethod method, HttpServletRequest request)
 			throws MalformedURLException, IOException, URISyntaxException, UserException {
 		// URI to ia-Broker will strip out the /ia prefix that the bf-api uses to denote ia-broker proxying
 		// Single data source right now, which is planet. In the future, we will switch on the sensor/item type to
@@ -64,13 +64,13 @@ public class IABrokerPassthroughService {
 		String body = IOUtils.toString(request.getReader());
 		piazzaLogger.log(String.format("Proxying request to IA Broker at URI %s", uri.toString()), Severity.INFORMATIONAL);
 		try {
-			ResponseEntity<byte[]> response = restTemplate.exchange(uri, method, new HttpEntity<String>(body), byte[].class);
-			piazzaLogger.log(String.format("Received IA Broker response, code=%d, length=%d bytes, for URI %s", 
-					response.getStatusCodeValue(), response.getBody().length, uri.toString()), Severity.INFORMATIONAL);
+			ResponseEntity<String> response = restTemplate.exchange(uri, method, new HttpEntity<String>(body), String.class);
+			piazzaLogger.log(String.format("Received IA Broker response, code=%d, length=%d, for URI %s", 
+					response.getStatusCodeValue(), response.getBody().length(), uri.toString()), Severity.INFORMATIONAL);
 			return response;
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
-			piazzaLogger.log(String.format("Received IA Broker error response, code=%d, length=%d bytes, for URI %s", 
-					exception.getStatusCode().value(), exception.getResponseBodyAsByteArray().length, uri.toString()), Severity.ERROR);
+			piazzaLogger.log(String.format("Received IA Broker error response, code=%d, length=%d, for URI %s", 
+					exception.getStatusCode().value(), exception.getResponseBodyAsString().length(), uri.toString()), Severity.ERROR);
 			if (exception.getStatusCode().equals(HttpStatus.UNAUTHORIZED) || exception.getStatusCode().equals(HttpStatus.FORBIDDEN)) {
 				throw new UserException("Bad authentication with image broker", exception, exception.getResponseBodyAsString(), HttpStatus.BAD_REQUEST);
 			}
