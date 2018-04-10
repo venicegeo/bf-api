@@ -12,6 +12,22 @@ node {
   def appVersion = '' // Fill during Setup stage
   def archiveName = '' // Fill during Archive stage
 
+  stage("Config") {
+    // clone the configuration repository and copy the current configuration
+    def configDir = "${root}/configuration"
+    def configFile = "${root}/config.json"
+    dir(configDir) {
+      git url: "${env.CONFIGURATION_URL}", credentialsId: "${env.CONFIGURATION_CREDS}"
+      sh "mv ${configDir}/${ENVIRONMENT}-config.json ${configFile}"
+      deleteDir()
+    }
+    // read the current configuration
+    def configJson = readJSON file: "${configFile}"
+    for (param in configJson.credparams + configJson.jobparams) { 
+      env."${param.name}" = (param.type == "booleanParam") ? "${param.defaultvalue}".toBoolean() : "${param.defaultvalue}"
+    }
+  }
+  
   def printLogsFailsafe = {String logAppName ->
     try {
       echo "Printing recent logs for ${logAppName}"
@@ -24,7 +40,7 @@ node {
   def getPiazzaApiKey = { String pcfDomain ->
     def piazza_api_key = ""
     def piazza_url = "https://piazza.${pcfDomain}/v2/key"
-    withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
+    withCredentials([[$class: 'StringBinding', credentialsId: "${env.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
       def keyCurl = sh(script: """curl -s ${piazza_url} -u \"${TOKEN}:\"""", returnStdout: true)
       if (keyCurl.contains('Please request a new API')) {
         keyCurl = sh(script: """curl -X POST -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
@@ -76,7 +92,7 @@ node {
             cf set-env ${fullAppName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
             cf set-env ${fullAppName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
           """
-          if (params.USE_GEOSERVER_PKI_AUTH) {
+          if (env.USE_GEOSERVER_PKI_AUTH) {
              sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
           } else {
              sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,basic-geoserver-auth"
@@ -90,7 +106,7 @@ node {
       }
     }
 
-    if(!params.SKIP_SCANS) {
+    if(!env.SKIP_SCANS) {
       withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
         sh """
           mkdir -p ${root}/zap-out
@@ -149,7 +165,7 @@ node {
 
   stage('Setup') {
       deleteDir()
-      if(env.GITLAB_CREDS) {
+      if(env.USE_GIT_CREDS) {
           git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
       } else {
           git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
@@ -204,18 +220,18 @@ node {
     deployPhase(env.PHASE_ONE_PCF_SPACE, env.PHASE_ONE_PCF_DOMAIN, fullAppName)
   }
 
-  if(!params.SKIP_INTEGRATION_TESTS) {
+  if(!env.SKIP_INTEGRATION_TESTS) {
     stage("Phase One Integration Tests") {
       integrationTestPhase(env.PHASE_ONE_PCF_SPACE, env.PHASE_ONE_PCF_DOMAIN)
     }
   }
 
-  if(params.DEPLOY_PHASE_TWO) {
+  if(env.DEPLOY_PHASE_TWO) {
     stage("Phase Two Deploy") {
       deployPhase(env.PHASE_TWO_PCF_SPACE, env.PHASE_TWO_PCF_DOMAIN, fullAppName)
     }
 
-    if(!params.SKIP_INTEGRATION_TESTS) {
+    if(!env.SKIP_INTEGRATION_TESTS) {
       stage("Phase Two Integration Tests") {
         integrationTestPhase(env.PHASE_TWO_PCF_SPACE, env.PHASE_TWO_PCF_DOMAIN)
       }
