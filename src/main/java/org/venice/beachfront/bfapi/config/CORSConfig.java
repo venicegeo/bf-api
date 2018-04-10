@@ -27,6 +27,7 @@ public class CORSConfig extends WebMvcConfigurerAdapter {
 				response.setHeader("Access-Control-Allow-Origin", "https://beachfront." + domain);
 				response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 				response.setHeader("Access-Control-Max-Age", "36000");
+				response.setHeader("Access-Control-Allow-Credentials", "true");
 				return true;
 			}
 		});
