@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.IABrokerPassthroughService;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -56,7 +57,7 @@ public class IABrokerPassthroughController {
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "The proxied response", response = JsonNode.class),
 			@ApiResponse(code = 401, message = "Unauthorized API Key", response = String.class),
 			@ApiResponse(code = 500, message = "Unexpected internal server error", response = String.class) })
-	public ResponseEntity<byte[]> passthrough(HttpMethod method, HttpServletRequest request) throws IOException, URISyntaxException {
+	public ResponseEntity<byte[]> passthrough(HttpMethod method, HttpServletRequest request) throws IOException, URISyntaxException, UserException {
 		piazzaLogger.log(
 				String.format("Received IA-broker passthrough request for Method %s to URL %s", method.toString(), request.getRequestURI()),
 				Severity.INFORMATIONAL);
