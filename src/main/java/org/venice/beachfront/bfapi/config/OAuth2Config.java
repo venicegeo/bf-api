@@ -66,11 +66,11 @@ public class OAuth2Config {
     private OAuth2ProtectedResourceDetails resourceDetails;
 
     @Autowired
-	private UserProfileService userProfileService;
+    private UserProfileService userProfileService;
 
-	@Bean
+    @Bean
     public OAuth2RestTemplate oauth2RestTemplate() {
-		final OAuth2RestTemplate oauth2RestTemplate = new OAuth2RestTemplate(resourceDetails, oAuth2ClientContext);
+    	final OAuth2RestTemplate oauth2RestTemplate = new OAuth2RestTemplate(resourceDetails, oAuth2ClientContext);
         oauth2RestTemplate.setAccessTokenProvider(accessTokenProviderChain());
 
         return oauth2RestTemplate;
@@ -133,9 +133,9 @@ public class OAuth2Config {
         return objectMapper.readValue(Base64.decodeBase64(token), new TypeReference<Map<String, ?>>() { });
     }
 
-    private String toPrettyJsonString(final Object object) throws Exception {
-        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
-    }
+	private String toPrettyJsonString(final Object object) throws Exception {
+	    return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
+	}
 
 	public UserProfile getOrCreateUser(final String userId, final String userName) {
 
