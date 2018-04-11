@@ -58,7 +58,7 @@ public abstract class AbstractConverter {
 	
 	private static Map<String, String> PROPERTIES = createProperties();
 	private static Map<String, String> createProperties(){
-		HashMap<String, String> result = new HashMap<String, String>();
+		HashMap<String, String> result = new HashMap<>();
 		result.put("algorithm_name", "algo_name");
 		result.put("algorithm_id", "algo_id");
 		result.put("algorithm_version", "algo_vers");
@@ -82,7 +82,7 @@ public abstract class AbstractConverter {
         SimpleFeatureTypeBuilder sftb = new SimpleFeatureTypeBuilder();
         sftb.setName(inputFeatureType.getName());
         sftb.setCRS(DefaultGeographicCRS.WGS84);
-        List<AttributeDescriptor> ads = new ArrayList<AttributeDescriptor>();
+        List<AttributeDescriptor> ads = new ArrayList<>();
         GeometryDescriptor gd = inputFeatureType.getGeometryDescriptor();
         GeometryType gt = gd.getType();
         Name geometryName = new NameImpl("the_geom");

@@ -322,7 +322,7 @@ public class BfApiConfig {
 					.setKeepAliveStrategy(getKeepAliveStrategy()).build();
 			final RestTemplate restTemplate = new RestTemplate();
 			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
-			final List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
+			final List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
 			messageConverters.add(new StringHttpMessageConverter());
 			messageConverters.add(new MappingJackson2HttpMessageConverter());
 			restTemplate.setMessageConverters(messageConverters);

@@ -61,7 +61,7 @@ public class HealthCheckController {
 			@ApiResponse(code = 200, message = "Health check information, including server uptime and job counts", response = HashMap.class),
 			@ApiResponse(code = 500, message = "Unexpected internal server error", response = JsonNode.class) })
 	public Map<String, String> healthCheck() throws UserException {
-		Map<String, String> healthCheckData = new HashMap<String, String>();
+		Map<String, String> healthCheckData = new HashMap<>();
 		// Show uptime
 		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
 		healthCheckData.put("geoserver", geoserverEnvironment.getGeoServerBaseUrl());

@@ -166,7 +166,7 @@ public class JobService {
 	 * @return List of all jobs that are in a non-complete state that are eligible to be polled for updated status.
 	 */
 	public List<Job> getOutstandingJobs() {
-		List<String> outstandingStatuses = new ArrayList<String>();
+		List<String> outstandingStatuses = new ArrayList<>();
 		outstandingStatuses.add(Job.STATUS_PENDING);
 		outstandingStatuses.add(Job.STATUS_RUNNING);
 		outstandingStatuses.add(Job.STATUS_SUBMITTED);
@@ -206,7 +206,7 @@ public class JobService {
 	 * @return All jobs.
 	 */
 	public List<Job> getJobs() {
-		List<Job> jobs = new ArrayList<Job>();
+		List<Job> jobs = new ArrayList<>();
 		jobDao.findAll().forEach(jobs::add);
 		return jobs;
 	}
@@ -221,7 +221,7 @@ public class JobService {
 	 */
 	public List<Job> getJobsForUser(String createdByUserId) {
 		List<JobUser> jobRefs = jobUserDao.findByJobUserPK_User_UserId(createdByUserId);
-		List<Job> jobs = new ArrayList<Job>();
+		List<Job> jobs = new ArrayList<>();
 		for (JobUser jobRef : jobRefs) {
 			jobs.add(jobRef.getJobUserPK().getJob());
 		}
@@ -360,7 +360,7 @@ public class JobService {
 
 	public List<JobStatus> searchJobsByInputs(String algorithmId, String sceneId) {
 		List<Job> jobs = jobDao.findByAlgorithmIdAndSceneId(algorithmId, sceneId);
-		List<JobStatus> statuses = new ArrayList<JobStatus>();
+		List<JobStatus> statuses = new ArrayList<>();
 		for (Job job : jobs) {
 			statuses.add(new JobStatus(job.getJobId(), job.getStatus()));
 		}
@@ -381,7 +381,7 @@ public class JobService {
 	 * @return The full command line string that can be executed by the Service Executor
 	 */
 	private String getAlgorithmCli(String algorithmId, List<String> fileUrls, String scenePlatform, boolean computeMask) {
-		List<String> imageFlags = new ArrayList<String>();
+		List<String> imageFlags = new ArrayList<>();
 		// Generate the images string parameters
 		for (String fileUrl : fileUrls) {
 			imageFlags.add(String.format("-i %s", fileUrl));

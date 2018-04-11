@@ -261,7 +261,7 @@ public class SceneService {
 		case Scene.PLATFORM_SENTINEL:
 			return Arrays.asList("coastal.JP2", "swir1.JP2");
 		}
-		return new ArrayList<String>();
+		return new ArrayList<>();
 	}
 
 	public List<String> getSceneInputURLs(Scene scene) {
@@ -274,7 +274,7 @@ public class SceneService {
 		case Scene.PLATFORM_SENTINEL:
 			return Arrays.asList(scene.getImageBand("blue"), scene.getImageBand("nir"));
 		}
-		return new ArrayList<String>();
+		return new ArrayList<>();
 	}
 
 }

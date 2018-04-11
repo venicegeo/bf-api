@@ -95,8 +95,8 @@ public class PiazzaService {
 		try {
 			// Add quotations to each element in the files lists, to ensure that JSON has the quotes after the
 			// string-replace.
-			List<String> quotedFileNames = new ArrayList<String>();
-			List<String> quotedFileUrls = new ArrayList<String>();
+			List<String> quotedFileNames = new ArrayList<>();
+			List<String> quotedFileUrls = new ArrayList<>();
 			for (String fileName : fileNames) {
 				quotedFileNames.add(String.format("\\\"%s\\\"", fileName));
 			}
@@ -247,7 +247,7 @@ public class PiazzaService {
 		try {
 			JsonNode responseJson = objectMapper.readTree(response.getBody());
 			JsonNode algorithmJsonArray = responseJson.get("data");
-			List<Algorithm> algorithms = new ArrayList<Algorithm>();
+			List<Algorithm> algorithms = new ArrayList<>();
 			for (JsonNode algorithmJson : algorithmJsonArray) {
 				// For each Registered Service, wrap it in the Algorithm Object and add to the list
 				algorithms.add(getAlgorithmFromServiceNode(algorithmJson));
