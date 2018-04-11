@@ -106,7 +106,7 @@ node {
       }
     }
 
-    if(!env.SKIP_SCANS) {
+    if(!env.SKIP_SCANS.toBoolean()) {
       withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
         sh """
           mkdir -p ${root}/zap-out
@@ -165,7 +165,7 @@ node {
 
   stage('Setup') {
       deleteDir()
-      if(env.USE_GIT_CREDS) {
+      if(env.USE_GIT_CREDS.toBoolean()) {
           git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
       } else {
           git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
@@ -220,18 +220,18 @@ node {
     deployPhase(env.PHASE_ONE_PCF_SPACE, env.PHASE_ONE_PCF_DOMAIN, fullAppName)
   }
 
-  if(!env.SKIP_INTEGRATION_TESTS) {
+  if(!env.SKIP_INTEGRATION_TESTS.toBoolean()) {
     stage("Phase One Integration Tests") {
       integrationTestPhase(env.PHASE_ONE_PCF_SPACE, env.PHASE_ONE_PCF_DOMAIN)
     }
   }
 
-  if(env.DEPLOY_PHASE_TWO) {
+  if(env.DEPLOY_PHASE_TWO.toBoolean()) {
     stage("Phase Two Deploy") {
       deployPhase(env.PHASE_TWO_PCF_SPACE, env.PHASE_TWO_PCF_DOMAIN, fullAppName)
     }
 
-    if(!env.SKIP_INTEGRATION_TESTS) {
+    if(!env.SKIP_INTEGRATION_TESTS.toBoolean()) {
       stage("Phase Two Integration Tests") {
         integrationTestPhase(env.PHASE_TWO_PCF_SPACE, env.PHASE_TWO_PCF_DOMAIN)
       }
