@@ -330,9 +330,9 @@ public class PiazzaService {
 		HttpEntity<String> request = new HttpEntity<>(headers);
 
 		// Execute the Request
-		ResponseEntity<byte[]> response = null;
+		ResponseEntity<String> response = null;
 		try {
-			response = restTemplate.exchange(URI.create(piazzaDataUrl), HttpMethod.GET, request, byte[].class);
+			response = restTemplate.exchange(URI.create(piazzaDataUrl), HttpMethod.GET, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Error downloading Data Bytes for Data %s from Piazza. Failed with Code %s and Body %s", dataId,
 					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
@@ -349,7 +349,7 @@ public class PiazzaService {
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
-		byte[] data = response.getBody();
+		byte[] data = response.getBody().getBytes();
 		piazzaLogger.log(String.format("Successfully retrieved Bytes for Data %s from Piazza. File size was %s", dataId, data.length),
 				Severity.INFORMATIONAL);
 		return data;
