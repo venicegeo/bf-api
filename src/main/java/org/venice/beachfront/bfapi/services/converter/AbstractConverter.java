@@ -68,7 +68,6 @@ public abstract class AbstractConverter {
 		result.put("time_of_collect", "time");
 		result.put("tide_min_24h", "tide_min");
 		result.put("tide_max_24h", "tide_max");
-		result.put("time_of_collect", "time");
 		result.put("sensor_name", "sensor");
 		return result;
 	}
