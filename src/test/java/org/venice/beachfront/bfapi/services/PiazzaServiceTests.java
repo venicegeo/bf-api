@@ -200,7 +200,7 @@ public class PiazzaServiceTests {
 		// Mock
 		String testData = "Test Data";
 		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
-				Mockito.<Class<byte[]>>any())).thenReturn(new ResponseEntity<byte[]>(testData.getBytes(), HttpStatus.OK));
+				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(testData, HttpStatus.OK));
 		// Test
 		byte[] data = piazzaService.downloadData("data123");
 		// Assert
@@ -221,10 +221,10 @@ public class PiazzaServiceTests {
         
 
         // Mock
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/metadata-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<byte[]>>any()))
-			.thenReturn(new ResponseEntity<byte[]>(metadataBytes, HttpStatus.OK));
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/test-geojson-id-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<byte[]>>any()))
-			.thenReturn(new ResponseEntity<byte[]>(geojsonBytes, HttpStatus.OK));
+		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/metadata-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
+			.thenReturn(new ResponseEntity<String>(new String(metadataBytes), HttpStatus.OK));
+		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/test-geojson-id-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
+			.thenReturn(new ResponseEntity<String>(new String(geojsonBytes), HttpStatus.OK));
 
 		// Test
 		byte[] shapefileBytes = piazzaService.getJobResultBytesAsShapefile("metadata-123", "test-job-123");
@@ -248,10 +248,10 @@ public class PiazzaServiceTests {
         
 
         // Mock
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/metadata-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<byte[]>>any()))
-			.thenReturn(new ResponseEntity<byte[]>(metadataBytes, HttpStatus.OK));
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/test-geojson-id-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<byte[]>>any()))
-			.thenReturn(new ResponseEntity<byte[]>(geojsonBytes, HttpStatus.OK));
+		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/metadata-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
+			.thenReturn(new ResponseEntity<String>(new String(metadataBytes), HttpStatus.OK));
+		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/test-geojson-id-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
+			.thenReturn(new ResponseEntity<String>(new String(geojsonBytes), HttpStatus.OK));
 
 		// Test
 		byte[] gpkgBytes = piazzaService.getJobResultBytesAsGeoPackage("metadata-123", "test-job-123");
