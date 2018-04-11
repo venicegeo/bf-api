@@ -229,7 +229,7 @@ public class SceneService {
 			}
 
 			try {
-				Thread.sleep(asyncActivationPollIntervalSeconds * 1000);
+				Thread.sleep(asyncActivationPollIntervalSeconds * 1000L);
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
