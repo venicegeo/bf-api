@@ -194,10 +194,13 @@ public class BfApiConfig {
 					if (isAllowedOrigin(origin) && isXhr) {
 						// Allow cors request from approved endpoint
 						return true;
-					} else if ((origin == null || origin.isEmpty()) && (referer == null || referer.isEmpty())) {
+					}
+
+					if ((origin == null || origin.isEmpty()) && (referer == null || referer.isEmpty())) {
 						// Allow non-CORS request
 						return true;
 					}
+
 					piazzaLogger.log(String.format("Possible CSRF attempt: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s` is_xhr=`%s`",
 							request.getServletPath(), origin, referer, request.getRemoteAddr(), isXhr), Severity.WARNING);
 					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: CORS request validation failed");
