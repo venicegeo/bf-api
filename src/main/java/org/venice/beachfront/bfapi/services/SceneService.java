@@ -226,12 +226,12 @@ public class SceneService {
 				if (updatedScene.getStatus().equals(Scene.STATUS_ACTIVE)) {
 					return updatedScene;
 				}
-			}
 
-			try {
-				Thread.sleep(asyncActivationPollIntervalSeconds * 1000L);
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
+				try {
+					Thread.sleep(asyncActivationPollIntervalSeconds * 1000L);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
 			}
 
 			throw new RuntimeException(new UserException("Upstream server timed out", HttpStatus.GATEWAY_TIMEOUT));
