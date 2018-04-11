@@ -117,11 +117,7 @@ public class ShapefileConverter extends AbstractConverter{
     	File result = File.createTempFile("shorelines", ".zip");
 
         byte[] buffer = new byte[1024];
-        FileOutputStream fos = null;
-        ZipOutputStream zos = null;
-        try {
-            fos = new FileOutputStream(result);
-            zos = new ZipOutputStream(fos);
+        try (FileOutputStream fos = new FileOutputStream(result); ZipOutputStream zos = new ZipOutputStream(fos)) {
 
             FileInputStream in = null;
             
@@ -136,7 +132,9 @@ public class ShapefileConverter extends AbstractConverter{
                         zos.write(buffer, 0, len);
                     }
                 } finally {
-                    in.close();
+                    if (in != null) {
+                        in.close();
+                    }
                 }
             }
 
@@ -145,12 +143,6 @@ public class ShapefileConverter extends AbstractConverter{
 
         } catch (IOException ex) {
             ex.printStackTrace();
-        } finally {
-            try {
-                zos.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
         
     	return result;
