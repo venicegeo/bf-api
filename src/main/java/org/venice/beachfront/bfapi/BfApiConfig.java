@@ -211,14 +211,12 @@ public class BfApiConfig {
 
 		private boolean isAllowedOrigin(String origin) {
 			final List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
-			final boolean isAllowed = allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
-			return isAllowed;
+			return allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
 		}
 
 		private boolean isPublicEndpoint(String path) {
 			final List<String> pubicEndpointsList = Arrays.asList(publicEndpoints.split(","));
-			final boolean isPublic = pubicEndpointsList.stream().anyMatch(str -> str.trim().equals(path));
-			return isPublic;
+			return pubicEndpointsList.stream().anyMatch(str -> str.trim().equals(path));
 		}
 	}
 
