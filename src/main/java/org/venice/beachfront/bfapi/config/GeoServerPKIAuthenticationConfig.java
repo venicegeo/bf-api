@@ -95,7 +95,7 @@ public class GeoServerPKIAuthenticationConfig extends GeoServerBaseAuthenticatio
 				.setMaxConnPerRoute(httpMaxRoute)
 				.setKeepAliveStrategy(getKeepAliveStrategy())
 				.build();
-		// @formatter:off
+		// @formatter:on
 
 		final RestTemplate restTemplate = new RestTemplate();
 		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
