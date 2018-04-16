@@ -72,6 +72,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -284,6 +285,7 @@ public class BfApiConfig {
 		public RestTemplate restTemplate(@Autowired HttpClient httpClient) {
 			final RestTemplate restTemplate = new RestTemplate();
 			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
+			restTemplate.getMessageConverters().add(new FormHttpMessageConverter());
 			return restTemplate;
 		}
 
@@ -331,6 +333,7 @@ public class BfApiConfig {
 			final List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
 			messageConverters.add(new StringHttpMessageConverter());
 			messageConverters.add(new MappingJackson2HttpMessageConverter());
+			messageConverters.add(new FormHttpMessageConverter());
 			restTemplate.setMessageConverters(messageConverters);
 			return restTemplate;
 		}
