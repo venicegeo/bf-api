@@ -101,7 +101,6 @@ import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.Contact;
-import springfox.documentation.service.Tag;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import util.PiazzaLogger;
@@ -276,10 +275,14 @@ public class BfApiConfig {
 		private int httpMaxRoute;
 
 		@Bean
-		public RestTemplate restTemplate() {
-			final RestTemplate restTemplate = new RestTemplate();
-			final HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setMaxConnPerRoute(httpMaxRoute)
+		public HttpClient httpClient() {
+			return HttpClientBuilder.create().setMaxConnTotal(httpMaxTotal).setMaxConnPerRoute(httpMaxRoute)
 					.setSSLHostnameVerifier(new NoopHostnameVerifier()).setKeepAliveStrategy(getKeepAliveStrategy()).build();
+		}
+
+		@Bean
+		public RestTemplate restTemplate(@Autowired HttpClient httpClient) {
+			final RestTemplate restTemplate = new RestTemplate();
 			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
 			return restTemplate;
 		}
@@ -308,18 +311,21 @@ public class BfApiConfig {
 		private String piazzaKeyPassphrase;
 
 		@Bean
-		public RestTemplate restTemplate() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException,
-				KeyStoreException, CertificateException, IOException {
+		public HttpClient httpClient() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, UnrecoverableKeyException, KeyManagementException {
 			final SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), piazzaKeyPassphrase.toCharArray())
 					.loadTrustMaterial(null, new TrustSelfSignedStrategy()).useProtocol("TLS").build();
 			final Registry<CookieSpecProvider> registry = RegistryBuilder.<CookieSpecProvider>create()
 					.register("myspec", new MySpecProvider()).build();
 			final RequestConfig requestConfig = RequestConfig.custom().setCookieSpec("myspec").setCircularRedirectsAllowed(true).build();
-			final HttpClient httpClient = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).setMaxConnTotal(httpMaxTotal)
+			return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).setMaxConnTotal(httpMaxTotal)
 					.setSSLContext(sslContext).setSSLHostnameVerifier(new NoopHostnameVerifier())
 					.setDefaultCookieStore(new BasicCookieStore()).setDefaultCookieSpecRegistry(registry)
 					.setRedirectStrategy(new MyRedirectStrategy()).setMaxConnPerRoute(httpMaxRoute)
 					.setKeepAliveStrategy(getKeepAliveStrategy()).build();
+		}
+
+		@Bean
+		public RestTemplate restTemplate(@Autowired HttpClient httpClient) {
 			final RestTemplate restTemplate = new RestTemplate();
 			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
 			final List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
