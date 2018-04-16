@@ -115,6 +115,7 @@ node {
             cf set-env ${appName} JKS_FILE piazza.jks
             cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
             cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
+            cf set-env ${appName} exit.on.geoserver.provision.failure ${env.EXIT_ON_GEOSERVER_PROVISION_FAILURE}
           """
           if (params.USE_GEOSERVER_PKI_AUTH) {
             sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
