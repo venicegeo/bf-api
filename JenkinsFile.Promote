@@ -80,7 +80,7 @@ node {
       // Generate Piazza API Key
       def piazza_api_key = ""
       def piazza_url = "https://piazza.${env.PROMOTE_DOMAIN}"
-      withCredentials([[$class: 'StringBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
+      withCredentials([[$class: 'StringBinding', credentialsId: "${env.BEACHFRONT_PIAZZA_AUTH_TEXT}", variable: 'TOKEN']]) {
         def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
         if (keyCurl.contains('Please request a new API')) {
           keyCurl = sh(script: """curl -X POST -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
@@ -117,7 +117,7 @@ node {
             cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
             cf set-env ${appName} exit.on.geoserver.provision.failure ${env.EXIT_ON_GEOSERVER_PROVISION_FAILURE}
           """
-          if (params.USE_GEOSERVER_PKI_AUTH) {
+          if (env.USE_GEOSERVER_PKI_AUTH.toBoolean()) {
             sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
           } else {
             sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,basic-geoserver-auth"
