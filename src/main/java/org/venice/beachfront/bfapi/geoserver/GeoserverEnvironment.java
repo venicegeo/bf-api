@@ -1,12 +1,12 @@
 /**
  * Copyright 2018, Radiant Solutions, Inc.
- * 
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,35 +15,26 @@
  **/
 package org.venice.beachfront.bfapi.geoserver;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import model.logger.Severity;
+import org.apache.http.client.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.*;
+import util.PiazzaLogger;
+
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import javax.annotation.PostConstruct;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import model.logger.Severity;
-import util.PiazzaLogger;
-
 /**
  * Checks the GeoServer Layer, Style during initialization to ensure that they exist before use.
- * 
+ *
  * @author Russell.Orf
  *
  */
@@ -59,9 +50,15 @@ public class GeoserverEnvironment {
 	private String LAYER_NAME;
 	@Value("${geoserver.style.name}")
 	private String STYLE_NAME;
+	@Value("${geoserver.creation.timeout}")
+	private int restTemplateConnectionReadTimeout;
+	@Value("${exit.on.geoserver.provision.failure}")
+	private Boolean exitOnGeoServerProvisionFailure;
 
+	// Class-scoped for mocks. We don't want to autoWire.
+	private RestTemplate restTemplate = new RestTemplate();
 	@Autowired
-	private RestTemplate restTemplate;
+	private HttpClient httpClient;
 	@Autowired
 	private AuthHeaders authHeaders;
 	@Autowired
@@ -75,6 +72,12 @@ public class GeoserverEnvironment {
 	@PostConstruct
 	public void initializeEnvironment() {
 		piazzaLogger.log("Checking to see if installation of GeoServer Detections Layer and Style is required", Severity.INFORMATIONAL);
+
+		// Since we're on the startup thread, we want to try to complete quickly. e.g. don't wait for slow connections.
+		// Configure a reasonable timeout for the rest client to abort slow requests.
+		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(this.httpClient);
+		requestFactory.setReadTimeout(restTemplateConnectionReadTimeout);
+		restTemplate.setRequestFactory(requestFactory);
 
 		// Check GeoServer Layer
 		{
@@ -103,7 +106,7 @@ public class GeoserverEnvironment {
 
 	/**
 	 * Checks if a GeoServer resource exists (200 OK returns from the server. 404 indicates not exists)
-	 * 
+	 *
 	 * @return True if exists, false if not
 	 */
 	private boolean doesResourceExist(final String resourceUri) {
@@ -157,6 +160,7 @@ public class GeoserverEnvironment {
 		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("HTTP Error occurred while trying to create Beachfront GeoServer Layer: %s",
 					exception.getResponseBodyAsString()), Severity.ERROR);
+			determineExit();
 		} catch (final IOException | URISyntaxException | ResourceAccessException exception) {
 			piazzaLogger.log(String.format("Unexpected Error Reading GeoServer Layer XML with message %s", exception.getMessage()),
 					Severity.ERROR);
@@ -174,6 +178,7 @@ public class GeoserverEnvironment {
 		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("HTTP Error occurred while trying to create Beachfront GeoServer Style: %s",
 					exception.getResponseBodyAsString()), Severity.ERROR);
+			determineExit();
 		} catch (final IOException | URISyntaxException | ResourceAccessException exception) {
 			piazzaLogger.log(String.format("Unexpected Error Reading GeoServer Style XML with message %s", exception.getMessage()),
 					Severity.ERROR);
@@ -209,5 +214,17 @@ public class GeoserverEnvironment {
 			baseUrl = GEOSERVER_HOST.replace("/index.html", "");
 		}
 		return baseUrl;
+	}
+
+	/**
+	 * If the application is configured to exit on GeoServer configuration error, this method will terminate it.
+	 */
+	private void determineExit() {
+		if (exitOnGeoServerProvisionFailure.booleanValue()) {
+			piazzaLogger.log(
+					"GeoServer resources could not be appropriately provisioned due to errors received from GeoServer. This application is configured to shut down and will do so now.",
+					Severity.INFORMATIONAL);
+			System.exit(1);
+		}
 	}
 }

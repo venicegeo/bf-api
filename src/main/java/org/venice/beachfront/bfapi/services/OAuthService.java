@@ -87,9 +87,6 @@ public class OAuthService {
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
 
-		restTemplate.getMessageConverters().add(new FormHttpMessageConverter());
-		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-
 		ResponseEntity<AccessTokenResponseBody> response;
 		try {
 			response = this.restTemplate.exchange(this.oauthTokenUrl, HttpMethod.POST, entity, AccessTokenResponseBody.class);
