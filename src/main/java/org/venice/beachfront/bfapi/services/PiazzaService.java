@@ -95,8 +95,8 @@ public class PiazzaService {
 		try {
 			// Add quotations to each element in the files lists, to ensure that JSON has the quotes after the
 			// string-replace.
-			List<String> quotedFileNames = new ArrayList<String>();
-			List<String> quotedFileUrls = new ArrayList<String>();
+			List<String> quotedFileNames = new ArrayList<>();
+			List<String> quotedFileUrls = new ArrayList<>();
 			for (String fileName : fileNames) {
 				quotedFileNames.add(String.format("\\\"%s\\\"", fileName));
 			}
@@ -247,7 +247,7 @@ public class PiazzaService {
 		try {
 			JsonNode responseJson = objectMapper.readTree(response.getBody());
 			JsonNode algorithmJsonArray = responseJson.get("data");
-			List<Algorithm> algorithms = new ArrayList<Algorithm>();
+			List<Algorithm> algorithms = new ArrayList<>();
 			for (JsonNode algorithmJson : algorithmJsonArray) {
 				// For each Registered Service, wrap it in the Algorithm Object and add to the list
 				algorithms.add(getAlgorithmFromServiceNode(algorithmJson));
@@ -369,8 +369,7 @@ public class PiazzaService {
 
 		byte[] gjBytes = this.getJobResultBytesAsGeoJson(metaDataId, jobId);
 		piazzaLogger.log(String.format("Converting data for job %s to Shapefile", jobId), Severity.INFORMATIONAL);
-		final byte[] shapefileBytes = shpConverter.apply(gjBytes);
-		return shapefileBytes;
+		return shpConverter.apply(gjBytes);
 	}
 
 	/**
@@ -386,8 +385,7 @@ public class PiazzaService {
 	public byte[] getJobResultBytesAsGeoPackage(String metaDataId, String jobId) throws UserException {
 		byte[] gjBytes = this.getJobResultBytesAsGeoJson(metaDataId, jobId);
 		piazzaLogger.log(String.format("Converting data for job %s to GeoPackage", jobId), Severity.INFORMATIONAL);
-		final byte[] gpkgBytes = gpkgConverter.apply(gjBytes);
-		return gpkgBytes;
+		return gpkgConverter.apply(gjBytes);
 	}
 
 	/**
@@ -455,8 +453,7 @@ public class PiazzaService {
 		}
 
 		try {
-			JsonNode jsonNode = objectMapper.readTree(response.getBody());
-			return jsonNode;
+			return objectMapper.readTree(response.getBody());
 		} catch (IOException exception) {
 			String error = String.format("There was an error parsing the Service Metadata for service %s.", algorithmId);
 			piazzaLogger.log(error, Severity.ERROR);
@@ -474,10 +471,9 @@ public class PiazzaService {
 	private Algorithm getAlgorithmFromServiceNode(JsonNode algorithmJson) {
 		JsonNode metadata = algorithmJson.get("resourceMetadata");
 		JsonNode addedMetadata = metadata.get("metadata");
-		Algorithm algorithm = new Algorithm(metadata.get("description").asText(), addedMetadata.get("Interface").asText(),
+		return new Algorithm(metadata.get("description").asText(), addedMetadata.get("Interface").asText(),
 				addedMetadata.get("ImgReq - cloudCover").asInt(), metadata.get("name").asText(), algorithmJson.get("serviceId").asText(),
 				metadata.get("version").asText());
-		return algorithm;
 	}
 
 	/**

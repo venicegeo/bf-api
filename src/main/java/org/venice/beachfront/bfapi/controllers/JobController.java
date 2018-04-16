@@ -71,7 +71,7 @@ public class JobController {
 		Job createdJob = jobService.createJob(body.jobName, currentUser.getUserId(), body.sceneId, body.algorithmId, body.planetApiKey,
 				body.computeMask, body.extras);
 		JsonNode response = jobService.getJobGeoJson(createdJob);
-		return new ResponseEntity<JsonNode>(response, HttpStatus.CREATED);
+		return new ResponseEntity<>(response, HttpStatus.CREATED);
 	}
 
 	@RequestMapping(path = "/job", method = RequestMethod.GET, produces = { "application/json" })

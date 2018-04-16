@@ -194,10 +194,13 @@ public class BfApiConfig {
 					if (isAllowedOrigin(origin) && isXhr) {
 						// Allow cors request from approved endpoint
 						return true;
-					} else if ((origin == null || origin.isEmpty()) && (referer == null || referer.isEmpty())) {
+					}
+
+					if ((origin == null || origin.isEmpty()) && (referer == null || referer.isEmpty())) {
 						// Allow non-CORS request
 						return true;
 					}
+
 					piazzaLogger.log(String.format("Possible CSRF attempt: endpoint=`%s` origin=`%s` referrer=`%s` ip=`%s` is_xhr=`%s`",
 							request.getServletPath(), origin, referer, request.getRemoteAddr(), isXhr), Severity.WARNING);
 					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: CORS request validation failed");
@@ -208,14 +211,12 @@ public class BfApiConfig {
 
 		private boolean isAllowedOrigin(String origin) {
 			final List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
-			final boolean isAllowed = allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
-			return isAllowed;
+			return allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
 		}
 
 		private boolean isPublicEndpoint(String path) {
 			final List<String> pubicEndpointsList = Arrays.asList(publicEndpoints.split(","));
-			final boolean isPublic = pubicEndpointsList.stream().anyMatch(str -> str.trim().equals(path));
-			return isPublic;
+			return pubicEndpointsList.stream().anyMatch(str -> str.trim().equals(path));
 		}
 	}
 
@@ -330,7 +331,7 @@ public class BfApiConfig {
 		public RestTemplate restTemplate(@Autowired HttpClient httpClient) {
 			final RestTemplate restTemplate = new RestTemplate();
 			restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
-			final List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
+			final List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
 			messageConverters.add(new StringHttpMessageConverter());
 			messageConverters.add(new MappingJackson2HttpMessageConverter());
 			messageConverters.add(new FormHttpMessageConverter());

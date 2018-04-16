@@ -226,12 +226,12 @@ public class SceneService {
 				if (updatedScene.getStatus().equals(Scene.STATUS_ACTIVE)) {
 					return updatedScene;
 				}
-			}
 
-			try {
-				Thread.sleep(asyncActivationPollIntervalSeconds * 1000);
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
+				try {
+					Thread.sleep(asyncActivationPollIntervalSeconds * 1000L);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
 			}
 
 			throw new RuntimeException(new UserException("Upstream server timed out", HttpStatus.GATEWAY_TIMEOUT));
@@ -261,7 +261,7 @@ public class SceneService {
 		case Scene.PLATFORM_SENTINEL:
 			return Arrays.asList("coastal.JP2", "swir1.JP2");
 		}
-		return new ArrayList<String>();
+		return new ArrayList<>();
 	}
 
 	public List<String> getSceneInputURLs(Scene scene) {
@@ -274,7 +274,7 @@ public class SceneService {
 		case Scene.PLATFORM_SENTINEL:
 			return Arrays.asList(scene.getImageBand("blue"), scene.getImageBand("nir"));
 		}
-		return new ArrayList<String>();
+		return new ArrayList<>();
 	}
 
 }

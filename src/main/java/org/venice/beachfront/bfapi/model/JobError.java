@@ -75,9 +75,9 @@ public class JobError implements Serializable{
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         JobError jobError = (JobError) o;
-        return Objects.equals(jobError.getJobErrorPK().getJob().getJobId(), jobError.getJobErrorPK().getJob().getJobId()) &&
-                Objects.equals(errorMessage, jobError.errorMessage) &&
-                Objects.equals(executionStep, jobError.executionStep);
+        return Objects.equals(this.getJobErrorPK().getJob().getJobId(), jobError.getJobErrorPK().getJob().getJobId()) &&
+                Objects.equals(this.errorMessage, jobError.errorMessage) &&
+                Objects.equals(this.executionStep, jobError.executionStep);
     }
 
     @Override

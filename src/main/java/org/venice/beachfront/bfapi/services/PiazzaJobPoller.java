@@ -140,7 +140,7 @@ public class PiazzaJobPoller {
 					FeatureJSON jsonParser = new FeatureJSON();
 					FeatureCollection featureCollection = jsonParser.readFeatureCollection(inputStream);
 					FeatureIterator iterator = featureCollection.features();
-					List<Geometry> geometries = new ArrayList<Geometry>();
+					List<Geometry> geometries = new ArrayList<>();
 					while (iterator.hasNext()) {
 						SimpleFeature feature = (SimpleFeature) iterator.next();
 						geometries.add((Geometry) feature.getDefaultGeometry());
