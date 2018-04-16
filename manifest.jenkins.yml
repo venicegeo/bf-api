@@ -6,7 +6,7 @@ applications:
   memory: 4G
   disk_quota: 4G
   instances: 1
-  timeout: 80
+  timeout: 100
   buildpack: java_buildpack
   services:
     - pz-postgres
