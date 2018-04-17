@@ -9,14 +9,20 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 
 public class ProfileResponseBodyTests {
 	private ObjectMapper objectMapper;
 	
 	@Before
 	public void setup() {
-		this.objectMapper= new ObjectMapper();
+		ObjectMapper mapper = new ObjectMapper();
+		SimpleModule module = new SimpleModule();
+		module.addDeserializer(GeoAxisCommonName.class, new GeoAxisCommonName.Deserializer());
+		mapper.registerModule(module);
+		this.objectMapper = mapper;
 	}
+	
 	
 	@Test
 	public void testParseSingleCNGeoAxisBody() throws IOException {
@@ -26,11 +32,11 @@ public class ProfileResponseBodyTests {
 				"UTF-8");
 		
 		// Test
-		ProfileResponseBody body = this.objectMapper.readerFor(ProfileResponseBody.class).readValue(responseJson);
+		ProfileResponseBody body = objectMapper.readValue(responseJson, ProfileResponseBody.class);
 		
 		// Asserts
 		Assert.assertEquals("distinguished-name.test.localdomain", body.getDn());
-		Assert.assertEquals("testuser.localdomain", body.getCommonName());
+		Assert.assertEquals("testuser.localdomain", body.getCommonName().toString());
 		Assert.assertEquals("testorg.localdomain", body.getMemberOf());
 		Assert.assertEquals("FirstName", body.getFirstname());
 		Assert.assertEquals("LastName", body.getLastname());
@@ -45,11 +51,11 @@ public class ProfileResponseBodyTests {
 				"UTF-8");
 		
 		// Test
-		ProfileResponseBody body = this.objectMapper.readerFor(ProfileResponseBody.class).readValue(responseJson);
+		ProfileResponseBody body = objectMapper.readValue(responseJson, ProfileResponseBody.class);
 		
 		// Asserts
 		Assert.assertEquals("distinguished-name.test.localdomain", body.getDn());
-		Assert.assertEquals("testuser.localdomain", body.getCommonName());
+		Assert.assertEquals("testuser1.localdomain", body.getCommonName().toString());
 		Assert.assertEquals("testorg.localdomain", body.getMemberOf());
 		Assert.assertEquals("FirstName", body.getFirstname());
 		Assert.assertEquals("LastName", body.getLastname());

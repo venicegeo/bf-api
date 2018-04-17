@@ -46,6 +46,7 @@ import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
+import org.venice.beachfront.bfapi.model.oauth.GeoAxisCommonName;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -159,7 +160,7 @@ public class OAuthServiceTests {
 	@Test
 	public void testRequestOAuthProfileSuccess() throws UserException {
 		String mockAccessToken = "mock-access-token-321";
-		ProfileResponseBody mockResponseBody = new ProfileResponseBody("test-dn", mockAccessToken, "test-member-of", null, null, null);
+		ProfileResponseBody mockResponseBody = new ProfileResponseBody("test-dn", new GeoAxisCommonName.SingleString(mockAccessToken), "test-member-of", null, null, null);
 
 		Mockito.when(this.restTemplate.exchange(Mockito.eq(this.oauthProfileUrl), Mockito.eq(HttpMethod.GET), Mockito.any(),
 				Mockito.eq(String.class))).then(new Answer<ResponseEntity<String>>() {
