@@ -73,7 +73,7 @@ public class ApiKeyAuthProvider implements AuthenticationProvider {
 			return new BfAuthenticationToken(userProfile, apiKey);
 		}
 		// Invalid Key
-		piazzaLogger.log("Invalid Authentication API Key received from the client. Discarding request.", Severity.ERROR);
+		piazzaLogger.log("Invalid Authentication API Key received from the client. Discarding request. key=" + apiKey, Severity.ERROR);
 		return null;
 	}
 
