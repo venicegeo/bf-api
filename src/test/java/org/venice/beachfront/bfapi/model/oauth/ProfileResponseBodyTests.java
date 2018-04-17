@@ -7,20 +7,23 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 public class ProfileResponseBodyTests {
+	@Spy
 	private ObjectMapper objectMapper;
 	
 	@Before
 	public void setup() {
-		ObjectMapper mapper = new ObjectMapper();
+		MockitoAnnotations.initMocks(this);
+
 		SimpleModule module = new SimpleModule();
 		module.addDeserializer(GeoAxisCommonName.class, new GeoAxisCommonName.Deserializer());
-		mapper.registerModule(module);
-		this.objectMapper = mapper;
+		this.objectMapper.registerModule(module);
 	}
 	
 	

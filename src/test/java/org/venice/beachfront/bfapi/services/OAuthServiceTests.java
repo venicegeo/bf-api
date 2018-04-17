@@ -20,11 +20,14 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -51,6 +54,7 @@ import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import util.PiazzaLogger;
 
@@ -75,6 +79,9 @@ public class OAuthServiceTests {
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
+		SimpleModule module = new SimpleModule();
+		module.addDeserializer(GeoAxisCommonName.class, new GeoAxisCommonName.Deserializer());
+		this.objectMapper.registerModule(module);
 
 		ReflectionTestUtils.setField(this.oauthService, "domain", "test.localdomain");
 		ReflectionTestUtils.setField(this.oauthService, "oauthTokenUrl", this.oauthTokenUrl);
@@ -158,10 +165,12 @@ public class OAuthServiceTests {
 	}
 
 	@Test
-	public void testRequestOAuthProfileSuccess() throws UserException {
+	public void testRequestOAuthProfileSuccess() throws UserException, IOException {
 		String mockAccessToken = "mock-access-token-321";
-		ProfileResponseBody mockResponseBody = new ProfileResponseBody("test-dn", new GeoAxisCommonName.SingleString(mockAccessToken), "test-member-of", null, null, null);
-
+		String mockResponseBody = IOUtils.toString(
+				this.getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "model", File.separator, "geoaxis-single-cn.json")),
+				"UTF-8");
+		
 		Mockito.when(this.restTemplate.exchange(Mockito.eq(this.oauthProfileUrl), Mockito.eq(HttpMethod.GET), Mockito.any(),
 				Mockito.eq(String.class))).then(new Answer<ResponseEntity<String>>() {
 					@Override
@@ -170,16 +179,16 @@ public class OAuthServiceTests {
 						List<String> headerValues = entity.getHeaders().get("Authorization");
 						assertEquals(1, headerValues.size());
 						assertEquals("Bearer " + mockAccessToken, headerValues.get(0));
-						return new ResponseEntity<>(objectMapper.writeValueAsString(mockResponseBody), HttpStatus.OK);
+						return new ResponseEntity<>(mockResponseBody, HttpStatus.OK);
 					}
 				});
 
 		ProfileResponseBody receivedResponseBody = this.oauthService.requestOAuthProfile(mockAccessToken);
 
-		assertEquals(mockResponseBody.getCommonName(), receivedResponseBody.getCommonName());
-		assertEquals(mockResponseBody.getDn(), receivedResponseBody.getDn());
-		assertEquals(mockResponseBody.getComputedUserId(), mockResponseBody.getComputedUserId());
-		assertEquals(mockResponseBody.getComputedUserName(), mockResponseBody.getComputedUserName());
+		assertEquals("testuser.localdomain", receivedResponseBody.getCommonName().toString());
+		assertEquals("distinguished-name.test.localdomain", receivedResponseBody.getDn());
+		assertEquals("testuser.localdomain", receivedResponseBody.getComputedUserName());
+		assertEquals("distinguished-name.test.localdomain", receivedResponseBody.getComputedUserId());
 	}
 
 	@Test
