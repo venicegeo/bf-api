@@ -109,7 +109,7 @@ public class ProfileResponseBody {
 		if (this.id != null && this.id.length() > 0) {
 			return this.id;
 		}
-		throw new UserException("Could not obtain a user name from OAuth profile response", this.commonName.toString(),
+		throw new UserException("Could not obtain a user name from OAuth profile response", this.toString(),
 				HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
