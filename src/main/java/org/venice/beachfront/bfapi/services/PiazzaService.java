@@ -37,7 +37,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
-import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;

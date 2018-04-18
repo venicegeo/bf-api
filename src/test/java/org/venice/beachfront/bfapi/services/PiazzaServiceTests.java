@@ -27,9 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.hamcrest.BaseMatcher;
 import org.hamcrest.CustomMatcher;
-import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.Assert;
 import org.junit.Before;
