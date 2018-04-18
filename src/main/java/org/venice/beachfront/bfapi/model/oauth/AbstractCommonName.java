@@ -13,12 +13,12 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface GeoAxisCommonName {
+public interface AbstractCommonName {
 	public String toString();
 	
-	public static class Deserializer extends JsonDeserializer<GeoAxisCommonName> {
+	public static class Deserializer extends JsonDeserializer<AbstractCommonName> {
 		@Override
-		public GeoAxisCommonName deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+		public AbstractCommonName deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
 			TreeNode node = p.getCodec().readTree(p);
 			if (node.isValueNode() && ((JsonNode)node).isTextual()) {
 				return new SingleString(((JsonNode)node).asText());
@@ -40,7 +40,7 @@ public interface GeoAxisCommonName {
 		}
 	}
 	
-	public static class SingleString implements GeoAxisCommonName {
+	public static class SingleString implements AbstractCommonName {
 		private String commonName;
 		public SingleString(String commonName) {
 			this.commonName = commonName;
@@ -52,7 +52,7 @@ public interface GeoAxisCommonName {
 		}
 	}
 	
-	public static class StringList implements GeoAxisCommonName {
+	public static class StringList implements AbstractCommonName {
 		private List<String> commonName;
 		public StringList(List<String> commonName) {
 			this.commonName = Collections.unmodifiableList(commonName);

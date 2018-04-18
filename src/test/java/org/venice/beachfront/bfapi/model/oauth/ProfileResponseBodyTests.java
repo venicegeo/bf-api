@@ -24,7 +24,7 @@ public class ProfileResponseBodyTests {
 		MockitoAnnotations.initMocks(this);
 
 		SimpleModule module = new SimpleModule();
-		module.addDeserializer(GeoAxisCommonName.class, new GeoAxisCommonName.Deserializer());
+		module.addDeserializer(AbstractCommonName.class, new AbstractCommonName.Deserializer());
 		this.objectMapper.registerModule(module);
 	}
 	
@@ -70,10 +70,10 @@ public class ProfileResponseBodyTests {
 	@Test
 	public void testComputedUserIdPriorities() throws UserException {
 		// Mock
-		ProfileResponseBody fullBody = new ProfileResponseBody("distinguished-name", new GeoAxisCommonName.SingleString("common-name"), "member-of", "first-name", "last-name", "id");
-		ProfileResponseBody dnBody = new ProfileResponseBody("distinguished-name", new GeoAxisCommonName.SingleString("common-name"), "member-of", null, null, null);
-		ProfileResponseBody singleCNBody = new ProfileResponseBody(null, new GeoAxisCommonName.SingleString("common-name"), "member-of", null, null, null);
-		ProfileResponseBody multiCNBody = new ProfileResponseBody(null, new GeoAxisCommonName.StringList(Arrays.asList("common-name-1", "common-name-2")) , "member-of", null, null, null);
+		ProfileResponseBody fullBody = new ProfileResponseBody("distinguished-name", new AbstractCommonName.SingleString("common-name"), "member-of", "first-name", "last-name", "id");
+		ProfileResponseBody dnBody = new ProfileResponseBody("distinguished-name", new AbstractCommonName.SingleString("common-name"), "member-of", null, null, null);
+		ProfileResponseBody singleCNBody = new ProfileResponseBody(null, new AbstractCommonName.SingleString("common-name"), "member-of", null, null, null);
+		ProfileResponseBody multiCNBody = new ProfileResponseBody(null, new AbstractCommonName.StringList(Arrays.asList("common-name-1", "common-name-2")) , "member-of", null, null, null);
 		ProfileResponseBody nameIdBody = new ProfileResponseBody(null, null, null, "firstname", "lastname", "id");
 		ProfileResponseBody invalidBody = new ProfileResponseBody(null, null, null, null, null, null);
 
@@ -95,10 +95,10 @@ public class ProfileResponseBodyTests {
 	@Test
 	public void testComputedUserNamePriorities() throws UserException {
 		// Mock
-		ProfileResponseBody fullBody = new ProfileResponseBody("distinguished-name", new GeoAxisCommonName.SingleString("common-name"), "member-of", "first-name", "last-name", "id");
-		ProfileResponseBody dnBody = new ProfileResponseBody("distinguished-name", new GeoAxisCommonName.SingleString("common-name"), "member-of", null, null, null);
-		ProfileResponseBody singleCNBody = new ProfileResponseBody(null, new GeoAxisCommonName.SingleString("common-name"), "member-of", null, null, null);
-		ProfileResponseBody multiCNBody = new ProfileResponseBody(null, new GeoAxisCommonName.StringList(Arrays.asList("common-name-1", "common-name-2")) , "member-of", null, null, null);
+		ProfileResponseBody fullBody = new ProfileResponseBody("distinguished-name", new AbstractCommonName.SingleString("common-name"), "member-of", "first-name", "last-name", "id");
+		ProfileResponseBody dnBody = new ProfileResponseBody("distinguished-name", new AbstractCommonName.SingleString("common-name"), "member-of", null, null, null);
+		ProfileResponseBody singleCNBody = new ProfileResponseBody(null, new AbstractCommonName.SingleString("common-name"), "member-of", null, null, null);
+		ProfileResponseBody multiCNBody = new ProfileResponseBody(null, new AbstractCommonName.StringList(Arrays.asList("common-name-1", "common-name-2")) , "member-of", null, null, null);
 		ProfileResponseBody nameIdBody = new ProfileResponseBody(null, null, null, "firstname", "lastname", "id");
 		ProfileResponseBody invalidBody = new ProfileResponseBody(null, null, null, null, null, null);
 

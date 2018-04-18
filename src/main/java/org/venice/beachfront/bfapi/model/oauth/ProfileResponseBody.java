@@ -27,7 +27,7 @@ public class ProfileResponseBody {
 	private String dn;
 
 	@JsonProperty(value = "commonname", required = false)
-	private GeoAxisCommonName commonName;
+	private AbstractCommonName commonName;
 
 	@JsonProperty(value = "memberof", required = false)
 	private String memberOf;
@@ -45,7 +45,7 @@ public class ProfileResponseBody {
 		super();
 	}
 
-	public ProfileResponseBody(String dn, GeoAxisCommonName commonName, String memberOf, String firstname, String lastname, String id) {
+	public ProfileResponseBody(String dn, AbstractCommonName commonName, String memberOf, String firstname, String lastname, String id) {
 		this.dn = dn;
 		this.commonName = commonName;
 		this.memberOf = memberOf;
@@ -58,7 +58,7 @@ public class ProfileResponseBody {
 		return dn;
 	}
 
-	public GeoAxisCommonName getCommonName() {
+	public AbstractCommonName getCommonName() {
 		return commonName;
 	}
 
