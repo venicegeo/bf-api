@@ -13,6 +13,13 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * AbstractCommonName is a polymorphic interface intended to enable parsing
+ * of OAuth profile responses that can have their CN listed either as a
+ * single string or a list of strings. For supporting this use case, Jackson
+ * requires a custom deserializer, which is implemented here, along with 
+ * some container classes for the different forms of CN data.
+ */
 public interface AbstractCommonName {
 	public String toString();
 	
