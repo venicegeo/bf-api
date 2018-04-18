@@ -22,16 +22,22 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
+
+import model.logger.Severity;
+import util.PiazzaLogger;
 
 /**
  * Handles failed authentication provider responses back to the user for when the user has submitted an invalid API Key.
  */
 @Component
 public class FailedAuthEntryPoint extends BasicAuthenticationEntryPoint {
-
+	@Autowired
+	private PiazzaLogger piazzaLogger;
+	
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authEx)
 			throws IOException, ServletException {
@@ -39,7 +45,11 @@ public class FailedAuthEntryPoint extends BasicAuthenticationEntryPoint {
 		response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication Failed");
 		PrintWriter writer = response.getWriter();
 		writer.println("Invalid API Key specified.");
-		// TODO: Audit log this
+
+		String message = String.format("Authentication Failed; Authorization header=`%s`; AuthenticationException=`%s`",
+				request.getHeader("Authorization"),
+				(authEx != null) ? authEx.toString() : "null");
+		this.piazzaLogger.log(message, Severity.WARNING);
 	}
 
 	@Override

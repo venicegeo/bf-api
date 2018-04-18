@@ -27,6 +27,7 @@ import org.venice.beachfront.bfapi.database.dao.UserProfileDao;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
+import model.logger.AuditElement;
 import model.logger.Severity;
 import util.PiazzaLogger;
 
@@ -93,6 +94,8 @@ public class UserProfileService {
 			// Check the last Access time and compare it with the threshold
 			if (Minutes.minutesBetween(userProfile.getLastAccessed(), new DateTime()).getMinutes() >= API_KEY_TIMEOUT_MINUTES) {
 				// Expire the Key
+				this.piazzaLogger.log("API key for user expired, invalidating", Severity.INFORMATIONAL, 
+						new AuditElement(userProfile.getName(), "logout", userProfile.getApiKey()));
 				this.invalidateKey(userProfile);
 			}
 		}
