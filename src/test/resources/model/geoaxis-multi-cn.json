@@ -1,0 +1,8 @@
+{
+	"DN": "distinguished-name.test.localdomain",
+	"commonname": ["testuser1.localdomain", "testuser2.localdomain"],
+	"memberof": "testorg.localdomain",
+	"firstname": "FirstName",
+	"lastname": "LastName",
+	"ID": "test-id-123"
+}

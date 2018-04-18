@@ -27,7 +27,7 @@ public class ProfileResponseBody {
 	private String dn;
 
 	@JsonProperty(value = "commonname", required = false)
-	private String commonName;
+	private AbstractCommonName commonName;
 
 	@JsonProperty(value = "memberof", required = false)
 	private String memberOf;
@@ -45,7 +45,7 @@ public class ProfileResponseBody {
 		super();
 	}
 
-	public ProfileResponseBody(String dn, String commonName, String memberOf, String firstname, String lastname, String id) {
+	public ProfileResponseBody(String dn, AbstractCommonName commonName, String memberOf, String firstname, String lastname, String id) {
 		this.dn = dn;
 		this.commonName = commonName;
 		this.memberOf = memberOf;
@@ -58,7 +58,7 @@ public class ProfileResponseBody {
 		return dn;
 	}
 
-	public String getCommonName() {
+	public AbstractCommonName getCommonName() {
 		return commonName;
 	}
 
@@ -76,8 +76,8 @@ public class ProfileResponseBody {
 		if (this.dn != null && this.dn.length() > 0) {
 			return this.dn;
 		}
-		if (this.commonName != null && this.commonName.length() > 0 && this.memberOf != null && this.memberOf.length() > 0) {
-			return String.format("%s@%s", this.commonName, this.memberOf);
+		if (this.commonName != null && this.commonName.toString().length() > 0 && this.memberOf != null && this.memberOf.length() > 0) {
+			return String.format("%s@%s", this.commonName.toString(), this.memberOf);
 		}
 		if (this.firstname != null && this.firstname.length() > 0 &&
 				this.lastname != null && this.lastname.length() > 0 &&
@@ -90,13 +90,13 @@ public class ProfileResponseBody {
 	}
 
 	public String getComputedUserName() throws UserException {
-		if (this.commonName != null && this.commonName.length() > 0) {
-			return this.commonName;
+		if (this.commonName != null && this.commonName.toString().length() > 0) {
+			return this.commonName.toString();
 		}
 		if (this.id != null && this.id.length() > 0) {
 			return this.id;
 		}
-		throw new UserException("Could not obtain a user name from OAuth profile response", this.commonName,
+		throw new UserException("Could not obtain a user name from OAuth profile response", this.toString(),
 				HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
@@ -104,5 +104,4 @@ public class ProfileResponseBody {
 		getComputedUserId();
 		getComputedUserName();
 	}
-
 }
