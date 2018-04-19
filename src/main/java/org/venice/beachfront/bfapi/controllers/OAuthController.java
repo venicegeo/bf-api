@@ -34,7 +34,6 @@ import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 import org.venice.beachfront.bfapi.services.OAuthService;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
-import model.logger.AuditElement;
 import model.logger.Severity;
 import util.PiazzaLogger;
 
@@ -102,10 +101,7 @@ public class OAuthController {
 	@ResponseBody
 	public String oauthLogout(HttpServletResponse response, Authentication authentication) throws UserException {
 		// Server-side invalidation of API Key
-		UserProfile userProfile = userProfileService.getProfileFromAuthentication(authentication);
-		this.piazzaLogger.log("User explicitly logged out, invalidating API key", Severity.INFORMATIONAL, 
-				new AuditElement(userProfile.getName(), "logout", userProfile.getApiKey()));
-		userProfileService.invalidateKey(userProfile);
+		userProfileService.invalidateKey(userProfileService.getProfileFromAuthentication(authentication));
 
 		// Construct redirect url for server side logout
 		final String uiUrl = "beachfront." + domain;
