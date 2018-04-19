@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 /**
  * AbstractCommonName is a polymorphic interface intended to enable parsing
@@ -20,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * requires a custom deserializer, which is implemented here, along with 
  * some container classes for the different forms of CN data.
  */
+@JsonDeserialize(using = AbstractCommonName.Deserializer.class)
 public interface AbstractCommonName {
 	public String toString();
 	
