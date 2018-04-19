@@ -139,7 +139,8 @@ public class BfApiConfig {
 			registry.addInterceptor(new HandlerInterceptorAdapter() {
 				@Override
 				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-					final String origin = request.getHeader("Origin");
+					String origin = request.getHeader("Origin");
+					origin = origin.replace("\r","").replace("\n","");
 					final List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
 					final boolean isAllowed = allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
 					if (isAllowed) {
