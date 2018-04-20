@@ -140,9 +140,9 @@ public class BfApiConfig {
 				@Override
 				public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 					final String origin = request.getHeader("Origin");
-					//final String sanitizedOrigin = origin.replace("\r","").replace("\n",""); // Prevent injection (CWE-113)
+					final String sanitizedOrigin = origin != null ? origin.replace("\r","").replace("\n","") : origin; // Prevent injection (CWE-113)
 					final List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
-					final boolean isAllowed = allowedOriginsList.stream().anyMatch(str -> str.trim().equals(origin));
+					final boolean isAllowed = allowedOriginsList.stream().anyMatch(str -> str.trim().equals(sanitizedOrigin));
 					if (isAllowed) {
 						response.setHeader("Access-Control-Allow-Origin", origin);
 					}
