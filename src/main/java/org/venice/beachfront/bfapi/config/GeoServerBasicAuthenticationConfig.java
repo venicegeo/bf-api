@@ -26,18 +26,21 @@ public class GeoServerBasicAuthenticationConfig extends GeoServerBaseAuthenticat
 	private int httpMaxRoute;
 
 	@Bean
-	public RestTemplate restTemplate() {
-		final RestTemplate restTemplate = new RestTemplate();
+	public HttpClient httpClient() {
 		// @formatter:off
-		final HttpClient httpClient =
-				HttpClientBuilder.create()
+		return HttpClientBuilder.create()
 					.setMaxConnTotal(httpMaxTotal)
 					.setMaxConnPerRoute(httpMaxRoute)
 					.setSSLHostnameVerifier(new NoopHostnameVerifier())
 					.setKeepAliveStrategy(getKeepAliveStrategy())
 					.build();
 		// @formatter:on
-		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
+	}
+
+	@Bean
+	public RestTemplate restTemplate() {
+		final RestTemplate restTemplate = new RestTemplate();
+		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient()));
 		return restTemplate;
 	}
 
