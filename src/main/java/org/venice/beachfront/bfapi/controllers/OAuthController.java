@@ -104,7 +104,7 @@ public class OAuthController {
 		userProfileService.invalidateKey(userProfileService.getProfileFromAuthentication(authentication));
 
 		// Construct redirect url for server side logout
-		final String uiUrl = "beachfront." + domain;
+		final String uiUrl = "https://beachfront." + domain;
 		// Forward user to server side logout
 		String logoutRedirectUri = UriComponentsBuilder.fromUriString(oauthLogoutUrl).queryParam("end_url", uiUrl).build().toUri()
 				.toString();
