@@ -74,8 +74,8 @@ public class GeoServerPKIAuthenticationConfig extends GeoServerBaseAuthenticatio
 	private String piazzaKeyPassphrase;
 
 	@Bean
-	public RestTemplate restTemplate() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException,
-			KeyStoreException, CertificateException, IOException {
+	public HttpClient httpClient() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, 
+		KeyStoreException, CertificateException, IOException {
 
 		final SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), piazzaKeyPassphrase.toCharArray())
 				.loadTrustMaterial(null, new TrustSelfSignedStrategy()).useProtocol("TLS").build();
@@ -84,7 +84,7 @@ public class GeoServerPKIAuthenticationConfig extends GeoServerBaseAuthenticatio
 		final RequestConfig requestConfig = RequestConfig.custom().setCookieSpec("myspec").setCircularRedirectsAllowed(true).build();
 
 		// @formatter:off
-		final HttpClient httpClient = HttpClientBuilder.create()
+		return HttpClientBuilder.create()
 				.setDefaultRequestConfig(requestConfig)
 				.setMaxConnTotal(httpMaxTotal)
 				.setSSLContext(sslContext)
@@ -96,9 +96,14 @@ public class GeoServerPKIAuthenticationConfig extends GeoServerBaseAuthenticatio
 				.setKeepAliveStrategy(getKeepAliveStrategy())
 				.build();
 		// @formatter:on
+	}
+
+	@Bean
+	public RestTemplate restTemplate() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, 
+		KeyStoreException, CertificateException, IOException {
 
 		final RestTemplate restTemplate = new RestTemplate();
-		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
+		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient()));
 
 		final List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
 		messageConverters.add(new StringHttpMessageConverter());
