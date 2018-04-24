@@ -101,6 +101,6 @@ public class OAuthControllerTests {
 		// Test
 		String redirectUrl = oauthController.oauthLogout(servletResponse, null);
 		assertEquals(servletResponse.getStatus(), HttpStatus.OK.value());
-		assertEquals(redirectUrl, "http://logout?end_url=beachfront.localhost");
+		assertEquals(redirectUrl, "http://logout?end_url=https://beachfront.localhost");
 	}
 }
