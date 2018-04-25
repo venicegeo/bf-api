@@ -89,28 +89,35 @@ public class PiazzaJobPoller {
 	public class PollStatusTask extends TimerTask {
 		@Override
 		public void run() {
-			// Get the list of outstanding jobs that need to be queried
-			List<Job> outstandingJobs = jobService.getOutstandingJobs();
-			for (Job job : outstandingJobs) {
-				// For each job, query the status of that job in Piazza
-				StatusMetadata status = null;
-				try {
-					status = piazzaService.getJobStatus(job.getJobId());
-				} catch (UserException exception) {
-					// If the Job has exceeded it's time-to-live, then mark that job a failure.
-					int timeDelta = Hours.hoursBetween(new DateTime(), job.getCreatedOn()).getHours();
-					if (timeDelta >= JOB_TIMEOUT_HOURS) {
-						String error = String.format("Job % has timed out after %s hours and will be set as failure.", job.getJobId(),
-								timeDelta);
-						piazzaLogger.log(error, Severity.ERROR);
-						// Kill the Job
-						jobService.createJobError(job, error);
-						job.setStatus(Job.STATUS_ERROR);
-						jobService.updateJob(job);
+			try {
+				// Get the list of outstanding jobs that need to be queried
+				List<Job> outstandingJobs = jobService.getOutstandingJobs();
+				for (Job job : outstandingJobs) {
+					// For each job, query the status of that job in Piazza
+					StatusMetadata status = null;
+					try {
+						status = piazzaService.getJobStatus(job.getJobId());
+					} catch (UserException exception) {
+						// If the Job has exceeded it's time-to-live, then mark that job a failure.
+						int timeDelta = Hours.hoursBetween(new DateTime(), job.getCreatedOn()).getHours();
+						if (timeDelta >= JOB_TIMEOUT_HOURS) {
+							String error = String.format("Job % has timed out after %s hours and will be set as failure.", job.getJobId(),
+									timeDelta);
+							piazzaLogger.log(error, Severity.ERROR);
+							// Kill the Job
+							jobService.createJobError(job, error);
+							job.setStatus(Job.STATUS_ERROR);
+							jobService.updateJob(job);
+						}
+						continue;
 					}
-					continue;
+					processJobStatus(job, status);
 				}
-				processJobStatus(job, status);
+			} catch (Exception exception) {
+				piazzaLogger.log(String.format(
+						"An unexpected severe error has occurred while polling for outstanding Piazza Jobs. Polling will continue, but Jobs may be negatively impacted. Inner Exception of type %s: %s",
+						exception.getClass().toString(), exception.getMessage()), Severity.ERROR);
+				exception.printStackTrace();
 			}
 		}
 
