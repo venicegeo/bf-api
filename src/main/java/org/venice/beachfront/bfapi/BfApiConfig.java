@@ -154,10 +154,10 @@ public class BfApiConfig {
 				}
 			});
 		}
-		
+
 		private static String removeSpecialCharacters(String input) {
-	        return (input != null) ? input.replaceAll("[^a-zA-Z ]", "") : null;
-	    }
+			return (input != null) ? input.replaceAll("\\r", "").replaceAll("\\n", "") : null;
+		}
 	}
 
 	/**
@@ -319,16 +319,16 @@ public class BfApiConfig {
 		private String piazzaKeyPassphrase;
 
 		@Bean
-		public HttpClient httpClient() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, UnrecoverableKeyException, KeyManagementException {
+		public HttpClient httpClient() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException,
+				UnrecoverableKeyException, KeyManagementException {
 			final SSLContext sslContext = SSLContexts.custom().loadKeyMaterial(getStore(), piazzaKeyPassphrase.toCharArray())
 					.loadTrustMaterial(null, new TrustSelfSignedStrategy()).useProtocol("TLS").build();
 			final Registry<CookieSpecProvider> registry = RegistryBuilder.<CookieSpecProvider>create()
 					.register("myspec", new MySpecProvider()).build();
 			final RequestConfig requestConfig = RequestConfig.custom().setCookieSpec("myspec").setCircularRedirectsAllowed(true).build();
-			return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).setMaxConnTotal(httpMaxTotal)
-					.setSSLContext(sslContext).setSSLHostnameVerifier(new NoopHostnameVerifier())
-					.setDefaultCookieStore(new BasicCookieStore()).setDefaultCookieSpecRegistry(registry)
-					.setRedirectStrategy(new MyRedirectStrategy()).setMaxConnPerRoute(httpMaxRoute)
+			return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).setMaxConnTotal(httpMaxTotal).setSSLContext(sslContext)
+					.setSSLHostnameVerifier(new NoopHostnameVerifier()).setDefaultCookieStore(new BasicCookieStore())
+					.setDefaultCookieSpecRegistry(registry).setRedirectStrategy(new MyRedirectStrategy()).setMaxConnPerRoute(httpMaxRoute)
 					.setKeepAliveStrategy(getKeepAliveStrategy()).build();
 		}
 
@@ -426,7 +426,8 @@ public class BfApiConfig {
 		ApiInfo apiInfo = new ApiInfoBuilder().title("Beachfront API").description("Beachfront Web Services")
 				.contact(new Contact("The VeniceGeo Project", "http://radiantblue.com", "venice@radiantblue.com")).version("0.1.0").build();
 		return new Docket(DocumentationType.SWAGGER_2).useDefaultResponseMessages(false).ignoredParameterTypes(Authentication.class)
-				.groupName("Beachfront").apiInfo(apiInfo).select().apis(RequestHandlerSelectors.withMethodAnnotation(ApiOperation.class)).paths(PathSelectors.any()).build();
+				.groupName("Beachfront").apiInfo(apiInfo).select().apis(RequestHandlerSelectors.withMethodAnnotation(ApiOperation.class))
+				.paths(PathSelectors.any()).build();
 	}
 
 }
