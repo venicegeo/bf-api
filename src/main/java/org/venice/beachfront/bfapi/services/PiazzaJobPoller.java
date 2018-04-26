@@ -99,9 +99,9 @@ public class PiazzaJobPoller {
 						status = piazzaService.getJobStatus(job.getJobId());
 					} catch (UserException exception) {
 						// If the Job has exceeded it's time-to-live, then mark that job a failure.
-						int timeDelta = Hours.hoursBetween(new DateTime(), job.getCreatedOn()).getHours();
+						int timeDelta = Hours.hoursBetween(job.getCreatedOn(), new DateTime()).getHours();
 						if (timeDelta >= JOB_TIMEOUT_HOURS) {
-							String error = String.format("Job % has timed out after %s hours and will be set as failure.", job.getJobId(),
+							String error = String.format("Job %s has timed out after %s hours and will be set as failure.", job.getJobId(),
 									timeDelta);
 							piazzaLogger.log(error, Severity.ERROR);
 							// Kill the Job
