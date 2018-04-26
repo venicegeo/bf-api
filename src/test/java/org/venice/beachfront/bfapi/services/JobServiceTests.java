@@ -45,6 +45,7 @@ import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
 import org.venice.beachfront.bfapi.database.dao.JobUserDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
+import org.venice.beachfront.bfapi.model.JobStatus;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
@@ -260,5 +261,20 @@ public class JobServiceTests {
 		Assert.assertArrayEquals(mockJSONResult, actualJSONResult);
 		Assert.assertArrayEquals(mockGeoPackageResult, actualGeoPackageResult);
 		Assert.assertArrayEquals(mockShapefileResult, actualShapefileResult);
+	}
+
+	@Test
+	public void testCreateJobError() {
+		this.jobService.createJobError(new Job(), "the_job_error");
+	}
+
+	@Test
+	public void testSearchJobsByInputs() {
+		ArrayList<Job> jobs = new ArrayList<>();
+		jobs.add(new Job());
+		jobs.add(new Job());
+		Mockito.when(this.jobDao.findByAlgorithmIdAndSceneId("my_algorithm_id", "my_scene_id"))
+				.thenReturn(jobs);
+		List<JobStatus> statuses = this.jobService.searchJobsByInputs("my_algorithm_id", "my_scene_id");
 	}
 }

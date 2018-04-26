@@ -26,22 +26,20 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sun.jndi.toolkit.url.Uri;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.CustomMatcher;
 import org.hamcrest.Matcher;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
+import org.mockito.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
@@ -269,5 +267,44 @@ public class PiazzaServiceTests {
 				return ((URI)uri).getPath().equals(path);
 			}
 		};
+	}
+
+	@Test
+	public void testGetAlgorithmStatistics() throws Exception {
+		// Mock
+		String responseJson = IOUtils.toString(
+				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "piazza", File.separator, "postJob.json")),
+				"UTF-8");
+		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
+				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
+
+		this.piazzaService.getAlgorithmStatistics("my_algo");
+	}
+
+	@Test(expected = UserException.class)
+	public void testGetAlgorithmStatistics_userEx1() throws Exception {
+		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
+				Mockito.<Class<String>>any()))
+				.thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
+
+		this.piazzaService.getAlgorithmStatistics("my_algo");
+	}
+
+	@Test(expected = UserException.class)
+	public void testGetAlgorithmStatistics_userEx2() throws Exception {
+		// Mock
+		String responseJson = "clearly invalid json";
+		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
+				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
+
+		this.piazzaService.getAlgorithmStatistics("my_algo");
+	}
+
+	@Test(expected = UserException.class)
+	public void testGetRegisteredAlgorithms() throws Exception {
+		Mockito.when(this.restTemplate.exchange(Matchers.any(URI.class), Mockito.eq(HttpMethod.GET), Mockito.any(), Mockito.eq(String.class)))
+				.thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
+
+		this.piazzaService.getRegisteredAlgorithms();
 	}
 }
