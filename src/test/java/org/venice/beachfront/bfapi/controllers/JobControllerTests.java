@@ -19,10 +19,7 @@ import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.security.core.Authentication;
 import org.venice.beachfront.bfapi.controllers.JobController.CreateJobBody;
 import org.venice.beachfront.bfapi.model.Confirmation;
@@ -92,8 +89,12 @@ public class JobControllerTests {
     public void testDeleteAllJobs() throws Exception {
         Authentication auth = Mockito.mock(Authentication.class);
 
-        this.jobController.deleteAllJobs(true, auth);
-        this.jobController.deleteAllJobs(null, auth);
+        Confirmation mockConfirmation = new Confirmation("conf_1", true);
+        Mockito.when(this.jobService.forgetAllJobs(Matchers.anyString()))
+                .thenReturn(mockConfirmation);
+
+        Assert.assertEquals(mockConfirmation, this.jobController.deleteAllJobs(true, auth));
+        Assert.assertFalse(this.jobController.deleteAllJobs(null, auth).getSuccess());
     }
 
 }

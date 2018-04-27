@@ -1,5 +1,6 @@
 package org.venice.beachfront.bfapi.auth;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -49,7 +50,7 @@ public class ApiKeyAuthProviderTest {
 
         Mockito.when(auth.getDetails()).thenReturn(reqDetails);
 
-        apiKeyAuthProvider.authenticate(auth);
-        apiKeyAuthProvider.authenticate(auth);
+        Assert.assertNotNull(apiKeyAuthProvider.authenticate(auth));
+        Assert.assertNull(apiKeyAuthProvider.authenticate(auth));
     }
 }

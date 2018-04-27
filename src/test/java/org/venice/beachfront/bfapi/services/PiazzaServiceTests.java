@@ -26,6 +26,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.sun.jndi.toolkit.url.Uri;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.CustomMatcher;
@@ -278,7 +279,8 @@ public class PiazzaServiceTests {
 		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
 				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
 
-		this.piazzaService.getAlgorithmStatistics("my_algo");
+		JsonNode node = this.piazzaService.getAlgorithmStatistics("my_algo");
+		Assert.assertEquals("job123", node.get("data").get("jobId").textValue());
 	}
 
 	@Test(expected = UserException.class)
@@ -288,6 +290,7 @@ public class PiazzaServiceTests {
 				.thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
 
 		this.piazzaService.getAlgorithmStatistics("my_algo");
+		//Expect exception
 	}
 
 	@Test(expected = UserException.class)
@@ -298,6 +301,7 @@ public class PiazzaServiceTests {
 				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
 
 		this.piazzaService.getAlgorithmStatistics("my_algo");
+		//Expect exception
 	}
 
 	@Test(expected = UserException.class)
@@ -306,5 +310,6 @@ public class PiazzaServiceTests {
 				.thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
 
 		this.piazzaService.getRegisteredAlgorithms();
+		//Expect exception.
 	}
 }

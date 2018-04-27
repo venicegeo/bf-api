@@ -22,6 +22,7 @@ import java.util.ArrayList;
 
 import org.apache.commons.io.IOUtils;
 import org.joda.time.DateTime;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
@@ -81,9 +82,9 @@ public class PiazzaJobPollerTests {
 				"scene1", 0.0, 0.0, 0.0, null, true);
 		StatusMetadata mockStatus = new StatusMetadata(Job.STATUS_SUCCESS);
 		// Return test GeoJSON for actual data
-		InputStream geoJsonData = getClass().getClassLoader()
-				.getResourceAsStream(String.format("%s%s%s", "detection", File.separator, "detection.geojson"));
-		String mockGeoJson = IOUtils.toString(geoJsonData, "UTF-8");
+//		InputStream geoJsonData = getClass().getClassLoader()
+//				.getResourceAsStream(String.format("%s%s%s", "detection", File.separator, "detection.geojson"));
+		//String mockGeoJson = IOUtils.toString(geoJsonData, "UTF-8");
 
 		Mockito.when(piazzaService.getJobResultBytesAsGeoJson(Matchers.anyString(), Matchers.anyString()))
 				.thenThrow(IOException.class)
@@ -91,16 +92,22 @@ public class PiazzaJobPollerTests {
 				.thenThrow(Exception.class);
 
 		// Test
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus);
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus);
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus);
+		mockJob.setStatus(Job.STATUS_PENDING);
+		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus); //IOException
+		Assert.assertEquals(Job.STATUS_ERROR, mockJob.getStatus());
+
+		mockJob.setStatus(Job.STATUS_PENDING);
+		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus); //UserException
+		Assert.assertEquals(Job.STATUS_ERROR, mockJob.getStatus());
+
+		mockJob.setStatus(Job.STATUS_PENDING);
+		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus); //Exception
+		Assert.assertEquals(Job.STATUS_ERROR, mockJob.getStatus());
 
 		mockStatus.setStatus(Job.STATUS_ERROR);
 		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus);
+		Assert.assertEquals(Job.STATUS_ERROR, mockJob.getStatus());
 
-//		// Verify no Errors
-//		Mockito.verify(jobService, Mockito.times(0)).createJobError(Mockito.any(), Mockito.any());
-//		Mockito.verify(jobService, Mockito.times(1)).updateJob(Mockito.any());
 	}
 
 	@Test
@@ -126,8 +133,6 @@ public class PiazzaJobPollerTests {
 				.thenReturn(status_success)
 				.thenThrow(UserException.class)
 				.thenThrow(Exception.class);
-
-		//Mockito.
 
 		task.run();
 	}

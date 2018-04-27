@@ -2,6 +2,7 @@ package org.venice.beachfront.bfapi.controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
@@ -51,5 +52,10 @@ public class HealthCheckControllerTest {
 
         Map<String, String> result = this.healthCheckController.healthCheck();
         Map<String, String> result_ex = this.healthCheckController.healthCheck();
+
+        Assert.assertFalse(result.containsKey("error"));
+        Assert.assertTrue(result.size() > 0);
+        Assert.assertTrue(result_ex.containsKey("error"));
+        Assert.assertTrue(result_ex.size() > 0);
     }
 }

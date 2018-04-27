@@ -262,7 +262,9 @@ public class JobServiceTests {
 
 	@Test
 	public void testCreateJobError() {
+
 		this.jobService.createJobError(new Job(), "the_job_error");
+		Mockito.verify(this.jobErrorDao, Mockito.times(1)).save(Matchers.any(JobError.class));
 	}
 
 	@Test
@@ -272,7 +274,7 @@ public class JobServiceTests {
 		jobs.add(new Job());
 		Mockito.when(this.jobDao.findByAlgorithmIdAndSceneId("my_algorithm_id", "my_scene_id"))
 				.thenReturn(jobs);
-		List<JobStatus> statuses = this.jobService.searchJobsByInputs("my_algorithm_id", "my_scene_id");
+		Assert.assertEquals(jobs.size(), this.jobService.searchJobsByInputs("my_algorithm_id", "my_scene_id").size());
 	}
 
 	@Test

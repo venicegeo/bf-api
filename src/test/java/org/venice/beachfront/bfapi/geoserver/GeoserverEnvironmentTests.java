@@ -81,7 +81,7 @@ public class GeoserverEnvironmentTests {
     }
 
     @Test
-    public void testInitialize_error2() throws IOException {
+    public void testInitialize_badJson() throws IOException {
         ResponseEntity<String> responseEntity = Mockito.mock(ResponseEntity.class);
 
         Mockito.when(restTemplate.exchange(
@@ -98,7 +98,7 @@ public class GeoserverEnvironmentTests {
     }
 
     @Test
-    public void testInitialize_3() {
+    public void testInitialize_failedPost() {
         ResponseEntity<String> responseEntity = Mockito.mock(ResponseEntity.class);
 
         HttpClientErrorException ex = new HttpClientErrorException(HttpStatus.NOT_FOUND);
@@ -126,12 +126,8 @@ public class GeoserverEnvironmentTests {
     }
 
     @Test
-    public void testInitialize_4() {
-        //ResponseEntity<String> responseEntity = Mockito.mock(ResponseEntity.class);
-
+    public void testInitialize_restClientException() {
         HttpClientErrorException ex = new HttpClientErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
-//        Mockito.when(responseEntity.getStatusCode())
-//                .thenThrow(ex);
 
         Mockito.when(restTemplate.exchange(
                 Matchers.anyString(),
