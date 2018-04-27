@@ -114,6 +114,9 @@ public class PiazzaJobPollerTests {
 		outstandingJobs.add(new Job());
 		outstandingJobs.get(1).setJobId("job_2");
 		outstandingJobs.get(1).setCreatedOn(DateTime.now().minusDays(1));
+		outstandingJobs.add(new Job());
+		outstandingJobs.get(2).setJobId("job_3");
+		outstandingJobs.get(2).setCreatedOn(DateTime.now().minusDays(1));
 		Mockito.when(this.jobService.getOutstandingJobs()).thenReturn(outstandingJobs);
 
 		StatusMetadata status_success = new StatusMetadata();
@@ -121,7 +124,8 @@ public class PiazzaJobPollerTests {
 
 		Mockito.when(this.piazzaService.getJobStatus(Matchers.anyString()))
 				.thenReturn(status_success)
-				.thenThrow(UserException.class);
+				.thenThrow(UserException.class)
+				.thenThrow(Exception.class);
 
 		//Mockito.
 

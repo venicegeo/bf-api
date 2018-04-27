@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.eclipse.emf.ecore.xml.type.internal.RegEx;
 import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -32,21 +33,17 @@ import org.joda.time.Seconds;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
+import org.junit.internal.runners.statements.Fail;
+import org.mockito.*;
+import org.mockito.internal.verification.Times;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
 import org.venice.beachfront.bfapi.database.dao.JobUserDao;
-import org.venice.beachfront.bfapi.model.Algorithm;
-import org.venice.beachfront.bfapi.model.Job;
-import org.venice.beachfront.bfapi.model.JobStatus;
-import org.venice.beachfront.bfapi.model.Scene;
+import org.venice.beachfront.bfapi.model.*;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
@@ -277,4 +274,77 @@ public class JobServiceTests {
 				.thenReturn(jobs);
 		List<JobStatus> statuses = this.jobService.searchJobsByInputs("my_algorithm_id", "my_scene_id");
 	}
+
+	@Test
+	public void testGetJobsForUser() {
+
+		ArrayList<JobUser> jobUsers = new ArrayList<>();
+		jobUsers.add(new JobUser());
+		jobUsers.get(0).setjobUserPK(new JobUserPK());
+		jobUsers.add(new JobUser());
+		jobUsers.get(1).setjobUserPK(new JobUserPK());
+
+		Mockito.when(this.jobUserDao.findByJobUserPK_User_UserId("user_1"))
+				.thenReturn(jobUsers);
+
+		List<Job> result = this.jobService.getJobsForUser("user_1");
+		Assert.assertEquals(jobUsers.size(), result.size());
+	}
+
+	@Test
+	public void testGetOutstandingJobs() {
+		ArrayList<Job> jobList = new ArrayList<>();
+
+		jobList.add(new Job());
+		jobList.add(new Job());
+		jobList.add(new Job());
+
+		Mockito.when(this.jobDao.findByStatusIn(Matchers.anyList()))
+				.thenReturn(jobList);
+
+		List<Job> result = this.jobService.getOutstandingJobs();
+
+		Assert.assertEquals(jobList.size(), result.size());
+	}
+
+	@Test
+	public void testForgetJob() {
+		Mockito.when(this.jobUserDao.findByJobUserPK_Job_JobIdAndJobUserPK_User_UserId("job_1", "user_1"))
+				.thenReturn(new JobUser());
+
+		Assert.assertTrue(this.jobService.forgetJob("job_1", "user_1").getSuccess());
+		Assert.assertFalse(this.jobService.forgetJob("job_1", "user_2").getSuccess());
+		Assert.assertFalse(this.jobService.forgetJob("job_2", "user_1").getSuccess());
+
+		Mockito.verify(this.jobUserDao, Mockito.times(1)).delete(Matchers.any(JobUser.class));
+	}
+
+	@Test
+	public void testForgetAllJobs() throws Exception {
+		JobUser jobUser = new JobUser();
+		jobUser.setjobUserPK(new JobUserPK());
+		jobUser.getJobUserPK().setJob(new Job());
+
+		ArrayList<JobUser> jList = new ArrayList<>();
+		jList.add(jobUser);
+
+		Mockito.when(this.jobUserDao.findByJobUserPK_User_UserId(
+				Matchers.anyString()))
+				.thenReturn(jList);
+
+		Mockito.when(this.jobUserDao.findByJobUserPK_Job_JobIdAndJobUserPK_User_UserId(
+				Matchers.anyString(), Matchers.anyString()))
+				.thenReturn(jobUser)
+				.thenReturn(null);
+
+		Assert.assertTrue(this.jobService.forgetAllJobs("user_1").getSuccess());
+
+		try {
+			this.jobService.forgetAllJobs("user_2");
+			Assert.fail("Expected an exception.");
+		} catch (UserException ex) {
+			//Good
+		}
+	}
+
 }
