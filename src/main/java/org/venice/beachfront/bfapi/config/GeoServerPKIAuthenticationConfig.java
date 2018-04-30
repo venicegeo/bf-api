@@ -39,11 +39,13 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.DefaultCookieSpec;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -99,17 +101,16 @@ public class GeoServerPKIAuthenticationConfig extends GeoServerBaseAuthenticatio
 	}
 
 	@Bean
-	public RestTemplate restTemplate() throws KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, 
-		KeyStoreException, CertificateException, IOException {
-
+	public RestTemplate restTemplate(@Autowired HttpClient httpClient) {
 		final RestTemplate restTemplate = new RestTemplate();
-		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient()));
+		restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
 
-		final List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
+		final List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
 		messageConverters.add(new StringHttpMessageConverter());
 		messageConverters.add(new MappingJackson2HttpMessageConverter());
-		restTemplate.setMessageConverters(messageConverters);
+		messageConverters.add(new FormHttpMessageConverter());
 
+		restTemplate.setMessageConverters(messageConverters);
 		return restTemplate;
 	}
 
