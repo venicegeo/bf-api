@@ -3,8 +3,6 @@ package org.venice.beachfront.bfapi.config;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
@@ -20,8 +18,6 @@ import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
 /**
  * Initializes the security providers for validating API Keys on all requests that require API Key validation.
  */
-@EnableAutoConfiguration
-@ComponentScan
 @Configuration
 public class BfApiWebSecurity extends WebSecurityConfigurerAdapter {
 

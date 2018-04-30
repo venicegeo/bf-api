@@ -43,8 +43,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
-@EnableAutoConfiguration
-@ComponentScan
 @Controller
 @EnableOAuth2Client
 public class OAuth2Config {
