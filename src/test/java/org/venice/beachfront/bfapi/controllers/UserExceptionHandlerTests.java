@@ -51,27 +51,27 @@ public class UserExceptionHandlerTests {
 		assertEquals(response.getHeaders().get("Content-Type").get(0), "text/plain");
 	}
 	
-//	@Test
-//	public void testRuntimeExceptionWrappedUserException() {
-//		UserException ue = new UserException("test message", "test details", HttpStatus.I_AM_A_TEAPOT);
-//		RuntimeException re = new RuntimeException(ue);
-//		
-//		ResponseEntity<String> response = this.userExceptionHandler.handleRuntimeException(re);
-//		
-//		assertEquals(response.getBody(), "test message");
-//		assertEquals(response.getStatusCodeValue(), HttpStatus.I_AM_A_TEAPOT.value());
-//		assertEquals(response.getHeaders().get("Content-Type").get(0), "text/plain");
-//	}
-//	
-//	@Test
-//	public void testRuntimeExceptionNoCause() {
-//		RuntimeException re = new RuntimeException("test message");
-//		
-//		ResponseEntity<String> response = this.userExceptionHandler.handleRuntimeException(re);
-//		
-//		assertEquals(response.getBody(), "test message");
-//		assertEquals(response.getStatusCodeValue(), HttpStatus.INTERNAL_SERVER_ERROR.value());
-//		assertEquals(response.getHeaders().get("Content-Type").get(0), "text/plain");
-//	}
+	@Test
+	public void testRuntimeExceptionWrappedUserException() {
+		UserException ue = new UserException("test message", "test details", HttpStatus.I_AM_A_TEAPOT);
+		RuntimeException re = new RuntimeException(ue);
+		
+		ResponseEntity<String> response = this.userExceptionHandler.handleRuntimeException(re);
+		
+		assertEquals(response.getBody(), "test message");
+		assertEquals(response.getStatusCodeValue(), HttpStatus.I_AM_A_TEAPOT.value());
+		assertEquals(response.getHeaders().get("Content-Type").get(0), "text/plain");
+	}
+	
+	@Test
+	public void testRuntimeExceptionNoCause() {
+		RuntimeException re = new RuntimeException("test message");
+		
+		ResponseEntity<String> response = this.userExceptionHandler.handleRuntimeException(re);
+		
+		assertEquals(response.getBody(), "test message");
+		assertEquals(response.getStatusCodeValue(), HttpStatus.INTERNAL_SERVER_ERROR.value());
+		assertEquals(response.getHeaders().get("Content-Type").get(0), "text/plain");
+	}
 	
 }
