@@ -34,26 +34,57 @@ public class BfApiWebSecurity extends WebSecurityConfigurerAdapter {
 
 	@Override
 	public void configure(WebSecurity web) throws Exception {
-		web.ignoring().antMatchers("/").antMatchers("/index").antMatchers("/login").antMatchers("/oauth/start").antMatchers(HttpMethod.OPTIONS);
+		// @formatter:off
+
+		web.ignoring()
+
+			// Allow unauthenticated queries to root (health check) path
+			.antMatchers("/") 
+
+			// Allow unauthenticated queries to login callback path
+			.antMatchers("/oauth/callback")
+
+			// Allow unauthenticated queries to OAuth login start path
+			.antMatchers("/oauth/start") 
+
+			// Allow unauthenticated queries for Swagger documentation
+			.antMatchers("/v2/api-docs")
+
+			// Allow any OPTIONS for REST best practices
+			.antMatchers(HttpMethod.OPTIONS); 
+
+		// @formatter:on
 	}
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		// @formatter:off
 		http
+			// Use HTTP Basic authentication
 			.httpBasic()
+
+			// Entry point for starting a Basic auth exchange (i.e. "failed authentication" handling)
 			.authenticationEntryPoint(failureEntryPoint)
-			.authenticationDetailsSource(authenticationDetailsSource())
+
+			// Feed more request details into any providers
+			.authenticationDetailsSource(authenticationDetailsSource()) 
 		.and()
 			.authorizeRequests()
 			.anyRequest()
 			.authenticated()
 		.and()
-			.sessionManagement()
-			.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+			// Do not create or manage sessions for security
+			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 		.and()
-			.csrf()
-			.disable();
+			// Disable auto-magical Spring Security logout behavior
+			.logout().disable()
+
+			// Use this custom authentication provider to authenticate requests
+			.authenticationProvider(apiKeyAuthProvider)
+
+			// Disable advanced CSRF protections for better statelessness
+			.csrf().disable();
+
 		// @formatter:on
 	}
 
