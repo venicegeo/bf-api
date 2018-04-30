@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import model.logger.Severity;
 import util.PiazzaLogger;
 
-@ControllerAdvice
+@ControllerAdvice(basePackages = "org.venice.beachfront.bfapi.controllers")
 public class UserExceptionHandler {
 	@Autowired
 	private PiazzaLogger logger;
@@ -56,27 +56,26 @@ public class UserExceptionHandler {
 		return ResponseEntity.status(ex.getRecommendedStatusCode()).contentType(MediaType.TEXT_PLAIN).body(ex.getMessage());
 	}
 
-	// This breaks the sso tile functionality
-//	@ExceptionHandler(RuntimeException.class)
-//	public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
-//		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-//		if (ex.getCause() != null && ex.getCause().getClass() == UserException.class) {
-//			// Handle User Exceptions separately
-//			return this.handleUserException((UserException) ex.getCause());
-//		} else if (ex.getCause() != null && (ex.getCause().getClass() == HttpMessageNotReadableException.class)) {
-//			status = HttpStatus.BAD_REQUEST;
-//		} else if (ex.getCause() != null && (ex.getCause().getClass() == JsonMappingException.class)) {
-//			status = HttpStatus.BAD_REQUEST;
-//		}
-//		String logMessage = String.format("[%d] Unknown runtime error -- %s", status.value(), ex.getMessage());
-//		logger.log(logMessage, Severity.ERROR);
-//
-//		if (this.printRuntimeExceptionTracebacks) {
-//			StringWriter sw = new StringWriter();
-//			ex.printStackTrace(new PrintWriter(sw));
-//			logger.log(sw.toString(), Severity.ERROR);			
-//		}
-//
-//		return ResponseEntity.status(status).contentType(MediaType.TEXT_PLAIN).body(ex.getMessage());
-//	}
+	@ExceptionHandler(RuntimeException.class)
+	public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+		if (ex.getCause() != null && ex.getCause().getClass() == UserException.class) {
+			// Handle User Exceptions separately
+			return this.handleUserException((UserException) ex.getCause());
+		} else if (ex.getCause() != null && (ex.getCause().getClass() == HttpMessageNotReadableException.class)) {
+			status = HttpStatus.BAD_REQUEST;
+		} else if (ex.getCause() != null && (ex.getCause().getClass() == JsonMappingException.class)) {
+			status = HttpStatus.BAD_REQUEST;
+		}
+		String logMessage = String.format("[%d] Unknown runtime error -- %s", status.value(), ex.getMessage());
+		logger.log(logMessage, Severity.ERROR);
+
+		if (this.printRuntimeExceptionTracebacks) {
+			StringWriter sw = new StringWriter();
+			ex.printStackTrace(new PrintWriter(sw));
+			logger.log(sw.toString(), Severity.ERROR);			
+		}
+
+		return ResponseEntity.status(status).contentType(MediaType.TEXT_PLAIN).body(ex.getMessage());
+	}
 }
