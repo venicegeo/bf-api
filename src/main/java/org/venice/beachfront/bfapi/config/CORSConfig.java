@@ -46,6 +46,6 @@ public class CORSConfig extends WebMvcConfigurerAdapter {
 	}
 
 	private static String removeSpecialCharacters(String input) {
-		return (input != null) ? input.replaceAll("[^a-zA-Z ]", "") : null;
+		return (input != null) ? input.replaceAll("\\r", "").replaceAll("\\n", "") : null;
     }
 }

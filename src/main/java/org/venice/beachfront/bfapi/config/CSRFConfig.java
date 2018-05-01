@@ -18,7 +18,7 @@ import model.logger.Severity;
 import util.PiazzaLogger;
 
 @Configuration
-public class CRSFConfig extends WebMvcConfigurerAdapter {
+public class CSRFConfig extends WebMvcConfigurerAdapter {
 	@Value("${auth.allowedOrigins}")
 	private String allowedOrigins;
 
