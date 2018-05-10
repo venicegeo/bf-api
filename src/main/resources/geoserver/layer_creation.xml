@@ -28,8 +28,6 @@
 				</geometry>
 				<parameter>
 					<name>jobid</name>
-					<regexpValidator>^(.*)$
-					</regexpValidator>
 				</parameter>
 				<parameter>
 					<name>sceneid</name>
