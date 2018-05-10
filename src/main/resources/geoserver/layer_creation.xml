@@ -28,7 +28,7 @@
 				</geometry>
 				<parameter>
 					<name>jobid</name>
-					<regexpValidator>^(%|[a-f0-9\-]{36})$
+					<regexpValidator>^(%|[a-f0-9\-]+)$
 					</regexpValidator>
 				</parameter>
 				<parameter>
