@@ -61,8 +61,11 @@ public class GeoServerProxyService {
 		URL geoserverUrl = new URL(geoserverEnvironment.getGeoServerBaseUrl());
 		URI requestUri = new URI(geoserverUrl.getProtocol(), null, geoserverUrl.getHost(), geoserverUrl.getPort(), requestPath,
 				request.getQueryString(), null);
-		// Ensure no automatic encoding takes place, as this will cause an incorrect request to GeoServer
+		// Double encoding takes place here. First, in the REST Request delivered to API by the client. Second, in the
+		// translation to the URI object. Decode both of these steps to get the real, completely decoded request to
+		// GeoServer.
 		String decodedUrl = URLDecoder.decode(requestUri.toString(), "UTF-8");
+		decodedUrl = URLDecoder.decode(requestUri.toString(), "UTF-8");
 		piazzaLogger.log(String.format("Proxying request to GET GeoServer at URI %s", decodedUrl), Severity.INFORMATIONAL);
 		try {
 			HttpEntity<String> requestHeaders = new HttpEntity<>(authHeaders.get());
