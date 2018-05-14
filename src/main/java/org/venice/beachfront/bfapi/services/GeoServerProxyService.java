@@ -20,6 +20,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLDecoder;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -59,11 +60,13 @@ public class GeoServerProxyService {
 		// Form the complete URI by piecing together the GeoServer URL with the API proxy request parameters
 		URL geoserverUrl = new URL(geoserverEnvironment.getGeoServerBaseUrl());
 		URI requestUri = new URI(geoserverUrl.getProtocol(), null, geoserverUrl.getHost(), geoserverUrl.getPort(), requestPath,
-				request.getQueryString().replaceAll("%25", "%"), null);
-		piazzaLogger.log(String.format("Proxying request to GET GeoServer at URI %s", requestUri.toString()), Severity.INFORMATIONAL);
+				request.getQueryString(), null);
+		// Ensure no automatic encoding takes place, as this will cause an incorrect request to GeoServer
+		String decodedUrl = URLDecoder.decode(requestUri.toString(), "UTF-8");
+		piazzaLogger.log(String.format("Proxying request to GET GeoServer at URI %s", decodedUrl), Severity.INFORMATIONAL);
 		try {
 			HttpEntity<String> requestHeaders = new HttpEntity<>(authHeaders.get());
-			ResponseEntity<byte[]> response = restTemplate.exchange(requestUri, HttpMethod.GET, requestHeaders, byte[].class);
+			ResponseEntity<byte[]> response = restTemplate.exchange(decodedUrl, HttpMethod.GET, requestHeaders, byte[].class);
 			return response;
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Received GeoServer error response, code=%d, length=%d, for URI %s",
