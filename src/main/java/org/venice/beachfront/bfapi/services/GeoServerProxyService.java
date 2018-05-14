@@ -59,7 +59,7 @@ public class GeoServerProxyService {
 		// Form the complete URI by piecing together the GeoServer URL with the API proxy request parameters
 		URL geoserverUrl = new URL(geoserverEnvironment.getGeoServerBaseUrl());
 		URI requestUri = new URI(geoserverUrl.getProtocol(), null, geoserverUrl.getHost(), geoserverUrl.getPort(), requestPath,
-				request.getQueryString(), null);
+				request.getQueryString().replaceAll("%25", "%"), null);
 		piazzaLogger.log(String.format("Proxying request to GET GeoServer at URI %s", requestUri.toString()), Severity.INFORMATIONAL);
 		try {
 			HttpEntity<String> requestHeaders = new HttpEntity<>(authHeaders.get());
