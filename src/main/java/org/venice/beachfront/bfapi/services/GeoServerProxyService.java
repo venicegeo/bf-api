@@ -65,7 +65,7 @@ public class GeoServerProxyService {
 		// translation to the URI object. Decode both of these steps to get the real, completely decoded request to
 		// GeoServer.
 		String decodedUrl = URLDecoder.decode(requestUri.toString(), "UTF-8");
-		decodedUrl = URLDecoder.decode(requestUri.toString(), "UTF-8");
+		decodedUrl = URLDecoder.decode(decodedUrl.toString(), "UTF-8");
 		piazzaLogger.log(String.format("Proxying request to GET GeoServer at URI %s", decodedUrl), Severity.INFORMATIONAL);
 		try {
 			HttpEntity<String> requestHeaders = new HttpEntity<>(authHeaders.get());
