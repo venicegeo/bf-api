@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -54,6 +55,9 @@ public class HealthCheckController {
 	@Autowired
 	private GeoserverEnvironment geoserverEnvironment;
 
+	@Value("${DOMAIN}")
+	private String domain;
+
 	@RequestMapping(path = "/", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	@ApiOperation(value = "Health and Status Check", notes = "General health check information", tags = "Health")
@@ -64,7 +68,8 @@ public class HealthCheckController {
 		Map<String, String> healthCheckData = new HashMap<>();
 		// Show uptime
 		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
-		healthCheckData.put("geoserver", geoserverEnvironment.getGeoServerBaseUrl());
+		healthCheckData.put("geoserver", String.format("https://bf-api.%s/geoserver", domain));
+		healthCheckData.put("backing-geoserver", geoserverEnvironment.getGeoServerBaseUrl());
 		try {
 			// Show algorithm Job Queue length as reported by Piazza
 			for (Algorithm algorithm : piazzaService.getRegisteredAlgorithms()) {
