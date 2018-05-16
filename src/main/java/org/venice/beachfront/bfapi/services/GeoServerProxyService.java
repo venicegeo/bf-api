@@ -53,9 +53,7 @@ public class GeoServerProxyService {
 	private int geoserverTimeout;
 
 	// Class-scoped for mocks. We don't want to autoWire.
-	//private RestTemplate restTemplate = new RestTemplate();
-	@Autowired
-	private RestTemplate restTemplate;
+	private RestTemplate restTemplate = new RestTemplate();
 	@Autowired
 	private PiazzaLogger piazzaLogger;
 	@Autowired
@@ -65,7 +63,7 @@ public class GeoServerProxyService {
 	@Autowired
 	private AuthHeaders authHeaders;
 
-	//@PostConstruct
+	@PostConstruct
 	public void initialize() {
 		// Configure a timeout specific to GeoServer. These connections are prone to hanging, and we want to enforce a
 		// quick timeout period so this does not lock up the application.
