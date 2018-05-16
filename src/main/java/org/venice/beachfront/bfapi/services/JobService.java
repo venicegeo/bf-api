@@ -452,7 +452,8 @@ public class JobService {
 		if (statusMetadata.isStatusSuccess()) {
 			String metaDataId = statusMetadata.getDataId();
 			switch(dataType) {
-			case GEOJSON: return this.piazzaService.getJobResultBytesAsGeoJson(metaDataId, jobId);
+			//case GEOJSON: return this.piazzaService.getJobResultBytesAsGeoJson(metaDataId, jobId);
+			case GEOJSON: return this.detectionDao.findFullDetectionGeoJson(jobId);
 			case GEOPACKAGE: return this.piazzaService.getJobResultBytesAsGeoPackage(metaDataId, jobId);
 			case SHAPEFILE: return this.piazzaService.getJobResultBytesAsShapefile(metaDataId, jobId);
 			}
