@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.io.IOUtils;
 import org.geotools.geojson.geom.GeometryJSON;
@@ -94,7 +95,9 @@ public class JobServiceTests {
 		Algorithm mockAlgorithm = new Algorithm("Description", "Interface", 10, "Name", serviceId, "1.0.0");
 		Mockito.doReturn(mockAlgorithm).when(algorithmService).getAlgorithm(Mockito.eq(serviceId));
 		Scene mockScene = new Scene("scene123", new DateTime(), 10, null, 10, "Sensor", "URI");
-		Mockito.doReturn(mockScene).when(sceneService).getScene(Mockito.eq("scene123"), Mockito.any(), Mockito.anyBoolean());
+		Mockito.doReturn(mockScene).when(sceneService).getScene(Mockito.eq("scene123"), Mockito.anyString(), Mockito.anyBoolean());
+		Mockito.doReturn(CompletableFuture.completedFuture(mockScene))
+			.when(sceneService).asyncGetActiveScene(Mockito.eq("scene123"), Mockito.anyString(), Mockito.anyBoolean());
 		Mockito.doReturn(mockScene).when(sceneService).getSceneFromLocalDatabase(Mockito.eq("scene123"));
 		// No redundant jobs
 		Mockito.doReturn(new ArrayList<Job>()).when(jobDao).findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatus(
