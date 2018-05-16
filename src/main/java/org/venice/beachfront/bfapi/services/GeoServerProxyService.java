@@ -22,13 +22,17 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.http.client.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -45,14 +49,28 @@ import util.PiazzaLogger;
  */
 @Service
 public class GeoServerProxyService {
-	@Autowired
-	private RestTemplate restTemplate;
+	@Value("${geoserver.timeout}")
+	private int geoserverTimeout;
+
+	// Class-scoped for mocks. We don't want to autoWire.
+	private RestTemplate restTemplate = new RestTemplate();
 	@Autowired
 	private PiazzaLogger piazzaLogger;
 	@Autowired
 	private GeoserverEnvironment geoserverEnvironment;
 	@Autowired
+	private HttpClient httpClient;
+	@Autowired
 	private AuthHeaders authHeaders;
+
+	@PostConstruct
+	public void initialize() {
+		// Configure a timeout specific to GeoServer. These connections are prone to hanging, and we want to enforce a
+		// quick timeout period so this does not lock up the application.
+		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(this.httpClient);
+		requestFactory.setReadTimeout(geoserverTimeout);
+		restTemplate.setRequestFactory(requestFactory);
+	}
 
 	public ResponseEntity<byte[]> proxyRequest(HttpServletRequest request)
 			throws MalformedURLException, IOException, URISyntaxException, UserException {

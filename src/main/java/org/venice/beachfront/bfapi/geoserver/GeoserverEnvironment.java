@@ -50,8 +50,8 @@ public class GeoserverEnvironment {
 	private String LAYER_NAME;
 	@Value("${geoserver.style.name}")
 	private String STYLE_NAME;
-	@Value("${geoserver.creation.timeout}")
-	private int restTemplateConnectionReadTimeout;
+	@Value("${geoserver.timeout}")
+	private int geoserverTimeout;
 	@Value("${exit.on.geoserver.provision.failure}")
 	private Boolean exitOnGeoServerProvisionFailure;
 
@@ -76,7 +76,7 @@ public class GeoserverEnvironment {
 		// Since we're on the startup thread, we want to try to complete quickly. e.g. don't wait for slow connections.
 		// Configure a reasonable timeout for the rest client to abort slow requests.
 		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(this.httpClient);
-		requestFactory.setReadTimeout(restTemplateConnectionReadTimeout);
+		requestFactory.setReadTimeout(geoserverTimeout);
 		restTemplate.setRequestFactory(requestFactory);
 
 		// Check GeoServer Layer
