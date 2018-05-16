@@ -53,7 +53,7 @@ public class GeoServerProxyService {
 	private int geoserverTimeout;
 
 	// Class-scoped for mocks. We don't want to autoWire.
-	//private RestTemplate restTemplate = new RestTemplate();
+	private RestTemplate restTemplate = new RestTemplate();
 	@Autowired
 	private PiazzaLogger piazzaLogger;
 	@Autowired
@@ -67,23 +67,13 @@ public class GeoServerProxyService {
 	public void initialize() {
 		// Configure a timeout specific to GeoServer. These connections are prone to hanging, and we want to enforce a
 		// quick timeout period so this does not lock up the application.
-		//HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(this.httpClient);
-		//requestFactory.setReadTimeout(geoserverTimeout);
-		//restTemplate.setRequestFactory(requestFactory);
+		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(this.httpClient);
+		requestFactory.setReadTimeout(geoserverTimeout);
+		restTemplate.setRequestFactory(requestFactory);
 	}
 
 	public ResponseEntity<byte[]> proxyRequest(HttpServletRequest request)
 			throws MalformedURLException, IOException, URISyntaxException, UserException {
-		
-		
-		// HACK
-		RestTemplate restTemplate = new RestTemplate();
-		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(this.httpClient);
-		requestFactory.setReadTimeout(geoserverTimeout);
-		restTemplate.setRequestFactory(requestFactory);
-		// HACK
-		
-		
 		String requestPath = request.getRequestURI();
 		// Form the complete URI by piecing together the GeoServer URL with the API proxy request parameters
 		URL geoserverUrl = new URL(geoserverEnvironment.getGeoServerBaseUrl());
