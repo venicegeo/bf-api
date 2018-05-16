@@ -48,6 +48,8 @@ import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
+import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,6 +76,10 @@ public class JobServiceTests {
 	private UserProfileService userProfileService;
 	@Mock
 	private PiazzaLogger piazzaLogger;
+	@Mock
+	private GeoPackageConverter geoPackageConverter;
+	@Mock
+	private ShapefileConverter shpConverter;
 	@Spy
 	private ObjectMapper objectMapper;
 	@InjectMocks
@@ -248,9 +254,9 @@ public class JobServiceTests {
 		Mockito.when(this.piazzaService.getJobResultBytesAsGeoJson("data-id-321", "test-job-id-123")).thenReturn(mockJSONResult);
 		Mockito.when(this.detectionDao.findFullDetectionGeoJson("test-job-id-123")).thenReturn(mockJSON);
 		byte[] mockGeoPackageResult = "mock-geopackage-result".getBytes();
-		Mockito.when(this.piazzaService.getJobResultBytesAsGeoPackage("data-id-321", "test-job-id-123")).thenReturn(mockGeoPackageResult);
+		Mockito.when(this.geoPackageConverter.apply(Mockito.any())).thenReturn(mockGeoPackageResult);
 		byte[] mockShapefileResult = "mock-shapefile-result".getBytes();
-		Mockito.when(this.piazzaService.getJobResultBytesAsShapefile("data-id-321", "test-job-id-123")).thenReturn(mockShapefileResult);
+		Mockito.when(this.shpConverter.apply(Mockito.any())).thenReturn(mockShapefileResult);
 		
 		
 		

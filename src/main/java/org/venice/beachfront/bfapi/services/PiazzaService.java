@@ -39,8 +39,6 @@ import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
-import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
-import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,10 +55,6 @@ public class PiazzaService {
 
 	@Autowired
 	private RestTemplate restTemplate;
-	@Autowired
-	private ShapefileConverter shpConverter;
-	@Autowired
-	private GeoPackageConverter gpkgConverter;
 	@Autowired
 	private ObjectMapper objectMapper;
 	@Autowired
@@ -355,39 +349,6 @@ public class PiazzaService {
 	}
 
 	/**
-	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
-	 * Shapefile of the shoreline detection vectors.
-	 * 
-	 * @param metaDataId
-	 *            Piazza data ID of the job metadata
-	 * @param jobId
-	 *            Job ID (used for logging)
-	 * @return The bytes of the ingested data, as a .zip file containing a Shapefile
-	 */
-	public byte[] getJobResultBytesAsShapefile(String metaDataId, String jobId) throws UserException {
-
-		byte[] gjBytes = this.getJobResultBytesAsGeoJson(metaDataId, jobId);
-		piazzaLogger.log(String.format("Converting data for job %s to Shapefile", jobId), Severity.INFORMATIONAL);
-		return shpConverter.apply(gjBytes);
-	}
-
-	/**
-	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
-	 * Shapefile of the shoreline detection vectors.
-	 * 
-	 * @param metaDataId
-	 *            Piazza data ID of the job metadata
-	 * @param jobId
-	 *            Job ID (used for logging)
-	 * @return The bytes of the ingested data, as a GeoPackage
-	 */
-	public byte[] getJobResultBytesAsGeoPackage(String metaDataId, String jobId) throws UserException {
-		byte[] gjBytes = this.getJobResultBytesAsGeoJson(metaDataId, jobId);
-		piazzaLogger.log(String.format("Converting data for job %s to GeoPackage", jobId), Severity.INFORMATIONAL);
-		return gpkgConverter.apply(gjBytes);
-	}
-
-	/**
 	 * Downloads the data for a successful Beachfront Detection Service Job's Metadata..
 	 * <p>
 	 * The Data will be textual data containing all of the relevent metadata for the Detection job. As part of the
@@ -412,8 +373,8 @@ public class PiazzaService {
 			geoJsonDataId = metadataJson.get("OutFiles").get("shoreline.geojson").asText();
 		} catch (IOException exception) {
 			String error = String.format(
-					"There was an error parsing the Detection Metadata for Job %s Metadata Data Id %s. The raw content was: %s",
-					jobId, metaDataId, new String(metadata));
+					"There was an error parsing the Detection Metadata for Job %s Metadata Data Id %s. The raw content was: %s", jobId,
+					metaDataId, new String(metadata));
 			piazzaLogger.log(error, Severity.ERROR);
 			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}

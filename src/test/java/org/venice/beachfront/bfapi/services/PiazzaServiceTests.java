@@ -20,16 +20,10 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.hamcrest.CustomMatcher;
-import org.hamcrest.Matcher;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -205,69 +199,4 @@ public class PiazzaServiceTests {
 		assertEquals(new String(data), testData);
 	}
 
-	@Test
-	public void testDataToShapefile() throws UserException, URISyntaxException, IOException {
-		final byte[] metadataBytes = Files.readAllBytes(Paths.get(
-				ClassLoader.getSystemResource("converter/job-metadata.json").toURI()
-		));
-        Assert.assertNotNull(metadataBytes);
-        
-		final byte[] geojsonBytes = Files.readAllBytes(Paths.get(
-				ClassLoader.getSystemResource("converter/shorelines-fc.geojson").toURI()
-		));
-        Assert.assertNotNull(geojsonBytes);
-        
-
-        // Mock
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/metadata-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
-			.thenReturn(new ResponseEntity<String>(new String(metadataBytes), HttpStatus.OK));
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/test-geojson-id-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
-			.thenReturn(new ResponseEntity<String>(new String(geojsonBytes), HttpStatus.OK));
-
-		// Test
-		byte[] shapefileBytes = piazzaService.getJobResultBytesAsShapefile("metadata-123", "test-job-123");
-        Assert.assertNotNull(shapefileBytes);
-
-        // TODO: re-open the results to confirm they are valid
-        
-	}
-
-	@Test
-	public void testDataToGeoPackage() throws UserException, URISyntaxException, IOException {
-		final byte[] metadataBytes = Files.readAllBytes(Paths.get(
-				ClassLoader.getSystemResource("converter/job-metadata.json").toURI()
-		));
-        Assert.assertNotNull(metadataBytes);
-        
-		final byte[] geojsonBytes = Files.readAllBytes(Paths.get(
-				ClassLoader.getSystemResource("converter/shorelines-fc.geojson").toURI()
-		));
-        Assert.assertNotNull(geojsonBytes);
-        
-
-        // Mock
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/metadata-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
-			.thenReturn(new ResponseEntity<String>(new String(metadataBytes), HttpStatus.OK));
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/test-geojson-id-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
-			.thenReturn(new ResponseEntity<String>(new String(geojsonBytes), HttpStatus.OK));
-
-		// Test
-		byte[] gpkgBytes = piazzaService.getJobResultBytesAsGeoPackage("metadata-123", "test-job-123");
-        Assert.assertNotNull(gpkgBytes);
-
-        // TODO: re-open the results to confirm they are valid
-        
-	}
-	
-	private Matcher<URI> uriPathEquals(String path) {
-		return new CustomMatcher<URI>("URI path equals " + path) {
-			@Override
-			public boolean matches(Object uri) {
-				if (uri == null || uri.getClass() != URI.class) {
-					return false;
-				}
-				return ((URI)uri).getPath().equals(path);
-			}
-		};
-	}
 }

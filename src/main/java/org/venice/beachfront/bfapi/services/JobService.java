@@ -40,6 +40,8 @@ import org.venice.beachfront.bfapi.model.JobUser;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
+import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,11 +76,13 @@ public class JobService {
 	@Autowired
 	private PiazzaService piazzaService;
 	@Autowired
-	private RestTemplate restTemplate;
-	@Autowired
 	private PiazzaLogger piazzaLogger;
 	@Autowired
 	private ObjectMapper objectMapper;
+	@Autowired
+	private GeoPackageConverter geoPackageConverter;
+	@Autowired
+	private ShapefileConverter shpConverter;
 
 	/**
 	 * Creates a Beachfront Job. This will submit the Job request to Piazza, fetch the Job ID, and add all of the Job
@@ -430,10 +434,13 @@ public class JobService {
 		}
 	}
 
-	public static enum DownloadDataType { GEOJSON, GEOPACKAGE, SHAPEFILE }
+	public static enum DownloadDataType {
+		GEOJSON, GEOPACKAGE, SHAPEFILE
+	}
+
 	/**
-	 * Downloads the results of a job as GeoJSON, GeoPackage, or Shapefile. If the job is incomplete,
-	 * or otherwise encountered an error, throws an appropriate UserException.
+	 * Downloads the results of a job as GeoJSON, GeoPackage, or Shapefile. If the job is incomplete, or otherwise
+	 * encountered an error, throws an appropriate UserException.
 	 * 
 	 * @param jobId
 	 *            The job ID
@@ -442,7 +449,7 @@ public class JobService {
 	public byte[] downloadJobData(String jobId, DownloadDataType dataType) throws UserException {
 		this.piazzaLogger.log(String.format("Querying Piazza for status of Job %s", jobId), Severity.INFORMATIONAL);
 		StatusMetadata statusMetadata = this.piazzaService.getJobStatus(jobId);
-		
+
 		if (statusMetadata.isStatusError()) {
 			throw new UserException(statusMetadata.getErrorMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -450,14 +457,16 @@ public class JobService {
 			throw new UserException("Job not finished yet", HttpStatus.NOT_FOUND);
 		}
 		if (statusMetadata.isStatusSuccess()) {
-			String metaDataId = statusMetadata.getDataId();
-			switch(dataType) {
-			//case GEOJSON: return this.piazzaService.getJobResultBytesAsGeoJson(metaDataId, jobId);
-			case GEOJSON: return this.detectionDao.findFullDetectionGeoJson(jobId).getBytes();
-			case GEOPACKAGE: return this.piazzaService.getJobResultBytesAsGeoPackage(metaDataId, jobId);
-			case SHAPEFILE: return this.piazzaService.getJobResultBytesAsShapefile(metaDataId, jobId);
+			byte[] geoJsonBytes = this.detectionDao.findFullDetectionGeoJson(jobId).getBytes();
+			switch (dataType) {
+			case GEOJSON:
+				return geoJsonBytes;
+			case GEOPACKAGE:
+				return geoPackageConverter.apply(geoJsonBytes);
+			case SHAPEFILE:
+				return shpConverter.apply(geoJsonBytes);
 			}
-			throw new UserException("Unknown download data type: " + dataType, HttpStatus.INTERNAL_SERVER_ERROR);	
+			throw new UserException("Unknown download data type: " + dataType, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		throw new UserException("Unknown job status: " + statusMetadata.getStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
 	}
