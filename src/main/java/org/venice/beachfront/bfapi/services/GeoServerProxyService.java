@@ -91,7 +91,7 @@ public class GeoServerProxyService {
 			return response;
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Received GeoServer error response, code=%d, length=%d, for URI %s",
-					exception.getStatusCode().value(), exception.getResponseBodyAsString().length(), requestUri.toString()),
+					exception.getStatusCode().value(), exception.getResponseBodyAsString().length(), decodedUrl),
 					Severity.ERROR);
 			if (exception.getStatusCode().equals(HttpStatus.UNAUTHORIZED) || exception.getStatusCode().equals(HttpStatus.FORBIDDEN)) {
 				throw new UserException("Bad Authentication with GeoServer", exception, exception.getResponseBodyAsString(),
