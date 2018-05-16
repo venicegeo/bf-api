@@ -62,7 +62,6 @@ public class JobService {
 	private Boolean blockRedundantJobCheck;
 	@Value("${block.redundant.job.check.extras.name}")
 	private String BLOCK_REDUNDANT_JOB_EXTRAS_NAME;
-	@Value("${")
 
 	@Autowired
 	private JobDao jobDao;
