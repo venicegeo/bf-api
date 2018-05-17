@@ -68,8 +68,8 @@ public class HealthCheckController {
 		Map<String, String> healthCheckData = new HashMap<>();
 		// Show uptime
 		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
-		healthCheckData.put("geoserver", geoserverEnvironment.getGeoServerBaseUrl());
-		healthCheckData.put("geoserver-proxy", String.format("https://bf-api.%s/geoserver", domain));
+		healthCheckData.put("geoserver-upstream", geoserverEnvironment.getGeoServerBaseUrl());
+		healthCheckData.put("geoserver", String.format("https://bf-api.%s/geoserver", domain));
 		try {
 			// Show algorithm Job Queue length as reported by Piazza
 			for (Algorithm algorithm : piazzaService.getRegisteredAlgorithms()) {
