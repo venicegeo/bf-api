@@ -63,20 +63,24 @@ public class GeoServerProxyService {
 	@Autowired
 	private AuthHeaders authHeaders;
 
+	private HttpEntity<String> requestHeaders;
+	private URL geoserverUrl;
+
 	@PostConstruct
-	public void initialize() {
+	public void initialize() throws MalformedURLException {
 		// Configure a timeout specific to GeoServer. These connections are prone to hanging, and we want to enforce a
 		// quick timeout period so this does not lock up the application.
 		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(this.httpClient);
 		requestFactory.setReadTimeout(geoserverTimeout);
 		restTemplate.setRequestFactory(requestFactory);
+		requestHeaders = new HttpEntity<>(authHeaders.get());
+		geoserverUrl = new URL(geoserverEnvironment.getGeoServerBaseUrl());
 	}
 
 	public ResponseEntity<byte[]> proxyRequest(HttpServletRequest request)
 			throws MalformedURLException, IOException, URISyntaxException, UserException {
 		String requestPath = request.getRequestURI();
 		// Form the complete URI by piecing together the GeoServer URL with the API proxy request parameters
-		URL geoserverUrl = new URL(geoserverEnvironment.getGeoServerBaseUrl());
 		URI requestUri = new URI(geoserverUrl.getProtocol(), null, geoserverUrl.getHost(), geoserverUrl.getPort(), requestPath,
 				request.getQueryString(), null);
 		// Double encoding takes place here. First, in the REST Request delivered to API by the client. Second, in the
@@ -86,13 +90,11 @@ public class GeoServerProxyService {
 		decodedUrl = URLDecoder.decode(decodedUrl.toString(), "UTF-8");
 		piazzaLogger.log(String.format("Proxying request to GET GeoServer at URI %s", decodedUrl), Severity.INFORMATIONAL);
 		try {
-			HttpEntity<String> requestHeaders = new HttpEntity<>(authHeaders.get());
 			ResponseEntity<byte[]> response = restTemplate.exchange(decodedUrl, HttpMethod.GET, requestHeaders, byte[].class);
 			return response;
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Received GeoServer error response, code=%d, length=%d, for URI %s",
-					exception.getStatusCode().value(), exception.getResponseBodyAsString().length(), decodedUrl),
-					Severity.ERROR);
+					exception.getStatusCode().value(), exception.getResponseBodyAsString().length(), decodedUrl), Severity.ERROR);
 			if (exception.getStatusCode().equals(HttpStatus.UNAUTHORIZED) || exception.getStatusCode().equals(HttpStatus.FORBIDDEN)) {
 				throw new UserException("Bad Authentication with GeoServer", exception, exception.getResponseBodyAsString(),
 						HttpStatus.BAD_REQUEST);
