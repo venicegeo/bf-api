@@ -18,7 +18,13 @@ package org.venice.beachfront.bfapi.services;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.SynchronousQueue;
+import java.util.function.Consumer;
 
+import javax.transaction.Status;
+
+import org.apache.tomcat.util.collections.SynchronizedQueue;
 import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,8 +134,14 @@ public class JobService {
 		sceneService.activateScene(scene, planetApiKey);
 
 		// Re-fetch scene after activation
-		scene = sceneService.getScene(sceneId, planetApiKey, true);
+		// Needs synchronization to use async active scene functionality
 
+		try {
+			scene = this.sceneService.asyncGetActiveScene(sceneId, planetApiKey, true).get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new UserException("Getting active scene interrupted", e, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	
 		// Formulate the URLs for the Scene
 		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
 		List<String> fileUrls = sceneService.getSceneInputURLs(scene);
