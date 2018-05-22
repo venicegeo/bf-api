@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
@@ -32,11 +34,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
@@ -47,6 +52,7 @@ import model.logger.Severity;
 import util.PiazzaLogger;
 
 @Service
+@EnableAsync
 public class PiazzaService {
 	@Value("${piazza.server}")
 	private String PIAZZA_URL;
@@ -67,21 +73,36 @@ public class PiazzaService {
 	 *            The ID of the Piazza Service corresponding to the chosen algorithm
 	 * @param cliCommand
 	 *            The algorithm CLI parameters
-	 * @param fileNames
-	 *            The ordered list of file names
-	 * @param fileUrls
-	 *            The ordered list of file URLs
+	 * @param sceneFuture
+	 *            The Future that will contain a reference to the Scene, once completed.
 	 * @param userId
 	 *            The ID of the creating user for this job
+	 * @param jobId
+	 *            The ID of the Job that Piazza will use for tracking
+	 * @param sceneFuture
+	 *            The Future that, once completed, will contain a reference to the activated Scene.
 	 * @return The Piazza Job ID
 	 * @throws Exception
 	 */
-	public String execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId)
-			throws UserException {
+	@Async
+	public void execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId, String jobId,
+			CompletableFuture<Scene> sceneFuture) throws UserException {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
 		piazzaLogger
 				.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s with Command %s.",
 						piazzaJobUrl, serviceId, userId, cliCommand), Severity.INFORMATIONAL);
+
+		// Ensure that the Scene has finished activating before proceeding with the Piazza execution.
+		try {
+			piazzaLogger.log(String.format("Waiting for Activation for Job %s", jobId), Severity.INFORMATIONAL);
+			Scene scene = sceneFuture.get();
+			piazzaLogger.log(String.format("Job %s Scene has been activated for Scene ID %s", jobId, scene.getSceneId()),
+					Severity.INFORMATIONAL);
+		} catch (InterruptedException | ExecutionException e) {
+			throw new UserException(String.format("Getting Active Scene failed for Job %s", jobId), e, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		// Generate the Headers for Execution, including the API Key
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		// Structure the Job Request
 		String requestJson = null;
@@ -97,7 +118,7 @@ public class PiazzaService {
 				quotedFileUrls.add(String.format("\\\"%s\\\"", fileUrl));
 			}
 			// Replace all user values into the execute request JSON template
-			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", quotedFileUrls),
+			requestJson = String.format(loadJobRequestJson(), jobId, serviceId, cliCommand, String.join(", ", quotedFileUrls),
 					String.join(", ", quotedFileNames), userId);
 		} catch (Exception exception) {
 			exception.printStackTrace();
@@ -107,9 +128,8 @@ public class PiazzaService {
 		HttpEntity<String> request = new HttpEntity<>(requestJson, headers);
 
 		// Execute the Request
-		ResponseEntity<String> response = null;
 		try {
-			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
+			restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(
 					String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s",
@@ -128,19 +148,9 @@ public class PiazzaService {
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
-		// Parse the Job ID from the response and return
-		try {
-			JsonNode responseJson = objectMapper.readTree(response.getBody());
-			String jobId = responseJson.get("data").get("jobId").asText();
-			piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
-					Severity.INFORMATIONAL);
-			return jobId;
-		} catch (IOException exception) {
-			piazzaLogger.log(String.format("Error parsing the successful Piazza Job Response by User %s with Error %s", userId,
-					exception.getMessage()), Severity.ERROR);
-			throw new UserException("There was an error parsing the Piazza response when submitting the Job.", exception.getMessage(),
-					HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		// Log the Successful execution
+		piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
+				Severity.INFORMATIONAL);
 	}
 
 	/**

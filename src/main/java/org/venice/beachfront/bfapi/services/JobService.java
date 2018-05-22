@@ -18,20 +18,14 @@ package org.venice.beachfront.bfapi.services;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.SynchronousQueue;
-import java.util.function.Consumer;
+import java.util.UUID;
 
-import javax.transaction.Status;
-
-import org.apache.tomcat.util.collections.SynchronizedQueue;
 import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
@@ -131,17 +125,12 @@ public class JobService {
 
 		// Fetch Scene Information
 		Scene scene = sceneService.getScene(sceneId, planetApiKey, true);
+		// Request Scene activation.
 		sceneService.activateScene(scene, planetApiKey);
 
-		// Re-fetch scene after activation
-		// Needs synchronization to use async active scene functionality
+		// Generate a unique ID for this Job that Piazza and Beachfront will both use to reference.
+		String jobId = UUID.randomUUID().toString();
 
-		try {
-			scene = this.sceneService.asyncGetActiveScene(sceneId, planetApiKey, true).get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new UserException("Getting active scene interrupted", e, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	
 		// Formulate the URLs for the Scene
 		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
 		List<String> fileUrls = sceneService.getSceneInputURLs(scene);
@@ -152,10 +141,11 @@ public class JobService {
 				algorithmCli), Severity.INFORMATIONAL);
 
 		// Dispatch Job to Piazza
-		String jobId = piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId);
+		piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId, jobId,
+				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true));
 
 		// Create Job and commit to database; return to User
-		Job job = new Job(jobId, jobName, Job.STATUS_SUBMITTED, creatorUserId, new DateTime(), algorithm.getServiceId(),
+		Job job = new Job(jobId, jobName, Job.STATUS_ACTIVATING, creatorUserId, new DateTime(), algorithm.getServiceId(),
 				algorithm.getName(), algorithm.getVersion(), scene.getSceneId(), scene.getTide(), scene.getTideMin24H(),
 				scene.getTideMax24H(), extras, computeMask);
 		// Save the Job to the Jobs table
