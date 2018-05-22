@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -40,6 +41,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
+import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
@@ -63,12 +65,18 @@ public class PiazzaServiceTests {
 	@InjectMocks
 	private PiazzaService piazzaService;
 
+	private Scene mockScene = new Scene();
+	private CompletableFuture<Scene> sceneFuture;
+
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 
 		ReflectionTestUtils.setField(piazzaService, "PIAZZA_URL", "https://piazza.com");
 		ReflectionTestUtils.setField(piazzaService, "PIAZZA_API_KEY", "piazzaKey");
+
+		mockScene.setSceneId("test");
+		sceneFuture = CompletableFuture.completedFuture(mockScene);
 	}
 
 	@Test
@@ -79,10 +87,9 @@ public class PiazzaServiceTests {
 				"UTF-8");
 		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.POST), Mockito.<HttpEntity<String>>any(),
 				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
+
 		// Test
-		String jobId = piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester");
-		// Assert
-		assertEquals(jobId, "job123");
+		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester", "jobId", sceneFuture);
 	}
 
 	@Test(expected = UserException.class)
@@ -91,17 +98,7 @@ public class PiazzaServiceTests {
 		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.POST), Mockito.<HttpEntity<String>>any(),
 				Mockito.<Class<String>>any())).thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 		// Test
-		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester");
-	}
-
-	@Test(expected = UserException.class)
-	public void testJsonParseError() throws UserException {
-		// Mock
-		String responseJson = "{\"data\": { jobId\": \"job123\"}}";
-		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.POST), Mockito.<HttpEntity<String>>any(),
-				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
-		// Test
-		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester");
+		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester", "jobId", sceneFuture);
 	}
 
 	@Test
