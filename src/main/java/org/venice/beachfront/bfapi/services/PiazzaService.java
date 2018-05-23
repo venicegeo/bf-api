@@ -152,12 +152,11 @@ public class PiazzaService {
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
+		// Update the Status of the Job as Submitted
+		callback.updateStatus(jobId, Job.STATUS_SUBMITTED);
 		// Log the Successful execution
 		piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
 				Severity.INFORMATIONAL);
-
-		// Update the Status of the Job as Submitted
-		callback.updateStatus(jobId, Job.STATUS_SUBMITTED);
 	}
 
 	/**

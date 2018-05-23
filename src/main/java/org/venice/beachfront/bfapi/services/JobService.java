@@ -144,13 +144,14 @@ public class JobService {
 		Job job = new Job(jobId, jobName, Job.STATUS_ACTIVATING, creatorUserId, new DateTime(), algorithm.getServiceId(),
 				algorithm.getName(), algorithm.getVersion(), scene.getSceneId(), scene.getTide(), scene.getTideMin24H(),
 				scene.getTideMax24H(), extras, computeMask);
+
 		// Save the Job to the Jobs table
 		jobDao.save(job);
 		// Associate this Job with the User who requested it
 		jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
 		piazzaLogger.log(String.format("Saved Job ID %s for Job %s by User %s", jobId, jobName, creatorUserId), Severity.INFORMATIONAL);
 
-		// Dispatch Job to Piazza
+		// Dispatch Job to Piazza. The provided callback will allow Piazza to update the status, once submitted.
 		piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId, jobId,
 				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true), new JobStatusCallback() {
 					@Override

@@ -91,13 +91,14 @@ public class JobPoller {
 	}
 
 	/**
-	 * Timer Task that will, on a schedule, poll for the Status of outstanding/active Beachfront Jobs
+	 * Timer Task that will, on a schedule, poll for the Status of outstanding/active Beachfront Jobs. Jobs in a
+	 * non-complete state will be managed here.
 	 */
 	public class PollStatusTask extends TimerTask {
 		@Override
 		public void run() {
 			try {
-				// Get the list of outstanding jobs that need to be queried
+				// Get the list of outstanding jobs that need to be managed
 				List<Job> outstandingJobs = jobService.getOutstandingJobs();
 				for (Job job : outstandingJobs) {
 					// If this Job is activating, it has not yet been sent to Piazza.
@@ -109,7 +110,7 @@ public class JobPoller {
 						}
 						continue;
 					}
-					// For each Piazza job, query the status of that job in Piazza
+					// For each Job currently owned by Piazza, query the status of that job in Piazza
 					StatusMetadata status = null;
 					try {
 						status = piazzaService.getJobStatus(job.getJobId());
