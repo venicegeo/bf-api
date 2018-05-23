@@ -85,12 +85,10 @@ public class PiazzaService {
 	 *            The Future that, once completed, will contain a reference to the activated Scene.
 	 * @param callback
 	 *            The Job Status Callback, to be invoked when the Job Status needs to update.
-	 * @return The Piazza Job ID
-	 * @throws Exception
 	 */
 	@Async
 	public void execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId, String jobId,
-			CompletableFuture<Scene> sceneFuture, JobStatusCallback callback) throws UserException {
+			CompletableFuture<Scene> sceneFuture, JobStatusCallback callback) {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
 		piazzaLogger
 				.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s with Command %s.",
@@ -103,7 +101,9 @@ public class PiazzaService {
 			piazzaLogger.log(String.format("Job %s Scene has been activated for Scene ID %s", jobId, scene.getSceneId()),
 					Severity.INFORMATIONAL);
 		} catch (InterruptedException | ExecutionException e) {
-			throw new UserException(String.format("Getting Active Scene failed for Job %s", jobId), e, HttpStatus.INTERNAL_SERVER_ERROR);
+			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s", jobId), Severity.ERROR);
+			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			return;
 		}
 
 		// Generate the Headers for Execution, including the API Key
@@ -126,8 +126,9 @@ public class PiazzaService {
 					String.join(", ", quotedFileNames), userId);
 		} catch (Exception exception) {
 			exception.printStackTrace();
-			throw new UserException("Could not load local resource file for Job Request.", exception.getMessage(),
-					HttpStatus.INTERNAL_SERVER_ERROR);
+			piazzaLogger.log(String.format("Could not load local resource file for Job Request for Job %s", jobId), Severity.ERROR);
+			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			return;
 		}
 		HttpEntity<String> request = new HttpEntity<>(requestJson, headers);
 
@@ -139,17 +140,8 @@ public class PiazzaService {
 					String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s",
 							userId, exception.getStatusText(), exception.getResponseBodyAsString(), requestJson),
 					Severity.ERROR);
-
-			HttpStatus recommendedErrorStatus = exception.getStatusCode();
-			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
-																	// want that
-			}
-
-			String message = String.format("There was an upstream error submitting the Job Request to Piazza. (%d)",
-					exception.getStatusCode().value());
-
-			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
+			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			return;
 		}
 
 		// Update the Status of the Job as Submitted
