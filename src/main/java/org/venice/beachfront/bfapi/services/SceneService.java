@@ -207,7 +207,7 @@ public class SceneService {
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
-		piazzaLogger.log(String.format("Successfully parsed Scene metadata for Scene %s", sceneId), Severity.INFORMATIONAL);
+		piazzaLogger.log(String.format("Successfully parsed Scene metadata for Scene %s with Status %s", sceneId, scene.getStatus()), Severity.INFORMATIONAL);
 		sceneDao.save(scene);
 		return scene;
 	}
