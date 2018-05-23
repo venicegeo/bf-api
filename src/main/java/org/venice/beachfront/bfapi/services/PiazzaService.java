@@ -96,7 +96,7 @@ public class PiazzaService {
 		List<String> fileUrls = sceneService.getSceneInputURLs(scene);
 
 		// Prepare Job Request
-		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
+		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, Scene.parsePlatform(scene.getSceneId()), computeMask);
 		piazzaLogger.log(String.format("Generated CLI Command for Job %s (Scene %s) for User %s : %s", jobName, scene.getSceneId(), userId,
 				algorithmCli), Severity.INFORMATIONAL);
 
