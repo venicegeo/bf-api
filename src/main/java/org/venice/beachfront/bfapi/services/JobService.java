@@ -152,7 +152,14 @@ public class JobService {
 
 		// Dispatch Job to Piazza
 		piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId, jobId,
-				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true));
+				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true), new JobStatusCallback() {
+					@Override
+					public void updateStatus(String jobId, String status) {
+						Job job = getJob(jobId);
+						job.setStatus(status);
+						updateJob(job);
+					}
+				});
 
 		// Return Job Information
 		return job;
@@ -169,7 +176,7 @@ public class JobService {
 	}
 
 	/**
-	 * Gets the list of all outstanding jobs. That is, jobs that are submitted, running, or pending.
+	 * Gets the list of all outstanding jobs. That is, jobs that are submitted, running, pending, or activating.
 	 * 
 	 * @return List of all jobs that are in a non-complete state that are eligible to be polled for updated status.
 	 */
@@ -178,8 +185,10 @@ public class JobService {
 		outstandingStatuses.add(Job.STATUS_PENDING);
 		outstandingStatuses.add(Job.STATUS_RUNNING);
 		outstandingStatuses.add(Job.STATUS_SUBMITTED);
+		outstandingStatuses.add(Job.STATUS_ACTIVATING);
 		List<Job> jobs = jobDao.findByStatusIn(outstandingStatuses);
-		piazzaLogger.log(String.format("Queried for outstanding Jobs. Found %s outstanding jobs.", jobs.size()), Severity.INFORMATIONAL);
+		piazzaLogger.log(String.format("Queried for outstanding Piazza Jobs. Found %s outstanding jobs.", jobs.size()),
+				Severity.INFORMATIONAL);
 		return jobs;
 	}
 
@@ -473,5 +482,20 @@ public class JobService {
 			throw new UserException("Unknown download data type: " + dataType, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		throw new UserException("Unknown job status: " + statusMetadata.getStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+
+	/**
+	 * Callback used to allow other Services to invoke the Job status update logic from this component.
+	 */
+	public interface JobStatusCallback {
+		/**
+		 * Update the Status of a Job
+		 * 
+		 * @param jobId
+		 *            The Job ID
+		 * @param status
+		 *            The Status of the Job
+		 */
+		public void updateStatus(String jobId, String status);
 	}
 }

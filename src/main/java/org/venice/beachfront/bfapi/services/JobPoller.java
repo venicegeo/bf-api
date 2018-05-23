@@ -30,6 +30,7 @@ import org.geotools.feature.FeatureIterator;
 import org.geotools.geojson.feature.FeatureJSON;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
+import org.joda.time.Minutes;
 import org.opengis.feature.simple.SimpleFeature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,14 +47,20 @@ import model.logger.Severity;
 import util.PiazzaLogger;
 
 /**
- * Scheduling class that manages the constant polling for Status of Shoreline detections Jobs in Piazza
+ * Scheduling class that manages the constant management polling for Status of Shoreline detections Jobs.
+ * <p>
+ * This will poll for the status of Jobs in Piazza, and update the beachfront jobs table accordingly.
+ * <p>
+ * Additionally, this will also track the state of Activating jobs via Planet, or other brokers.
  */
 @Component
-public class PiazzaJobPoller {
+public class JobPoller {
 	@Value("${piazza.poll.frequency.seconds}")
 	private int POLL_FREQUENCY_SECONDS;
 	@Value("${job.timeout.hours}")
 	private int JOB_TIMEOUT_HOURS;
+	@Value("${job.activation.timeout.minutes}")
+	private int JOB_ACTIVATION_TIMEOUT_MINUTES;
 
 	@Autowired
 	private JobService jobService;
@@ -66,16 +73,16 @@ public class PiazzaJobPoller {
 	private Timer pollTimer = new Timer();
 
 	/**
-	 * Begins scheduled polling of Piazza Job Status
+	 * Begins scheduled polling of Beachfront Job Statuses
 	 */
 	@PostConstruct
 	public void startPolling() {
-		piazzaLogger.log("Beginning Job Polling to Piazza.", Severity.INFORMATIONAL);
+		piazzaLogger.log("Beginning Job Management Polling.", Severity.INFORMATIONAL);
 		pollTimer.schedule(pollStatusTask, 10000, POLL_FREQUENCY_SECONDS * (long) 1000);
 	}
 
 	public void stopPolling() {
-		piazzaLogger.log("Cancelling Job Polling to Piazza. Jobs will not be updated.", Severity.INFORMATIONAL);
+		piazzaLogger.log("Cancelling Job Management Polling. Jobs will not be updated.", Severity.INFORMATIONAL);
 		pollTimer.cancel();
 	}
 
@@ -84,7 +91,7 @@ public class PiazzaJobPoller {
 	}
 
 	/**
-	 * Timer Task that will, on a schedule, poll for the Status of Piazza Jobs
+	 * Timer Task that will, on a schedule, poll for the Status of outstanding/active Beachfront Jobs
 	 */
 	public class PollStatusTask extends TimerTask {
 		@Override
@@ -93,7 +100,16 @@ public class PiazzaJobPoller {
 				// Get the list of outstanding jobs that need to be queried
 				List<Job> outstandingJobs = jobService.getOutstandingJobs();
 				for (Job job : outstandingJobs) {
-					// For each job, query the status of that job in Piazza
+					// If this Job is activating, it has not yet been sent to Piazza.
+					if (Job.STATUS_ACTIVATING.equals(job.getStatus())) {
+						// Check for timeouts. Jobs that take too long to activate will fail.
+						int timeDelta = Minutes.minutesBetween(job.getCreatedOn(), new DateTime()).getMinutes();
+						if (timeDelta >= JOB_ACTIVATION_TIMEOUT_MINUTES) {
+							timeoutJob(job);
+						}
+						continue;
+					}
+					// For each Piazza job, query the status of that job in Piazza
 					StatusMetadata status = null;
 					try {
 						status = piazzaService.getJobStatus(job.getJobId());
@@ -101,13 +117,7 @@ public class PiazzaJobPoller {
 						// If the Job has exceeded it's time-to-live, then mark that job a failure.
 						int timeDelta = Hours.hoursBetween(job.getCreatedOn(), new DateTime()).getHours();
 						if (timeDelta >= JOB_TIMEOUT_HOURS) {
-							String error = String.format("Job %s has timed out after %s hours and will be set as failure.", job.getJobId(),
-									timeDelta);
-							piazzaLogger.log(error, Severity.ERROR);
-							// Kill the Job
-							jobService.createJobError(job, error);
-							job.setStatus(Job.STATUS_ERROR);
-							jobService.updateJob(job);
+							timeoutJob(job);
 						}
 						continue;
 					}
@@ -119,6 +129,24 @@ public class PiazzaJobPoller {
 						exception.getClass().toString(), exception.getMessage()), Severity.ERROR);
 				exception.printStackTrace();
 			}
+		}
+
+		/**
+		 * Flags the Job as timed out. This will fail the job and update Database status accordingly.
+		 * 
+		 * @param job
+		 *            The timed out Job
+		 * @param timeDelta
+		 *            For logging purposes, the amount of time that has passed before this Job failed.
+		 */
+		private void timeoutJob(Job job) {
+			String error = String.format("Job %s with Status %s has timed out and will be set as failure.", job.getJobId(),
+					job.getStatus());
+			piazzaLogger.log(error, Severity.ERROR);
+			// Kill the Job
+			jobService.createJobError(job, error);
+			job.setStatus(Job.STATUS_ERROR);
+			jobService.updateJob(job);
 		}
 
 		/**

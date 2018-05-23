@@ -39,12 +39,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.JobService.JobStatusCallback;
 import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
 import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
@@ -55,8 +55,6 @@ import util.PiazzaLogger;
 public class PiazzaServiceTests {
 	@Mock
 	private RestTemplate restTemplate;
-	@Mock
-	private JobDao jobDao;
 	@Spy
 	private ObjectMapper objectMapper;
 	@Spy
@@ -70,6 +68,7 @@ public class PiazzaServiceTests {
 
 	private Scene mockScene = new Scene();
 	private CompletableFuture<Scene> sceneFuture;
+	private JobStatusCallback callback;
 
 	@Before
 	public void setup() {
@@ -81,8 +80,12 @@ public class PiazzaServiceTests {
 		mockScene.setSceneId("test");
 		sceneFuture = CompletableFuture.completedFuture(mockScene);
 
-		Job mockJob = new Job();
-		Mockito.when(jobDao.findByJobId(Mockito.anyString())).thenReturn(mockJob);
+		callback = new JobStatusCallback() {
+			@Override
+			public void updateStatus(String jobId, String status) {
+				return;
+			}
+		};
 	}
 
 	@Test
@@ -95,7 +98,8 @@ public class PiazzaServiceTests {
 				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
 
 		// Test
-		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester", "jobId", sceneFuture);
+		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester", "jobId", sceneFuture,
+				callback);
 	}
 
 	@Test(expected = UserException.class)
@@ -104,7 +108,8 @@ public class PiazzaServiceTests {
 		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.POST), Mockito.<HttpEntity<String>>any(),
 				Mockito.<Class<String>>any())).thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 		// Test
-		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester", "jobId", sceneFuture);
+		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester", "jobId", sceneFuture,
+				callback);
 	}
 
 	@Test

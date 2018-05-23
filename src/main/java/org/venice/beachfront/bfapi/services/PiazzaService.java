@@ -40,12 +40,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.JobService.JobStatusCallback;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,8 +67,6 @@ public class PiazzaService {
 	private ObjectMapper objectMapper;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
-	@Autowired
-	private JobDao jobDao;
 
 	/**
 	 * Executes the service, sending the payload to Piazza and parsing the response for the Job ID
@@ -85,12 +83,14 @@ public class PiazzaService {
 	 *            The ID of the Job that Piazza will use for tracking
 	 * @param sceneFuture
 	 *            The Future that, once completed, will contain a reference to the activated Scene.
+	 * @param callback
+	 *            The Job Status Callback, to be invoked when the Job Status needs to update.
 	 * @return The Piazza Job ID
 	 * @throws Exception
 	 */
 	@Async
 	public void execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId, String jobId,
-			CompletableFuture<Scene> sceneFuture) throws UserException {
+			CompletableFuture<Scene> sceneFuture, JobStatusCallback callback) throws UserException {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
 		piazzaLogger
 				.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s with Command %s.",
@@ -157,9 +157,7 @@ public class PiazzaService {
 				Severity.INFORMATIONAL);
 
 		// Update the Status of the Job as Submitted
-		Job job = jobDao.findByJobId(jobId);
-		job.setStatus(Job.STATUS_SUBMITTED);
-		jobDao.save(job);
+		callback.updateStatus(jobId, Job.STATUS_SUBMITTED);
 	}
 
 	/**
