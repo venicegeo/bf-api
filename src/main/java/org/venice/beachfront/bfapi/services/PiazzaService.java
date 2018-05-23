@@ -67,37 +67,21 @@ public class PiazzaService {
 	private ObjectMapper objectMapper;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private SceneService sceneService;
 
-	/**
-	 * Executes the service, sending the payload to Piazza and parsing the response for the Job ID
-	 * 
-	 * @param serviceId
-	 *            The ID of the Piazza Service corresponding to the chosen algorithm
-	 * @param cliCommand
-	 *            The algorithm CLI parameters
-	 * @param sceneFuture
-	 *            The Future that will contain a reference to the Scene, once completed.
-	 * @param userId
-	 *            The ID of the creating user for this job
-	 * @param jobId
-	 *            The ID of the Job that Piazza will use for tracking
-	 * @param sceneFuture
-	 *            The Future that, once completed, will contain a reference to the activated Scene.
-	 * @param callback
-	 *            The Job Status Callback, to be invoked when the Job Status needs to update.
-	 */
 	@Async
-	public void execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId, String jobId,
+	public void execute(String serviceId, Algorithm algorithm, String userId, String jobId, Boolean computeMask, String jobName,
 			CompletableFuture<Scene> sceneFuture, JobStatusCallback callback) {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
-		piazzaLogger
-				.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s with Command %s.",
-						piazzaJobUrl, serviceId, userId, cliCommand), Severity.INFORMATIONAL);
+		piazzaLogger.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s.", piazzaJobUrl,
+				serviceId, userId), Severity.INFORMATIONAL);
 
 		// Ensure that the Scene has finished activating before proceeding with the Piazza execution.
+		Scene scene = null;
 		try {
 			piazzaLogger.log(String.format("Waiting for Activation for Job %s", jobId), Severity.INFORMATIONAL);
-			Scene scene = sceneFuture.get();
+			scene = sceneFuture.get();
 			piazzaLogger.log(String.format("Job %s Scene has been activated for Scene ID %s", jobId, scene.getSceneId()),
 					Severity.INFORMATIONAL);
 		} catch (InterruptedException | ExecutionException e) {
@@ -105,6 +89,16 @@ public class PiazzaService {
 			callback.updateStatus(jobId, Job.STATUS_ERROR);
 			return;
 		}
+
+		// Generate the Algorithm CLI
+		// Formulate the URLs for the Scene
+		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
+		List<String> fileUrls = sceneService.getSceneInputURLs(scene);
+
+		// Prepare Job Request
+		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
+		piazzaLogger.log(String.format("Generated CLI Command for Job %s (Scene %s) for User %s : %s", jobName, scene.getSceneId(), userId,
+				algorithmCli), Severity.INFORMATIONAL);
 
 		// Generate the Headers for Execution, including the API Key
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
@@ -122,7 +116,7 @@ public class PiazzaService {
 				quotedFileUrls.add(String.format("\\\"%s\\\"", fileUrl));
 			}
 			// Replace all user values into the execute request JSON template
-			requestJson = String.format(loadJobRequestJson(), jobId, serviceId, cliCommand, String.join(", ", quotedFileUrls),
+			requestJson = String.format(loadJobRequestJson(), jobId, serviceId, algorithmCli, String.join(", ", quotedFileUrls),
 					String.join(", ", quotedFileNames), userId);
 		} catch (Exception exception) {
 			exception.printStackTrace();
@@ -485,5 +479,52 @@ public class PiazzaService {
 			}
 		}
 		return jsonString;
+	}
+
+	/**
+	 * Gets the algorithm CLI command that will be passed to the algorithm through Piazza
+	 * 
+	 * @param algorithmName
+	 *            The name of the algorithm
+	 * @param fileNames
+	 *            The array of file names
+	 * @param scenePlatform
+	 *            The scene platform (source)
+	 * @param computeMask
+	 *            True if compute mask is to be applied, false if not
+	 * @return The full command line string that can be executed by the Service Executor
+	 */
+	private String getAlgorithmCli(String algorithmId, List<String> fileUrls, String scenePlatform, boolean computeMask) {
+		List<String> imageFlags = new ArrayList<>();
+		// Generate the images string parameters
+		for (String fileUrl : fileUrls) {
+			imageFlags.add(String.format("-i %s", fileUrl));
+		}
+		// Generate Bands based on the platform
+		String bandsFlag = null;
+		switch (scenePlatform) {
+		case Scene.PLATFORM_LANDSAT:
+		case Scene.PLATFORM_SENTINEL:
+			bandsFlag = "--bands 1 1";
+			break;
+		case Scene.PLATFORM_PLANETSCOPE:
+			bandsFlag = "--bands 2 4";
+			break;
+		case Scene.PLATFORM_RAPIDEYE:
+			bandsFlag = "--bands 2 5";
+			break;
+		}
+		// Piece together the CLI
+		StringBuilder command = new StringBuilder();
+		command.append(String.join(" ", imageFlags));
+		if (bandsFlag != null) {
+			command.append(" ");
+			command.append(bandsFlag);
+		}
+		command.append(" --basename shoreline --smooth 1.0");
+		if (computeMask) {
+			command.append(" --coastmask");
+		}
+		return command.toString();
 	}
 }

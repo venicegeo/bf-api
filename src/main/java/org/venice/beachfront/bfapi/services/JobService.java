@@ -131,15 +131,6 @@ public class JobService {
 		// Generate a unique ID for this Job that Piazza and Beachfront will both use to reference.
 		String jobId = UUID.randomUUID().toString();
 
-		// Formulate the URLs for the Scene
-		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
-		List<String> fileUrls = sceneService.getSceneInputURLs(scene);
-
-		// Prepare Job Request
-		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
-		piazzaLogger.log(String.format("Generated CLI Command for Job %s (Scene %s) for User %s : %s", jobName, sceneId, creatorUserId,
-				algorithmCli), Severity.INFORMATIONAL);
-
 		// Create Job and commit to database; return to User
 		Job job = new Job(jobId, jobName, Job.STATUS_ACTIVATING, creatorUserId, new DateTime(), algorithm.getServiceId(),
 				algorithm.getName(), algorithm.getVersion(), scene.getSceneId(), scene.getTide(), scene.getTideMin24H(),
@@ -152,7 +143,7 @@ public class JobService {
 		piazzaLogger.log(String.format("Saved Job ID %s for Job %s by User %s", jobId, jobName, creatorUserId), Severity.INFORMATIONAL);
 
 		// Dispatch Job to Piazza. The provided callback will allow Piazza to update the status, once submitted.
-		piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId, jobId,
+		piazzaService.execute(algorithm.getServiceId(), algorithm, creatorUserId, jobId, computeMask, jobName,
 				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true), new JobStatusCallback() {
 					@Override
 					public void updateStatus(String jobId, String status) {
@@ -383,53 +374,6 @@ public class JobService {
 			statuses.add(new JobStatus(job.getJobId(), job.getStatus()));
 		}
 		return statuses;
-	}
-
-	/**
-	 * Gets the algorithm CLI command that will be passed to the algorithm through Piazza
-	 * 
-	 * @param algorithmName
-	 *            The name of the algorithm
-	 * @param fileNames
-	 *            The array of file names
-	 * @param scenePlatform
-	 *            The scene platform (source)
-	 * @param computeMask
-	 *            True if compute mask is to be applied, false if not
-	 * @return The full command line string that can be executed by the Service Executor
-	 */
-	private String getAlgorithmCli(String algorithmId, List<String> fileUrls, String scenePlatform, boolean computeMask) {
-		List<String> imageFlags = new ArrayList<>();
-		// Generate the images string parameters
-		for (String fileUrl : fileUrls) {
-			imageFlags.add(String.format("-i %s", fileUrl));
-		}
-		// Generate Bands based on the platform
-		String bandsFlag = null;
-		switch (scenePlatform) {
-		case Scene.PLATFORM_LANDSAT:
-		case Scene.PLATFORM_SENTINEL:
-			bandsFlag = "--bands 1 1";
-			break;
-		case Scene.PLATFORM_PLANETSCOPE:
-			bandsFlag = "--bands 2 4";
-			break;
-		case Scene.PLATFORM_RAPIDEYE:
-			bandsFlag = "--bands 2 5";
-			break;
-		}
-		// Piece together the CLI
-		StringBuilder command = new StringBuilder();
-		command.append(String.join(" ", imageFlags));
-		if (bandsFlag != null) {
-			command.append(" ");
-			command.append(bandsFlag);
-		}
-		command.append(" --basename shoreline --smooth 1.0");
-		if (computeMask) {
-			command.append(" --coastmask");
-		}
-		return command.toString();
 	}
 
 	/**

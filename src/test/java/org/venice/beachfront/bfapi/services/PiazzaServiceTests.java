@@ -62,12 +62,15 @@ public class PiazzaServiceTests {
 	private GeoPackageConverter gpkgConverter;
 	@Mock
 	private PiazzaLogger piazzaLogger;
+	@Mock
+	private SceneService sceneService;
 	@InjectMocks
 	private PiazzaService piazzaService;
 
 	private Scene mockScene = new Scene();
 	private CompletableFuture<Scene> sceneFuture;
 	private JobStatusCallback callback;
+	private Algorithm algorithm = new Algorithm(null, null, 0, null, null, null);
 
 	@Before
 	public void setup() {
@@ -77,7 +80,11 @@ public class PiazzaServiceTests {
 		ReflectionTestUtils.setField(piazzaService, "PIAZZA_API_KEY", "piazzaKey");
 
 		mockScene.setSceneId("test");
+		mockScene.setSensorName("rapideye");
 		sceneFuture = CompletableFuture.completedFuture(mockScene);
+
+		Mockito.when(sceneService.getSceneInputFileNames(Mockito.isA(Scene.class))).thenReturn(new ArrayList<String>());
+		Mockito.when(sceneService.getSceneInputURLs(Mockito.isA(Scene.class))).thenReturn(new ArrayList<String>());
 
 		callback = new JobStatusCallback() {
 			@Override
@@ -97,8 +104,7 @@ public class PiazzaServiceTests {
 				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
 
 		// Test
-		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester", "jobId", sceneFuture,
-				callback);
+		piazzaService.execute("serviceId", algorithm, "tester", "jobId", false, "jobName", sceneFuture, callback);
 	}
 
 	@Test
