@@ -34,7 +34,7 @@ import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import util.PiazzaLogger;
 
-public class PiazzaJobPollerTests {
+public class JobPollerTests {
 	@Mock
 	private JobService jobService;
 	@Mock
@@ -42,17 +42,18 @@ public class PiazzaJobPollerTests {
 	@Mock
 	private PiazzaLogger piazzaLogger;
 	@InjectMocks
-	private PiazzaJobPoller piazzaJobPoller;
+	private JobPoller jobPoller;
 
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 
-		ReflectionTestUtils.setField(this.piazzaJobPoller, "POLL_FREQUENCY_SECONDS", 30000);
-		ReflectionTestUtils.setField(this.piazzaJobPoller, "JOB_TIMEOUT_HOURS", 5);
+		ReflectionTestUtils.setField(this.jobPoller, "POLL_FREQUENCY_SECONDS", 30000);
+		ReflectionTestUtils.setField(this.jobPoller, "JOB_TIMEOUT_HOURS", 5);
+		ReflectionTestUtils.setField(this.jobPoller, "JOB_ACTIVATION_TIMEOUT_MINUTES", 30);
 
 		// Stop automated polling. Unit tests will call polling explicitly.
-		piazzaJobPoller.stopPolling();
+		jobPoller.stopPolling();
 	}
 
 	@Test
@@ -69,7 +70,7 @@ public class PiazzaJobPollerTests {
 				Mockito.any());
 
 		// Test
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus);
+		jobPoller.getTask().processJobStatus(mockJob, mockStatus);
 
 		// Verify no Errors
 		Mockito.verify(jobService, Mockito.times(0)).createJobError(Mockito.any(), Mockito.any());

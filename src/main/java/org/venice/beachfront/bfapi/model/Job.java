@@ -37,6 +37,7 @@ public class Job {
 	public static final String STATUS_ERROR = "Error";
 	public static final String STATUS_FAIL = "Fail";
 	public static final String STATUS_PENDING = "Pending";
+	public static final String STATUS_ACTIVATING = "Activating";
 	public static final String STATUS_RUNNING = "Running";
 	public static final String STATUS_SUBMITTED = "Submitted";
 	public static final String STATUS_SUCCESS = "Success";
