@@ -140,10 +140,6 @@ public class JobService {
 		piazzaLogger.log(String.format("Generated CLI Command for Job %s (Scene %s) for User %s : %s", jobName, sceneId, creatorUserId,
 				algorithmCli), Severity.INFORMATIONAL);
 
-		// Dispatch Job to Piazza
-		piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId, jobId,
-				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true));
-
 		// Create Job and commit to database; return to User
 		Job job = new Job(jobId, jobName, Job.STATUS_ACTIVATING, creatorUserId, new DateTime(), algorithm.getServiceId(),
 				algorithm.getName(), algorithm.getVersion(), scene.getSceneId(), scene.getTide(), scene.getTideMin24H(),
@@ -153,6 +149,12 @@ public class JobService {
 		// Associate this Job with the User who requested it
 		jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
 		piazzaLogger.log(String.format("Saved Job ID %s for Job %s by User %s", jobId, jobName, creatorUserId), Severity.INFORMATIONAL);
+
+		// Dispatch Job to Piazza
+		piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId, jobId,
+				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true));
+
+		// Return Job Information
 		return job;
 	}
 

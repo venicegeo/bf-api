@@ -39,6 +39,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
@@ -54,6 +55,8 @@ import util.PiazzaLogger;
 public class PiazzaServiceTests {
 	@Mock
 	private RestTemplate restTemplate;
+	@Mock
+	private JobDao jobDao;
 	@Spy
 	private ObjectMapper objectMapper;
 	@Spy
@@ -77,6 +80,9 @@ public class PiazzaServiceTests {
 
 		mockScene.setSceneId("test");
 		sceneFuture = CompletableFuture.completedFuture(mockScene);
+
+		Job mockJob = new Job();
+		Mockito.when(jobDao.findByJobId(Mockito.anyString())).thenReturn(mockJob);
 	}
 
 	@Test

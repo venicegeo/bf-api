@@ -40,7 +40,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
@@ -65,6 +67,8 @@ public class PiazzaService {
 	private ObjectMapper objectMapper;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private JobDao jobDao;
 
 	/**
 	 * Executes the service, sending the payload to Piazza and parsing the response for the Job ID
@@ -151,6 +155,11 @@ public class PiazzaService {
 		// Log the Successful execution
 		piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
 				Severity.INFORMATIONAL);
+
+		// Update the Status of the Job as Submitted
+		Job job = jobDao.findByJobId(jobId);
+		job.setStatus(Job.STATUS_SUBMITTED);
+		jobDao.save(job);
 	}
 
 	/**
