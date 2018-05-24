@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import model.logger.Severity;
 import util.PiazzaLogger;
 
-@ControllerAdvice
+@ControllerAdvice(basePackages = "org.venice.beachfront.bfapi.controllers")
 public class UserExceptionHandler {
 	@Autowired
 	private PiazzaLogger logger;
