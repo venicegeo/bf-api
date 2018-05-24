@@ -133,7 +133,7 @@ public class OAuth2Config {
 	    return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
 	}
 
-	public UserProfile getOrCreateUser(final String userId, final String userName) {
+	private UserProfile getOrCreateUser(final String userId, final String userName) {
 
 		UserProfile user = userProfileService.getUserProfileById(userId);
 

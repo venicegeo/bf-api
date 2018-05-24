@@ -3,10 +3,15 @@ package org.venice.beachfront.bfapi.config;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.sql.DataSource;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.Authentication;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.Cloud;
+import org.springframework.cloud.CloudFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
@@ -56,5 +61,16 @@ public class BfApiConfig {
 				.paths(PathSelectors.any())
 				.build();
 		// @formatter:on
+	}
+
+	@Bean
+	public Cloud cloud() {
+		return new CloudFactory().getCloud();
+	}
+
+	@Bean
+	@ConfigurationProperties
+	public DataSource dataSource() {
+		return cloud().getServiceConnector("pz-postgres", DataSource.class, null);
 	}
 }
