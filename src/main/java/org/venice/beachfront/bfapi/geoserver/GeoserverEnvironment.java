@@ -83,6 +83,7 @@ public class GeoserverEnvironment {
 
 		// Check GeoServer Layer
 		{
+			//In GeoServer 2.9 layers can't be accessed by workspace, so use the Geoserver base url.
 			final String layerURL = String.format("%s/rest/layers/%s:%s.json", getGeoServerBaseUrl(), WORKSPACE_NAME, LAYER_NAME);
 
 			if (!doesResourceExist(layerURL)) {
