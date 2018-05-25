@@ -2,7 +2,7 @@
 	<name>LAYER_NAME</name>
 	<nativeName>LAYER_NAME</nativeName>
 	<namespace>
-		<name>piazza</name>
+		<name>WORKSPACE_NAME</name>
 		<atom:link xmlns:atom="http://www.w3.org/2005/Atom" rel="alternate" href="https://geoserver-0de60859-d830-4bf9-9d11-274f7269eb1f.dev.dev.east.paas.geointservices.io/geoserver/rest/namespaces/piazza.xml" type="application/xml"/>
 	</namespace>
 	<title>__beachfront__geoserver</title>
