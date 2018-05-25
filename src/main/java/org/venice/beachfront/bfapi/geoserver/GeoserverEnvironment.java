@@ -83,7 +83,7 @@ public class GeoserverEnvironment {
 
 		// Check GeoServer Layer
 		{
-			final String layerURL = String.format("%s/layers/%s", getWorkspaceBaseUrl(), LAYER_NAME);
+			final String layerURL = String.format("%s/layers/%s.json", getWorkspaceBaseUrl(), LAYER_NAME);
 
 			if (!doesResourceExist(layerURL)) {
 				piazzaLogger.log("GeoServer Layer does not exist; Attempting creation.", Severity.INFORMATIONAL);
@@ -95,7 +95,7 @@ public class GeoserverEnvironment {
 
 		// Check GeoServer Style
 		{
-			final String styleURL = String.format("%s/styles/%s", getWorkspaceBaseUrl(), STYLE_NAME);
+			final String styleURL = String.format("%s/styles/%s.json", getWorkspaceBaseUrl(), STYLE_NAME);
 
 			if (!doesResourceExist(styleURL)) {
 				piazzaLogger.log("GeoServer Style does not exist; Attempting creation.", Severity.INFORMATIONAL);
@@ -107,7 +107,7 @@ public class GeoserverEnvironment {
 
 		// Check GeoServer LayerGroup
 		{
-			final String layerGroupURL = String.format("%s/layergroups/%s", getWorkspaceBaseUrl(), LAYER_GROUP_NAME);
+			final String layerGroupURL = String.format("%s/layergroups/%s.json", getWorkspaceBaseUrl(), LAYER_GROUP_NAME);
 
 			if (!doesResourceExist(layerGroupURL)) {
 				piazzaLogger.log("GeoServer Layer Group does not exist; Attempting creation.", Severity.INFORMATIONAL);
@@ -120,14 +120,13 @@ public class GeoserverEnvironment {
 
 	/**
 	 * Checks if a GeoServer resource exists (200 OK returns from the server. 404 indicates not exists)
+	 * Note: resourceUri must return valid JSON for the resource to be considered extant.
 	 *
 	 * @return True if exists, false if not
 	 */
 	private boolean doesResourceExist(final String resourceUri) {
 		// Check if exists
 		final HttpEntity<String> request = new HttpEntity<>(authHeaders.get());
-		//Indicate that we expect a json response. GeoServer can also return html and xml.
-		request.getHeaders().setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
 		try {
 			piazzaLogger.log(String.format("Checking if GeoServer Resource Exists at %s", resourceUri), Severity.INFORMATIONAL);
