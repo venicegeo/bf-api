@@ -31,12 +31,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 /**
  * Checks the GeoServer Layer, Style during initialization to ensure that they exist before use.
  *
  * @author Russell.Orf
- *
  */
 @Component
 public class GeoserverEnvironment {
@@ -48,6 +48,8 @@ public class GeoserverEnvironment {
 	private String DATASTORE_NAME;
 	@Value("${geoserver.layer.name}")
 	private String LAYER_NAME;
+	@Value("${geoserver.layergroup.name}")
+	private String LAYER_GROUP_NAME;
 	@Value("${geoserver.style.name}")
 	private String STYLE_NAME;
 	@Value("${geoserver.timeout}")
@@ -81,7 +83,7 @@ public class GeoserverEnvironment {
 
 		// Check GeoServer Layer
 		{
-			final String layerURL = String.format("%s/rest/layers/%s", getGeoServerBaseUrl(), LAYER_NAME);
+			final String layerURL = String.format("%s/layers/%s", getWorkspaceBaseUrl(), LAYER_NAME);
 
 			if (!doesResourceExist(layerURL)) {
 				piazzaLogger.log("GeoServer Layer does not exist; Attempting creation.", Severity.INFORMATIONAL);
@@ -93,13 +95,25 @@ public class GeoserverEnvironment {
 
 		// Check GeoServer Style
 		{
-			final String styleURL = String.format("%s/rest/styles/%s", getGeoServerBaseUrl(), STYLE_NAME);
+			final String styleURL = String.format("%s/styles/%s", getWorkspaceBaseUrl(), STYLE_NAME);
 
 			if (!doesResourceExist(styleURL)) {
 				piazzaLogger.log("GeoServer Style does not exist; Attempting creation.", Severity.INFORMATIONAL);
 				installStyle();
 			} else {
 				piazzaLogger.log("GeoServer Style exists and will not be recreated.", Severity.INFORMATIONAL);
+			}
+		}
+
+		// Check GeoServer LayerGroup
+		{
+			final String layerGroupURL = String.format("%s/layergroups/%s", getWorkspaceBaseUrl(), LAYER_GROUP_NAME);
+
+			if (!doesResourceExist(layerGroupURL)) {
+				piazzaLogger.log("GeoServer Layer Group does not exist; Attempting creation.", Severity.INFORMATIONAL);
+				installLayerGroup();
+			} else {
+				piazzaLogger.log("GeoServer Layer Group exists and will not be recreated.", Severity.INFORMATIONAL);
 			}
 		}
 	}
@@ -112,6 +126,8 @@ public class GeoserverEnvironment {
 	private boolean doesResourceExist(final String resourceUri) {
 		// Check if exists
 		final HttpEntity<String> request = new HttpEntity<>(authHeaders.get());
+		//Indicate that we expect a json response. GeoServer can also return html and xml.
+		request.getHeaders().setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
 		try {
 			piazzaLogger.log(String.format("Checking if GeoServer Resource Exists at %s", resourceUri), Severity.INFORMATIONAL);
@@ -150,8 +166,7 @@ public class GeoserverEnvironment {
 
 	private void installLayer() {
 		authHeaders.setContentType(MediaType.APPLICATION_XML);
-		final String layerURL = String.format("%s/rest/workspaces/%s/datastores/%s/featuretypes", getGeoServerBaseUrl(), WORKSPACE_NAME,
-				DATASTORE_NAME);
+		final String layerURL = String.format("%s/datastores/%s/featuretypes", getWorkspaceBaseUrl(), DATASTORE_NAME);
 
 		try {
 			final HttpEntity<String> request = new HttpEntity<>(getLayerCreationPayload(), authHeaders.get());
@@ -169,7 +184,7 @@ public class GeoserverEnvironment {
 
 	private void installStyle() {
 		authHeaders.setContentType(MediaType.parseMediaType("application/vnd.ogc.sld+xml"));
-		final String styleURL = String.format("%s/rest/styles?name=%s", getGeoServerBaseUrl(), STYLE_NAME);
+		final String styleURL = String.format("%s/styles?name=%s", getWorkspaceBaseUrl(), STYLE_NAME);
 
 		try {
 			final HttpEntity<String> request = new HttpEntity<>(getStyleCreationPayload(), authHeaders.get());
@@ -185,13 +200,45 @@ public class GeoserverEnvironment {
 		}
 	}
 
+	private void installLayerGroup() {
+		authHeaders.setContentType(MediaType.parseMediaType("application/xml"));
+		final String layerGroupURL = String.format("%s/layergroups", getWorkspaceBaseUrl());
+
+		try {
+			final HttpEntity<String> request = new HttpEntity<>(getLayerGroupCreationPayload(), authHeaders.get());
+			restTemplate.exchange(layerGroupURL, HttpMethod.POST, request, String.class);
+			piazzaLogger.log("GeoServer Layer Group created successfully.", Severity.INFORMATIONAL);
+		} catch (final HttpClientErrorException | HttpServerErrorException exception) {
+			piazzaLogger.log(String.format("HTTP Error occurred while trying to create Beachfront GeoServer Layer Group: %s",
+					exception.getResponseBodyAsString()), Severity.ERROR);
+			determineExit();
+		} catch (final IOException | URISyntaxException | ResourceAccessException exception) {
+			piazzaLogger.log(String.format("Unexpected Error Reading GeoServer Layer Group XML with message %s", exception.getMessage()),
+					Severity.ERROR);
+		}
+	}
+
 	private String getLayerCreationPayload() throws IOException, URISyntaxException {
-		return new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/layer_creation.xml").toURI())))
-				.replaceAll("LAYER_NAME", LAYER_NAME);
+		return replaceNameTokens(
+				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/layer_creation.xml").toURI()))));
 	}
 
 	private String getStyleCreationPayload() throws IOException, URISyntaxException {
-		return new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/style_creation.xml").toURI())));
+		return replaceNameTokens(
+				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/style_creation.xml").toURI()))));
+	}
+
+	private String getLayerGroupCreationPayload() throws IOException, URISyntaxException {
+		return replaceNameTokens(
+				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/layer_group_creation.xml").toURI()))));
+	}
+
+	private String replaceNameTokens(String original) {
+		return original
+				.replaceAll("WORKSPACE_NAME", WORKSPACE_NAME)
+				.replaceAll("LAYER_NAME", LAYER_NAME)
+				.replaceAll("LAYER_GROUP_NAME", LAYER_GROUP_NAME)
+				.replaceAll("STYLE_NAME", STYLE_NAME);
 	}
 
 	/**
@@ -214,6 +261,10 @@ public class GeoserverEnvironment {
 			baseUrl = GEOSERVER_HOST.replace("/index.html", "");
 		}
 		return baseUrl;
+	}
+
+	public String getWorkspaceBaseUrl() {
+		return String.format("%s/rest/workspaces/%s", getGeoServerBaseUrl(), WORKSPACE_NAME);
 	}
 
 	/**
