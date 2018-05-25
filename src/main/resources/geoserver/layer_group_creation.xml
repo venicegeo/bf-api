@@ -3,7 +3,7 @@
     <mode>SINGLE</mode>
     <title>Beachfront Detections</title>
     <workspace>
-        <name>piazza</name>
+        <name>WORKSPACE_NAME</name>
     </workspace>
     <publishables>
         <published type="layer">
