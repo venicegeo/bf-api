@@ -83,7 +83,7 @@ public class GeoserverEnvironment {
 
 		// Check GeoServer Layer
 		{
-			final String layerURL = String.format("%s/layers/%s.json", getWorkspaceBaseUrl(), LAYER_NAME);
+			final String layerURL = String.format("%s/rest/layers/%s:%s.json", getGeoServerBaseUrl(), WORKSPACE_NAME, LAYER_NAME);
 
 			if (!doesResourceExist(layerURL)) {
 				piazzaLogger.log("GeoServer Layer does not exist; Attempting creation.", Severity.INFORMATIONAL);
