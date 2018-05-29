@@ -51,10 +51,10 @@ public class OAuth2Config {
 
     // property set by spring-cloud-sso-connector
     @Value("${ssoServiceUrl:placeholder}")
-    private String ssoServiceUrl;
+	private String ssoServiceUrl;
 
-    @Value("${security.oauth2.client.clientId:placeholder}")
-    private String clientId;
+	@Value("${security.oauth2.client.clientId:placeholder}")
+	private String clientId;
 
 	@Value("${DOMAIN}")
 	private String domain;
@@ -65,17 +65,17 @@ public class OAuth2Config {
 	@Value("${cookie.name}")
 	private String cookieName;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+	@Autowired
+	private ObjectMapper objectMapper;
 
-    @Autowired
-    private OAuth2ClientContext oAuth2ClientContext;
+	@Autowired
+	private OAuth2ClientContext oAuth2ClientContext;
 
-    @Autowired
-    private OAuth2ProtectedResourceDetails resourceDetails;
+	@Autowired
+	private OAuth2ProtectedResourceDetails resourceDetails;
 
-    @Autowired
-    private UserProfileService userProfileService;
+	@Autowired
+	private UserProfileService userProfileService;
 
     @Bean
     public OAuth2RestTemplate oauth2RestTemplate() {
@@ -139,8 +139,8 @@ public class OAuth2Config {
         if (auth != null){
             new SecurityContextLogoutHandler().logout(request, response, auth);
         }
-        final URL url = new URL(request.getRequestURL().toString());
-        final String urlStr = url.getProtocol() + "://" + url.getAuthority();
+		final URL url = new URL(request.getRequestURL().toString());
+		final String urlStr = url.getProtocol() + "://" + url.getAuthority();
 
 		// Server-side invalidation of API Key
 		userProfileService.invalidateKey(userProfileService.getProfileFromAuthentication(authentication));
