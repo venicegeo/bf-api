@@ -35,6 +35,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.venice.beachfront.bfapi.auth.OpenIDTokenProvider;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
@@ -120,10 +121,15 @@ public class OAuth2Config {
         final String userName = (String) userInfoResponse.get("user_name");
         final UserProfile userProfile = getOrCreateUser(userId, userName);
 
-        // Create the session cookie
-        response.addCookie(createCookie(userProfile.getApiKey(), cookieExpirySeconds));
+        // Build Response
+        final String uiRedirectUri = UriComponentsBuilder.newInstance().scheme("https").host("beachfront." + this.domain).queryParam("logged_in", "true").build().toUri().toString();
+        final Cookie cookie = createCookie(userProfile.getApiKey(), cookieExpirySeconds);
 
-        return "authorization_code";
+        response.addCookie(cookie);
+        response.setStatus(HttpStatus.FOUND.value());
+        response.setHeader("Location", uiRedirectUri);
+
+        return "Authentication successful. Redirecting back to application...";
     }
 
     @RequestMapping(value="/logout", method = RequestMethod.GET)
