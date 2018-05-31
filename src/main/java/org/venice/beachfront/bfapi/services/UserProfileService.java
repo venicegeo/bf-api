@@ -93,6 +93,8 @@ public class UserProfileService {
 			// Check the last Access time and compare it with the threshold
 			if (Minutes.minutesBetween(userProfile.getLastAccessed(), new DateTime()).getMinutes() >= API_KEY_TIMEOUT_MINUTES) {
 				// Expire the Key
+				piazzaLogger.log(String.format("Server-side timeout of key for user %s due to inactivity.", userProfile.getName()),
+						Severity.INFORMATIONAL);
 				this.invalidateKey(userProfile);
 			}
 		}
