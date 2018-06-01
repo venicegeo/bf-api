@@ -27,10 +27,10 @@ public class ProfileResponseBody {
 	private String dn;
 
 	@JsonProperty(value = "commonname", required = false)
-	private AbstractCommonName commonName;
+	private AbstractStringList commonName;
 
 	@JsonProperty(value = "memberof", required = false)
-	private AbstractMemberOf memberOf;
+	private AbstractStringList memberOf;
 
 	@JsonProperty(value = "firstname", required = false)
 	private String firstname;
@@ -45,7 +45,7 @@ public class ProfileResponseBody {
 		super();
 	}
 
-	public ProfileResponseBody(String dn, AbstractCommonName commonName, AbstractMemberOf memberOf, String firstname, String lastname, String id) {
+	public ProfileResponseBody(String dn, AbstractStringList commonName, AbstractStringList memberOf, String firstname, String lastname, String id) {
 		this.dn = dn;
 		this.commonName = commonName;
 		this.memberOf = memberOf;
@@ -58,11 +58,11 @@ public class ProfileResponseBody {
 		return dn;
 	}
 
-	public AbstractCommonName getCommonName() {
+	public AbstractStringList getCommonName() {
 		return commonName;
 	}
 
-	public AbstractMemberOf getMemberOf() {
+	public AbstractStringList getMemberOf() {
 		return memberOf;
 	}
 

@@ -24,7 +24,7 @@ public class ProfileResponseBodyTests {
 		MockitoAnnotations.initMocks(this);
 
 		SimpleModule module = new SimpleModule();
-		module.addDeserializer(AbstractCommonName.class, new AbstractCommonName.Deserializer());
+		module.addDeserializer(AbstractStringList.class, new AbstractStringList.Deserializer());
 		this.objectMapper.registerModule(module);
 	}
 	
@@ -70,10 +70,10 @@ public class ProfileResponseBodyTests {
 	@Test
 	public void testComputedUserIdPriorities() throws UserException {
 		// Mock
-		ProfileResponseBody fullBody = new ProfileResponseBody("distinguished-name", new AbstractCommonName.SingleString("common-name"), "member-of", "first-name", "last-name", "id");
-		ProfileResponseBody dnBody = new ProfileResponseBody("distinguished-name", new AbstractCommonName.SingleString("common-name"), "member-of", null, null, null);
-		ProfileResponseBody singleCNBody = new ProfileResponseBody(null, new AbstractCommonName.SingleString("common-name"), "member-of", null, null, null);
-		ProfileResponseBody multiCNBody = new ProfileResponseBody(null, new AbstractCommonName.StringList(Arrays.asList("common-name-1", "common-name-2")) , "member-of", null, null, null);
+		ProfileResponseBody fullBody = new ProfileResponseBody("distinguished-name", new AbstractStringList.SingleString("common-name"), new AbstractStringList.SingleString("member-of"), "first-name", "last-name", "id");
+		ProfileResponseBody dnBody = new ProfileResponseBody("distinguished-name", new AbstractStringList.SingleString("common-name"), new AbstractStringList.SingleString("member-of"), null, null, null);
+		ProfileResponseBody singleCNBody = new ProfileResponseBody(null, new AbstractStringList.SingleString("common-name"), new AbstractStringList.SingleString("member-of"), null, null, null);
+		ProfileResponseBody multiCNBody = new ProfileResponseBody(null, new AbstractStringList.StringList(Arrays.asList("common-name-1", "common-name-2")) , new AbstractStringList.StringList(Arrays.asList("member-of-1", "member-of-2")), null, null, null);
 		ProfileResponseBody nameIdBody = new ProfileResponseBody(null, null, null, "firstname", "lastname", "id");
 		ProfileResponseBody invalidBody = new ProfileResponseBody(null, null, null, null, null, null);
 
@@ -81,7 +81,7 @@ public class ProfileResponseBodyTests {
 		Assert.assertEquals("distinguished-name", fullBody.getComputedUserId());
 		Assert.assertEquals("distinguished-name", dnBody.getComputedUserId());
 		Assert.assertEquals("common-name@member-of", singleCNBody.getComputedUserId());
-		Assert.assertEquals("common-name-1@member-of", multiCNBody.getComputedUserId());
+		Assert.assertEquals("common-name-1@member-of-1", multiCNBody.getComputedUserId());
 		Assert.assertEquals("id@lastname-firstname", nameIdBody.getComputedUserId());
 		try {
 			String id = invalidBody.getComputedUserId();
@@ -95,10 +95,10 @@ public class ProfileResponseBodyTests {
 	@Test
 	public void testComputedUserNamePriorities() throws UserException {
 		// Mock
-		ProfileResponseBody fullBody = new ProfileResponseBody("distinguished-name", new AbstractCommonName.SingleString("common-name"), "member-of", "first-name", "last-name", "id");
-		ProfileResponseBody dnBody = new ProfileResponseBody("distinguished-name", new AbstractCommonName.SingleString("common-name"), "member-of", null, null, null);
-		ProfileResponseBody singleCNBody = new ProfileResponseBody(null, new AbstractCommonName.SingleString("common-name"), "member-of", null, null, null);
-		ProfileResponseBody multiCNBody = new ProfileResponseBody(null, new AbstractCommonName.StringList(Arrays.asList("common-name-1", "common-name-2")) , "member-of", null, null, null);
+		ProfileResponseBody fullBody = new ProfileResponseBody("distinguished-name", new AbstractStringList.SingleString("common-name"), new AbstractStringList.SingleString("member-of"), "first-name", "last-name", "id");
+		ProfileResponseBody dnBody = new ProfileResponseBody("distinguished-name", new AbstractStringList.SingleString("common-name"), new AbstractStringList.SingleString("member-of"), null, null, null);
+		ProfileResponseBody singleCNBody = new ProfileResponseBody(null, new AbstractStringList.SingleString("common-name"), new AbstractStringList.SingleString("member-of"), null, null, null);
+		ProfileResponseBody multiCNBody = new ProfileResponseBody(null, new AbstractStringList.StringList(Arrays.asList("common-name-1", "common-name-2")), new AbstractStringList.StringList(Arrays.asList("member-of-1", "member-of-2")), null, null, null);
 		ProfileResponseBody nameIdBody = new ProfileResponseBody(null, null, null, "firstname", "lastname", "id");
 		ProfileResponseBody invalidBody = new ProfileResponseBody(null, null, null, null, null, null);
 
