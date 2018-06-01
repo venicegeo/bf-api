@@ -30,10 +30,10 @@ public class ProfileResponseBodyTests {
 	
 	
 	@Test
-	public void testParseSingleCNGeoAxisBody() throws IOException {
+	public void testParseSingleStringGeoAxisBody() throws IOException {
 		// Mock
 		String responseJson = IOUtils.toString(
-				this.getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "model", File.separator, "geoaxis-single-cn.json")),
+				this.getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "model", File.separator, "geoaxis-single-string.json")),
 				"UTF-8");
 		
 		// Test
@@ -42,17 +42,17 @@ public class ProfileResponseBodyTests {
 		// Asserts
 		Assert.assertEquals("distinguished-name.test.localdomain", body.getDn());
 		Assert.assertEquals("testuser.localdomain", body.getCommonName().toString());
-		Assert.assertEquals("testorg.localdomain", body.getMemberOf());
+		Assert.assertEquals("testorg.localdomain", body.getMemberOf().toString());
 		Assert.assertEquals("FirstName", body.getFirstname());
 		Assert.assertEquals("LastName", body.getLastname());
 		Assert.assertEquals("test-id-123", body.getId());
 	}
 
 	@Test
-	public void testParseMultiCNGeoAxisBody() throws IOException {
+	public void testParseMultiStringGeoAxisBody() throws IOException {
 		// Mock
 		String responseJson = IOUtils.toString(
-				this.getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "model", File.separator, "geoaxis-multi-cn.json")),
+				this.getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "model", File.separator, "geoaxis-multi-string.json")),
 				"UTF-8");
 		
 		// Test
@@ -61,7 +61,7 @@ public class ProfileResponseBodyTests {
 		// Asserts
 		Assert.assertEquals("distinguished-name.test.localdomain", body.getDn());
 		Assert.assertEquals("testuser1.localdomain", body.getCommonName().toString());
-		Assert.assertEquals("testorg.localdomain", body.getMemberOf());
+		Assert.assertEquals("testorg1.localdomain", body.getMemberOf().toString());
 		Assert.assertEquals("FirstName", body.getFirstname());
 		Assert.assertEquals("LastName", body.getLastname());
 		Assert.assertEquals("test-id-123", body.getId());
