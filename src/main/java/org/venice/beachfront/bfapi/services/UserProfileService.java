@@ -88,7 +88,7 @@ public class UserProfileService {
 	 * Every 5 minutes, scan for expired API Keys that have not been used recently. Invalidate these keys if they are
 	 * older than the threshold.
 	 */
-	@Scheduled(fixedDelay = 300, initialDelay = 300)
+	@Scheduled(fixedDelay = 300000, initialDelay = 60000)
 	public void reapExpiredApiKeys() {
 		piazzaLogger.log("Performing Periodic Reaping of Expired API Keys", Severity.INFORMATIONAL);
 		for (UserProfile userProfile : userProfileDao.findAll()) {
