@@ -48,8 +48,8 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
+import org.venice.beachfront.bfapi.model.oauth.AbstractStringList;
 import org.venice.beachfront.bfapi.model.oauth.AccessTokenResponseBody;
-import org.venice.beachfront.bfapi.model.oauth.AbstractCommonName;
 import org.venice.beachfront.bfapi.model.oauth.ProfileResponseBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -80,7 +80,7 @@ public class OAuthServiceTests {
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 		SimpleModule module = new SimpleModule();
-		module.addDeserializer(AbstractCommonName.class, new AbstractCommonName.Deserializer());
+		module.addDeserializer(AbstractStringList.class, new AbstractStringList.Deserializer());
 		this.objectMapper.registerModule(module);
 
 		ReflectionTestUtils.setField(this.oauthService, "domain", "test.localdomain");

@@ -27,10 +27,10 @@ public class ProfileResponseBody {
 	private String dn;
 
 	@JsonProperty(value = "commonname", required = false)
-	private AbstractCommonName commonName;
+	private AbstractStringList commonName;
 
 	@JsonProperty(value = "memberof", required = false)
-	private String memberOf;
+	private AbstractStringList memberOf;
 
 	@JsonProperty(value = "firstname", required = false)
 	private String firstname;
@@ -45,7 +45,7 @@ public class ProfileResponseBody {
 		super();
 	}
 
-	public ProfileResponseBody(String dn, AbstractCommonName commonName, String memberOf, String firstname, String lastname, String id) {
+	public ProfileResponseBody(String dn, AbstractStringList commonName, AbstractStringList memberOf, String firstname, String lastname, String id) {
 		this.dn = dn;
 		this.commonName = commonName;
 		this.memberOf = memberOf;
@@ -58,11 +58,11 @@ public class ProfileResponseBody {
 		return dn;
 	}
 
-	public AbstractCommonName getCommonName() {
+	public AbstractStringList getCommonName() {
 		return commonName;
 	}
 
-	public String getMemberOf() {
+	public AbstractStringList getMemberOf() {
 		return memberOf;
 	}
 
@@ -76,7 +76,7 @@ public class ProfileResponseBody {
 		if (this.dn != null && this.dn.length() > 0) {
 			return this.dn;
 		}
-		if (this.commonName != null && this.commonName.toString().length() > 0 && this.memberOf != null && this.memberOf.length() > 0) {
+		if (this.commonName != null && this.commonName.toString().length() > 0 && this.memberOf != null && this.memberOf.toString().length() > 0) {
 			return String.format("%s@%s", this.commonName.toString(), this.memberOf);
 		}
 		if (this.firstname != null && this.firstname.length() > 0 &&
