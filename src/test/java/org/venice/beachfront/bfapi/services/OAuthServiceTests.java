@@ -168,7 +168,7 @@ public class OAuthServiceTests {
 	public void testRequestOAuthProfileSuccess() throws UserException, IOException {
 		String mockAccessToken = "mock-access-token-321";
 		String mockResponseBody = IOUtils.toString(
-				this.getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "model", File.separator, "geoaxis-single-cn.json")),
+				this.getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "model", File.separator, "geoaxis-single-string.json")),
 				"UTF-8");
 		
 		Mockito.when(this.restTemplate.exchange(Mockito.eq(this.oauthProfileUrl), Mockito.eq(HttpMethod.GET), Mockito.any(),
