@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class GeoServerBaseAuthenticationConfig {
+public class BaseAuthenticationConfig {
 
 	@Value("${http.keep.alive.duration.seconds}")
 	private int httpKeepAliveDurationSeconds;

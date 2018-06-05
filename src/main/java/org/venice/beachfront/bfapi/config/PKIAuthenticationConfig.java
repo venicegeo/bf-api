@@ -57,8 +57,8 @@ import org.venice.beachfront.bfapi.geoserver.PKIAuthHeaders;
  * Configures the API to use PKI authentication when communicating with GeoServer
  */
 @Configuration
-@Profile({ "pki-geoserver-auth" })
-public class GeoServerPKIAuthenticationConfig extends GeoServerBaseAuthenticationConfig {
+@Profile("pki-geoserver-auth")
+public class PKIAuthenticationConfig extends BaseAuthenticationConfig {
 
 	@Value("${http.max.total}")
 	private int httpMaxTotal;

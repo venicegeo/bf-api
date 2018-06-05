@@ -22,7 +22,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile({ "basic-geoserver-auth" })
+@Profile("basic-geoserver-auth")
 public class BasicAuthHeaders extends HttpHeaders implements AuthHeaders {
 
 	private static final long serialVersionUID = 1L;

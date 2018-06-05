@@ -20,7 +20,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile({ "pki-geoserver-auth" })
+@Profile("pki-geoserver-auth")
 public class PKIAuthHeaders extends HttpHeaders implements AuthHeaders {
 
 	private static final long serialVersionUID = 1L;

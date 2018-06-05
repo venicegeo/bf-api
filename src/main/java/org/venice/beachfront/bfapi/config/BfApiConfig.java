@@ -8,6 +8,7 @@ import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.Cloud;
@@ -69,6 +70,7 @@ public class BfApiConfig {
 	}
 
 	@Bean
+	@Profile("cloud")
 	@ConfigurationProperties
 	public DataSource dataSource() {
 		return cloud().getServiceConnector("pz-postgres", DataSource.class, null);

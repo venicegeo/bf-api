@@ -67,7 +67,7 @@ public class BfApiWebSecurity extends WebSecurityConfigurerAdapter {
 			.authenticationEntryPoint(failureEntryPoint)
 
 			// Feed more request details into any providers
-			.authenticationDetailsSource(authenticationDetailsSource()) 
+			.authenticationDetailsSource(getAuthenticationDetailsSource()) 
 		.and()
 			.authorizeRequests()
 			.anyRequest()
@@ -88,7 +88,7 @@ public class BfApiWebSecurity extends WebSecurityConfigurerAdapter {
 		// @formatter:on
 	}
 
-	private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
+	private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> getAuthenticationDetailsSource() {
 		return (request) -> {return new ExtendedRequestDetails(request); };
 	}
 }

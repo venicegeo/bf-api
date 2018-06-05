@@ -96,7 +96,7 @@ public class OAuth2Config {
     }
 
     @RequestMapping("/oauth/start")
-    public String authCode(final Model model, final HttpServletRequest request, final HttpServletResponse response) throws Exception {
+    public String startOAuth(final Model model, final HttpServletRequest request, final HttpServletResponse response) throws Exception {
 
     	if (ssoServiceUrl.equals("placeholder")) {
             model.addAttribute("header", "Warning: You need to bind to the SSO service.");
@@ -143,7 +143,8 @@ public class OAuth2Config {
 		final String urlStr = url.getProtocol() + "://" + url.getAuthority();
 
 		// Server-side invalidation of API Key
-		userProfileService.invalidateKey(userProfileService.getProfileFromAuthentication(authentication));
+		final UserProfile userProfile = userProfileService.getProfileFromAuthentication(authentication);
+		userProfileService.invalidateKey(userProfile);
 
 		// Clear the session cookie
 		response.addCookie(createCookie(null, 0));

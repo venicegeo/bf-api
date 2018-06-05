@@ -18,8 +18,8 @@ import org.venice.beachfront.bfapi.geoserver.BasicAuthHeaders;
  * Configures the API to use basic HTTP authentication when communicating with GeoServer
  */
 @Configuration
-@Profile({ "basic-geoserver-auth" })
-public class GeoServerBasicAuthenticationConfig extends GeoServerBaseAuthenticationConfig {
+@Profile("basic-geoserver-auth")
+public class BasicAuthenticationConfig extends BaseAuthenticationConfig {
 
 	@Value("${http.max.total}")
 	private int httpMaxTotal;
