@@ -129,7 +129,7 @@ public class OAuth2Config {
         response.setStatus(HttpStatus.FOUND.value());
         response.setHeader("Location", uiRedirectUri);
 
-        return "Authentication successful. Redirecting back to application...";
+        return "authorization_code";
     }
 
     @RequestMapping(value="/logout", method = RequestMethod.GET)
