@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -191,26 +192,29 @@ public class JobPoller {
 					jobService.createDetection(job, geometry);
 					// Finally, mark the Job as successful
 					job.setStatus(Job.STATUS_SUCCESS);
+					
+					// mark the log as a success and how long it took to complete
 					piazzaLogger.log(
-							String.format("Successfully recorded Detection geometry for Job %s and marking as Success.", job.getJobId()),
+							String.format("Successfully recorded Detection geometry for Job %s and marking as Success. Job completed in %d ms", job.getJobId(), 
+									(new Date().getTime() - job.getCreatedOn().toDate().getTime())),
 							Severity.INFORMATIONAL);
 				} catch (IOException exception) {
-					String error = String.format("Job %s failed because of an internal error while reading the detection geometry.",
-							job.getJobId());
+					String error = String.format("Job %s failed in %d ms, because of an internal error while reading the detection geometry.",
+							job.getJobId(), (new Date().getTime() - job.getCreatedOn().toDate().getTime()));
 					piazzaLogger.log(error, Severity.ERROR);
 					jobService.createJobError(job, error);
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
-					String error = String.format("Job %s failed because of an internal error downloading the detection geometry.",
-							job.getJobId());
+					String error = String.format("Job %s failed in %d ms, because of an internal error downloading the detection geometry.",
+							job.getJobId(), (new Date().getTime() - job.getCreatedOn().toDate().getTime()));
 					piazzaLogger.log(error, Severity.ERROR);
 					jobService.createJobError(job, error);
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (Exception exception) {
 					String error = String.format(
-							"Successful Piazza Job %s failed because of an unknown internal error of type %s. Full trace will be printed to logs.",
-							job.getJobId(), exception.getClass().toString());
+							"Successful Piazza Job %s failed in %d ms, because of an unknown internal error of type %s. Full trace will be printed to logs.",
+							job.getJobId(), (new Date().getTime() - job.getCreatedOn().toDate().getTime()), exception.getClass().toString());
 					piazzaLogger.log(error, Severity.ERROR);
 					exception.printStackTrace();
 					jobService.createJobError(job, error);
@@ -218,7 +222,8 @@ public class JobPoller {
 					job.setStatus(Job.STATUS_ERROR);
 				}
 			} else if (status.isStatusError()) {
-				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza.", job.getJobId()), Severity.ERROR);
+				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza. Job reported a failure in %d", job.getJobId(), 
+						(new Date().getTime() - job.getCreatedOn().toDate().getTime())), Severity.ERROR);
 				job.setStatus(status.getStatus());
 				jobService.createJobError(job, status.getErrorMessage());
 			}
