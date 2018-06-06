@@ -77,6 +77,8 @@ public class PiazzaService {
 		piazzaLogger.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s.", piazzaJobUrl,
 				serviceId, userId), Severity.INFORMATIONAL);
 
+		Long jobStartTime = System.currentTimeMillis();
+		
 		// Ensure that the Scene has finished activating before proceeding with the Piazza execution.
 		Scene scene = null;
 		try {
@@ -84,9 +86,16 @@ public class PiazzaService {
 			scene = sceneFuture.get();
 			piazzaLogger.log(String.format("Job %s Scene has been activated for Scene ID %s", jobId, scene.getSceneId()),
 					Severity.INFORMATIONAL);
+
+			// log time it took to successfully activate job
+			piazzaLogger.log(String.format("Job %s successfully activated in %d ms", jobId, (System.currentTimeMillis() - jobStartTime)), 
+					Severity.INFORMATIONAL);
 		} catch (InterruptedException | ExecutionException e) {
 			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s", jobId), Severity.ERROR);
 			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			// log time it took for job to fail activation
+			piazzaLogger.log(String.format("Job %s failed activation in %d ms", jobId, (System.currentTimeMillis() - jobStartTime)), 
+					Severity.INFORMATIONAL);
 			return;
 		}
 
@@ -127,6 +136,7 @@ public class PiazzaService {
 		HttpEntity<String> request = new HttpEntity<>(requestJson, headers);
 
 		// Execute the Request
+		Long jobExecuteStartTime = System.currentTimeMillis();	// time job was executed
 		try {
 			restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
@@ -135,6 +145,10 @@ public class PiazzaService {
 							userId, exception.getStatusText(), exception.getResponseBodyAsString(), requestJson),
 					Severity.ERROR);
 			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			
+			// log time it took for job to fail execution
+			piazzaLogger.log(String.format("Job %s failed execution in %d ms", jobId, (System.currentTimeMillis() - jobExecuteStartTime)), 
+					Severity.INFORMATIONAL);
 			return;
 		}
 
@@ -142,6 +156,13 @@ public class PiazzaService {
 		callback.updateStatus(jobId, Job.STATUS_SUBMITTED);
 		// Log the Successful execution
 		piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
+				Severity.INFORMATIONAL);
+		
+		Long jobFinishTime = System.currentTimeMillis();
+		// log time diffs it took to successfully execute and complete job
+		piazzaLogger.log(String.format("Job %s successfully executed in %d ms", jobId, (jobFinishTime - jobExecuteStartTime)), 
+				Severity.INFORMATIONAL);
+		piazzaLogger.log(String.format("Job %s successfully completed in %d ms", jobId, (jobFinishTime - jobStartTime)), 
 				Severity.INFORMATIONAL);
 	}
 

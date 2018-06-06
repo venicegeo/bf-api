@@ -31,6 +31,9 @@ import org.venice.beachfront.bfapi.services.JobService;
 import org.venice.beachfront.bfapi.services.PiazzaService;
 import org.venice.beachfront.bfapi.services.UptimeService;
 
+import model.logger.Severity;
+import util.PiazzaLogger;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.annotations.Api;
@@ -55,6 +58,9 @@ public class HealthCheckController {
 	@Autowired
 	private GeoserverEnvironment geoserverEnvironment;
 
+	@Autowired
+	private PiazzaLogger piazzaLogger;
+	
 	@Value("${DOMAIN}")
 	private String domain;
 
@@ -78,6 +84,10 @@ public class HealthCheckController {
 			}
 			// Show outstanding Job length
 			healthCheckData.put("outstanding-jobs", Integer.toString(jobService.getOutstandingJobs().size()));
+			
+			piazzaLogger.log(String.format("Health and status check called. Returning status of %s.", healthCheckData.toString()),
+					Severity.INFORMATIONAL);
+			
 		} catch (UserException exception) {
 			healthCheckData.put("error",
 					String.format("There was an error retrieving Algorithm health check data: %s", exception.getMessage()));
