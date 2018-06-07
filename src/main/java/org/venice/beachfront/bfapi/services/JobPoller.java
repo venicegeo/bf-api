@@ -30,6 +30,7 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.geojson.feature.FeatureJSON;
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.joda.time.Minutes;
 import org.opengis.feature.simple.SimpleFeature;
@@ -163,6 +164,15 @@ public class JobPoller {
 		public void processJobStatus(Job job, StatusMetadata status) {
 			// Update the Status of the Job
 			job.setStatus(status.getStatus());
+			if (status.isStatusSuccess() || status.isStatusError()) {
+				piazzaLogger.log(
+						String.format("Job %s completed in %d minutes. Status=%s", 
+								job.getJobId(), 
+								new Duration(job.getCreatedOn(), new DateTime()).getStandardMinutes(), 	// calculate diff between now and when job was created
+								status.isStatusSuccess()?"Success":"Error"), 							// list status in message, either success or error
+						Severity.INFORMATIONAL);
+			}
+
 			// Process based on the status
 			if (status.isStatusIncomplete()) {
 				// Nothing to do here. Polling will continue for this job.
@@ -192,29 +202,26 @@ public class JobPoller {
 					jobService.createDetection(job, geometry);
 					// Finally, mark the Job as successful
 					job.setStatus(Job.STATUS_SUCCESS);
-					
-					// mark the log as a success and how long it took to complete
 					piazzaLogger.log(
-							String.format("Successfully recorded Detection geometry for Job %s and marking as Success. Job completed in %d ms", job.getJobId(), 
-									(new Date().getTime() - job.getCreatedOn().toDate().getTime())),
+							String.format("Successfully recorded Detection geometry for Job %s and marking as Success.", job.getJobId()),
 							Severity.INFORMATIONAL);
 				} catch (IOException exception) {
-					String error = String.format("Job %s failed in %d ms, because of an internal error while reading the detection geometry.",
-							job.getJobId(), (new Date().getTime() - job.getCreatedOn().toDate().getTime()));
+					String error = String.format("Job %s failed because of an internal error while reading the detection geometry.",
+							job.getJobId());
 					piazzaLogger.log(error, Severity.ERROR);
 					jobService.createJobError(job, error);
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
-					String error = String.format("Job %s failed in %d ms, because of an internal error downloading the detection geometry.",
-							job.getJobId(), (new Date().getTime() - job.getCreatedOn().toDate().getTime()));
+					String error = String.format("Job %s failed because of an internal error downloading the detection geometry.",
+							job.getJobId());
 					piazzaLogger.log(error, Severity.ERROR);
 					jobService.createJobError(job, error);
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (Exception exception) {
 					String error = String.format(
-							"Successful Piazza Job %s failed in %d ms, because of an unknown internal error of type %s. Full trace will be printed to logs.",
-							job.getJobId(), (new Date().getTime() - job.getCreatedOn().toDate().getTime()), exception.getClass().toString());
+							"Successful Piazza Job %s failed because of an unknown internal error of type %s. Full trace will be printed to logs.",
+							job.getJobId(), exception.getClass().toString());
 					piazzaLogger.log(error, Severity.ERROR);
 					exception.printStackTrace();
 					jobService.createJobError(job, error);
@@ -222,8 +229,7 @@ public class JobPoller {
 					job.setStatus(Job.STATUS_ERROR);
 				}
 			} else if (status.isStatusError()) {
-				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza. Job reported a failure in %d", job.getJobId(), 
-						(new Date().getTime() - job.getCreatedOn().toDate().getTime())), Severity.ERROR);
+				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza.", job.getJobId()), Severity.ERROR);
 				job.setStatus(status.getStatus());
 				jobService.createJobError(job, status.getErrorMessage());
 			}
