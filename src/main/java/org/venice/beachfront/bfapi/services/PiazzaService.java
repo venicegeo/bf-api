@@ -76,7 +76,7 @@ public class PiazzaService {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
 		piazzaLogger.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s.", piazzaJobUrl,
 				serviceId, userId), Severity.INFORMATIONAL);
-
+		
 		// Ensure that the Scene has finished activating before proceeding with the Piazza execution.
 		Scene scene = null;
 		try {

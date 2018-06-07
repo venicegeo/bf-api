@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -29,6 +30,7 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.geojson.feature.FeatureJSON;
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.joda.time.Minutes;
 import org.opengis.feature.simple.SimpleFeature;
@@ -162,6 +164,16 @@ public class JobPoller {
 		public void processJobStatus(Job job, StatusMetadata status) {
 			// Update the Status of the Job
 			job.setStatus(status.getStatus());
+			if (!status.isStatusIncomplete()) {
+				// Logging time of completion, and overall status at time of completion
+				piazzaLogger.log(
+						String.format("Job %s completed in %d minutes. Status=%s", 
+								job.getJobId(), 
+								new Duration(job.getCreatedOn(), new DateTime()).getStandardMinutes(), 	// calculate diff between now and when job was created
+								job.getStatus()), 							// list status in message, either success or error
+						Severity.INFORMATIONAL);
+			}
+
 			// Process based on the status
 			if (status.isStatusIncomplete()) {
 				// Nothing to do here. Polling will continue for this job.
