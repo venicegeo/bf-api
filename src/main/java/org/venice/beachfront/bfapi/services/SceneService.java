@@ -48,6 +48,9 @@ import util.PiazzaLogger;
 
 @Service
 public class SceneService {
+	public static final String PROVIDER_URL_PLANET = "planet";
+	public static final String PROVIDER_URL_LOCALINDEX = "localindex";
+	
 	@Value("${ia.broker.activation-poll-interval-sec}")
 	private int asyncActivationPollIntervalSeconds;
 	@Value("${ia.broker.activation-poll-max-attempts}")
@@ -78,7 +81,8 @@ public class SceneService {
 		}
 
 		String platform = Scene.parsePlatform(scene.getSceneId());
-		String activationPath = String.format("planet/activate/%s/%s", platform, scene.getExternalId());
+		String provider = this.getProviderUrlFragment(scene.getSceneId());
+		String activationPath = String.format("%s/activate/%s/%s", provider, platform, scene.getExternalId());
 
 		try {
 			this.restTemplate.getForEntity(UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer)
@@ -131,10 +135,11 @@ public class SceneService {
 	 */
 	public Scene getScene(String sceneId, String planetApiKey, boolean withTides) throws UserException {
 		piazzaLogger.log(String.format("Requesting Scene %s information.", sceneId), Severity.INFORMATIONAL);
+		String provider = this.getProviderUrlFragment(sceneId);
 		String platform = Scene.parsePlatform(sceneId);
 		String externalId = Scene.parseExternalId(sceneId);
 
-		String scenePath = String.format("planet/%s/%s", platform, externalId);
+		String scenePath = String.format("%s/%s/%s", provider, platform, externalId);
 
 		ResponseEntity<JsonNode> response;
 		try {
@@ -186,7 +191,7 @@ public class SceneService {
 			}
 
 			String status = "active";
-			if (platform.equals(Scene.PLATFORM_RAPIDEYE) || platform.equals(Scene.PLATFORM_PLANETSCOPE)) {
+			if (platform.equals(Scene.PLATFORM_PLANET_RAPIDEYE) || platform.equals(Scene.PLATFORM_PLANET_PLANETSCOPE)) {
 				status = responseJson.get("properties").get("status").asText();
 			} else {
 				// Status active
@@ -253,12 +258,12 @@ public class SceneService {
 
 	public List<String> getSceneInputFileNames(Scene scene) {
 		switch (Scene.parsePlatform(scene.getSceneId())) {
-		case Scene.PLATFORM_RAPIDEYE:
-		case Scene.PLATFORM_PLANETSCOPE:
+		case Scene.PLATFORM_PLANET_RAPIDEYE:
+		case Scene.PLATFORM_PLANET_PLANETSCOPE:
 			return Arrays.asList("multispectral.TIF");
-		case Scene.PLATFORM_LANDSAT:
+		case Scene.PLATFORM_PLANET_LANDSAT:
 			return Arrays.asList("coastal.TIF", "swir1.TIF");
-		case Scene.PLATFORM_SENTINEL:
+		case Scene.PLATFORM_PLANET_SENTINEL:
 			return Arrays.asList("coastal.JP2", "swir1.JP2");
 		}
 		return new ArrayList<>();
@@ -266,15 +271,27 @@ public class SceneService {
 
 	public List<String> getSceneInputURLs(Scene scene) {
 		switch (Scene.parsePlatform(scene.getSceneId())) {
-		case Scene.PLATFORM_RAPIDEYE:
-		case Scene.PLATFORM_PLANETSCOPE:
+		case Scene.PLATFORM_PLANET_RAPIDEYE:
+		case Scene.PLATFORM_PLANET_PLANETSCOPE:
 			return Arrays.asList(scene.getLocationProperty());
-		case Scene.PLATFORM_LANDSAT:
+		case Scene.PLATFORM_PLANET_LANDSAT:
 			return Arrays.asList(scene.getImageBand("coastal"), scene.getImageBand("swir1"));
-		case Scene.PLATFORM_SENTINEL:
+		case Scene.PLATFORM_PLANET_SENTINEL:
 			return Arrays.asList(scene.getImageBand("blue"), scene.getImageBand("nir"));
 		}
 		return new ArrayList<>();
 	}
 
+	public String getProviderUrlFragment(String sceneId) throws UserException {
+		switch (Scene.parsePlatform(sceneId)) {
+		case Scene.PLATFORM_PLANET_LANDSAT:
+		case Scene.PLATFORM_PLANET_PLANETSCOPE:
+		case Scene.PLATFORM_PLANET_RAPIDEYE:
+		case Scene.PLATFORM_PLANET_SENTINEL:
+				return PROVIDER_URL_PLANET;
+		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
+			return PROVIDER_URL_LOCALINDEX;
+		}
+		throw new UserException("Cannot get platform string for Scene: " + sceneId, HttpStatus.INTERNAL_SERVER_ERROR);		
+	}
 }
