@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -63,6 +65,8 @@ public class SceneService {
 	private int iaBrokerPort;
 	@Value("${DOMAIN}")
 	private String bfDomain;
+	@Value("${ia.broker.enabled-platforms")
+	private String enabledPlatformsConcatenated;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -293,5 +297,26 @@ public class SceneService {
 			return PROVIDER_URL_LOCALINDEX;
 		}
 		throw new UserException("Cannot get platform string for Scene: " + sceneId, HttpStatus.INTERNAL_SERVER_ERROR);		
+	}
+	
+	public List<String> getEnabledPlatforms() {
+		Set<String> allowedPlatforms = new HashSet<String>(Arrays.asList(
+				Scene.PLATFORM_PLANET_LANDSAT, 
+				Scene.PLATFORM_PLANET_PLANETSCOPE, 
+				Scene.PLATFORM_PLANET_RAPIDEYE, 
+				Scene.PLATFORM_PLANET_SENTINEL, 
+				Scene.PLATFORM_LOCALINDEX_LANDSAT));
+		String[] specifiedPlatforms = this.enabledPlatformsConcatenated.split(",");
+		Set<String> calculatedPlatforms = new HashSet<String>();
+		
+		for (String platform : specifiedPlatforms) {
+			if (allowedPlatforms.contains(platform)) {
+				calculatedPlatforms.add(platform);
+			} else {
+				this.piazzaLogger.log("Unknown platform in enabled platforms config: " + platform, Severity.WARNING);
+			}
+		}
+		
+		return new ArrayList<String>(calculatedPlatforms);
 	}
 }
