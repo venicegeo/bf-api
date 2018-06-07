@@ -65,7 +65,7 @@ public class SceneService {
 	private int iaBrokerPort;
 	@Value("${DOMAIN}")
 	private String bfDomain;
-	@Value("${ia.broker.enabled-platforms")
+	@Value("${ia.broker.enabled-platforms}")
 	private String enabledPlatformsConcatenated;
 
 	@Autowired
