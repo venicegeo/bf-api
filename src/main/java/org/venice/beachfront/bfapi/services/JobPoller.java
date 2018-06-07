@@ -164,12 +164,13 @@ public class JobPoller {
 		public void processJobStatus(Job job, StatusMetadata status) {
 			// Update the Status of the Job
 			job.setStatus(status.getStatus());
-			if (status.isStatusSuccess() || status.isStatusError()) {
+			if (!status.isStatusIncomplete()) {
+				// Logging time of completion, and overall status at time of completion
 				piazzaLogger.log(
 						String.format("Job %s completed in %d minutes. Status=%s", 
 								job.getJobId(), 
 								new Duration(job.getCreatedOn(), new DateTime()).getStandardMinutes(), 	// calculate diff between now and when job was created
-								status.isStatusSuccess()?"Success":"Error"), 							// list status in message, either success or error
+								job.getStatus()), 							// list status in message, either success or error
 						Severity.INFORMATIONAL);
 			}
 
