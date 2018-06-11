@@ -94,6 +94,11 @@ public class UserProfileService {
 		for (UserProfile userProfile : userProfileDao.findAll()) {
 			// Check the last Access time and compare it with the threshold
 			if (userProfile.getApiKey() != null) {
+				// If the account has never been accessed, set the last access time to the creation time (Legacy)
+				if (userProfile.getLastAccessed() == null) {
+					userProfile.setLastAccessed(userProfile.getCreatedOn());
+					saveUserProfile(userProfile);
+				}
 				if (Minutes.minutesBetween(userProfile.getLastAccessed(), new DateTime()).getMinutes() >= API_KEY_TIMEOUT_MINUTES) {
 					// Expire the Key
 					piazzaLogger.log(String.format("Server-side timeout of key for user %s due to inactivity.", userProfile.getName()),
