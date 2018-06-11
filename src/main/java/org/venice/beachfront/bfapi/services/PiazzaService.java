@@ -504,6 +504,7 @@ public class PiazzaService {
 		String bandsFlag = null;
 		switch (scenePlatform) {
 		case Scene.PLATFORM_PLANET_LANDSAT:
+		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
 		case Scene.PLATFORM_PLANET_SENTINEL:
 			bandsFlag = "--bands 1 1";
 			break;
