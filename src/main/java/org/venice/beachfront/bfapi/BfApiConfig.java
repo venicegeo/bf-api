@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletRequest;
@@ -89,6 +90,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -236,7 +239,7 @@ public class BfApiConfig {
 
 		private boolean isPublicEndpoint(String path) {
 			final List<String> pubicEndpointsList = Arrays.asList(publicEndpoints.split(","));
-			return pubicEndpointsList.stream().anyMatch(str -> str.trim().equals(path));
+			return pubicEndpointsList.stream().anyMatch(str -> Pattern.compile(str).matcher(path).matches());
 		}
 	}
 
