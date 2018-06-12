@@ -71,7 +71,7 @@ public class IABrokerPassthroughService {
 		try {
 			ResponseEntity<String> response = restTemplate.exchange(uri, method, new HttpEntity<String>(body), String.class);
 			piazzaLogger.log(String.format("Received IA Broker response, code=%d, length=%d, for URI %s", 
-					response.getStatusCodeValue(), response.getBody().length(), uri.toString()), Severity.INFORMATIONAL);
+					response.getStatusCodeValue(), response.getBody()==null ? "0" : response.getBody().length(), uri.toString()), Severity.INFORMATIONAL);
 			return response;
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Received IA Broker error response, code=%d, length=%d, for URI %s", 
