@@ -12,3 +12,4 @@ applications:
     - pz-postgres
     - pz-geoserver
     - pz-postgres-service-key
+    - pz-sso-geoaxis
