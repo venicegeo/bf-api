@@ -23,12 +23,15 @@ import java.net.URISyntaxException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.client.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -50,10 +53,12 @@ public class IABrokerPassthroughService {
 	@Value("${ia.broker.port}")
 	private Integer IA_BROKER_PORT;
 	@Autowired
+	@Qualifier("rest-template-no-follow-redirect")
 	private RestTemplate restTemplate;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
-
+	
+	
 	public ResponseEntity<String> passthroughRequest(HttpMethod method, HttpServletRequest request)
 			throws MalformedURLException, IOException, URISyntaxException, UserException {
 		// URI to ia-Broker will strip out the /ia prefix that the bf-api uses to denote ia-broker proxying
