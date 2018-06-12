@@ -243,7 +243,7 @@ public class BfApiConfig {
 					.antMatchers("/oauth/callback").permitAll() // Allow unauthenticated queries to login callback path
 					.antMatchers("/oauth/start").permitAll() // Allow unauthenticated queries to OAuth login start path
 					.antMatchers("/v2/api-docs").permitAll() // Allow unauthenticated queries for Swagger documentation
-					.antMatchers("/ia/tiles/**").permitAll() // Allow unauthenticated IA Broker tile requests, necessary for map tiles
+					.antMatchers("/ia/**").permitAll() // Allow unauthenticated IA Broker requests, necessary for map tiles
 					.anyRequest().authenticated() // All other requests must be authenticated
 					.and().httpBasic() // Use HTTP Basic authentication
 					.authenticationEntryPoint(this.failureEntryPoint) // Entry point for starting a Basic auth exchange
