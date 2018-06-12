@@ -34,10 +34,11 @@ import com.vividsolutions.jts.geom.Geometry;
 @Entity
 @Table(name = "__beachfront__scene")
 public class Scene {
-	public static final String PLATFORM_PLANETSCOPE = "planetscope";
-	public static final String PLATFORM_RAPIDEYE = "rapideye";
-	public static final String PLATFORM_SENTINEL = "sentinel";
-	public static final String PLATFORM_LANDSAT = "landsat";
+	public static final String PLATFORM_PLANET_PLANETSCOPE = "planetscope";
+	public static final String PLATFORM_PLANET_RAPIDEYE = "rapideye";
+	public static final String PLATFORM_PLANET_SENTINEL = "sentinel";
+	public static final String PLATFORM_PLANET_LANDSAT = "landsat";
+	public static final String PLATFORM_LOCALINDEX_LANDSAT = "landsat_pds";
 
 	public static final String STATUS_ACTIVE = "active";
 	public static final String STATUS_ACTIVATING = "activating";

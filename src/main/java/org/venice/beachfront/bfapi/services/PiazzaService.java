@@ -503,14 +503,15 @@ public class PiazzaService {
 		// Generate Bands based on the platform
 		String bandsFlag = null;
 		switch (scenePlatform) {
-		case Scene.PLATFORM_LANDSAT:
-		case Scene.PLATFORM_SENTINEL:
+		case Scene.PLATFORM_PLANET_LANDSAT:
+		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
+		case Scene.PLATFORM_PLANET_SENTINEL:
 			bandsFlag = "--bands 1 1";
 			break;
-		case Scene.PLATFORM_PLANETSCOPE:
+		case Scene.PLATFORM_PLANET_PLANETSCOPE:
 			bandsFlag = "--bands 2 4";
 			break;
-		case Scene.PLATFORM_RAPIDEYE:
+		case Scene.PLATFORM_PLANET_RAPIDEYE:
 			bandsFlag = "--bands 2 5";
 			break;
 		}

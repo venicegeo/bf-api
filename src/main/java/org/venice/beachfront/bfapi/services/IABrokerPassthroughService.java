@@ -59,7 +59,7 @@ public class IABrokerPassthroughService {
 		// URI to ia-Broker will strip out the /ia prefix that the bf-api uses to denote ia-broker proxying
 		// Single data source right now, which is planet. In the future, we will switch on the sensor/item type to
 		// determine the source (or have the source just injected)
-		String requestPath = request.getRequestURI().replaceAll("/ia", "/planet");
+		String requestPath = request.getRequestURI().replaceAll("/ia", "/");
 		URI uri = new URI(IA_BROKER_PROTOCOL, null, IA_BROKER_SERVER, IA_BROKER_PORT, requestPath, request.getQueryString(), null);
 		String body = IOUtils.toString(request.getReader());
 		piazzaLogger.log(String.format("Proxying request to IA Broker at URI %s", uri.toString()), Severity.INFORMATIONAL);

@@ -158,13 +158,13 @@ public class SceneServiceTests {
 	public void testActivateSceneSuccess() throws UserException {
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
-		scene.setSceneId("PLATFORM:EXTERNAL_ID");
+		scene.setSceneId("rapideye:EXTERNAL_ID");
 
 		Mockito.when(this.restTemplate.getForEntity(Mockito.any(), Mockito.eq(Object.class))).then(new Answer<ResponseEntity<?>>() {
 			public ResponseEntity<?> answer(InvocationOnMock invocation) {
 				Object[] args = invocation.getArguments();
 				assertEquals(URI.class, args[0].getClass());
-				assertEquals("https://bf-ia-broker-test.localdomain:443/planet/activate/PLATFORM/EXTERNAL_ID?PL_API_KEY=api-abc-123",
+				assertEquals("https://bf-ia-broker-test.localdomain:443/planet/activate/rapideye/EXTERNAL_ID?PL_API_KEY=api-abc-123",
 						((URI) args[0]).toString());
 				return new ResponseEntity<Object>(null, HttpStatus.OK);
 			}
@@ -200,7 +200,7 @@ public class SceneServiceTests {
 
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
-		scene.setSceneId("PLATFORM:EXTERNAL_ID");
+		scene.setSceneId("rapideye:EXTERNAL_ID");
 		try {
 			this.sceneService.activateScene(scene, "api-abc-123");
 			fail("activation should not have succeeded");
@@ -220,7 +220,7 @@ public class SceneServiceTests {
 
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
-		scene.setSceneId("PLATFORM:EXTERNAL_ID");
+		scene.setSceneId("rapideye:EXTERNAL_ID");
 		try {
 			this.sceneService.activateScene(scene, "api-abc-123");
 			fail("activation should not have succeeded");
@@ -240,7 +240,7 @@ public class SceneServiceTests {
 
 		Scene scene = new Scene();
 		scene.setStatus(Scene.STATUS_INACTIVE);
-		scene.setSceneId("PLATFORM:EXTERNAL_ID");
+		scene.setSceneId("rapideye:EXTERNAL_ID");
 		try {
 			this.sceneService.activateScene(scene, "api-abc-123");
 			fail("activation should not have succeeded");
