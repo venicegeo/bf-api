@@ -37,14 +37,11 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.ProtocolException;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
@@ -52,7 +49,6 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
@@ -62,24 +58,20 @@ import org.apache.http.cookie.CookieSpec;
 import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.cookie.MalformedCookieException;
 import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.DefaultCookieSpec;
 import org.apache.http.message.BasicHeaderElementIterator;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -90,8 +82,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.util.AntPathMatcher;
+import org.springframework.security.web.session.ConcurrentSessionFilter;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -99,6 +90,8 @@ import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 import org.venice.beachfront.bfapi.auth.ApiKeyAuthProvider;
 import org.venice.beachfront.bfapi.auth.ExtendedRequestDetails;
 import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
+import org.venice.beachfront.bfapi.auth.jwt.JWTAuthProvider;
+import org.venice.beachfront.bfapi.auth.jwt.JWTAuthenticationFilter;
 import org.venice.beachfront.bfapi.geoserver.AuthHeaders;
 import org.venice.beachfront.bfapi.geoserver.BasicAuthHeaders;
 import org.venice.beachfront.bfapi.geoserver.PKIAuthHeaders;
@@ -251,10 +244,16 @@ public class BfApiConfig {
 		@Autowired
 		private ApiKeyAuthProvider apiKeyAuthProvider;
 		@Autowired
+		private JWTAuthProvider jwtAuthProvider;
+		@Autowired
 		private FailedAuthEntryPoint failureEntryPoint;
+
 
 		@Override
 		public void configure(HttpSecurity http) throws Exception {
+			JWTAuthenticationFilter jwtFilter = new JWTAuthenticationFilter();
+			jwtFilter.setAuthenticationManager(this.authenticationManagerBean());
+			
 			http.authorizeRequests().antMatchers(HttpMethod.OPTIONS).permitAll() // Allow any OPTIONS for REST best
 																					// practices
 					.antMatchers("/").permitAll() // Allow unauthenticated queries to root (health check) path
@@ -275,6 +274,8 @@ public class BfApiConfig {
 					.and().logout().disable() // Disable auto-magical Spring Security logout behavior
 					.authenticationProvider(this.apiKeyAuthProvider) // Use this custom authentication provider to
 																		// authenticate requests
+					.authenticationProvider(this.jwtAuthProvider) // Authenticating JWT Tokens
+					.addFilterAfter(jwtFilter, ConcurrentSessionFilter.class)
 					.csrf().disable(); // Disable advanced CSRF protections for better statelessness
 		}
 
