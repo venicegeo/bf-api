@@ -204,9 +204,9 @@ public class SceneService {
 			scene.setStatus(status);
 
 			if (withTides) {
-				scene.setTide(responseJson.get("properties").get("CurrentTide").asDouble());
-				scene.setTideMin24H(responseJson.get("properties").get("MinimumTide24Hours").asDouble());
-				scene.setTideMax24H(responseJson.get("properties").get("MaximumTide24Hours").asDouble());
+				scene.setTide(responseJson.get("properties").get("currentTide").asDouble());
+				scene.setTideMin24H(responseJson.get("properties").get("minimumTide24Hours").asDouble());
+				scene.setTideMax24H(responseJson.get("properties").get("maximumTide24Hours").asDouble());
 			}
 		} catch (NullPointerException ex) {
 			piazzaLogger.log(String.format(
