@@ -82,7 +82,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.session.ConcurrentSessionFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -251,8 +251,7 @@ public class BfApiConfig {
 
 		@Override
 		public void configure(HttpSecurity http) throws Exception {
-			JWTAuthenticationFilter jwtFilter = new JWTAuthenticationFilter();
-			jwtFilter.setAuthenticationManager(this.authenticationManagerBean());
+			JWTAuthenticationFilter jwtFilter = new JWTAuthenticationFilter(this.authenticationManagerBean());
 			
 			http.authorizeRequests().antMatchers(HttpMethod.OPTIONS).permitAll() // Allow any OPTIONS for REST best
 																					// practices
@@ -275,7 +274,7 @@ public class BfApiConfig {
 					.authenticationProvider(this.apiKeyAuthProvider) // Use this custom authentication provider to
 																		// authenticate requests
 					.authenticationProvider(this.jwtAuthProvider) // Authenticating JWT Tokens
-					.addFilterAfter(jwtFilter, ConcurrentSessionFilter.class)
+					.addFilterAfter(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 					.csrf().disable(); // Disable advanced CSRF protections for better statelessness
 		}
 

@@ -15,15 +15,17 @@
  **/
 package org.venice.beachfront.bfapi.auth.jwt;
 
+import java.io.IOException;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
-import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Filter for JWT Bearer tokens
@@ -31,29 +33,27 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  * @author Patrick.Doody
  *
  */
-public class JWTAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
+public class JWTAuthenticationFilter extends OncePerRequestFilter {
+	private AuthenticationManager authenticationManager;
 
-	public JWTAuthenticationFilter() {
-		super(new RequestMatcher() {
-
-			@Override
-			public boolean matches(HttpServletRequest request) {
-				boolean isBearer = request.getHeader("Authorization").startsWith("Bearer");
-				return isBearer;
-			}
-		});
+	public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
+		this.authenticationManager = authenticationManager;
 	}
 
 	@Override
-	public Authentication attemptAuthentication(HttpServletRequest req, HttpServletResponse res) throws AuthenticationException {
-		String authHeader = req.getHeader("Authorization");
-		if (authHeader.startsWith("Bearer")) {
-			JWTToken token = new JWTToken("Test", "Test");
-			//token.setAuthenticated(false);
-			return this.getAuthenticationManager().authenticate(token);
-		} else {
-			return null;
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+			throws ServletException, IOException {
+		String header = request.getHeader("Authorization");
+
+		if (header == null || !header.startsWith("Bearer ")) {
+			chain.doFilter(request, response);
+			return;
 		}
+
+		JWTToken token = new JWTToken("test", "test");
+		Authentication authResult = this.authenticationManager.authenticate(token);
+		SecurityContextHolder.getContext().setAuthentication(authResult);
+		chain.doFilter(request, response);
 	}
 
 }
