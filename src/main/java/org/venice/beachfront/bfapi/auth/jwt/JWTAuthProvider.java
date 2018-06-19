@@ -17,6 +17,7 @@ package org.venice.beachfront.bfapi.auth.jwt;
 
 import java.io.IOException;
 
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
@@ -63,18 +64,26 @@ public class JWTAuthProvider implements AuthenticationProvider {
 
 		// Get the DN from the JWT Payload and retrieve the User Profile
 		String dn = null;
+		JsonNode payloadJson = null;
 		try {
 			String jwtPayload = jwtUtility.getJWTPayload(encodedJwt);
-			JsonNode payloadJson = objectMapper.readTree(jwtPayload);
+			payloadJson = objectMapper.readTree(jwtPayload);
 			dn = payloadJson.get("dn").asText();
 			if (dn == null || dn == "") {
 				throw new IOException("Distinguished Name from JWT Payload is not provided.");
 			}
 		} catch (IOException exception) {
-			piazzaLogger.log(String.format(
-					"Valid JWT received from the client, but could not read DN from Payload with error: %s.",
+			piazzaLogger.log(String.format("Valid JWT received from the client, but could not read DN from Payload with error: %s.",
 					exception.getMessage()), Severity.ERROR);
 			exception.printStackTrace();
+			return null;
+		}
+
+		// Check the expiration
+		long expirationEpoch = payloadJson.get("exp").asLong();
+		if (DateTime.now().getMillis() > expirationEpoch) {
+			piazzaLogger.log(String.format("Received an expired JWT token from Client DN %s. Will not process request.", dn),
+					Severity.INFORMATIONAL);
 			return null;
 		}
 
