@@ -34,9 +34,9 @@
 		"sensorName": "mockSensorName",
 		"location": "https://mock-uri.localdomain/foo/tile.avi",
 		"status": "inactive",
-		"CurrentTide": 0.5,
-		"MinimumTide24Hours": 0.1,
-		"MaximumTide24Hours": 0.8
+		"currentTide": 0.5,
+		"minimumTide24Hours": 0.1,
+		"maximumTide24Hours": 0.8
 	},
 	"id": "EXTERNAL_ID",
 	"bbox": [
