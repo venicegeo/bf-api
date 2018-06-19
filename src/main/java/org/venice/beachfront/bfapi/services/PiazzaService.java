@@ -26,6 +26,8 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -79,14 +81,27 @@ public class PiazzaService {
 		
 		// Ensure that the Scene has finished activating before proceeding with the Piazza execution.
 		Scene scene = null;
+		// capture when activation began
+		DateTime activationStart = new DateTime();
 		try {
 			piazzaLogger.log(String.format("Waiting for Activation for Job %s", jobId), Severity.INFORMATIONAL);
 			scene = sceneFuture.get();
 			piazzaLogger.log(String.format("Job %s Scene has been activated for Scene ID %s", jobId, scene.getSceneId()),
 					Severity.INFORMATIONAL);
+			
+			// calculate diff between now and when job started activation
+			String.format("Job %s completed activation in %d seconds.", 
+					jobId, new Duration(activationStart, new DateTime()).getStandardSeconds(),
+			Severity.INFORMATIONAL);
 		} catch (InterruptedException | ExecutionException e) {
 			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s", jobId), Severity.ERROR);
 			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			
+			// calculate diff between now and when job started activation
+			String.format("Job %s failed activation in %d seconds.", 
+					jobId, new Duration(activationStart, new DateTime()).getStandardSeconds(),
+			Severity.INFORMATIONAL);
+						
 			return;
 		}
 
