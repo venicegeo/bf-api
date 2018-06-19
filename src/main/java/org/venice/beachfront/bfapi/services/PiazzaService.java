@@ -89,19 +89,41 @@ public class PiazzaService {
 			piazzaLogger.log(String.format("Job %s Scene has been activated for Scene ID %s", jobId, scene.getSceneId()),
 					Severity.INFORMATIONAL);
 			
-			// calculate diff between now and when job started activation
-			String.format("Job %s completed activation in %d seconds.", 
-					jobId, new Duration(activationStart, new DateTime()).getStandardSeconds(),
-			Severity.INFORMATIONAL);
+			// using scene ID, get the scene type from format 'type:scene'
+			String sceneType = null;
+			if (scene!=null && scene.getSceneId()!=null) {
+				int separatorIndex = scene.getSceneId().indexOf(":");
+				if (separatorIndex!=-1) {
+					sceneType = scene.getSceneId().substring(0, separatorIndex);
+				}
+			}
+
+			// only log activation for those NOT sentinel, landsat, and landsat_pds. These do not have activation
+			if (sceneType!=null && 
+					!sceneType.equalsIgnoreCase(Scene.PLATFORM_PLANET_SENTINEL) && 
+					!sceneType.equalsIgnoreCase(Scene.PLATFORM_PLANET_LANDSAT) && 
+					!sceneType.equalsIgnoreCase(Scene.PLATFORM_LOCALINDEX_LANDSAT)) {
+
+				// calculate diff between now and when job started activation
+				piazzaLogger.log(
+					String.format(
+							"Job %s completed activation in %d seconds for Scene ID %s.", 
+							jobId, 
+							new Duration(activationStart, new DateTime()).getStandardSeconds(),
+							scene.getSceneId()), 
+					Severity.INFORMATIONAL);
+			}
 		} catch (InterruptedException | ExecutionException e) {
 			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s", jobId), Severity.ERROR);
 			callback.updateStatus(jobId, Job.STATUS_ERROR);
 			
 			// calculate diff between now and when job started activation
-			String.format("Job %s failed activation in %d seconds.", 
-					jobId, new Duration(activationStart, new DateTime()).getStandardSeconds(),
-			Severity.INFORMATIONAL);
-						
+			piazzaLogger.log(
+					String.format("Job %s failed activation in %d seconds.", 
+							jobId, 
+							new Duration(activationStart, new DateTime()).getStandardSeconds()),
+					Severity.INFORMATIONAL);
+
 			return;
 		}
 
