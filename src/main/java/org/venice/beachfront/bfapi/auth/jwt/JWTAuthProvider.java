@@ -57,7 +57,7 @@ public class JWTAuthProvider implements AuthenticationProvider {
 		// Check for the validity of the JWT
 		String encodedJwt = authentication.getPrincipal().toString();
 		if (!jwtUtility.isJWTValid(encodedJwt)) {
-			piazzaLogger.log("JWT received from the client that could not be verified. Discarding request.", Severity.ERROR);
+			piazzaLogger.log("JWT received from the client that could not be verified.", Severity.ERROR);
 			return null;
 		}
 
@@ -68,11 +68,11 @@ public class JWTAuthProvider implements AuthenticationProvider {
 			JsonNode payloadJson = objectMapper.readTree(jwtPayload);
 			dn = payloadJson.get("dn").asText();
 			if (dn == null || dn == "") {
-				throw new IOException("Could not read Distinguished Name from JWT Payload.");
+				throw new IOException("Distinguished Name from JWT Payload is not provided.");
 			}
 		} catch (IOException exception) {
 			piazzaLogger.log(String.format(
-					"Valid JWT received from the client, but could not read DN from Payload with error %s. Discarding request.",
+					"Valid JWT received from the client, but could not read DN from Payload with error: %s.",
 					exception.getMessage()), Severity.ERROR);
 			exception.printStackTrace();
 			return null;
@@ -82,7 +82,7 @@ public class JWTAuthProvider implements AuthenticationProvider {
 		UserProfile userProfile = userProfileService.getUserProfileById(dn);
 		if (userProfile == null) {
 			piazzaLogger.log(String.format(
-					"Attempted to pull User Profile for DN %s from JWT token, but the User Profile could not be found. The request cannot be authenticated.",
+					"Attempted to retrieve User Profile by DN %s from JWT token, but the User Profile could not be found. The request cannot be authenticated.",
 					dn), Severity.INFORMATIONAL);
 			return null;
 		}
