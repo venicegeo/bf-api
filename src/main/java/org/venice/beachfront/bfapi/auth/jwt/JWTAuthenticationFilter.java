@@ -47,13 +47,14 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 		// Do nothing if the header does not contain the Bearer prefix
 		String header = request.getHeader("Authorization");
-		if (header == null || !header.startsWith("Bearer")) {
+		if (header == null || !header.startsWith("Bearer ")) {
 			chain.doFilter(request, response);
 			return;
 		}
 
-		// Create JWT Token from the Bearer value, and pass to the authentication manager to validate and verify.
-		JWTToken token = new JWTToken("test", "test");
+		// Create JWT Token wrapping from the Bearer value, and pass to the authentication manager to verify
+		String encodedJwt = header.split(" ")[1];
+		JWTToken token = new JWTToken(encodedJwt);
 		Authentication authResult = this.authenticationManager.authenticate(token);
 		SecurityContextHolder.getContext().setAuthentication(authResult);
 

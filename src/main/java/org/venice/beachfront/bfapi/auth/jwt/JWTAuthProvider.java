@@ -15,6 +15,8 @@
  **/
 package org.venice.beachfront.bfapi.auth.jwt;
 
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
@@ -24,6 +26,11 @@ import org.venice.beachfront.bfapi.auth.BfAuthenticationToken;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.services.UserProfileService;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import model.logger.Severity;
+import util.GeoAxisJWTUtility;
 import util.PiazzaLogger;
 
 /**
@@ -40,10 +47,49 @@ public class JWTAuthProvider implements AuthenticationProvider {
 	private UserProfileService userProfileService;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private GeoAxisJWTUtility jwtUtility;
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-		return new BfAuthenticationToken(new UserProfile(), "Testing");
+		// Check for the validity of the JWT
+		String encodedJwt = authentication.getPrincipal().toString();
+		if (!jwtUtility.isJWTValid(encodedJwt)) {
+			piazzaLogger.log("JWT received from the client that could not be verified. Discarding request.", Severity.ERROR);
+			return null;
+		}
+
+		// Get the DN from the JWT Payload and retrieve the User Profile
+		String dn = null;
+		try {
+			String jwtPayload = jwtUtility.getJWTPayload(encodedJwt);
+			JsonNode payloadJson = objectMapper.readTree(jwtPayload);
+			dn = payloadJson.get("dn").asText();
+			if (dn == null || dn == "") {
+				throw new IOException("Could not read Distinguished Name from JWT Payload.");
+			}
+		} catch (IOException exception) {
+			piazzaLogger.log(String.format(
+					"Valid JWT received from the client, but could not read DN from Payload with error %s. Discarding request.",
+					exception.getMessage()), Severity.ERROR);
+			exception.printStackTrace();
+			return null;
+		}
+
+		// Get the User Profile for the DN
+		UserProfile userProfile = userProfileService.getUserProfileById(dn);
+		if (userProfile == null) {
+			piazzaLogger.log(String.format(
+					"Attempted to pull User Profile for DN %s from JWT token, but the User Profile could not be found. The request cannot be authenticated.",
+					dn), Severity.INFORMATIONAL);
+			return null;
+		}
+
+		// Update the last access date for this User Profile
+		userProfileService.updateLastAccessed(userProfile);
+		return new BfAuthenticationToken(userProfile, null);
 	}
 
 	@Override

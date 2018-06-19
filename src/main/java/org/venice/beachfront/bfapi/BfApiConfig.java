@@ -108,6 +108,7 @@ import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.Contact;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
+import util.GeoAxisJWTUtility;
 import util.PiazzaLogger;
 
 @Configuration
@@ -132,6 +133,11 @@ public class BfApiConfig {
 	@Bean
 	public ExecutorService getExecutor(@Value("${concurrent.threads}") int threads) {
 		return Executors.newFixedThreadPool(threads);
+	}
+	
+	@Bean 
+	public GeoAxisJWTUtility getGeoAxisJWTUtility() {
+		return new GeoAxisJWTUtility();
 	}
 
 	/**
