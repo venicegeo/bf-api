@@ -247,14 +247,14 @@ public class BfApiConfig {
 		private JWTAuthProvider jwtAuthProvider;
 		@Autowired
 		private FailedAuthEntryPoint failureEntryPoint;
-
+		
+		@Value("{jwt.enabled}")
+		private Boolean enableJwt;
 
 		@Override
 		public void configure(HttpSecurity http) throws Exception {
-			JWTAuthenticationFilter jwtFilter = new JWTAuthenticationFilter(this.authenticationManagerBean());
-			
-			http.authorizeRequests().antMatchers(HttpMethod.OPTIONS).permitAll() // Allow any OPTIONS for REST best
-																					// practices
+			HttpSecurity security = http.authorizeRequests().antMatchers(HttpMethod.OPTIONS).permitAll() // Allow any OPTIONS for REST best
+																				 // practices
 					.antMatchers("/").permitAll() // Allow unauthenticated queries to root (health check) path
 					.antMatchers("/oauth/callback").permitAll() // Allow unauthenticated queries to login callback path
 					.antMatchers("/oauth/start").permitAll() // Allow unauthenticated queries to OAuth login start path
@@ -263,19 +263,25 @@ public class BfApiConfig {
 					.anyRequest().authenticated() // All other requests must be authenticated
 					.and().httpBasic() // Use HTTP Basic authentication
 					.authenticationEntryPoint(this.failureEntryPoint) // Entry point for starting a Basic auth exchange
-																		// (i.e. "failed authentication" handling)
+																	  // (i.e. "failed authentication" handling)
 					.authenticationDetailsSource(this.authenticationDetailsSource()) // Feed more request details into
-																						// any providers
+																					 // any providers
 					.and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Do not create
 																										// or manage
 																										// sessions for
 																										// security
 					.and().logout().disable() // Disable auto-magical Spring Security logout behavior
 					.authenticationProvider(this.apiKeyAuthProvider) // Use this custom authentication provider to
-																		// authenticate requests
-					.authenticationProvider(this.jwtAuthProvider) // Authenticating JWT Tokens
-					.addFilterAfter(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+																	 // authenticate requests
+					
 					.csrf().disable(); // Disable advanced CSRF protections for better statelessness
+			
+			// Add JWT authentication filters if enabled
+			if (enableJwt.booleanValue()) {
+				JWTAuthenticationFilter jwtFilter = new JWTAuthenticationFilter(this.authenticationManagerBean());
+				security.addFilterAfter(jwtFilter, UsernamePasswordAuthenticationFilter.class); // Filtering Bearer Token Auth
+				security.authenticationProvider(this.jwtAuthProvider); // Authenticating JWT Tokens
+			}
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {

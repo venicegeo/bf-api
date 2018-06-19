@@ -17,7 +17,6 @@ package org.venice.beachfront.bfapi.auth.jwt;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
@@ -28,8 +27,12 @@ import org.venice.beachfront.bfapi.services.UserProfileService;
 import util.PiazzaLogger;
 
 /**
- * Handles the authentication and authorization for all REST Requests that define Bearer token authentication, in the
- * form of JWTs. This authentication scheme bypasses the OAuth and lets users bring their existing System JWTs.
+ * Handles the authentication and authorization for all REST Requests that define Bearer Authentication, in the form of
+ * JWTs. This will validate and verify the JWT Tokens and associate the JWT request with the User Profile that contains
+ * the Distinguished Name as stated in the JWT token.
+ * <p>
+ * In present form, JWT tokens will only be valid for users who have already authenticated via OAuth, and as such
+ * already have a UserProfile in the Beachfront system.
  */
 @Component
 public class JWTAuthProvider implements AuthenticationProvider {

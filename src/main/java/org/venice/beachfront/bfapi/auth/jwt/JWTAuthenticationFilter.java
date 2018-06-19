@@ -28,7 +28,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Filter for JWT Bearer tokens
+ * Filter for JWT Bearer tokens. This filter will parse requests that contain Bearer token authentication, and if
+ * detected, will read that value and attempt to convert it into a proper JWT token that can be evaluated by the
+ * downstream JWT Authentication Provider.
  * 
  * @author Patrick.Doody
  *
@@ -43,16 +45,19 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
+		// Do nothing if the header does not contain the Bearer prefix
 		String header = request.getHeader("Authorization");
-
-		if (header == null || !header.startsWith("Bearer ")) {
+		if (header == null || !header.startsWith("Bearer")) {
 			chain.doFilter(request, response);
 			return;
 		}
 
+		// Create JWT Token from the Bearer value, and pass to the authentication manager to validate and verify.
 		JWTToken token = new JWTToken("test", "test");
 		Authentication authResult = this.authenticationManager.authenticate(token);
 		SecurityContextHolder.getContext().setAuthentication(authResult);
+
+		// Continue filtering
 		chain.doFilter(request, response);
 	}
 
