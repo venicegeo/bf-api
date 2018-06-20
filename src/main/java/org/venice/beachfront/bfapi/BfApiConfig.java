@@ -254,7 +254,7 @@ public class BfApiConfig {
 		@Autowired
 		private FailedAuthEntryPoint failureEntryPoint;
 		
-		@Value("{jwt.enabled}")
+		@Value("${jwt.enabled}")
 		private Boolean enableJwt;
 
 		@Override
