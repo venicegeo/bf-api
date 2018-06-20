@@ -19,7 +19,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 
 /**
- * Simple wrapper class for a JWT Authentication Token. This will pass the cmoplete, encoded JWT as the Principal.
+ * Simple wrapper class for a JWT Authentication Token. This will pass the complete, encoded JWT as the Principal.
  * 
  * @author Patrick.Doody
  *
