@@ -86,19 +86,16 @@ public class PiazzaService {
 		try {
 			piazzaLogger.log(String.format("Waiting for Activation for Job %s", jobId), Severity.INFORMATIONAL);
 			scene = sceneFuture.get();
-			piazzaLogger.log(String.format("Job %s Scene has been activated for Scene ID %s", jobId, scene.getSceneId()),
-					Severity.INFORMATIONAL);
 			
 			// calculate diff between now and when job started activation
 			piazzaLogger.log(
 				String.format(
-						"Job %s completed activation in %d seconds for Scene ID %s. Scene platorm: %s.", 
+						"Job %s Scene has been activated for Scene ID %s, Scene platorm: %s, completed activation in %d seconds", 
 						jobId, 
-						new Duration(activationStart, new DateTime()).getStandardSeconds(),
 						Scene.parseExternalId(scene.getSceneId()),
-						Scene.parsePlatform(scene.getSceneId())),
+						Scene.parsePlatform(scene.getSceneId()),
+						new Duration(activationStart, new DateTime()).getStandardSeconds()),
 				Severity.INFORMATIONAL);
-
 		} catch (InterruptedException | ExecutionException e) {
 			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s", jobId), Severity.ERROR);
 			callback.updateStatus(jobId, Job.STATUS_ERROR);
