@@ -58,7 +58,7 @@ public class JWTAuthProvider implements AuthenticationProvider {
 		// Check for the validity of the JWT
 		String encodedJwt = authentication.getPrincipal().toString();
 		if (!jwtUtility.isJWTValid(encodedJwt)) {
-			piazzaLogger.log("JWT received from the client that could not be verified.", Severity.ERROR);
+			piazzaLogger.log("JWT received from the client that could not be verified.", Severity.INFORMATIONAL);
 			return null;
 		}
 
@@ -68,20 +68,24 @@ public class JWTAuthProvider implements AuthenticationProvider {
 		try {
 			String jwtPayload = jwtUtility.getJWTPayload(encodedJwt);
 			payloadJson = objectMapper.readTree(jwtPayload);
-			dn = payloadJson.get("dn").asText();
-			if (dn == null || dn == "") {
+			JsonNode dnNode = payloadJson.get("dn");
+			if (dnNode == null) {
 				throw new IOException("Distinguished Name from JWT Payload is not provided.");
+			}
+			dn = payloadJson.get("dn").asText();
+			if ((dn == null) || (dn == "")) {
+				throw new IOException("Distinguished Name from JWT Payload is empty or blank.");
 			}
 		} catch (IOException exception) {
 			piazzaLogger.log(String.format("Valid JWT received from the client, but could not read DN from Payload with error: %s.",
 					exception.getMessage()), Severity.ERROR);
-			exception.printStackTrace();
 			return null;
 		}
 
 		// Check the expiration
 		long expirationEpoch = payloadJson.get("exp").asLong();
-		if (DateTime.now().getMillis() > expirationEpoch) {
+		// Convert Java epoch of milliseconds to match the JWT epoch of seconds
+		if ((DateTime.now().getMillis() / 1000) > expirationEpoch) {
 			piazzaLogger.log(String.format("Received an expired JWT token from Client DN %s. Will not process request.", dn),
 					Severity.INFORMATIONAL);
 			return null;
