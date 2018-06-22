@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.venice.beachfront.bfapi.auth.BfAuthenticationToken;
 import org.venice.beachfront.bfapi.model.UserProfile;
@@ -57,7 +58,8 @@ public class JWTAuthProvider implements AuthenticationProvider {
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 		// Check for the validity of the JWT
 		String encodedJwt = authentication.getPrincipal().toString();
-		if (!jwtUtility.isJWTValid(encodedJwt)) {
+		Jwt jwt = jwtUtility.decodeAndVerify(encodedJwt);
+		if (jwt == null) {
 			piazzaLogger.log("JWT received from the client that could not be verified.", Severity.INFORMATIONAL);
 			return null;
 		}
@@ -66,7 +68,7 @@ public class JWTAuthProvider implements AuthenticationProvider {
 		String dn = null;
 		JsonNode payloadJson = null;
 		try {
-			String jwtPayload = jwtUtility.getJWTPayload(encodedJwt);
+			String jwtPayload = jwt.getClaims();
 			payloadJson = objectMapper.readTree(jwtPayload);
 			JsonNode dnNode = payloadJson.get("dn");
 			if (dnNode == null) {
