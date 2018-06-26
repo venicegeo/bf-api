@@ -298,7 +298,7 @@ public class BfApiConfig {
 			
 			// Add JWT authentication filters if enabled
 			if (enableJwt.booleanValue()) {
-				JWTAuthenticationFilter jwtFilter = new JWTAuthenticationFilter(this.authenticationManagerBean());
+				JWTAuthenticationFilter jwtFilter = new JWTAuthenticationFilter(this.authenticationManagerBean(), failureEntryPoint);
 				security.addFilterAfter(jwtFilter, UsernamePasswordAuthenticationFilter.class); // Filtering Bearer Token Auth
 				security.authenticationProvider(this.jwtAuthProvider); // Authenticating JWT Tokens
 			}

@@ -54,6 +54,7 @@ public class JWTAuthProvider implements AuthenticationProvider {
 	private GeoAxisJWTUtility jwtUtility;
 	@Autowired
 	private ObjectMapper objectMapper;
+
 	@Value("${jwt.enabled}")
 	private Boolean jwtEnabled;
 
@@ -61,15 +62,16 @@ public class JWTAuthProvider implements AuthenticationProvider {
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 		// Ensure JWT is Enabled
 		if (!jwtEnabled.booleanValue()) {
-			return null;
+			throw new JWTAuthenticationException("JWT authentication is not enabled.");
 		}
 
 		// Check for the validity of the JWT
 		String encodedJwt = authentication.getPrincipal().toString();
 		Jwt jwt = jwtUtility.decodeAndVerify(encodedJwt);
 		if (jwt == null) {
-			piazzaLogger.log("JWT received from the client that could not be verified.", Severity.INFORMATIONAL);
-			return null;
+			String error = "JWT received from the client that could not be verified.";
+			piazzaLogger.log(error, Severity.INFORMATIONAL);
+			throw new JWTAuthenticationException(error);
 		}
 
 		// Get the DN from the JWT Payload and retrieve the User Profile
@@ -87,27 +89,29 @@ public class JWTAuthProvider implements AuthenticationProvider {
 				throw new IOException("Distinguished Name from JWT Payload is empty or blank.");
 			}
 		} catch (IOException exception) {
-			piazzaLogger.log(String.format("Valid JWT received from the client, but could not read DN from Payload with error: %s.",
-					exception.getMessage()), Severity.ERROR);
-			return null;
+			String error = String.format("Valid JWT received from the client, but could not read DN from Payload with error: %s.",
+					exception.getMessage());
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new JWTAuthenticationException(error);
 		}
 
 		// Check the expiration
 		long expirationEpoch = payloadJson.get("exp").asLong();
 		// Convert Java epoch of milliseconds to match the JWT epoch of seconds
 		if ((DateTime.now().getMillis() / 1000) > expirationEpoch) {
-			piazzaLogger.log(String.format("Received an expired JWT token from Client DN %s. Will not process request.", dn),
-					Severity.INFORMATIONAL);
-			return null;
+			String error = String.format("Received an expired JWT token from Client DN %s. Will not process request.", dn);
+			piazzaLogger.log(error, Severity.INFORMATIONAL);
+			throw new JWTAuthenticationException(error);
 		}
 
 		// Get the User Profile for the DN
 		UserProfile userProfile = userProfileService.getUserProfileById(dn);
 		if (userProfile == null) {
-			piazzaLogger.log(String.format(
+			String error = String.format(
 					"Attempted to retrieve User Profile by DN %s from JWT token, but the User Profile could not be found. The request cannot be authenticated.",
-					dn), Severity.INFORMATIONAL);
-			return null;
+					dn);
+			piazzaLogger.log(error, Severity.INFORMATIONAL);
+			throw new JWTAuthenticationException(error);
 		}
 
 		// Update the last access date for this User Profile

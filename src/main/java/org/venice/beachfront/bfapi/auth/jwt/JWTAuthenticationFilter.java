@@ -24,8 +24,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
 
 /**
  * Filter for JWT Bearer tokens. This filter will parse requests that contain Bearer token authentication, and if
@@ -37,9 +39,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
 	private AuthenticationManager authenticationManager;
+	private FailedAuthEntryPoint failureEntryPoint;
 
-	public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
+	public JWTAuthenticationFilter(AuthenticationManager authenticationManager, FailedAuthEntryPoint failureEntryPoint) {
 		this.authenticationManager = authenticationManager;
+		this.failureEntryPoint = failureEntryPoint;
 	}
 
 	@Override
@@ -55,11 +59,14 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 		// Create JWT Token wrapping from the Bearer value, and pass to the authentication manager to verify
 		String encodedJwt = header.split(" ")[1];
 		JWTToken token = new JWTToken(encodedJwt);
-		Authentication authResult = this.authenticationManager.authenticate(token);
-		SecurityContextHolder.getContext().setAuthentication(authResult);
-
-		// Continue filtering
-		chain.doFilter(request, response);
+		try {
+			Authentication authResult = this.authenticationManager.authenticate(token);
+			SecurityContextHolder.getContext().setAuthentication(authResult);
+			// Continue filtering
+			chain.doFilter(request, response);
+		} catch (AuthenticationException exception) {
+			SecurityContextHolder.clearContext();
+			failureEntryPoint.commence(request, response, exception);
+		}
 	}
-
 }
