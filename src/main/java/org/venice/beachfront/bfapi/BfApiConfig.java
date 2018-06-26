@@ -144,7 +144,7 @@ public class BfApiConfig {
 	public GeoAxisJWTUtility getGeoAxisJWTUtility() {
 		if (enableJwt.booleanValue()) {
 			// Load the cert file
-			try (final InputStream inputStream = getClass().getClassLoader().getResourceAsStream(geoaxisJwtCertPath)) {
+			try (final InputStream inputStream = getClass().getClassLoader().getResourceAsStream(geoaxisJwtCertPath)) { 
 				return new GeoAxisJWTUtility(inputStream);
 			} catch(CertificateException | IOException exception) {
 				throw new BeanCreationException(

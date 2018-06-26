@@ -19,6 +19,7 @@ import java.io.IOException;
 
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -53,9 +54,16 @@ public class JWTAuthProvider implements AuthenticationProvider {
 	private GeoAxisJWTUtility jwtUtility;
 	@Autowired
 	private ObjectMapper objectMapper;
+	@Value("${jwt.enabled}")
+	private Boolean jwtEnabled;
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+		// Ensure JWT is Enabled
+		if (!jwtEnabled.booleanValue()) {
+			return null;
+		}
+
 		// Check for the validity of the JWT
 		String encodedJwt = authentication.getPrincipal().toString();
 		Jwt jwt = jwtUtility.decodeAndVerify(encodedJwt);

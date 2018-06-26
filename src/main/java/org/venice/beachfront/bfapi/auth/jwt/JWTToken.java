@@ -24,6 +24,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
  * @author Patrick.Doody
  *
  */
+@SuppressWarnings("serial")
 public class JWTToken extends AbstractAuthenticationToken {
 	private String tokenPrincipal;
 
