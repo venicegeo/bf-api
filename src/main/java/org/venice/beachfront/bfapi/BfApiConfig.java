@@ -65,6 +65,7 @@ import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -115,6 +116,10 @@ import util.PiazzaLogger;
 public class BfApiConfig {
 	@Value("${http.keep.alive.duration.seconds}")
 	private int httpKeepAliveDurationSeconds;
+	@Value("${GEOAXIS_JWT_CERT:}")
+	private String geoaxisJwtCertPath;
+	@Value("${jwt.enabled}")
+	private Boolean enableJwt;
 
 	@Bean(name="rest-template-no-follow-redirect")
 	public RestTemplate getHttpClientWithoutRedirects() {
@@ -137,7 +142,17 @@ public class BfApiConfig {
 	
 	@Bean 
 	public GeoAxisJWTUtility getGeoAxisJWTUtility() {
-		return new GeoAxisJWTUtility();
+		if (enableJwt.booleanValue()) {
+			// Load the cert file
+			try (final InputStream inputStream = getClass().getClassLoader().getResourceAsStream(geoaxisJwtCertPath)) {
+				return new GeoAxisJWTUtility(inputStream);
+			} catch(CertificateException | IOException exception) {
+				throw new BeanCreationException(
+						String.format("Could not create JWT certificate utility bean. Error loading JWT certificate: %s",
+								exception.getMessage()));
+			}
+		}
+		return new GeoAxisJWTUtility(); // Mocking
 	}
 
 	/**
@@ -253,7 +268,6 @@ public class BfApiConfig {
 		private JWTAuthProvider jwtAuthProvider;
 		@Autowired
 		private FailedAuthEntryPoint failureEntryPoint;
-		
 		@Value("${jwt.enabled}")
 		private Boolean enableJwt;
 
@@ -305,10 +319,8 @@ public class BfApiConfig {
 	 */
 	@Profile({ "basic-geoserver-auth" })
 	protected class BasicAuthenticationConfig {
-
 		@Value("${http.max.total}")
 		private int httpMaxTotal;
-
 		@Value("${http.max.route}")
 		private int httpMaxRoute;
 
