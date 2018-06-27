@@ -89,7 +89,7 @@ node {
             cf set-env ${fullAppName} OAUTH_CLIENT_ID ${GEOAXIS_CLIENT_ID}
             cf set-env ${fullAppName} OAUTH_SECRET ${GEOAXIS_SECRET}
             cf set-env ${fullAppName} JKS_FILE piazza.jks
-            cf set-env ${fullAppName} GEOAXIS_JWT_CERT GEOAXIS_JWT_CERT.jks
+            cf set-env ${fullAppName} GEOAXIS_JWT_CERT GEOAXIS_JWT_CERT.pem
             cf set-env ${fullAppName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
             cf set-env ${fullAppName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
             cf set-env ${fullAppName} exit.on.geoserver.provision.failure ${env.EXIT_ON_GEOSERVER_PROVISION_FAILURE}
@@ -186,7 +186,7 @@ node {
     withCredentials([file(credentialsId: "${env.GEOAXIS_JWT_CERT}", variable: 'GEOAXIS_JWT_CERT')]) {
       sh """
         [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/piazza.jks
-        [ -z "\$GEOAXIS_JWT_CERT" ] || mv \$JKS ${root}/src/main/resources/GEOAXIS_JWT_CERT.jks
+        [ -z "\$GEOAXIS_JWT_CERT" ] || mv \$JKS ${root}/src/main/resources/GEOAXIS_JWT_CERT.pem
         sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml
         ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
         cp ${root}/target/${artifactName} ${root}/${appName}.jar

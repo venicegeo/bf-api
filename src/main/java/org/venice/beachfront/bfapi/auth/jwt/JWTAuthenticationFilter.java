@@ -50,17 +50,17 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
 		// Do nothing if the header does not contain the Bearer prefix
-		String header = request.getHeader("Authorization");
+		final String header = request.getHeader(org.springframework.http.HttpHeaders.AUTHORIZATION);
 		if (header == null || !header.startsWith("Bearer ")) {
 			chain.doFilter(request, response);
 			return;
 		}
 
 		// Create JWT Token wrapping from the Bearer value, and pass to the authentication manager to verify
-		String encodedJwt = header.split(" ")[1];
-		JWTToken token = new JWTToken(encodedJwt);
+		final String encodedJwt = header.split(" ")[1];
+		final JWTToken token = new JWTToken(encodedJwt);
 		try {
-			Authentication authResult = this.authenticationManager.authenticate(token);
+			final Authentication authResult = this.authenticationManager.authenticate(token);
 			SecurityContextHolder.getContext().setAuthentication(authResult);
 			// Continue filtering
 			chain.doFilter(request, response);

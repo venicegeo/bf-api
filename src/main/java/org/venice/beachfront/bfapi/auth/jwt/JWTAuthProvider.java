@@ -59,17 +59,17 @@ public class JWTAuthProvider implements AuthenticationProvider {
 	private Boolean jwtEnabled;
 
 	@Override
-	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+	public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
 		// Ensure JWT is Enabled
 		if (!jwtEnabled.booleanValue()) {
 			throw new JWTAuthenticationException("JWT authentication is not enabled.");
 		}
 
 		// Check for the validity of the JWT
-		String encodedJwt = authentication.getPrincipal().toString();
-		Jwt jwt = jwtUtility.decodeAndVerify(encodedJwt);
+		final String encodedJwt = authentication.getPrincipal().toString();
+		final Jwt jwt = jwtUtility.decodeAndVerify(encodedJwt);
 		if (jwt == null) {
-			String error = "JWT received from the client that could not be verified.";
+			final String error = "JWT received from the client that could not be verified.";
 			piazzaLogger.log(error, Severity.INFORMATIONAL);
 			throw new JWTAuthenticationException(error);
 		}
@@ -78,9 +78,9 @@ public class JWTAuthProvider implements AuthenticationProvider {
 		String dn = null;
 		JsonNode payloadJson = null;
 		try {
-			String jwtPayload = jwt.getClaims();
+			final String jwtPayload = jwt.getClaims();
 			payloadJson = objectMapper.readTree(jwtPayload);
-			JsonNode dnNode = payloadJson.get("dn");
+			final JsonNode dnNode = payloadJson.get("dn");
 			if (dnNode == null) {
 				throw new IOException("Distinguished Name from JWT Payload is not provided.");
 			}
@@ -89,25 +89,25 @@ public class JWTAuthProvider implements AuthenticationProvider {
 				throw new IOException("Distinguished Name from JWT Payload is empty or blank.");
 			}
 		} catch (IOException exception) {
-			String error = String.format("Valid JWT received from the client, but could not read DN from Payload with error: %s.",
+			final String error = String.format("Valid JWT received from the client, but could not read DN from Payload with error: %s.",
 					exception.getMessage());
 			piazzaLogger.log(error, Severity.ERROR);
 			throw new JWTAuthenticationException(error);
 		}
 
 		// Check the expiration
-		long expirationEpoch = payloadJson.get("exp").asLong();
+		long expirationEpochSeconds = payloadJson.get("exp").asLong();
 		// Convert Java epoch of milliseconds to match the JWT epoch of seconds
-		if ((DateTime.now().getMillis() / 1000) > expirationEpoch) {
-			String error = String.format("Received an expired JWT token from Client DN %s. Will not process request.", dn);
+		if ((DateTime.now().getMillis() / 1000) > expirationEpochSeconds) {
+			final String error = String.format("Received an expired JWT token from Client DN %s. Will not process request.", dn);
 			piazzaLogger.log(error, Severity.INFORMATIONAL);
 			throw new JWTAuthenticationException(error);
 		}
 
 		// Get the User Profile for the DN
-		UserProfile userProfile = userProfileService.getUserProfileById(dn);
+		final UserProfile userProfile = userProfileService.getUserProfileById(dn);
 		if (userProfile == null) {
-			String error = String.format(
+			final String error = String.format(
 					"Attempted to retrieve User Profile by DN %s from JWT token, but the User Profile could not be found. The request cannot be authenticated.",
 					dn);
 			piazzaLogger.log(error, Severity.INFORMATIONAL);
