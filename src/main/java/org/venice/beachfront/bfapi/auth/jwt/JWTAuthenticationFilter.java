@@ -56,8 +56,14 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 			return;
 		}
 
+		// Ensure proper Bearer Auth payload was provided 
+		final String[] splits = header.split(" ");
+		if (splits.length < 2) { 
+			// Improper Bearer header value, cannot process this request.  
+			throw new ServletException("Improper Bearer Token header value provided.");
+		}
 		// Create JWT Token wrapping from the Bearer value, and pass to the authentication manager to verify
-		final String encodedJwt = header.split(" ")[1];
+		final String encodedJwt = splits[1];
 		final JWTToken token = new JWTToken(encodedJwt);
 		try {
 			final Authentication authResult = this.authenticationManager.authenticate(token);
