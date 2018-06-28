@@ -186,7 +186,7 @@ node {
     withCredentials([file(credentialsId: "${env.GEOAXIS_JWT_CERT}", variable: 'GEOAXIS_JWT_CERT')]) {
       sh """
         [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/piazza.jks
-        [ -z "\$GEOAXIS_JWT_CERT" ] || mv \$JKS ${root}/src/main/resources/GEOAXIS_JWT_CERT.pem
+        [ -z "\$GEOAXIS_JWT_CERT" ] || mv \$GEOAXIS_JWT_CERT ${root}/src/main/resources/GEOAXIS_JWT_CERT.pem
         sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml
         ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
         cp ${root}/target/${artifactName} ${root}/${appName}.jar
