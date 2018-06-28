@@ -65,6 +65,7 @@ import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -82,6 +83,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -89,6 +91,8 @@ import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 import org.venice.beachfront.bfapi.auth.ApiKeyAuthProvider;
 import org.venice.beachfront.bfapi.auth.ExtendedRequestDetails;
 import org.venice.beachfront.bfapi.auth.FailedAuthEntryPoint;
+import org.venice.beachfront.bfapi.auth.jwt.JWTAuthProvider;
+import org.venice.beachfront.bfapi.auth.jwt.JWTAuthenticationFilter;
 import org.venice.beachfront.bfapi.geoserver.AuthHeaders;
 import org.venice.beachfront.bfapi.geoserver.BasicAuthHeaders;
 import org.venice.beachfront.bfapi.geoserver.PKIAuthHeaders;
@@ -105,12 +109,17 @@ import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.Contact;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
+import util.GeoAxisJWTUtility;
 import util.PiazzaLogger;
 
 @Configuration
 public class BfApiConfig {
 	@Value("${http.keep.alive.duration.seconds}")
 	private int httpKeepAliveDurationSeconds;
+	@Value("${GEOAXIS_JWT_CERT:}")
+	private String geoaxisJwtCertPath;
+	@Value("${jwt.enabled}")
+	private Boolean enableJwt;
 
 	@Bean(name="rest-template-no-follow-redirect")
 	public RestTemplate getHttpClientWithoutRedirects() {
@@ -129,6 +138,21 @@ public class BfApiConfig {
 	@Bean
 	public ExecutorService getExecutor(@Value("${concurrent.threads}") int threads) {
 		return Executors.newFixedThreadPool(threads);
+	}
+	
+	@Bean 
+	public GeoAxisJWTUtility getGeoAxisJWTUtility() {
+		if (enableJwt.booleanValue()) {
+			// Load the cert file
+			try (final InputStream inputStream = getClass().getClassLoader().getResourceAsStream(geoaxisJwtCertPath)) { 
+				return new GeoAxisJWTUtility(inputStream);
+			} catch(CertificateException | IOException exception) {
+				throw new BeanCreationException(
+						String.format("Could not create JWT certificate utility bean. Error loading JWT certificate: %s",
+								exception.getMessage()));
+			}
+		}
+		return new GeoAxisJWTUtility(); // Mocking
 	}
 
 	/**
@@ -241,12 +265,16 @@ public class BfApiConfig {
 		@Autowired
 		private ApiKeyAuthProvider apiKeyAuthProvider;
 		@Autowired
+		private JWTAuthProvider jwtAuthProvider;
+		@Autowired
 		private FailedAuthEntryPoint failureEntryPoint;
+		@Value("${jwt.enabled}")
+		private Boolean enableJwt;
 
 		@Override
 		public void configure(HttpSecurity http) throws Exception {
-			http.authorizeRequests().antMatchers(HttpMethod.OPTIONS).permitAll() // Allow any OPTIONS for REST best
-																					// practices
+			HttpSecurity security = http.authorizeRequests().antMatchers(HttpMethod.OPTIONS).permitAll() // Allow any OPTIONS for REST best
+																				 // practices
 					.antMatchers("/").permitAll() // Allow unauthenticated queries to root (health check) path
 					.antMatchers("/oauth/callback").permitAll() // Allow unauthenticated queries to login callback path
 					.antMatchers("/oauth/start").permitAll() // Allow unauthenticated queries to OAuth login start path
@@ -255,17 +283,25 @@ public class BfApiConfig {
 					.anyRequest().authenticated() // All other requests must be authenticated
 					.and().httpBasic() // Use HTTP Basic authentication
 					.authenticationEntryPoint(this.failureEntryPoint) // Entry point for starting a Basic auth exchange
-																		// (i.e. "failed authentication" handling)
+																	  // (i.e. "failed authentication" handling)
 					.authenticationDetailsSource(this.authenticationDetailsSource()) // Feed more request details into
-																						// any providers
+																					 // any providers
 					.and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Do not create
 																										// or manage
 																										// sessions for
 																										// security
 					.and().logout().disable() // Disable auto-magical Spring Security logout behavior
 					.authenticationProvider(this.apiKeyAuthProvider) // Use this custom authentication provider to
-																		// authenticate requests
+																	 // authenticate requests
+					
 					.csrf().disable(); // Disable advanced CSRF protections for better statelessness
+			
+			// Add JWT authentication filters if enabled
+			if (enableJwt.booleanValue()) {
+				final JWTAuthenticationFilter jwtFilter = new JWTAuthenticationFilter(this.authenticationManagerBean(), failureEntryPoint);
+				security.addFilterAfter(jwtFilter, UsernamePasswordAuthenticationFilter.class); // Filtering Bearer Token Auth
+				security.authenticationProvider(this.jwtAuthProvider); // Authenticating JWT Tokens
+			}
 		}
 
 		private AuthenticationDetailsSource<HttpServletRequest, ExtendedRequestDetails> authenticationDetailsSource() {
@@ -283,10 +319,8 @@ public class BfApiConfig {
 	 */
 	@Profile({ "basic-geoserver-auth" })
 	protected class BasicAuthenticationConfig {
-
 		@Value("${http.max.total}")
 		private int httpMaxTotal;
-
 		@Value("${http.max.route}")
 		private int httpMaxRoute;
 
