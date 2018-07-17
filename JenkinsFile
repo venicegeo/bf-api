@@ -130,18 +130,16 @@ node {
         // Define routes
         def legacyAppNames = sh(script: """cf routes | grep \"${appName} \" | awk '{print \$4}'""", returnStdout: true)
         sh "cf map-route ${deployAppName} ${pcfDomain} --hostname ${appName}"
-        sh "cf map-route ${deployAppName} apps.internal --hostname bf-api-${pcfSpace}"
         
         // Define policies
         def iaBroker = sh(script: "cf routes | grep \"bf-ia-broker \" | awk '{print \$4}'", returnStdout: true).trim()
-        sh "cf add-network-policy ${deployAppName} --destination-app ${iaBroker} --protocol tcp --port 443"
+        sh "cf add-network-policy ${deployAppName} --destination-app ${iaBroker} --protocol tcp --port 8080"
         
         // Remove legacy applications
         for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
           def legacyAppName = legacyApp.toString().trim()
           if(legacyAppName != appName && legacyAppName != deployAppName) {
             sh "cf unmap-route ${legacyAppName} ${pcfDomain} --hostname ${appName}"
-            sh "cf unmap-route ${legacyAppName} apps.internal --hostname bf-api-${pcfSpace}"
             sh "cf delete -f ${legacyAppName} -r"
           }
         }
