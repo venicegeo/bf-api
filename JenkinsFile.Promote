@@ -138,6 +138,10 @@ node {
       // Assign Routes
       def legacyAppNames = sh(script: "cf routes | grep \"${appBaseName} \" | awk '{print \$4}'", returnStdout: true)
       sh "cf map-route ${appName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
+      
+      // Assign Policies
+      def iaBroker = sh(script: "cf routes | grep \"bf-ia-broker \" | awk '{print \$4}'", returnStdout: true).trim()
+      sh "cf add-network-policy ${appName} --destination-app ${iaBroker} --protocol tcp --port 8080"
 
       // Delete old Routes
       for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
