@@ -101,7 +101,7 @@ node {
         [$class: 'StringBinding', credentialsId: "${env.PZ_PASSPHRASE}", variable: "PZ_PASSPHRASE"]
       ]) {
         // Push the app
-        sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
+        sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start --no-route"
         try {
           sh """
             cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}

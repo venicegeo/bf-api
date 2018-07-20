@@ -76,7 +76,7 @@ node {
           cf api ${env.PCF_API_ENDPOINT}
           cf auth ${CFUSER} ${CFPASS}
           cf target -o ${env.PCF_ORG} -s ${pcfSpace}
-          cf push ${deployAppName} -f manifest.jenkins.yml --hostname ${deployAppName} -b ${env.JAVA_BUILDPACK_NAME} -d ${pcfDomain} --no-start
+          cf push ${deployAppName} -f manifest.jenkins.yml --hostname ${deployAppName} -b ${env.JAVA_BUILDPACK_NAME} -d ${pcfDomain} --no-start --no-route
         """
         try {
           sh """
