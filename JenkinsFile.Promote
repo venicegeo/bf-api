@@ -141,7 +141,7 @@ node {
       
       // Assign Policies
       try {
-        def iaBroker = sh(script: "cf routes | grep \"bf-ia-broker \" | awk '{print \$4}'", returnStdout: true).trim()
+        def iaBroker = sh(script: "cf routes | grep \"bf-ia-broker \" | awk '{print \$4}' | head -n1", returnStdout: true).trim()
         sh "cf add-network-policy ${appName} --destination-app ${iaBroker} --protocol tcp --port 8080"
       } catch (Exception ex) {
         echo "Could not establish network policies. The network policy tool should be run post-build to ensure functionality."
