@@ -77,7 +77,7 @@ public class IABrokerPassthroughService {
 			piazzaLogger.log(String.format("Received IA Broker error response, code=%d, length=%d, for URI %s", 
 					exception.getStatusCode().value(), exception.getResponseBodyAsString().length(), uri.toString()), Severity.ERROR);
 			if (exception.getStatusCode().equals(HttpStatus.UNAUTHORIZED) || exception.getStatusCode().equals(HttpStatus.FORBIDDEN)) {
-				throw new UserException("Bad authentication with image broker", exception, exception.getResponseBodyAsString(), HttpStatus.BAD_REQUEST);
+				throw new UserException(exception.getResponseBodyAsString(), exception, exception.getResponseBodyAsString(), HttpStatus.PRECONDITION_FAILED);
 			}
 			throw new UserException("Upstream image broker error", exception, exception.getResponseBodyAsString(), exception.getStatusCode());
 		}
