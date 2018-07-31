@@ -101,7 +101,7 @@ node {
         [$class: 'StringBinding', credentialsId: "${env.PZ_PASSPHRASE}", variable: "PZ_PASSPHRASE"]
       ]) {
         // Push the app
-        sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start"
+        sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.JAVA_BUILDPACK_NAME} -d ${env.PROMOTE_DOMAIN} --no-start --no-route"
         try {
           sh """
             cf set-env ${appName} SPACE ${env.PROMOTE_SPACE}
@@ -113,6 +113,7 @@ node {
             cf set-env ${appName} OAUTH_CLIENT_ID ${GEOAXIS_CLIENT_ID}
             cf set-env ${appName} OAUTH_SECRET ${GEOAXIS_SECRET}
             cf set-env ${appName} JKS_FILE piazza.jks
+            cf set-env ${appName} GEOAXIS_JWT_CERT GEOAXIS_JWT_CERT.pem
             cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
             cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
             cf set-env ${appName} exit.on.geoserver.provision.failure ${env.EXIT_ON_GEOSERVER_PROVISION_FAILURE}
@@ -135,8 +136,16 @@ node {
       }
 
       // Assign Routes
-      def legacyAppNames = sh(script: "cf routes | grep \"${appBaseName} \" | awk '{print \$4}'", returnStdout: true)
+      def legacyAppNames = sh(script: "cf routes | grep \"${appBaseName}\" | awk '{print \$4}'", returnStdout: true)
       sh "cf map-route ${appName} ${env.PROMOTE_DOMAIN} --hostname ${appBaseName}"
+      
+      // Assign Policies
+      try {
+        def iaBroker = sh(script: "cf routes | grep \"bf-ia-broker\" | awk '{print \$4}' | head -n1", returnStdout: true).trim()
+        sh "cf add-network-policy ${appName} --destination-app ${iaBroker} --protocol tcp --port 8080"
+      } catch (Exception ex) {
+        echo "Could not establish network policies. The network policy tool should be run post-build to ensure functionality."
+      }
 
       // Delete old Routes
       for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {

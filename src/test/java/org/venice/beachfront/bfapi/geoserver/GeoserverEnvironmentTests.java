@@ -39,6 +39,7 @@ public class GeoserverEnvironmentTests {
 
         ReflectionTestUtils.setField(this.geoserverEnvironment, "GEOSERVER_HOST", "http://localhost:8080/geoserver");
         ReflectionTestUtils.setField(this.geoserverEnvironment, "LAYER_NAME", "bfdetections");
+        ReflectionTestUtils.setField(this.geoserverEnvironment, "LAYER_GROUP_NAME", "bfdetections");
         ReflectionTestUtils.setField(this.geoserverEnvironment, "STYLE_NAME", "bfdetections");
         ReflectionTestUtils.setField(this.geoserverEnvironment, "WORKSPACE_NAME", "piazza");
         ReflectionTestUtils.setField(this.geoserverEnvironment, "DATASTORE_NAME", "piazza");

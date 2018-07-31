@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -28,7 +29,11 @@ import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.services.JobService;
 import org.venice.beachfront.bfapi.services.PiazzaService;
+import org.venice.beachfront.bfapi.services.SceneService;
 import org.venice.beachfront.bfapi.services.UptimeService;
+
+import model.logger.Severity;
+import util.PiazzaLogger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -52,7 +57,15 @@ public class HealthCheckController {
 	@Autowired
 	private JobService jobService;
 	@Autowired
+	private SceneService sceneService;
+	@Autowired
 	private GeoserverEnvironment geoserverEnvironment;
+
+	@Autowired
+	private PiazzaLogger piazzaLogger;
+	
+	@Value("${DOMAIN}")
+	private String domain;
 
 	@RequestMapping(path = "/", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
@@ -60,11 +73,13 @@ public class HealthCheckController {
 	@ApiResponses(value = {
 			@ApiResponse(code = 200, message = "Health check information, including server uptime and job counts", response = HashMap.class),
 			@ApiResponse(code = 500, message = "Unexpected internal server error", response = JsonNode.class) })
-	public Map<String, String> healthCheck() throws UserException {
-		Map<String, String> healthCheckData = new HashMap<>();
+	public Map<String, Object> healthCheck() throws UserException {
+		Map<String, Object> healthCheckData = new HashMap<>();
 		// Show uptime
 		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
-		healthCheckData.put("geoserver", geoserverEnvironment.getGeoServerBaseUrl());
+		healthCheckData.put("geoserver-upstream", geoserverEnvironment.getGeoServerBaseUrl());
+		healthCheckData.put("geoserver", String.format("https://bf-api.%s/geoserver", domain));
+		healthCheckData.put("enabled-platforms", sceneService.getEnabledPlatforms());
 		try {
 			// Show algorithm Job Queue length as reported by Piazza
 			for (Algorithm algorithm : piazzaService.getRegisteredAlgorithms()) {
@@ -73,6 +88,10 @@ public class HealthCheckController {
 			}
 			// Show outstanding Job length
 			healthCheckData.put("outstanding-jobs", Integer.toString(jobService.getOutstandingJobs().size()));
+			
+			piazzaLogger.log(String.format("Health and status check called. Returning status of %s.", healthCheckData.toString()),
+					Severity.INFORMATIONAL);
+			
 		} catch (UserException exception) {
 			healthCheckData.put("error",
 					String.format("There was an error retrieving Algorithm health check data: %s", exception.getMessage()));

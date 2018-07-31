@@ -20,33 +20,30 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.sun.jndi.toolkit.url.Uri;
 import org.apache.commons.io.IOUtils;
-import org.hamcrest.CustomMatcher;
-import org.hamcrest.Matcher;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
 import org.venice.beachfront.bfapi.model.Job;
+import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.JobService.JobStatusCallback;
 import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
 import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
@@ -65,8 +62,15 @@ public class PiazzaServiceTests {
 	private GeoPackageConverter gpkgConverter;
 	@Mock
 	private PiazzaLogger piazzaLogger;
+	@Mock
+	private SceneService sceneService;
 	@InjectMocks
 	private PiazzaService piazzaService;
+
+	private Scene mockScene = new Scene();
+	private CompletableFuture<Scene> sceneFuture;
+	private JobStatusCallback callback;
+	private Algorithm algorithm = new Algorithm(null, null, 0, null, null, null);
 
 	@Before
 	public void setup() {
@@ -74,6 +78,20 @@ public class PiazzaServiceTests {
 
 		ReflectionTestUtils.setField(piazzaService, "PIAZZA_URL", "https://piazza.com");
 		ReflectionTestUtils.setField(piazzaService, "PIAZZA_API_KEY", "piazzaKey");
+
+		mockScene.setSceneId("test");
+		mockScene.setSensorName("rapideye");
+		sceneFuture = CompletableFuture.completedFuture(mockScene);
+
+		Mockito.when(sceneService.getSceneInputFileNames(Mockito.isA(Scene.class))).thenReturn(new ArrayList<String>());
+		Mockito.when(sceneService.getSceneInputURLs(Mockito.isA(Scene.class))).thenReturn(new ArrayList<String>());
+
+		callback = new JobStatusCallback() {
+			@Override
+			public void updateStatus(String jobId, String status) {
+				return;
+			}
+		};
 	}
 
 	@Test
@@ -84,29 +102,9 @@ public class PiazzaServiceTests {
 				"UTF-8");
 		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.POST), Mockito.<HttpEntity<String>>any(),
 				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
-		// Test
-		String jobId = piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester");
-		// Assert
-		assertEquals(jobId, "job123");
-	}
 
-	@Test(expected = UserException.class)
-	public void testPiazzaErrorResponse() throws UserException {
-		// Mock
-		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.POST), Mockito.<HttpEntity<String>>any(),
-				Mockito.<Class<String>>any())).thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 		// Test
-		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester");
-	}
-
-	@Test(expected = UserException.class)
-	public void testJsonParseError() throws UserException {
-		// Mock
-		String responseJson = "{\"data\": { jobId\": \"job123\"}}";
-		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.POST), Mockito.<HttpEntity<String>>any(),
-				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
-		// Test
-		piazzaService.execute("serviceId", "--test 1", new ArrayList<String>(), new ArrayList<String>(), "tester");
+		piazzaService.execute("serviceId", algorithm, "tester", "jobId", false, "jobName", sceneFuture, callback);
 	}
 
 	@Test
@@ -204,112 +202,4 @@ public class PiazzaServiceTests {
 		assertEquals(new String(data), testData);
 	}
 
-	@Test
-	public void testDataToShapefile() throws UserException, URISyntaxException, IOException {
-		final byte[] metadataBytes = Files.readAllBytes(Paths.get(
-				ClassLoader.getSystemResource("converter/job-metadata.json").toURI()
-		));
-        Assert.assertNotNull(metadataBytes);
-        
-		final byte[] geojsonBytes = Files.readAllBytes(Paths.get(
-				ClassLoader.getSystemResource("converter/shorelines-fc.geojson").toURI()
-		));
-        Assert.assertNotNull(geojsonBytes);
-        
-
-        // Mock
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/metadata-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
-			.thenReturn(new ResponseEntity<String>(new String(metadataBytes), HttpStatus.OK));
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/test-geojson-id-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
-			.thenReturn(new ResponseEntity<String>(new String(geojsonBytes), HttpStatus.OK));
-
-		// Test
-		byte[] shapefileBytes = piazzaService.getJobResultBytesAsShapefile("metadata-123", "test-job-123");
-        Assert.assertNotNull(shapefileBytes);
-
-        // TODO: re-open the results to confirm they are valid
-        
-	}
-
-	@Test
-	public void testDataToGeoPackage() throws UserException, URISyntaxException, IOException {
-		final byte[] metadataBytes = Files.readAllBytes(Paths.get(
-				ClassLoader.getSystemResource("converter/job-metadata.json").toURI()
-		));
-        Assert.assertNotNull(metadataBytes);
-        
-		final byte[] geojsonBytes = Files.readAllBytes(Paths.get(
-				ClassLoader.getSystemResource("converter/shorelines-fc.geojson").toURI()
-		));
-        Assert.assertNotNull(geojsonBytes);
-        
-
-        // Mock
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/metadata-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
-			.thenReturn(new ResponseEntity<String>(new String(metadataBytes), HttpStatus.OK));
-		Mockito.when(restTemplate.exchange(Mockito.argThat(uriPathEquals("/file/test-geojson-id-123")), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(), Mockito.<Class<String>>any()))
-			.thenReturn(new ResponseEntity<String>(new String(geojsonBytes), HttpStatus.OK));
-
-		// Test
-		byte[] gpkgBytes = piazzaService.getJobResultBytesAsGeoPackage("metadata-123", "test-job-123");
-        Assert.assertNotNull(gpkgBytes);
-
-        // TODO: re-open the results to confirm they are valid
-        
-	}
-	
-	private Matcher<URI> uriPathEquals(String path) {
-		return new CustomMatcher<URI>("URI path equals " + path) {
-			@Override
-			public boolean matches(Object uri) {
-				if (uri == null || uri.getClass() != URI.class) {
-					return false;
-				}
-				return ((URI)uri).getPath().equals(path);
-			}
-		};
-	}
-
-	@Test
-	public void testGetAlgorithmStatistics() throws Exception {
-		// Mock
-		String responseJson = IOUtils.toString(
-				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "piazza", File.separator, "postJob.json")),
-				"UTF-8");
-		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
-				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
-
-		JsonNode node = this.piazzaService.getAlgorithmStatistics("my_algo");
-		Assert.assertEquals("job123", node.get("data").get("jobId").textValue());
-	}
-
-	@Test(expected = UserException.class)
-	public void testGetAlgorithmStatistics_userEx1() throws Exception {
-		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
-				Mockito.<Class<String>>any()))
-				.thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
-
-		this.piazzaService.getAlgorithmStatistics("my_algo");
-		//Expect exception
-	}
-
-	@Test(expected = UserException.class)
-	public void testGetAlgorithmStatistics_userEx2() throws Exception {
-		// Mock
-		String responseJson = "clearly invalid json";
-		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
-				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
-
-		this.piazzaService.getAlgorithmStatistics("my_algo");
-		//Expect exception
-	}
-
-	@Test(expected = UserException.class)
-	public void testGetRegisteredAlgorithms() throws Exception {
-		Mockito.when(this.restTemplate.exchange(Matchers.any(URI.class), Mockito.eq(HttpMethod.GET), Mockito.any(), Mockito.eq(String.class)))
-				.thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
-
-		this.piazzaService.getRegisteredAlgorithms();
-		//Expect exception.
-	}
 }

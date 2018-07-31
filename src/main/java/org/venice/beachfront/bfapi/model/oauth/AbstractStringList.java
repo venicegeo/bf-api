@@ -21,13 +21,13 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
  * requires a custom deserializer, which is implemented here, along with 
  * some container classes for the different forms of CN data.
  */
-@JsonDeserialize(using = AbstractCommonName.Deserializer.class)
-public interface AbstractCommonName {
+@JsonDeserialize(using = AbstractStringList.Deserializer.class)
+public interface AbstractStringList {
 	public String toString();
 	
-	public static class Deserializer extends JsonDeserializer<AbstractCommonName> {
+	public static class Deserializer extends JsonDeserializer<AbstractStringList> {
 		@Override
-		public AbstractCommonName deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+		public AbstractStringList deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
 			TreeNode node = p.getCodec().readTree(p);
 			if (node.isValueNode() && ((JsonNode)node).isTextual()) {
 				return new SingleString(((JsonNode)node).asText());
@@ -36,41 +36,41 @@ public interface AbstractCommonName {
 				LinkedList<String> cns = new LinkedList<>();
 				for (int i=0; i < node.size(); i++) {
 					if (!node.get(i).isValueNode()) {
-						throw new JsonParseException(p, "Non-string element found in commonname array: " + node.toString());						
+						throw new JsonParseException(p, "Non-string element found in string array: " + node.toString());
 					}
 					cns.add(((JsonNode)node.get(i)).asText());
 				}
 				if (cns.size() < 1) {
-					throw new JsonParseException(p, "Empty commonname array");
+					throw new JsonParseException(p, "Empty string array");
 				}
 				return new StringList(cns);
 			}
-			throw new JsonParseException(p, "Could not parse commonname");						
+			throw new JsonParseException(p, "Could not parse string");
 		}
 	}
 	
-	public static class SingleString implements AbstractCommonName {
-		private String commonName;
-		public SingleString(String commonName) {
-			this.commonName = commonName;
+	public static class SingleString implements AbstractStringList {
+		private String singleString;
+		public SingleString(String singleString) {
+			this.singleString = singleString;
 		}
 		
 		@Override
 		public String toString() {
-			return this.commonName;
+			return this.singleString;
 		}
 	}
 	
-	public static class StringList implements AbstractCommonName {
-		private List<String> commonName;
-		public StringList(List<String> commonName) {
-			this.commonName = Collections.unmodifiableList(commonName);
+	public static class StringList implements AbstractStringList {
+		private List<String> stringList;
+		public StringList(List<String> stringList) {
+			this.stringList = Collections.unmodifiableList(stringList);
 		}
 
 		@Override
 		public String toString() {
 			// Only return the first common name in the list
-			return this.commonName.get(0);
+			return this.stringList.get(0);
 		}
 	}
 }

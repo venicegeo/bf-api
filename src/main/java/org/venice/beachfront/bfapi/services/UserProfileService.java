@@ -20,6 +20,7 @@ import org.joda.time.Minutes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import model.logger.Severity;
 import util.PiazzaLogger;
 
 @Service
+@EnableScheduling
 public class UserProfileService {
 	@Value("${api.key.timeout.minutes}")
 	private int API_KEY_TIMEOUT_MINUTES;
@@ -86,14 +88,23 @@ public class UserProfileService {
 	 * Every 5 minutes, scan for expired API Keys that have not been used recently. Invalidate these keys if they are
 	 * older than the threshold.
 	 */
-	@Scheduled(fixedDelay = 60, initialDelay = 300)
+	@Scheduled(fixedDelay = 300000, initialDelay = 60000)
 	public void reapExpiredApiKeys() {
 		piazzaLogger.log("Performing Periodic Reaping of Expired API Keys", Severity.INFORMATIONAL);
 		for (UserProfile userProfile : userProfileDao.findAll()) {
 			// Check the last Access time and compare it with the threshold
-			if (Minutes.minutesBetween(userProfile.getLastAccessed(), new DateTime()).getMinutes() >= API_KEY_TIMEOUT_MINUTES) {
-				// Expire the Key
-				this.invalidateKey(userProfile);
+			if (userProfile.getApiKey() != null) {
+				// If the account has never been accessed, set the last access time to the creation time (Legacy)
+				if (userProfile.getLastAccessed() == null) {
+					userProfile.setLastAccessed(userProfile.getCreatedOn());
+					saveUserProfile(userProfile);
+				}
+				if (Minutes.minutesBetween(userProfile.getLastAccessed(), new DateTime()).getMinutes() >= API_KEY_TIMEOUT_MINUTES) {
+					// Expire the Key
+					piazzaLogger.log(String.format("Server-side timeout of key for user %s due to inactivity.", userProfile.getName()),
+							Severity.INFORMATIONAL);
+					this.invalidateKey(userProfile);
+				}
 			}
 		}
 	}

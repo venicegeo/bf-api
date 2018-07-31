@@ -25,7 +25,11 @@ import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Matchers;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.venice.beachfront.bfapi.model.Job;
 import org.venice.beachfront.bfapi.model.exception.UserException;
@@ -33,7 +37,7 @@ import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
 
 import util.PiazzaLogger;
 
-public class PiazzaJobPollerTests {
+public class JobPollerTests {
 	@Mock
 	private JobService jobService;
 	@Mock
@@ -41,17 +45,18 @@ public class PiazzaJobPollerTests {
 	@Mock
 	private PiazzaLogger piazzaLogger;
 	@InjectMocks
-	private PiazzaJobPoller piazzaJobPoller;
+	private JobPoller jobPoller;
 
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
 
-		ReflectionTestUtils.setField(this.piazzaJobPoller, "POLL_FREQUENCY_SECONDS", 30000);
-		ReflectionTestUtils.setField(this.piazzaJobPoller, "JOB_TIMEOUT_HOURS", 5);
+		ReflectionTestUtils.setField(this.jobPoller, "POLL_FREQUENCY_SECONDS", 30000);
+		ReflectionTestUtils.setField(this.jobPoller, "JOB_TIMEOUT_HOURS", 5);
+		ReflectionTestUtils.setField(this.jobPoller, "JOB_ACTIVATION_TIMEOUT_MINUTES", 30);
 
 		// Stop automated polling. Unit tests will call polling explicitly.
-		piazzaJobPoller.stopPolling();
+		jobPoller.stopPolling();
 	}
 
 	@Test
@@ -68,7 +73,7 @@ public class PiazzaJobPollerTests {
 				Mockito.any());
 
 		// Test
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus);
+		jobPoller.getTask().processJobStatus(mockJob, mockStatus);
 
 		// Verify no Errors
 		Mockito.verify(jobService, Mockito.times(0)).createJobError(Mockito.any(), Mockito.any());
@@ -93,27 +98,27 @@ public class PiazzaJobPollerTests {
 
 		// Test
 		mockJob.setStatus(Job.STATUS_PENDING);
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus); //IOException
+		jobPoller.getTask().processJobStatus(mockJob, mockStatus); //IOException
 		Assert.assertEquals(Job.STATUS_ERROR, mockJob.getStatus());
 
 		mockJob.setStatus(Job.STATUS_PENDING);
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus); //UserException
+		jobPoller.getTask().processJobStatus(mockJob, mockStatus); //UserException
 		Assert.assertEquals(Job.STATUS_ERROR, mockJob.getStatus());
 
 		mockJob.setStatus(Job.STATUS_PENDING);
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus); //Exception
+		jobPoller.getTask().processJobStatus(mockJob, mockStatus); //Exception
 		Assert.assertEquals(Job.STATUS_ERROR, mockJob.getStatus());
 
 		mockStatus.setStatus(Job.STATUS_ERROR);
-		piazzaJobPoller.getTask().processJobStatus(mockJob, mockStatus);
+		jobPoller.getTask().processJobStatus(mockJob, mockStatus);
 		Assert.assertEquals(Job.STATUS_ERROR, mockJob.getStatus());
 
 	}
 
 	@Test
 	public void testPollStatusTask() throws Exception {
-		Mockito.when(this.piazzaJobPoller.getTask()).thenCallRealMethod();
-		PiazzaJobPoller.PollStatusTask task = this.piazzaJobPoller.getTask();
+		Mockito.when(this.jobPoller.getTask()).thenCallRealMethod();
+		JobPoller.PollStatusTask task = this.jobPoller.getTask();
 
 		ArrayList<Job> outstandingJobs = new ArrayList<>();
 		outstandingJobs.add(new Job());

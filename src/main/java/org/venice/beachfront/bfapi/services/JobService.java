@@ -18,6 +18,7 @@ package org.venice.beachfront.bfapi.services;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
@@ -25,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
@@ -40,6 +40,8 @@ import org.venice.beachfront.bfapi.model.JobUser;
 import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
+import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,11 +76,13 @@ public class JobService {
 	@Autowired
 	private PiazzaService piazzaService;
 	@Autowired
-	private RestTemplate restTemplate;
-	@Autowired
 	private PiazzaLogger piazzaLogger;
 	@Autowired
 	private ObjectMapper objectMapper;
+	@Autowired
+	private GeoPackageConverter geoPackageConverter;
+	@Autowired
+	private ShapefileConverter shpConverter;
 
 	/**
 	 * Creates a Beachfront Job. This will submit the Job request to Piazza, fetch the Job ID, and add all of the Job
@@ -121,32 +125,35 @@ public class JobService {
 
 		// Fetch Scene Information
 		Scene scene = sceneService.getScene(sceneId, planetApiKey, true);
+		// Request Scene activation.
 		sceneService.activateScene(scene, planetApiKey);
 
-		// Re-fetch scene after activation
-		scene = sceneService.getScene(sceneId, planetApiKey, true);
-
-		// Formulate the URLs for the Scene
-		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
-		List<String> fileUrls = sceneService.getSceneInputURLs(scene);
-
-		// Prepare Job Request
-		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, scene.getSensorName(), computeMask);
-		piazzaLogger.log(String.format("Generated CLI Command for Job %s (Scene %s) for User %s : %s", jobName, sceneId, creatorUserId,
-				algorithmCli), Severity.INFORMATIONAL);
-
-		// Dispatch Job to Piazza
-		String jobId = piazzaService.execute(algorithm.getServiceId(), algorithmCli, fileNames, fileUrls, creatorUserId);
+		// Generate a unique ID for this Job that Piazza and Beachfront will both use to reference.
+		String jobId = UUID.randomUUID().toString();
 
 		// Create Job and commit to database; return to User
-		Job job = new Job(jobId, jobName, Job.STATUS_SUBMITTED, creatorUserId, new DateTime(), algorithm.getServiceId(),
+		Job job = new Job(jobId, jobName, Job.STATUS_ACTIVATING, creatorUserId, new DateTime(), algorithm.getServiceId(),
 				algorithm.getName(), algorithm.getVersion(), scene.getSceneId(), scene.getTide(), scene.getTideMin24H(),
 				scene.getTideMax24H(), extras, computeMask);
+
 		// Save the Job to the Jobs table
 		jobDao.save(job);
 		// Associate this Job with the User who requested it
 		jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
 		piazzaLogger.log(String.format("Saved Job ID %s for Job %s by User %s", jobId, jobName, creatorUserId), Severity.INFORMATIONAL);
+
+		// Dispatch Job to Piazza. The provided callback will allow Piazza to update the status, once submitted.
+		piazzaService.execute(algorithm.getServiceId(), algorithm, creatorUserId, jobId, computeMask, jobName,
+				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true), new JobStatusCallback() {
+					@Override
+					public void updateStatus(String jobId, String status) {
+						Job job = getJob(jobId);
+						job.setStatus(status);
+						updateJob(job);
+					}
+				});
+
+		// Return Job Information
 		return job;
 	}
 
@@ -161,7 +168,7 @@ public class JobService {
 	}
 
 	/**
-	 * Gets the list of all outstanding jobs. That is, jobs that are submitted, running, or pending.
+	 * Gets the list of all outstanding jobs. That is, jobs that are submitted, running, pending, or activating.
 	 * 
 	 * @return List of all jobs that are in a non-complete state that are eligible to be polled for updated status.
 	 */
@@ -170,8 +177,10 @@ public class JobService {
 		outstandingStatuses.add(Job.STATUS_PENDING);
 		outstandingStatuses.add(Job.STATUS_RUNNING);
 		outstandingStatuses.add(Job.STATUS_SUBMITTED);
+		outstandingStatuses.add(Job.STATUS_ACTIVATING);
 		List<Job> jobs = jobDao.findByStatusIn(outstandingStatuses);
-		piazzaLogger.log(String.format("Queried for outstanding Jobs. Found %s outstanding jobs.", jobs.size()), Severity.INFORMATIONAL);
+		piazzaLogger.log(String.format("Queried for outstanding Piazza Jobs. Found %s outstanding jobs.", jobs.size()),
+				Severity.INFORMATIONAL);
 		return jobs;
 	}
 
@@ -368,53 +377,6 @@ public class JobService {
 	}
 
 	/**
-	 * Gets the algorithm CLI command that will be passed to the algorithm through Piazza
-	 * 
-	 * @param algorithmName
-	 *            The name of the algorithm
-	 * @param fileNames
-	 *            The array of file names
-	 * @param scenePlatform
-	 *            The scene platform (source)
-	 * @param computeMask
-	 *            True if compute mask is to be applied, false if not
-	 * @return The full command line string that can be executed by the Service Executor
-	 */
-	private String getAlgorithmCli(String algorithmId, List<String> fileUrls, String scenePlatform, boolean computeMask) {
-		List<String> imageFlags = new ArrayList<>();
-		// Generate the images string parameters
-		for (String fileUrl : fileUrls) {
-			imageFlags.add(String.format("-i %s", fileUrl));
-		}
-		// Generate Bands based on the platform
-		String bandsFlag = null;
-		switch (scenePlatform) {
-		case Scene.PLATFORM_LANDSAT:
-		case Scene.PLATFORM_SENTINEL:
-			bandsFlag = "--bands 1 1";
-			break;
-		case Scene.PLATFORM_PLANETSCOPE:
-			bandsFlag = "--bands 2 4";
-			break;
-		case Scene.PLATFORM_RAPIDEYE:
-			bandsFlag = "--bands 2 5";
-			break;
-		}
-		// Piece together the CLI
-		StringBuilder command = new StringBuilder();
-		command.append(String.join(" ", imageFlags));
-		if (bandsFlag != null) {
-			command.append(" ");
-			command.append(bandsFlag);
-		}
-		command.append(" --basename shoreline --smooth 1.0");
-		if (computeMask) {
-			command.append(" --coastmask");
-		}
-		return command.toString();
-	}
-
-	/**
 	 * Determines if the Redundant Job Check should be blocked. This is either determined globally by the redundant flag
 	 * environment variable, which will block all jobs - or individually via an individual job request.
 	 * <p>
@@ -430,10 +392,13 @@ public class JobService {
 		}
 	}
 
-	public static enum DownloadDataType { GEOJSON, GEOPACKAGE, SHAPEFILE }
+	public static enum DownloadDataType {
+		GEOJSON, GEOPACKAGE, SHAPEFILE
+	}
+
 	/**
-	 * Downloads the results of a job as GeoJSON, GeoPackage, or Shapefile. If the job is incomplete,
-	 * or otherwise encountered an error, throws an appropriate UserException.
+	 * Downloads the results of a job as GeoJSON, GeoPackage, or Shapefile. If the job is incomplete, or otherwise
+	 * encountered an error, throws an appropriate UserException.
 	 * 
 	 * @param jobId
 	 *            The job ID
@@ -442,7 +407,7 @@ public class JobService {
 	public byte[] downloadJobData(String jobId, DownloadDataType dataType) throws UserException {
 		this.piazzaLogger.log(String.format("Querying Piazza for status of Job %s", jobId), Severity.INFORMATIONAL);
 		StatusMetadata statusMetadata = this.piazzaService.getJobStatus(jobId);
-		
+
 		if (statusMetadata.isStatusError()) {
 			throw new UserException(statusMetadata.getErrorMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -450,14 +415,32 @@ public class JobService {
 			throw new UserException("Job not finished yet", HttpStatus.NOT_FOUND);
 		}
 		if (statusMetadata.isStatusSuccess()) {
-			String metaDataId = statusMetadata.getDataId();
-			switch(dataType) {
-			case GEOJSON: return this.piazzaService.getJobResultBytesAsGeoJson(metaDataId, jobId);
-			case GEOPACKAGE: return this.piazzaService.getJobResultBytesAsGeoPackage(metaDataId, jobId);
-			case SHAPEFILE: return this.piazzaService.getJobResultBytesAsShapefile(metaDataId, jobId);
+			byte[] geoJsonBytes = this.detectionDao.findFullDetectionGeoJson(jobId).getBytes();
+			switch (dataType) {
+			case GEOJSON:
+				return geoJsonBytes;
+			case GEOPACKAGE:
+				return geoPackageConverter.apply(geoJsonBytes);
+			case SHAPEFILE:
+				return shpConverter.apply(geoJsonBytes);
 			}
-			throw new UserException("Unknown download data type: " + dataType, HttpStatus.INTERNAL_SERVER_ERROR);	
+			throw new UserException("Unknown download data type: " + dataType, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		throw new UserException("Unknown job status: " + statusMetadata.getStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+
+	/**
+	 * Callback used to allow other Services to invoke the Job status update logic from this component.
+	 */
+	public interface JobStatusCallback {
+		/**
+		 * Update the Status of a Job
+		 * 
+		 * @param jobId
+		 *            The Job ID
+		 * @param status
+		 *            The Status of the Job
+		 */
+		public void updateStatus(String jobId, String status);
 	}
 }

@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.io.IOUtils;
 import org.eclipse.emf.ecore.xml.type.internal.RegEx;
@@ -46,6 +47,8 @@ import org.venice.beachfront.bfapi.database.dao.JobUserDao;
 import org.venice.beachfront.bfapi.model.*;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
+import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
+import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -72,6 +75,10 @@ public class JobServiceTests {
 	private UserProfileService userProfileService;
 	@Mock
 	private PiazzaLogger piazzaLogger;
+	@Mock
+	private GeoPackageConverter geoPackageConverter;
+	@Mock
+	private ShapefileConverter shpConverter;
 	@Spy
 	private ObjectMapper objectMapper;
 	@InjectMocks
@@ -92,16 +99,14 @@ public class JobServiceTests {
 		Algorithm mockAlgorithm = new Algorithm("Description", "Interface", 10, "Name", serviceId, "1.0.0");
 		Mockito.doReturn(mockAlgorithm).when(algorithmService).getAlgorithm(Mockito.eq(serviceId));
 		Scene mockScene = new Scene("scene123", new DateTime(), 10, null, 10, "Sensor", "URI");
-		Mockito.doReturn(mockScene).when(sceneService).getScene(Mockito.eq("scene123"), Mockito.any(), Mockito.anyBoolean());
+		Mockito.doReturn(mockScene).when(sceneService).getScene(Mockito.eq("scene123"), Mockito.anyString(), Mockito.anyBoolean());
+		Mockito.doReturn(CompletableFuture.completedFuture(mockScene)).when(sceneService).asyncGetActiveScene(Mockito.eq("scene123"),
+				Mockito.anyString(), Mockito.anyBoolean());
 		Mockito.doReturn(mockScene).when(sceneService).getSceneFromLocalDatabase(Mockito.eq("scene123"));
 		// No redundant jobs
 		Mockito.doReturn(new ArrayList<Job>()).when(jobDao).findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatus(
 				Mockito.eq(mockScene.getSceneId()), Mockito.eq(serviceId), Mockito.eq(mockAlgorithm.getVersion()), Mockito.any(),
 				Mockito.any());
-		// Mock Piazza Response
-		String jobId = "job123";
-		Mockito.doReturn(jobId).when(piazzaService).execute(Mockito.eq(serviceId), Mockito.any(), Mockito.any(), Mockito.any(),
-				Mockito.eq(creatorId));
 
 		// Test
 		String jobName = "Test Job";
@@ -109,7 +114,6 @@ public class JobServiceTests {
 
 		// Verify
 		assertNotNull(job);
-		assertEquals(job.getJobId(), jobId);
 		assertEquals(job.getAlgorithmId(), serviceId);
 		assertEquals(job.getAlgorithmName(), mockAlgorithm.getName());
 		assertEquals(job.getAlgorithmVersion(), mockAlgorithm.getVersion());
@@ -117,7 +121,7 @@ public class JobServiceTests {
 		assertTrue(Seconds.secondsBetween(new DateTime(), job.getCreatedOn()).getSeconds() <= 5);
 		assertEquals(job.getJobName(), jobName);
 		assertEquals(job.getSceneId(), mockScene.getSceneId());
-		assertEquals(job.getStatus(), Job.STATUS_SUBMITTED);
+		assertEquals(job.getStatus(), Job.STATUS_ACTIVATING);
 	}
 
 	@Test
@@ -194,7 +198,7 @@ public class JobServiceTests {
 		assertEquals(features.get(1).get("properties").get("status").textValue(), "Success");
 		assertEquals(features.get(1).get("properties").get("compute_mask").booleanValue(), true);
 	}
-	
+
 	@Test
 	public void testDownloadJobData_StatusError() throws UserException {
 		// Setup
@@ -203,7 +207,7 @@ public class JobServiceTests {
 		Mockito.when(mockStatus.isStatusIncomplete()).thenReturn(false);
 		Mockito.when(mockStatus.isStatusSuccess()).thenReturn(false);
 		Mockito.when(this.piazzaService.getJobStatus("test-job-id-123")).thenReturn(mockStatus);
-		
+
 		// Test
 		try {
 			this.jobService.downloadJobData("test-job-id-123", null);
@@ -212,7 +216,7 @@ public class JobServiceTests {
 			Assert.assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getRecommendedStatusCode());
 		}
 	}
-	
+
 	@Test
 	public void testDownloadJobData_StatusIncomplete() throws UserException {
 		// Setup
@@ -221,7 +225,7 @@ public class JobServiceTests {
 		Mockito.when(mockStatus.isStatusIncomplete()).thenReturn(true);
 		Mockito.when(mockStatus.isStatusSuccess()).thenReturn(false);
 		Mockito.when(this.piazzaService.getJobStatus("test-job-id-123")).thenReturn(mockStatus);
-		
+
 		// Test and asserts
 		try {
 			this.jobService.downloadJobData("test-job-id-123", null);
@@ -230,7 +234,7 @@ public class JobServiceTests {
 			Assert.assertEquals(HttpStatus.NOT_FOUND, ex.getRecommendedStatusCode());
 		}
 	}
-	
+
 	@Test
 	public void testDownloadJobData_StatusSuccess() throws UserException {
 		// Setup
@@ -241,19 +245,20 @@ public class JobServiceTests {
 		Mockito.when(mockStatus.getDataId()).thenReturn("data-id-321");
 		Mockito.when(this.piazzaService.getJobStatus("test-job-id-123")).thenReturn(mockStatus);
 
-		byte[] mockJSONResult = "{\"foo\": 123}".getBytes();
+		String mockJSON = "{\"foo\": 123}";
+		byte[] mockJSONResult = mockJSON.getBytes();
 		Mockito.when(this.piazzaService.getJobResultBytesAsGeoJson("data-id-321", "test-job-id-123")).thenReturn(mockJSONResult);
+		Mockito.when(this.detectionDao.findFullDetectionGeoJson("test-job-id-123")).thenReturn(mockJSON);
 		byte[] mockGeoPackageResult = "mock-geopackage-result".getBytes();
-		Mockito.when(this.piazzaService.getJobResultBytesAsGeoPackage("data-id-321", "test-job-id-123")).thenReturn(mockGeoPackageResult);
+		Mockito.when(this.geoPackageConverter.apply(Mockito.any())).thenReturn(mockGeoPackageResult);
 		byte[] mockShapefileResult = "mock-shapefile-result".getBytes();
-		Mockito.when(this.piazzaService.getJobResultBytesAsShapefile("data-id-321", "test-job-id-123")).thenReturn(mockShapefileResult);
-		
-		
+		Mockito.when(this.shpConverter.apply(Mockito.any())).thenReturn(mockShapefileResult);
+
 		// Test
 		byte[] actualJSONResult = this.jobService.downloadJobData("test-job-id-123", JobService.DownloadDataType.GEOJSON);
 		byte[] actualGeoPackageResult = this.jobService.downloadJobData("test-job-id-123", JobService.DownloadDataType.GEOPACKAGE);
 		byte[] actualShapefileResult = this.jobService.downloadJobData("test-job-id-123", JobService.DownloadDataType.SHAPEFILE);
-		
+
 		// Asserts
 		Assert.assertArrayEquals(mockJSONResult, actualJSONResult);
 		Assert.assertArrayEquals(mockGeoPackageResult, actualGeoPackageResult);

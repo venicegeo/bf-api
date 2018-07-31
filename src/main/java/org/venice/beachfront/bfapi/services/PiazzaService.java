@@ -21,9 +21,13 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -32,15 +36,18 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.venice.beachfront.bfapi.model.Algorithm;
+import org.venice.beachfront.bfapi.model.Job;
+import org.venice.beachfront.bfapi.model.Scene;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 import org.venice.beachfront.bfapi.model.piazza.StatusMetadata;
-import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
-import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
+import org.venice.beachfront.bfapi.services.JobService.JobStatusCallback;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,6 +56,7 @@ import model.logger.Severity;
 import util.PiazzaLogger;
 
 @Service
+@EnableAsync
 public class PiazzaService {
 	@Value("${piazza.server}")
 	private String PIAZZA_URL;
@@ -58,36 +66,61 @@ public class PiazzaService {
 	@Autowired
 	private RestTemplate restTemplate;
 	@Autowired
-	private ShapefileConverter shpConverter;
-	@Autowired
-	private GeoPackageConverter gpkgConverter;
-	@Autowired
 	private ObjectMapper objectMapper;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private SceneService sceneService;
 
-	/**
-	 * Executes the service, sending the payload to Piazza and parsing the response for the Job ID
-	 * 
-	 * @param serviceId
-	 *            The ID of the Piazza Service corresponding to the chosen algorithm
-	 * @param cliCommand
-	 *            The algorithm CLI parameters
-	 * @param fileNames
-	 *            The ordered list of file names
-	 * @param fileUrls
-	 *            The ordered list of file URLs
-	 * @param userId
-	 *            The ID of the creating user for this job
-	 * @return The Piazza Job ID
-	 * @throws Exception
-	 */
-	public String execute(String serviceId, String cliCommand, List<String> fileNames, List<String> fileUrls, String userId)
-			throws UserException {
+	@Async
+	public void execute(String serviceId, Algorithm algorithm, String userId, String jobId, Boolean computeMask, String jobName,
+			CompletableFuture<Scene> sceneFuture, JobStatusCallback callback) {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
-		piazzaLogger
-				.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s with Command %s.",
-						piazzaJobUrl, serviceId, userId, cliCommand), Severity.INFORMATIONAL);
+		piazzaLogger.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s.", piazzaJobUrl,
+				serviceId, userId), Severity.INFORMATIONAL);
+		
+		// Ensure that the Scene has finished activating before proceeding with the Piazza execution.
+		Scene scene = null;
+		// capture when activation began
+		DateTime activationStart = new DateTime();
+		try {
+			piazzaLogger.log(String.format("Waiting for Activation for Job %s", jobId), Severity.INFORMATIONAL);
+			scene = sceneFuture.get();
+			
+			// calculate diff between now and when job started activation
+			piazzaLogger.log(
+				String.format(
+						"Job %s Scene has been activated for Scene ID %s, Scene platorm: %s, completed activation in %d seconds", 
+						jobId, 
+						Scene.parseExternalId(scene.getSceneId()),
+						Scene.parsePlatform(scene.getSceneId()),
+						new Duration(activationStart, new DateTime()).getStandardSeconds()),
+				Severity.INFORMATIONAL);
+		} catch (InterruptedException | ExecutionException e) {
+			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s", jobId), Severity.ERROR);
+			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			
+			// calculate diff between now and when job started activation
+			piazzaLogger.log(
+					String.format("Job %s failed activation in %d seconds.", 
+							jobId, 
+							new Duration(activationStart, new DateTime()).getStandardSeconds()),
+					Severity.INFORMATIONAL);
+
+			return;
+		}
+
+		// Generate the Algorithm CLI
+		// Formulate the URLs for the Scene
+		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
+		List<String> fileUrls = sceneService.getSceneInputURLs(scene);
+
+		// Prepare Job Request
+		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, Scene.parsePlatform(scene.getSceneId()), computeMask);
+		piazzaLogger.log(String.format("Generated CLI Command for Job %s (Scene %s) for User %s : %s", jobName, scene.getSceneId(), userId,
+				algorithmCli), Severity.INFORMATIONAL);
+
+		// Generate the Headers for Execution, including the API Key
 		HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
 		// Structure the Job Request
 		String requestJson = null;
@@ -103,50 +136,33 @@ public class PiazzaService {
 				quotedFileUrls.add(String.format("\\\"%s\\\"", fileUrl));
 			}
 			// Replace all user values into the execute request JSON template
-			requestJson = String.format(loadJobRequestJson(), serviceId, cliCommand, String.join(", ", quotedFileUrls),
+			requestJson = String.format(loadJobRequestJson(), jobId, serviceId, algorithmCli, String.join(", ", quotedFileUrls),
 					String.join(", ", quotedFileNames), userId);
 		} catch (Exception exception) {
 			exception.printStackTrace();
-			throw new UserException("Could not load local resource file for Job Request.", exception.getMessage(),
-					HttpStatus.INTERNAL_SERVER_ERROR);
+			piazzaLogger.log(String.format("Could not load local resource file for Job Request for Job %s", jobId), Severity.ERROR);
+			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			return;
 		}
 		HttpEntity<String> request = new HttpEntity<>(requestJson, headers);
 
 		// Execute the Request
-		ResponseEntity<String> response = null;
 		try {
-			response = restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
+			restTemplate.exchange(URI.create(piazzaJobUrl), HttpMethod.POST, request, String.class);
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(
 					String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s",
 							userId, exception.getStatusText(), exception.getResponseBodyAsString(), requestJson),
 					Severity.ERROR);
-
-			HttpStatus recommendedErrorStatus = exception.getStatusCode();
-			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
-																	// want that
-			}
-
-			String message = String.format("There was an upstream error submitting the Job Request to Piazza. (%d)",
-					exception.getStatusCode().value());
-
-			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
+			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			return;
 		}
 
-		// Parse the Job ID from the response and return
-		try {
-			JsonNode responseJson = objectMapper.readTree(response.getBody());
-			String jobId = responseJson.get("data").get("jobId").asText();
-			piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
-					Severity.INFORMATIONAL);
-			return jobId;
-		} catch (IOException exception) {
-			piazzaLogger.log(String.format("Error parsing the successful Piazza Job Response by User %s with Error %s", userId,
-					exception.getMessage()), Severity.ERROR);
-			throw new UserException("There was an error parsing the Piazza response when submitting the Job.", exception.getMessage(),
-					HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		// Update the Status of the Job as Submitted
+		callback.updateStatus(jobId, Job.STATUS_SUBMITTED);
+		// Log the Successful execution
+		piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
+				Severity.INFORMATIONAL);
 	}
 
 	/**
@@ -355,39 +371,6 @@ public class PiazzaService {
 	}
 
 	/**
-	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
-	 * Shapefile of the shoreline detection vectors.
-	 * 
-	 * @param metaDataId
-	 *            Piazza data ID of the job metadata
-	 * @param jobId
-	 *            Job ID (used for logging)
-	 * @return The bytes of the ingested data, as a .zip file containing a Shapefile
-	 */
-	public byte[] getJobResultBytesAsShapefile(String metaDataId, String jobId) throws UserException {
-
-		byte[] gjBytes = this.getJobResultBytesAsGeoJson(metaDataId, jobId);
-		piazzaLogger.log(String.format("Converting data for job %s to Shapefile", jobId), Severity.INFORMATIONAL);
-		return shpConverter.apply(gjBytes);
-	}
-
-	/**
-	 * After calling downloadData, converts the GeoJSON to Shapefile These bytes are the raw zipfile containing the
-	 * Shapefile of the shoreline detection vectors.
-	 * 
-	 * @param metaDataId
-	 *            Piazza data ID of the job metadata
-	 * @param jobId
-	 *            Job ID (used for logging)
-	 * @return The bytes of the ingested data, as a GeoPackage
-	 */
-	public byte[] getJobResultBytesAsGeoPackage(String metaDataId, String jobId) throws UserException {
-		byte[] gjBytes = this.getJobResultBytesAsGeoJson(metaDataId, jobId);
-		piazzaLogger.log(String.format("Converting data for job %s to GeoPackage", jobId), Severity.INFORMATIONAL);
-		return gpkgConverter.apply(gjBytes);
-	}
-
-	/**
 	 * Downloads the data for a successful Beachfront Detection Service Job's Metadata..
 	 * <p>
 	 * The Data will be textual data containing all of the relevent metadata for the Detection job. As part of the
@@ -412,8 +395,8 @@ public class PiazzaService {
 			geoJsonDataId = metadataJson.get("OutFiles").get("shoreline.geojson").asText();
 		} catch (IOException exception) {
 			String error = String.format(
-					"There was an error parsing the Detection Metadata for Job %s Metadata Data Id %s. The raw content was: %s",
-					jobId, metaDataId, new String(metadata));
+					"There was an error parsing the Detection Metadata for Job %s Metadata Data Id %s. The raw content was: %s", jobId,
+					metaDataId, new String(metadata));
 			piazzaLogger.log(error, Severity.ERROR);
 			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -516,5 +499,53 @@ public class PiazzaService {
 			}
 		}
 		return jsonString;
+	}
+
+	/**
+	 * Gets the algorithm CLI command that will be passed to the algorithm through Piazza
+	 * 
+	 * @param algorithmName
+	 *            The name of the algorithm
+	 * @param fileNames
+	 *            The array of file names
+	 * @param scenePlatform
+	 *            The scene platform (source)
+	 * @param computeMask
+	 *            True if compute mask is to be applied, false if not
+	 * @return The full command line string that can be executed by the Service Executor
+	 */
+	private String getAlgorithmCli(String algorithmId, List<String> fileUrls, String scenePlatform, boolean computeMask) {
+		List<String> imageFlags = new ArrayList<>();
+		// Generate the images string parameters
+		for (String fileUrl : fileUrls) {
+			imageFlags.add(String.format("-i %s", fileUrl));
+		}
+		// Generate Bands based on the platform
+		String bandsFlag = null;
+		switch (scenePlatform) {
+		case Scene.PLATFORM_PLANET_LANDSAT:
+		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
+		case Scene.PLATFORM_PLANET_SENTINEL:
+			bandsFlag = "--bands 1 1";
+			break;
+		case Scene.PLATFORM_PLANET_PLANETSCOPE:
+			bandsFlag = "--bands 2 4";
+			break;
+		case Scene.PLATFORM_PLANET_RAPIDEYE:
+			bandsFlag = "--bands 2 5";
+			break;
+		}
+		// Piece together the CLI
+		StringBuilder command = new StringBuilder();
+		command.append(String.join(" ", imageFlags));
+		if (bandsFlag != null) {
+			command.append(" ");
+			command.append(bandsFlag);
+		}
+		command.append(" --basename shoreline --smooth 1.0");
+		if (computeMask) {
+			command.append(" --coastmask");
+		}
+		return command.toString();
 	}
 }

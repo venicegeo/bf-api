@@ -1,0 +1,27 @@
+<layerGroup>
+    <name>LAYER_GROUP_NAME</name>
+    <mode>SINGLE</mode>
+    <title>Beachfront Detections</title>
+    <workspace>
+        <name>WORKSPACE_NAME</name>
+    </workspace>
+    <publishables>
+        <published type="layer">
+            <name>LAYER_NAME</name>
+            <atom:link xmlns:atom="http://www.w3.org/2005/Atom" rel="alternate" href="https://geoserver-0de60859-d830-4bf9-9d11-274f7269eb1f.dev.dev.east.paas.geointservices.io/geoserver/rest/layers/__beachfront__geoserver.xml" type="application/xml"/>
+        </published>
+    </publishables>
+    <styles>
+        <style>
+            <name>WORKSPACE_NAME:STYLE_NAME</name>
+            <atom:link xmlns:atom="http://www.w3.org/2005/Atom" rel="alternate" href="https://geoserver-0de60859-d830-4bf9-9d11-274f7269eb1f.dev.dev.east.paas.geointservices.io/geoserver/rest/workspaces/piazza/styles/bfdetections_jobid_filter.xml" type="application/xml"/>
+        </style>
+    </styles>
+    <bounds>
+        <minx>-180.0</minx>
+        <maxx>180.0</maxx>
+        <miny>-90.0</miny>
+        <maxy>90.0</maxy>
+        <crs>EPSG:4326</crs>
+    </bounds>
+</layerGroup>

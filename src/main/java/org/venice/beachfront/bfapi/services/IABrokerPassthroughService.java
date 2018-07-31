@@ -23,12 +23,15 @@ import java.net.URISyntaxException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.client.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -50,29 +53,31 @@ public class IABrokerPassthroughService {
 	@Value("${ia.broker.port}")
 	private Integer IA_BROKER_PORT;
 	@Autowired
+	@Qualifier("rest-template-no-follow-redirect")
 	private RestTemplate restTemplate;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
-
+	
+	
 	public ResponseEntity<String> passthroughRequest(HttpMethod method, HttpServletRequest request)
 			throws MalformedURLException, IOException, URISyntaxException, UserException {
 		// URI to ia-Broker will strip out the /ia prefix that the bf-api uses to denote ia-broker proxying
 		// Single data source right now, which is planet. In the future, we will switch on the sensor/item type to
 		// determine the source (or have the source just injected)
-		String requestPath = request.getRequestURI().replaceAll("/ia", "/planet");
+		String requestPath = request.getRequestURI().replaceAll("/ia/", "/");
 		URI uri = new URI(IA_BROKER_PROTOCOL, null, IA_BROKER_SERVER, IA_BROKER_PORT, requestPath, request.getQueryString(), null);
 		String body = IOUtils.toString(request.getReader());
 		piazzaLogger.log(String.format("Proxying request to IA Broker at URI %s", uri.toString()), Severity.INFORMATIONAL);
 		try {
 			ResponseEntity<String> response = restTemplate.exchange(uri, method, new HttpEntity<String>(body), String.class);
 			piazzaLogger.log(String.format("Received IA Broker response, code=%d, length=%d, for URI %s", 
-					response.getStatusCodeValue(), response.getBody().length(), uri.toString()), Severity.INFORMATIONAL);
+					response.getStatusCodeValue(), response.getBody()==null ? 0 : response.getBody().length(), uri.toString()), Severity.INFORMATIONAL);
 			return response;
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Received IA Broker error response, code=%d, length=%d, for URI %s", 
 					exception.getStatusCode().value(), exception.getResponseBodyAsString().length(), uri.toString()), Severity.ERROR);
 			if (exception.getStatusCode().equals(HttpStatus.UNAUTHORIZED) || exception.getStatusCode().equals(HttpStatus.FORBIDDEN)) {
-				throw new UserException("Bad authentication with image broker", exception, exception.getResponseBodyAsString(), HttpStatus.BAD_REQUEST);
+				throw new UserException(exception.getResponseBodyAsString(), exception, exception.getResponseBodyAsString(), HttpStatus.PRECONDITION_FAILED);
 			}
 			throw new UserException("Upstream image broker error", exception, exception.getResponseBodyAsString(), exception.getStatusCode());
 		}

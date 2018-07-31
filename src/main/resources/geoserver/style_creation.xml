@@ -1,15 +1,29 @@
-<StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld">
-	<NamedLayer>
-		<UserStyle>
-			<FeatureTypeStyle>
-				<Rule>
-					<LineSymbolizer>
-						<Stroke>
-							<CssParameter name="stroke">#FF00FF</CssParameter>
-						</Stroke>
-					</LineSymbolizer>
-				</Rule>
-			</FeatureTypeStyle>
-		</UserStyle>
-	</NamedLayer>
-</StyledLayerDescriptor>
+<?xml version="1.0" encoding="UTF-8"?>
+<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" version="1.0.0">
+	<sld:NamedLayer>
+		<sld:Name>Default Styler</sld:Name>
+		<sld:UserStyle>
+			<sld:Name>Default Styler</sld:Name>
+			<sld:FeatureTypeStyle>
+				<sld:Name>name</sld:Name>
+				<sld:Rule>
+					<ogc:Filter>
+						<ogc:PropertyIsEqualTo>
+							<ogc:PropertyName>job_id</ogc:PropertyName>
+							<ogc:Function name="env">
+								<ogc:Literal>jobid</ogc:Literal>
+								<!-- We don't want to return anything if no jobid is provided. -->
+								<ogc:Literal>bfdetections_dummy_id</ogc:Literal>
+							</ogc:Function>
+						</ogc:PropertyIsEqualTo>
+					</ogc:Filter>
+					<sld:LineSymbolizer>
+						<sld:Stroke>
+							<sld:CssParameter name="stroke">#FF00FF</sld:CssParameter>
+						</sld:Stroke>
+					</sld:LineSymbolizer>
+				</sld:Rule>
+			</sld:FeatureTypeStyle>
+		</sld:UserStyle>
+	</sld:NamedLayer>
+</sld:StyledLayerDescriptor>
