@@ -119,7 +119,7 @@ public class OAuthController {
 
 	private Cookie createCookie(String apiKey, int expiry) {
 		Cookie cookie = new Cookie(COOKIE_NAME, apiKey);
-		//cookie.setDomain(domain);
+		cookie.setDomain(domain);
 		cookie.setSecure(true);
 		cookie.setPath("/");
 		cookie.setMaxAge(expiry);
