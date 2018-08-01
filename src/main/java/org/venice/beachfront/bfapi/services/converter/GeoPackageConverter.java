@@ -70,6 +70,7 @@ public class GeoPackageConverter extends AbstractConverter {
     		File gpkgFile = gpkg.getFile();
             result = java.nio.file.Files.readAllBytes(gpkgFile.toPath());
             gpkgFile.delete();
+            gpkg.close();
         } catch (Exception e) {
             throw new UserException("Failed to export input to GeoPackage:" + e.getMessage(), e, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         }
