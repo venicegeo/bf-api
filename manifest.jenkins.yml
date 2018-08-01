@@ -12,3 +12,5 @@ applications:
     - pz-postgres
     - pz-geoserver
     - pz-postgres-service-key
+  env:
+    JAVA_OPTS: '-XX:MaxDirectMemorySize=128M'
