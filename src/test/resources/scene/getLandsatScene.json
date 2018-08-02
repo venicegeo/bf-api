@@ -45,7 +45,8 @@
         "cloudCover": 50,
         "fileFormat": "geotiff",
         "resolution": 30,
-        "sensorName": "Landsat8"
+        "sensorName": "Landsat8",
+        "srcHorizontalAccuracy": "100m"
     },
     "id": "test",
     "bbox": [

@@ -36,7 +36,8 @@
 		"status": "inactive",
 		"CurrentTide": 0.5,
 		"MinimumTide24Hours": 0.1,
-		"MaximumTide24Hours": 0.8
+		"MaximumTide24Hours": 0.8,
+		"srcHorizontalAccuracy": "100m"
 	},
 	"id": "EXTERNAL_ID",
 	"bbox": [
