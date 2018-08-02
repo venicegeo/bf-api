@@ -173,6 +173,7 @@ public class SceneService {
 			scene.setRawJson(responseJson);
 			scene.setSceneId(platform + ":" + responseJson.get("id").asText());
 			scene.setCloudCover(responseJson.get("properties").get("cloudCover").asDouble());
+			scene.setHorizontalAccuracy(responseJson.get("properties").get("srcHorizontalAccuracy").asText());
 			scene.setResolution(responseJson.get("properties").get("resolution").asInt());
 			scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
 			scene.setSensorName(responseJson.get("properties").get("sensorName").asText());

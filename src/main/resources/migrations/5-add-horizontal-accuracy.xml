@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+	<changeSet id="5-add-horizontal-accuracy" author="patrick.doody@rgi-corp.com">
+
+		<preConditions onFail="MARK_RAN"
+			onFailMessage="Horizontal Accuracy column found, Skipping">
+			<not>
+				<columnExists schemaName="public" tableName="__beachfront__scene"
+					columnName="horizontal_accuracy" />
+			</not>
+		</preConditions>
+
+		<addColumn schemaName="public" tableName="__beachfront__scene">
+			<column name="horizontal_accuracy" type="VARCHAR(64)" />
+		</addColumn>
+		
+		<dropView schemaName="public" viewName="__beachfront__geoserver"/>
+		
+		<createView replaceIfExists="true" schemaName="public" viewName="__beachfront__provenance">
+				SELECT j.job_id,
+				       j.algorithm_id,
+				       j.algorithm_name,
+				       j.algorithm_version,
+				       s.cloud_cover,
+				       j.created_by,
+				       j.created_on,
+				       j.name,
+				       s.resolution,
+				       s.scene_id,
+				       s.sensor_name,
+				       s.horizontal_accuracy AS src_horizontal_accuracy,
+				       j.status,
+				       j.tide,
+				       j.tide_min_24h,
+				       j.tide_max_24h,
+				       s.captured_on AS time_of_collect,
+				      'NOT FOR TARGETING OR NAVIGATION PURPOSES'::varchar AS data_usage,
+				      'UNCLASSIFIED'::varchar                             AS classification
+				  FROM __beachfront__job j
+				       JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
+		</createView>
+		
+		<createView replaceIfExists="true" schemaName="public" viewName="__beachfront__geoserver">
+				SELECT p.*,
+				       d.feature_id,
+				       d.geometry,
+				       plj.productline_id
+				  FROM __beachfront__detection d
+				       JOIN __beachfront__provenance p ON (p.job_id = d.job_id)
+				       LEFT OUTER JOIN __beachfront__productline_job plj ON (plj.job_id = d.job_id);
+		</createView>
+
+	</changeSet>
+</databaseChangeLog>
