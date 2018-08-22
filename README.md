@@ -8,6 +8,7 @@ Before building and/or running bf-api, please ensure that the following componen
 - [Maven (v3 or later)](https://maven.apache.org/install.html)
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 - [PostgreSQL](https://www.postgresql.org/download)
+- [RabbitMQ](https://www.rabbitmq.com/)
 - An available instance of [Beachfront IA Broker](https://github.com/venicegeo/bf-ia-broker)
 - Access to Nexus is required to build
 
