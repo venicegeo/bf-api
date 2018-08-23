@@ -166,10 +166,12 @@ public class JobPoller {
 			if (!status.isStatusIncomplete()) {
 				// Logging time of completion, and overall status at time of completion
 				piazzaLogger.log(
-						String.format("Job %s completed in %d minutes. Status=%s", 
-								job.getJobId(), 
-								new Duration(job.getCreatedOn(), new DateTime()).getStandardMinutes(), 	// calculate diff between now and when job was created
-								job.getStatus()), 							// list status in message, either success or error
+						String.format("Job %s completed in %d minutes. Status=%s", job.getJobId(),
+								new Duration(job.getCreatedOn(), new DateTime()).getStandardMinutes(), // calculate diff
+																										// between now
+																										// and when job
+																										// was created
+								job.getStatus()), // list status in message, either success or error
 						Severity.INFORMATIONAL);
 			}
 
@@ -231,6 +233,29 @@ public class JobPoller {
 			} else if (status.isStatusError()) {
 				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza.", job.getJobId()), Severity.ERROR);
 				job.setStatus(status.getStatus());
+				
+				
+				
+				
+				// Attempt to get the detailed error information from the Job failure, if present.
+				if (status.getDataId() != null) {
+					try {
+						// Make a request to Piazza to fetch the detailed failure information from the Algorithm
+						byte[] errorBytes = piazzaService.downloadData(status.getDataId());
+
+					} catch (UserException exception) {
+						String error = String.format(
+								"Tried to get detailed error information for Job %s with error Data %s, but encountered error: %s",
+								job.getJobId(), status.getDataId(), exception.getMessage());
+						exception.printStackTrace();
+						piazzaLogger.log(error, Severity.ERROR);
+					}
+				}
+				
+				
+				
+				
+				
 				jobService.createJobError(job, status.getErrorMessage());
 			}
 			// Commit the updates
