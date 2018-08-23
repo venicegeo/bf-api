@@ -436,11 +436,11 @@ public class PiazzaService {
 				boolean isFirst = true;
 				// Combine the errors into a single list
 				for (JsonNode node : errorsNode) {
-					errors.append(node.asText());
-					if (isFirst) {
+					if (!isFirst) {
 						errors.append("; ");
 						isFirst = false;
 					}
+					errors.append(node.asText());
 				}
 				return errors.toString();
 			} else {
