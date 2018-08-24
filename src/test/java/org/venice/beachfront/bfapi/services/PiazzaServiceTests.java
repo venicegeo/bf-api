@@ -16,6 +16,7 @@
 package org.venice.beachfront.bfapi.services;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -119,6 +120,21 @@ public class PiazzaServiceTests {
 		StatusMetadata status = piazzaService.getJobStatus("job123");
 		// Assert
 		assertEquals(status.getStatus(), Job.STATUS_RUNNING);
+	}
+
+	@Test
+	public void testErrorDataParse() throws UserException, IOException {
+		// Mock
+		String responseJson = IOUtils.toString(
+				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "piazza", File.separator, "errorData.json")),
+				"UTF-8");
+		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
+				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
+		// Test
+		String content = piazzaService.getDataErrorInformation("data1234");
+		// Assert
+		assertNotNull(content);
+		assertEquals(content, "File ingest timed out");
 	}
 
 	@Test

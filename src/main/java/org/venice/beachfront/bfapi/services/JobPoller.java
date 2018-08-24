@@ -166,10 +166,12 @@ public class JobPoller {
 			if (!status.isStatusIncomplete()) {
 				// Logging time of completion, and overall status at time of completion
 				piazzaLogger.log(
-						String.format("Job %s completed in %d minutes. Status=%s", 
-								job.getJobId(), 
-								new Duration(job.getCreatedOn(), new DateTime()).getStandardMinutes(), 	// calculate diff between now and when job was created
-								job.getStatus()), 							// list status in message, either success or error
+						String.format("Job %s completed in %d minutes. Status=%s", job.getJobId(),
+								new Duration(job.getCreatedOn(), new DateTime()).getStandardMinutes(), // calculate diff
+																										// between now
+																										// and when job
+																										// was created
+								job.getStatus()), // list status in message, either success or error
 						Severity.INFORMATIONAL);
 			}
 
@@ -231,7 +233,24 @@ public class JobPoller {
 			} else if (status.isStatusError()) {
 				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza.", job.getJobId()), Severity.ERROR);
 				job.setStatus(status.getStatus());
-				jobService.createJobError(job, status.getErrorMessage());
+				// Attempt to get the detailed error information from the Job failure, if present.
+				String errorInfo = null; // Default value in case none can be parsed
+				if (status.getDataId() != null) {
+					try {
+						// Get the user-facing error message from the Algorithm's error Data
+						errorInfo = piazzaService.getDataErrorInformation(status.getDataId());
+					} catch (UserException exception) {
+						// Specify some default error descriptor
+						errorInfo = "Unspecified error during processing";
+						// Log details
+						String error = String.format(
+								"Unable to get detailed error information for Job %s with error Data %s; encountered error: %s",
+								job.getJobId(), status.getDataId(), exception.getMessage());
+						exception.printStackTrace();
+						piazzaLogger.log(error, Severity.ERROR);
+					}
+				}
+				jobService.createJobError(job, errorInfo);
 			}
 			// Commit the updates
 			jobService.updateJob(job);

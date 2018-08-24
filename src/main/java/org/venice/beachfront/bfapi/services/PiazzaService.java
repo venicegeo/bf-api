@@ -78,7 +78,7 @@ public class PiazzaService {
 		String piazzaJobUrl = String.format("%s/job", PIAZZA_URL);
 		piazzaLogger.log(String.format("Preparing to submit Execute Job request to Piazza at %s to Service ID %s by User %s.", piazzaJobUrl,
 				serviceId, userId), Severity.INFORMATIONAL);
-		
+
 		// Ensure that the Scene has finished activating before proceeding with the Piazza execution.
 		Scene scene = null;
 		// capture when activation began
@@ -86,26 +86,20 @@ public class PiazzaService {
 		try {
 			piazzaLogger.log(String.format("Waiting for Activation for Job %s", jobId), Severity.INFORMATIONAL);
 			scene = sceneFuture.get();
-			
+
 			// calculate diff between now and when job started activation
 			piazzaLogger.log(
-				String.format(
-						"Job %s Scene has been activated for Scene ID %s, Scene platorm: %s, completed activation in %d seconds", 
-						jobId, 
-						Scene.parseExternalId(scene.getSceneId()),
-						Scene.parsePlatform(scene.getSceneId()),
-						new Duration(activationStart, new DateTime()).getStandardSeconds()),
-				Severity.INFORMATIONAL);
+					String.format("Job %s Scene has been activated for Scene ID %s, Scene platorm: %s, completed activation in %d seconds",
+							jobId, Scene.parseExternalId(scene.getSceneId()), Scene.parsePlatform(scene.getSceneId()),
+							new Duration(activationStart, new DateTime()).getStandardSeconds()),
+					Severity.INFORMATIONAL);
 		} catch (InterruptedException | ExecutionException e) {
 			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s", jobId), Severity.ERROR);
 			callback.updateStatus(jobId, Job.STATUS_ERROR);
-			
+
 			// calculate diff between now and when job started activation
-			piazzaLogger.log(
-					String.format("Job %s failed activation in %d seconds.", 
-							jobId, 
-							new Duration(activationStart, new DateTime()).getStandardSeconds()),
-					Severity.INFORMATIONAL);
+			piazzaLogger.log(String.format("Job %s failed activation in %d seconds.", jobId,
+					new Duration(activationStart, new DateTime()).getStandardSeconds()), Severity.INFORMATIONAL);
 
 			return;
 		}
@@ -210,7 +204,12 @@ public class PiazzaService {
 					status.setErrorMessage(messageNode.asText());
 				} else {
 					status.setErrorMessage(
-							"The Job contained an Error status but the cause was unable to be parsed from the resposne object.");
+							"The Job contained an Error status but the cause was unable to be parsed from the response object.");
+				}
+				// If there is a detailed error message available in the Result field Data ID, fetch that ID.
+				JsonNode resultNode = responseJson.get("data").get("result");
+				if (resultNode != null && resultNode.get("dataId") != null) {
+					status.setDataId(resultNode.get("dataId").asText());
 				}
 			}
 			return status;
@@ -331,8 +330,14 @@ public class PiazzaService {
 	}
 
 	/**
-	 * Calls the data/file endpoint to download the shoreline detection data from Piazza for the specified Data ID.
-	 * These bytes are the raw GeoJSON of the shoreline detection vectors.
+	 * Calls the data/file endpoint to download data from Piazza for the specified Data ID.
+	 * <p>
+	 * Piazza Data IDs for a successful job are the raw GeoJSON of the shoreline detection vectors for a successful Job
+	 * execution.
+	 * <p>
+	 * Piazza Data IDs for an unsuccessful job will contain the detailed JSON information for an error message on an
+	 * algorithm execution. This contains the stack trace and other information from the algorithm itself that details
+	 * the errors.
 	 * 
 	 * @param dataId
 	 *            Data ID
@@ -404,6 +409,52 @@ public class PiazzaService {
 		piazzaLogger.log(String.format("Fetching GeoJSON for Job %s with Data %s from Piazza.", jobId, geoJsonDataId),
 				Severity.INFORMATIONAL);
 		return downloadData(geoJsonDataId);
+	}
+
+	/**
+	 * Attempts to parse the detailed error information from a Data ID from the result of a failed job in Piazza. This
+	 * Data ID contains the raw stack trace information and std output from the algorithm itself. It also contains
+	 * user-friendly error messages that describe the failure.
+	 * <p>
+	 * This method will return the simple user-facing error information from this Error content payload.
+	 * 
+	 * @param dataId
+	 *            The Data ID of the failed Piazza details
+	 * @return The JsonNode of the user-facing error information
+	 */
+	public String getDataErrorInformation(String dataId) throws UserException {
+		// Download the raw error details
+		byte[] errorDetails = downloadData(dataId);
+		JsonNode content = null;
+		try {
+			// Read the escaped JSON error message from the content field.
+			JsonNode rawContent = objectMapper.readTree(errorDetails).get("data").get("dataType").get("content");
+			// Parse the escaped content into a new JSON tree
+			content = objectMapper.readTree(rawContent.asText());
+			// Parse the user-friendly Errors field from the Content
+			JsonNode errorsNode = content.get("Errors");
+			if (errorsNode != null && errorsNode.isArray()) {
+				StringBuilder errors = new StringBuilder();
+				boolean isFirst = true;
+				// Combine the errors into a single list
+				for (JsonNode node : errorsNode) {
+					if (!isFirst) {
+						errors.append("; ");
+						isFirst = false;
+					}
+					errors.append(node.asText());
+				}
+				return errors.toString();
+			} else {
+				throw new UserException(String.format("Error information in Data %s could not be found in the error content.", dataId),
+						HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		} catch (IOException exception) {
+			throw new UserException(
+					String.format("Could not read error information from Content node for Data %s: %s", dataId, exception.getMessage()),
+					HttpStatus.BAD_REQUEST);
+		}
+
 	}
 
 	/**

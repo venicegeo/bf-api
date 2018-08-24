@@ -307,6 +307,13 @@ public class JobService {
 		// Explicit Date Set for proper format
 		properties.put("created_on", job.getCreatedOn().toString());
 		properties.put("type", "JOB");
+		// On a failed job, Insert error information on failed jobs
+		if (Job.STATUS_ERROR.equals(job.getStatus())) {
+			JobError jobError = jobErrorDao.findByJobErrorPK_Job_JobId(job.getJobId());
+			if (jobError != null) {
+				properties.put("errorDetails", jobError.getErrorMessage());
+			}
+		}
 		jobFeature.set("properties", properties);
 		return jobFeature;
 	}
@@ -361,7 +368,7 @@ public class JobService {
 	 *            The error encountered
 	 */
 	public void createJobError(Job job, String error) {
-		JobError jobError = new JobError(job, "error", "Processing");
+		JobError jobError = new JobError(job, error, "Processing");
 		jobErrorDao.save(jobError);
 		piazzaLogger.log(String.format("Recorded Job error for Job %s (%s) with Error %s", job.getJobId(), job.getJobName(), error),
 				Severity.ERROR);
