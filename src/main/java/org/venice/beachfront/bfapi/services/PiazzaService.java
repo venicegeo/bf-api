@@ -415,10 +415,12 @@ public class PiazzaService {
 	 * Attempts to parse the detailed error information from a Data ID from the result of a failed job in Piazza. This
 	 * Data ID contains the raw stack trace information and std output from the algorithm itself. It also contains
 	 * user-friendly error messages that describe the failure.
+	 * <p>
+	 * This method will return the simple user-facing error information from this Error content payload.
 	 * 
 	 * @param dataId
 	 *            The Data ID of the failed Piazza details
-	 * @return The JsonNode of the detailed error information
+	 * @return The JsonNode of the user-facing error information
 	 */
 	public String getDataErrorInformation(String dataId) throws UserException {
 		// Download the raw error details

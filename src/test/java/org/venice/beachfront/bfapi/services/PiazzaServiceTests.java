@@ -48,7 +48,6 @@ import org.venice.beachfront.bfapi.services.JobService.JobStatusCallback;
 import org.venice.beachfront.bfapi.services.converter.GeoPackageConverter;
 import org.venice.beachfront.bfapi.services.converter.ShapefileConverter;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import util.PiazzaLogger;

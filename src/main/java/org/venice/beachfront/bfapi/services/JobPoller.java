@@ -233,30 +233,24 @@ public class JobPoller {
 			} else if (status.isStatusError()) {
 				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza.", job.getJobId()), Severity.ERROR);
 				job.setStatus(status.getStatus());
-				
-				
-				
-				
 				// Attempt to get the detailed error information from the Job failure, if present.
+				String errorInfo = null; // Default value in case none can be parsed
 				if (status.getDataId() != null) {
 					try {
-						// Make a request to Piazza to fetch the detailed failure information from the Algorithm
-						byte[] errorBytes = piazzaService.downloadData(status.getDataId());
-
+						// Get the user-facing error message from the Algorithm's error Data
+						errorInfo = piazzaService.getDataErrorInformation(status.getDataId());
 					} catch (UserException exception) {
+						// Specify some default error descriptor
+						errorInfo = "Unspecified error during processing";
+						// Log details
 						String error = String.format(
-								"Tried to get detailed error information for Job %s with error Data %s, but encountered error: %s",
+								"Unable to get detailed error information for Job %s with error Data %s; encountered error: %s",
 								job.getJobId(), status.getDataId(), exception.getMessage());
 						exception.printStackTrace();
 						piazzaLogger.log(error, Severity.ERROR);
 					}
 				}
-				
-				
-				
-				
-				
-				jobService.createJobError(job, status.getErrorMessage());
+				jobService.createJobError(job, errorInfo);
 			}
 			// Commit the updates
 			jobService.updateJob(job);
