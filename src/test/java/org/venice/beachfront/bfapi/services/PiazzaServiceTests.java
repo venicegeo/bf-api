@@ -135,6 +135,17 @@ public class PiazzaServiceTests {
 		// Assert
 		assertNotNull(content);
 		assertEquals(content, "File ingest timed out");
+		
+		// Mock another input set
+		responseJson = IOUtils.toString(
+				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "piazza", File.separator, "errorData2.json")),
+				"UTF-8");
+		Mockito.when(restTemplate.exchange(Mockito.<URI>any(), Mockito.eq(HttpMethod.GET), Mockito.<HttpEntity<String>>any(),
+				Mockito.<Class<String>>any())).thenReturn(new ResponseEntity<String>(responseJson, HttpStatus.OK));
+		// Test
+		content = piazzaService.getDataErrorInformation("data1234");
+		// Assert
+		assertNotNull(content);
 	}
 
 	@Test

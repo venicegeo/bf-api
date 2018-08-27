@@ -449,7 +449,7 @@ public class PiazzaService {
 				throw new UserException(String.format("Error information in Data %s could not be found in the error content.", dataId),
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
-		} catch (IOException exception) {
+		} catch (Exception exception) {
 			throw new UserException(
 					String.format("Could not read error information from Content node for Data %s: %s", dataId, exception.getMessage()),
 					HttpStatus.BAD_REQUEST);
