@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
@@ -368,7 +369,7 @@ public class JobService {
 	 *            The error encountered
 	 */
 	public void createJobError(Job job, String error) {
-		JobError jobError = new JobError(job, error, "Processing");
+		JobError jobError = new JobError(job, StringUtils.isEmpty(error) ? "Unexpected error encountered" : error, "Processing");
 		jobErrorDao.save(jobError);
 		piazzaLogger.log(String.format("Recorded Job error for Job %s (%s) with Error %s", job.getJobId(), job.getJobName(), error),
 				Severity.ERROR);
