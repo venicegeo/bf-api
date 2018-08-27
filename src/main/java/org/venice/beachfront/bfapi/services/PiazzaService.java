@@ -444,6 +444,9 @@ public class PiazzaService {
 				if (error.startsWith("[")) {
 					error = error.substring(1, error.length());
 				}
+				if (error.endsWith("[")) {
+					error = error.substring(0, error.lastIndexOf("]"));
+				}
 				// Ensure there is an error. If not, just return something default.
 				if (StringUtils.isEmpty(error)) {
 					error = "Unspecified error during processing";
