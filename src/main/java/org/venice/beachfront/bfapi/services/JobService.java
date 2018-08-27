@@ -369,7 +369,12 @@ public class JobService {
 	 *            The error encountered
 	 */
 	public void createJobError(Job job, String error) {
-		JobError jobError = new JobError(job, StringUtils.isEmpty(error) ? "Unexpected error encountered" : error, "Processing");
+		// Errors should be short. It's restricted to 64. All generated errors should be simple and straightforward.
+		// If truncation becomes a problem, then it should be reduced at the source - not modifying the length.
+		if (error.length() > 64) {
+			error = error.substring(0, 64);
+		}
+		JobError jobError = new JobError(job, error, "Processing");
 		jobErrorDao.save(jobError);
 		piazzaLogger.log(String.format("Recorded Job error for Job %s (%s) with Error %s", job.getJobId(), job.getJobName(), error),
 				Severity.ERROR);

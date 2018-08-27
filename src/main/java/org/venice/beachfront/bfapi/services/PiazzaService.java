@@ -39,6 +39,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -51,6 +52,7 @@ import org.venice.beachfront.bfapi.services.JobService.JobStatusCallback;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import model.logger.Severity;
 import util.PiazzaLogger;
@@ -431,17 +433,22 @@ public class PiazzaService {
 			// Parse the user-friendly Errors field from the Content
 			JsonNode errorsNode = content.get("Errors");
 			if (errorsNode != null && errorsNode.isArray()) {
-				StringBuilder errors = new StringBuilder();
-				boolean isFirst = true;
-				// Combine the errors into a single list
-				for (JsonNode node : errorsNode) {
-					if (!isFirst) {
-						errors.append("; ");
-						isFirst = false;
-					}
-					errors.append(node.asText());
+				// The errors block gets more detailed in sequence, just pick the first one.
+				String firstErrorText = ((ArrayNode) errorsNode).get(0).asText();
+				// Each individual value may have more detailed errors separated by a semicolon, just pick the first
+				// one.
+				if (firstErrorText.contains(";")) {
+					firstErrorText = firstErrorText.substring(0, firstErrorText.indexOf(";"));
 				}
-				return errors.toString();
+				// Sometimes the string is an array in brackets, if so, remove that first brace.
+				if (firstErrorText.startsWith("[")) {
+					firstErrorText = firstErrorText.substring(1, firstErrorText.length());
+				}
+				// Ensure there is an error. If not, just return something default.
+				if (StringUtils.isEmpty(firstErrorText)) {
+					firstErrorText = "Unspecified error during processing";
+				}
+				return firstErrorText;
 			} else {
 				throw new UserException(String.format("Error information in Data %s could not be found in the error content.", dataId),
 						HttpStatus.INTERNAL_SERVER_ERROR);

@@ -135,7 +135,7 @@ public class PiazzaServiceTests {
 		// Assert
 		assertNotNull(content);
 		assertEquals(content, "File ingest timed out");
-		
+
 		// Mock another input set
 		responseJson = IOUtils.toString(
 				getClass().getClassLoader().getResourceAsStream(String.format("%s%s%s", "piazza", File.separator, "errorData2.json")),
@@ -146,7 +146,7 @@ public class PiazzaServiceTests {
 		content = piazzaService.getDataErrorInformation("data1234");
 		// Assert
 		assertNotNull(content);
-		assertEquals(content, "[error downloading input: coastal.JP2; Unexpected HTTP status: 403  error downloading input: swir1.JP2; Unexpected HTTP status: 403 ]");
+		assertEquals(content, "error downloading input: coastal.JP2");
 	}
 
 	@Test
