@@ -1,1 +1,6 @@
-{"Errors":["[error downloading input: coastal.JP2; Unexpected HTTP status: 403  error downloading input: swir1.JP2; Unexpected HTTP status: 403 ]"],"HTTPStatus":500}
+{
+	"Errors": [
+		"[error downloading input: coastal.JP2; Unexpected HTTP status: 403  error downloading input: swir1.JP2; Unexpected HTTP status: 403 ]"
+	],
+	"HTTPStatus": 500
+}
