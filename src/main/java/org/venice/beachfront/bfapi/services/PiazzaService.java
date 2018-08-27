@@ -434,21 +434,21 @@ public class PiazzaService {
 			JsonNode errorsNode = content.get("Errors");
 			if (errorsNode != null && errorsNode.isArray()) {
 				// The errors block gets more detailed in sequence, just pick the first one.
-				String firstErrorText = ((ArrayNode) errorsNode).get(0).asText();
+				String error = ((ArrayNode) errorsNode).get(0).asText();
 				// Each individual value may have more detailed errors separated by a semicolon, just pick the first
 				// one.
-				if (firstErrorText.contains(";")) {
-					firstErrorText = firstErrorText.substring(0, firstErrorText.indexOf(";"));
+				if (error.contains(";")) {
+					error = error.substring(0, error.indexOf(";"));
 				}
 				// Sometimes the string is an array in brackets, if so, remove that first brace.
-				if (firstErrorText.startsWith("[")) {
-					firstErrorText = firstErrorText.substring(1, firstErrorText.length());
+				if (error.startsWith("[")) {
+					error = error.substring(1, error.length());
 				}
 				// Ensure there is an error. If not, just return something default.
-				if (StringUtils.isEmpty(firstErrorText)) {
-					firstErrorText = "Unspecified error during processing";
+				if (StringUtils.isEmpty(error)) {
+					error = "Unspecified error during processing";
 				}
-				return firstErrorText;
+				return error;
 			} else {
 				throw new UserException(String.format("Error information in Data %s could not be found in the error content.", dataId),
 						HttpStatus.INTERNAL_SERVER_ERROR);
