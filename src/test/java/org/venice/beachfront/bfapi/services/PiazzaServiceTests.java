@@ -146,6 +146,7 @@ public class PiazzaServiceTests {
 		content = piazzaService.getDataErrorInformation("data1234");
 		// Assert
 		assertNotNull(content);
+		assertEquals(content, "[error downloading input: coastal.JP2; Unexpected HTTP status: 403  error downloading input: swir1.JP2; Unexpected HTTP status: 403 ]");
 	}
 
 	@Test

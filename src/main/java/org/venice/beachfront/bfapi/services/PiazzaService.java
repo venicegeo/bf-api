@@ -425,12 +425,9 @@ public class PiazzaService {
 	public String getDataErrorInformation(String dataId) throws UserException {
 		// Download the raw error details
 		byte[] errorDetails = downloadData(dataId);
-		JsonNode content = null;
 		try {
 			// Read the escaped JSON error message from the content field.
-			JsonNode rawContent = objectMapper.readTree(errorDetails).get("data").get("dataType").get("content");
-			// Parse the escaped content into a new JSON tree
-			content = objectMapper.readTree(rawContent.asText());
+			JsonNode content = objectMapper.readTree(errorDetails);
 			// Parse the user-friendly Errors field from the Content
 			JsonNode errorsNode = content.get("Errors");
 			if (errorsNode != null && errorsNode.isArray()) {
