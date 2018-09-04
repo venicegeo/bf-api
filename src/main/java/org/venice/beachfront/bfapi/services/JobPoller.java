@@ -142,11 +142,10 @@ public class JobPoller {
 		 *            For logging purposes, the amount of time that has passed before this Job failed.
 		 */
 		private void timeoutJob(Job job) {
-			String error = String.format("Job %s with Status %s has timed out and will be set as failure.", job.getJobId(),
-					job.getStatus());
-			piazzaLogger.log(error, Severity.ERROR);
+			piazzaLogger.log(String.format("Job %s with Status %s has timed out and will be set as failure.", job.getJobId(),
+					job.getStatus()), Severity.ERROR);
 			// Kill the Job
-			jobService.createJobError(job, error);
+			jobService.createJobError(job, "Job timed out");
 			job.setStatus(Job.STATUS_ERROR);
 			jobService.updateJob(job);
 		}
@@ -208,25 +207,22 @@ public class JobPoller {
 							String.format("Successfully recorded Detection geometry for Job %s and marking as Success.", job.getJobId()),
 							Severity.INFORMATIONAL);
 				} catch (IOException exception) {
-					String error = String.format("Job %s failed because of an internal error while reading the detection geometry.",
-							job.getJobId());
-					piazzaLogger.log(error, Severity.ERROR);
-					jobService.createJobError(job, error);
+					piazzaLogger.log(String.format("Job %s failed because of an internal error while reading the detection geometry.",
+							job.getJobId()), Severity.ERROR);
+					jobService.createJobError(job, "Invalid detection geometry error");
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
-					String error = String.format("Job %s failed because of an internal error downloading the detection geometry.",
-							job.getJobId());
-					piazzaLogger.log(error, Severity.ERROR);
-					jobService.createJobError(job, error);
+					piazzaLogger.log(String.format("Job %s failed because of an internal error downloading the detection geometry.",
+							job.getJobId()), Severity.ERROR);
+					jobService.createJobError(job, "Unexpected detection geometry error");
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (Exception exception) {
-					String error = String.format(
+					piazzaLogger.log(String.format(
 							"Successful Piazza Job %s failed because of an unknown internal error of type %s. Full trace will be printed to logs.",
-							job.getJobId(), exception.getClass().toString());
-					piazzaLogger.log(error, Severity.ERROR);
+							job.getJobId(), exception.getClass().toString()), Severity.ERROR);
 					exception.printStackTrace();
-					jobService.createJobError(job, error);
+					jobService.createJobError(job, "Unexpected error during processing");
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
 				}
@@ -241,7 +237,7 @@ public class JobPoller {
 						errorInfo = piazzaService.getDataErrorInformation(status.getDataId());
 					} catch (UserException exception) {
 						// Specify some default error descriptor
-						errorInfo = "Unspecified error during processing";
+						errorInfo = "Unexpected error during processing";
 						// Log details
 						String error = String.format(
 								"Unable to get detailed error information for Job %s with error Data %s; encountered error: %s",
