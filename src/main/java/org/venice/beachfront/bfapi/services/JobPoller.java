@@ -142,8 +142,9 @@ public class JobPoller {
 		 *            For logging purposes, the amount of time that has passed before this Job failed.
 		 */
 		private void timeoutJob(Job job) {
-			piazzaLogger.log(String.format("Job %s with Status %s has timed out and will be set as failure.", job.getJobId(),
-					job.getStatus()), Severity.ERROR);
+			piazzaLogger.log(
+					String.format("Job %s with Status %s has timed out and will be set as failure.", job.getJobId(), job.getStatus()),
+					Severity.ERROR);
 			// Kill the Job
 			jobService.createJobError(job, "Job timed out");
 			job.setStatus(Job.STATUS_ERROR);
@@ -212,8 +213,9 @@ public class JobPoller {
 					jobService.createJobError(job, "Invalid detection geometry error");
 					job.setStatus(Job.STATUS_ERROR);
 				} catch (UserException exception) {
-					piazzaLogger.log(String.format("Job %s failed because of an internal error downloading the detection geometry.",
-							job.getJobId()), Severity.ERROR);
+					piazzaLogger.log(
+							String.format("Job %s failed because of an internal error downloading the detection geometry.", job.getJobId()),
+							Severity.ERROR);
 					jobService.createJobError(job, "Unexpected detection geometry error");
 					// Fail the Job as we have failed to download the bytes
 					job.setStatus(Job.STATUS_ERROR);
@@ -230,14 +232,12 @@ public class JobPoller {
 				piazzaLogger.log(String.format("Job %s reported a failure from upstream Piazza.", job.getJobId()), Severity.ERROR);
 				job.setStatus(status.getStatus());
 				// Attempt to get the detailed error information from the Job failure, if present.
-				String errorInfo = null; // Default value in case none can be parsed
+				String errorInfo = "Unexpected error during processing"; // Default value in case none can be parsed
 				if (status.getDataId() != null) {
 					try {
 						// Get the user-facing error message from the Algorithm's error Data
 						errorInfo = piazzaService.getDataErrorInformation(status.getDataId());
-					} catch (UserException exception) {
-						// Specify some default error descriptor
-						errorInfo = "Unexpected error during processing";
+					} catch (Exception exception) {
 						// Log details
 						String error = String.format(
 								"Unable to get detailed error information for Job %s with error Data %s; encountered error: %s",
