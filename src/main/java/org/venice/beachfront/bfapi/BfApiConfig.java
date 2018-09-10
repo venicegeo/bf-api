@@ -256,11 +256,22 @@ public class BfApiConfig {
 			return pubicEndpointsList.stream().anyMatch(str -> Pattern.compile(str).matcher(path).matches());
 		}
 	}
+	
+	@Configuration
+	@Profile({ "insecure" })
+	public class DisabledApplicationSecurity extends WebSecurityConfigurerAdapter {
+	    @Override
+	    protected void configure(HttpSecurity http) throws Exception {
+	        http.authorizeRequests()
+	            .antMatchers("/**").permitAll();
+	    }
+	}
 
 	/**
 	 * Initializes the security providers for validating API Keys on all requests that require API Key validation.
 	 */
 	@Configuration
+	@Profile({ "cloud" })
 	protected static class ApplicationSecurity extends WebSecurityConfigurerAdapter {
 		@Autowired
 		private ApiKeyAuthProvider apiKeyAuthProvider;
