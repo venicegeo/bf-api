@@ -15,10 +15,14 @@
  **/
 package org.venice.beachfront.bfapi.services;
 
+import java.util.Arrays;
+
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -41,6 +45,8 @@ public class UserProfileService {
 	UserProfileDao userProfileDao;
 	@Autowired
 	private PiazzaLogger piazzaLogger;
+	@Autowired
+	private Environment environment;
 
 	public void saveUserProfile(UserProfile userProfile) {
 		userProfileDao.save(userProfile);
@@ -77,7 +83,13 @@ public class UserProfileService {
 	 */
 	public UserProfile getProfileFromAuthentication(Authentication authentication) throws UserException {
 		try {
-			return (UserProfile) (authentication.getPrincipal());
+			if (Arrays.asList(environment.getActiveProfiles()).contains("insecure")) {
+				// Return a Mock object in the case when the secure profile is disabled. Testing purposes.
+				return getMockProfile();
+			} else {
+				// Return the Profile
+				return (UserProfile) (authentication.getPrincipal());
+			}
 		} catch (Exception exception) {
 			throw new UserException("Error getting the User Profile object from the specified Key.", exception,
 					HttpStatus.INTERNAL_SERVER_ERROR);
@@ -107,5 +119,12 @@ public class UserProfileService {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Used for testing purposes. Generates a mock profile.
+	 */
+	private UserProfile getMockProfile() {
+		return new UserProfile("Test User", "Test User", "Test Key", new DateTime());
 	}
 }

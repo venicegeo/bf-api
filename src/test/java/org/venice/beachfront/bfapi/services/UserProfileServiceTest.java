@@ -1,18 +1,24 @@
 package org.venice.beachfront.bfapi.services;
 
+import java.util.ArrayList;
+
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Matchers;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.springframework.core.env.Environment;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.venice.beachfront.bfapi.database.dao.UserProfileDao;
 import org.venice.beachfront.bfapi.model.UserProfile;
 import org.venice.beachfront.bfapi.model.exception.UserException;
-import util.PiazzaLogger;
 
-import java.util.ArrayList;
+import util.PiazzaLogger;
 
 public class UserProfileServiceTest {
 
@@ -20,6 +26,8 @@ public class UserProfileServiceTest {
     UserProfileDao userProfileDao;
     @Mock
     PiazzaLogger piazzaLogger;
+    @Mock
+    Environment environment;
 
     @InjectMocks
     UserProfileService userProfileService;
@@ -52,6 +60,7 @@ public class UserProfileServiceTest {
     @Test
     public void getProfileFromAuthentication() throws Exception {
         Authentication auth = Mockito.mock(Authentication.class);
+        Mockito.when(environment.getActiveProfiles()).thenReturn(new String[]{"cloud", "secure", "test"});
 
         Mockito.when(auth.getPrincipal())
                 .thenReturn(new UserProfile())
