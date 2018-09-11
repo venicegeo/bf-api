@@ -308,6 +308,7 @@ public class JobService {
 		// Explicit Date Set for proper format
 		properties.put("created_on", job.getCreatedOn().toString());
 		properties.put("type", "JOB");
+		properties.put("time_of_collect", scene.getCaptureTime().toString());
 		// On a failed job, Insert error information on failed jobs
 		if (Job.STATUS_ERROR.equals(job.getStatus())) {
 			JobError jobError = jobErrorDao.findByJobErrorPK_Job_JobId(job.getJobId());
