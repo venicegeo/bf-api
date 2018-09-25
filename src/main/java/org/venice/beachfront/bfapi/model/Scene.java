@@ -69,6 +69,9 @@ public class Scene {
 	@Column(name = "catalog_uri")
 	@JsonProperty("catalog_uri")
 	private String uri;
+	@Column(name = "horizontal_accuracy")
+	@JsonProperty("horizontal_accuracy")
+	private String horizontalAccuracy;
 
 	@Transient
 	@Column(name = "tide")
@@ -240,5 +243,13 @@ public class Scene {
 		} else {
 			return null;
 		}
+	}
+
+	public String getHorizontalAccuracy() {
+		return horizontalAccuracy;
+	}
+
+	public void setHorizontalAccuracy(String horizontalAccuracy) {
+		this.horizontalAccuracy = horizontalAccuracy;
 	}
 }
