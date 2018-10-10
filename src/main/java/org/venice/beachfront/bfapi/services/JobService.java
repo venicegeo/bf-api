@@ -210,9 +210,10 @@ public class JobService {
 	 * @return Job if one exists, or null if none exist
 	 */
 	private Job getExistingRedundantJob(String sceneId, Algorithm algorithm, Boolean computeMask) throws UserException {
-		// Query for the existing Job that matches these parameters
-		List<Job> jobs = jobDao.findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatus(sceneId, algorithm.getServiceId(),
-				algorithm.getVersion(), computeMask, Job.STATUS_SUCCESS);
+		// Query for the existing Job that matches these parameters. Will not return jobs that have a Seed Job ID, which
+		// means that only original Jobs (not redundant jobs) will be returned.
+		List<Job> jobs = jobDao.findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatusAndSeedJobIdIsNull(sceneId,
+				algorithm.getServiceId(), algorithm.getVersion(), computeMask, Job.STATUS_SUCCESS);
 		if (jobs.size() > 0) {
 			// If any identical Jobs matched, return the Job Metadata. If there are more than one (there should never
 			// be) then they are all identical anyways, so just return the first one.
