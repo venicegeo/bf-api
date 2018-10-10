@@ -28,7 +28,6 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.commons.io.IOUtils;
 import org.geotools.geojson.geom.GeometryJSON;
 import org.joda.time.DateTime;
-import org.joda.time.Days;
 import org.joda.time.Seconds;
 import org.junit.Assert;
 import org.junit.Before;
@@ -153,12 +152,10 @@ public class JobServiceTests {
 
 		// Verify
 		assertNotNull(job);
-		assertEquals(job.getJobId(), mockJob.getJobId());
+		assertEquals(job.getSeedJobId(), mockJob.getJobId());
 		assertEquals(job.getAlgorithmId(), serviceId);
 		assertEquals(job.getAlgorithmName(), mockAlgorithm.getName());
 		assertEquals(job.getAlgorithmVersion(), mockAlgorithm.getVersion());
-		assertEquals(job.getCreatedByUserId(), mockJob.getCreatedByUserId());
-		assertTrue(Days.daysBetween(new DateTime(), job.getCreatedOn()).getDays() <= 7);
 		assertEquals(job.getSceneId(), mockScene.getSceneId());
 		assertEquals(job.getStatus(), Job.STATUS_SUCCESS);
 	}
@@ -250,6 +247,9 @@ public class JobServiceTests {
 		Mockito.when(mockStatus.isStatusSuccess()).thenReturn(true);
 		Mockito.when(mockStatus.getDataId()).thenReturn("data-id-321");
 		Mockito.when(this.piazzaService.getJobStatus("test-job-id-123")).thenReturn(mockStatus);
+		Job mockJob = new Job("job123", "Test Job", Job.STATUS_SUCCESS, null, new DateTime().minusDays(7), "alg123", "alg", "1.0",
+				"scene123", null, null, null, null, true);
+		Mockito.when(jobDao.findByJobId(Mockito.anyString())).thenReturn(mockJob);
 
 		String mockJSON = "{\"foo\": 123}";
 		byte[] mockJSONResult = mockJSON.getBytes();
