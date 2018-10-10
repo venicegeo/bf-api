@@ -269,4 +269,12 @@ public class Job {
 		return computeMask;
 	}
 
+	public String getSeedJobId() {
+		return seedJobId;
+	}
+
+	public void setSeedJobId(String seedJobId) {
+		this.seedJobId = seedJobId;
+	}
+
 }
