@@ -28,6 +28,25 @@ public interface DetectionDao extends CrudRepository<Detection, DetectionPK> {
 
 	Detection findByDetectionPK_Job_JobId(String jobId);
 
+	/**
+	 * Gets the full detection GeoJSON for a Beachfront Job that is not redundant; that is, a Job that does not contain
+	 * a Seed Job ID
+	 * 
+	 * @param jobId
+	 *            ID of the Beachfront Job
+	 * @return GeoJSON String
+	 */
 	@Query(value = "SELECT CAST(to_json(fc) AS text) AS \"feature_collection\" FROM( SELECT 'FeatureCollection' AS \"type\", array_agg(geomQuery) AS \"features\" FROM (SELECT  to_json(p) AS \"properties\", CAST(ST_AsGeoJSON((p_geom).geom) AS json) as \"geometry\", 'Feature' as \"type\", concat_ws('#', d.job_id, (p_geom.path[1])) AS \"id\" FROM  __beachfront__detection as d LEFT JOIN lateral st_dump(d.geometry) as p_geom ON TRUE INNER JOIN __beachfront__provenance AS p ON (p.job_id = d.job_id) WHERE d.job_id = ?1) as geomQuery ) as fc", nativeQuery = true)
 	String findFullDetectionGeoJson(String jobId);
+
+	/**
+	 * Gets the full detection GeoJSON for a Beachfront Job that is a Redundant Job; that is, a Job that contains a Seed
+	 * Job ID Reference.
+	 * 
+	 * @param jobId
+	 *            ID of the Beachfront Job that contains a Seed ID
+	 * @return GeoJSON String
+	 */
+	@Query(value = "SELECT CAST(to_json(fc) AS text) AS \"feature_collection\" FROM( SELECT 'FeatureCollection' AS \"type\", array_agg(geomQuery) AS \"features\" FROM (SELECT  to_json(p) AS \"properties\", CAST(ST_AsGeoJSON((p_geom).geom) AS json) as \"geometry\", 'Feature' as \"type\", concat_ws('#', d.job_id, (p_geom.path[1])) AS \"id\" FROM  __beachfront__detection as d LEFT JOIN lateral st_dump(d.geometry) as p_geom ON TRUE INNER JOIN __beachfront__provenance AS p ON (p.seed_job_id = d.job_id) WHERE p.job_id = ?1) as geomQuery ) as fc", nativeQuery = true)
+	String findFullDetectionGeoJsonFromSeedJob(String jobId);
 }

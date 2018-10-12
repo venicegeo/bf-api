@@ -434,15 +434,17 @@ public class JobService {
 		this.piazzaLogger.log(String.format("Querying Piazza for status of Job %s", jobId), Severity.INFORMATIONAL);
 		String detectionJobId = jobId;
 		Job job = getJob(jobId);
+		boolean isSeedJob = false;
 		// If this is a normal non-redundant Job, then the Job ID will be used to fetch detection bytes. However, if
 		// this is a Redundant Job (contains a Seed Job) then that Seed Job ID will be used to get the detection bytes.
 		if (job.getSeedJobId() != null) {
 			piazzaLogger.log(String.format("Fetching Detection bytes for Redundant Job %s from Seed Job %s", jobId, job.getSeedJobId()),
 					Severity.INFORMATIONAL);
 			detectionJobId = job.getSeedJobId();
+			isSeedJob = true;
 		}
 
-		// Ensure the Piazza detection Job ID has a Successful status
+		// Ensure the underlying Piazza Detection Job ID has a Successful status
 		StatusMetadata statusMetadata = this.piazzaService.getJobStatus(detectionJobId);
 
 		if (statusMetadata.isStatusError()) {
@@ -452,7 +454,9 @@ public class JobService {
 			throw new UserException("Job not finished yet", HttpStatus.NOT_FOUND);
 		}
 		if (statusMetadata.isStatusSuccess()) {
-			byte[] geoJsonBytes = detectionDao.findFullDetectionGeoJson(detectionJobId).getBytes();
+			// The query depends on if this is a Seed Job or not.
+			byte[] geoJsonBytes = isSeedJob ? detectionDao.findFullDetectionGeoJsonFromSeedJob(jobId).getBytes()
+					: detectionDao.findFullDetectionGeoJson(jobId).getBytes();
 			switch (dataType) {
 			case GEOJSON:
 				return geoJsonBytes;
