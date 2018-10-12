@@ -26,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.venice.beachfront.bfapi.database.dao.DetectionDao;
 import org.venice.beachfront.bfapi.database.dao.JobDao;
 import org.venice.beachfront.bfapi.database.dao.JobErrorDao;
@@ -117,10 +116,22 @@ public class JobService {
 		if (doBlockRedundantJobs(extras) == false) {
 			Job redundantJob = getExistingRedundantJob(sceneId, algorithm, computeMask);
 			if (redundantJob != null) {
-				piazzaLogger.log(String.format("Found Redundant Job %s for %s's Job %s request. This detection will be reused.",
-						redundantJob.getJobId(), creatorUserId, jobName), Severity.INFORMATIONAL);
-				jobUserDao.save(new JobUser(redundantJob, userProfileService.getUserProfileById(creatorUserId)));
-				return redundantJob;
+				// Create a New Job
+				String newJobId = UUID.randomUUID().toString();
+				Job job = new Job(newJobId, jobName, redundantJob.getStatus(), creatorUserId, new DateTime(), algorithm.getServiceId(),
+						algorithm.getName(), algorithm.getVersion(), redundantJob.getSceneId(), redundantJob.getTide(),
+						redundantJob.getTideMin24h(), redundantJob.getTideMax24h(), extras, computeMask);
+				// Create a link to the Seed Job
+				job.setSeedJobId(redundantJob.getJobId());
+				piazzaLogger.log(
+						String.format(
+								"Found Redundant Job %s for %s's Job %s request. Created new Job %s with reference to Seed Job %s. This detection will be reused as the Seed Job",
+								redundantJob.getJobId(), creatorUserId, jobName, job.getJobId(), job.getSeedJobId()),
+						Severity.INFORMATIONAL);
+				// Save the Job to the Jobs table and link to the user
+				jobDao.save(job);
+				jobUserDao.save(new JobUser(job, userProfileService.getUserProfileById(creatorUserId)));
+				return job;
 			}
 		}
 
@@ -199,9 +210,10 @@ public class JobService {
 	 * @return Job if one exists, or null if none exist
 	 */
 	private Job getExistingRedundantJob(String sceneId, Algorithm algorithm, Boolean computeMask) throws UserException {
-		// Query for the existing Job that matches these parameters
-		List<Job> jobs = jobDao.findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatus(sceneId, algorithm.getServiceId(),
-				algorithm.getVersion(), computeMask, Job.STATUS_SUCCESS);
+		// Query for the existing Job that matches these parameters. Will not return jobs that have a Seed Job ID, which
+		// means that only original Jobs (not redundant jobs) will be returned.
+		List<Job> jobs = jobDao.findBySceneIdAndAlgorithmIdAndAlgorithmVersionAndComputeMaskAndStatusAndSeedJobIdIsNull(sceneId,
+				algorithm.getServiceId(), algorithm.getVersion(), computeMask, Job.STATUS_SUCCESS);
 		if (jobs.size() > 0) {
 			// If any identical Jobs matched, return the Job Metadata. If there are more than one (there should never
 			// be) then they are all identical anyways, so just return the first one.
@@ -429,7 +441,20 @@ public class JobService {
 			throw new UserException("Job not finished yet", HttpStatus.NOT_FOUND);
 		}
 		if (statusMetadata.isStatusSuccess()) {
-			byte[] geoJsonBytes = this.detectionDao.findFullDetectionGeoJson(jobId).getBytes();
+			// Determine if the Job owns the Detection bytes directly, or if this was a redundant job that references
+			// the Detection from a Seed Job
+			Job job = getJob(jobId);
+			byte[] geoJsonBytes;
+			if (job.getSeedJobId() == null) {
+				// Not a redundant Job. Fetch bytes directly.
+				geoJsonBytes = detectionDao.findFullDetectionGeoJson(jobId).getBytes();
+				piazzaLogger.log(String.format("Fetched Detection bytes for Job %s", jobId), Severity.INFORMATIONAL);
+			} else {
+				// Contains a Seed job reference. Fetch bytes from that seed job.
+				geoJsonBytes = detectionDao.findFullDetectionGeoJson(job.getSeedJobId()).getBytes();
+				piazzaLogger.log(String.format("Fetched Detection bytes for Redundant Job %s from Seed Job %s", jobId, job.getSeedJobId()),
+						Severity.INFORMATIONAL);
+			}
 			switch (dataType) {
 			case GEOJSON:
 				return geoJsonBytes;

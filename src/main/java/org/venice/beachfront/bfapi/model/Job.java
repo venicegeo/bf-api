@@ -51,6 +51,10 @@ public class Job {
 	@JsonProperty("name")
 	@ApiModelProperty(required = true, value = "The user-provided name the job")
 	private String jobName;
+	@Column(name = "seed_job_id")
+	@JsonProperty("seed_job_id")
+	@ApiModelProperty(required = false, value = "The Seed Job ID, if this job is a redundant job.")
+	private String seedJobId;
 	@Column(name = "status")
 	@JsonProperty("status")
 	@ApiModelProperty(required = true, value = "The current status of the job")
@@ -263,6 +267,14 @@ public class Job {
 
 	public Boolean getComputeMask() {
 		return computeMask;
+	}
+
+	public String getSeedJobId() {
+		return seedJobId;
+	}
+
+	public void setSeedJobId(String seedJobId) {
+		this.seedJobId = seedJobId;
 	}
 
 }

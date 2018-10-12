@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+	<changeSet id="6-add-seed-job-id" author="patrick.doody@rgi-corp.com">
+
+		<preConditions onFail="MARK_RAN"
+			onFailMessage="Seed Job ID column found, Skipping">
+			<not>
+				<columnExists schemaName="public" tableName="__beachfront__job"
+					columnName="seed_job_id" />
+			</not>
+		</preConditions>
+
+		<sql>
+			-- DROP views so they are not preventing the addition of a column
+
+			DROP VIEW IF EXISTS __beachfront__geoserver;
+			DROP VIEW IF EXISTS __beachfront__provenance;
+		</sql>
+
+		<addColumn schemaName="public" tableName="__beachfront__job">
+			<column name="seed_job_id" type="VARCHAR(64)">
+				<constraints nullable="true" />
+			</column>
+		</addColumn>
+
+		<!-- Re-create views -->
+		<createView replaceIfExists="true" schemaName="public" viewName="__beachfront__provenance">
+				SELECT j.job_id,
+				       j.algorithm_id,
+				       j.algorithm_name,
+				       j.algorithm_version,
+				       j.seed_job_id,
+				       s.cloud_cover,
+				       j.created_by,
+				       j.created_on,
+				       j.name,
+				       s.resolution,
+				       s.scene_id,
+				       s.sensor_name,
+				       s.horizontal_accuracy AS src_horizontal_accuracy,
+				       j.status,
+				       j.tide,
+				       j.tide_min_24h,
+				       j.tide_max_24h,
+				       s.captured_on AS time_of_collect,
+				      'NOT FOR TARGETING OR NAVIGATION PURPOSES'::varchar AS data_usage,
+				      'UNCLASSIFIED'::varchar                             AS classification
+				  FROM __beachfront__job j
+				       JOIN __beachfront__scene s ON (s.scene_id = j.scene_id)
+		</createView>
+		
+		<createView replaceIfExists="true" schemaName="public" viewName="__beachfront__geoserver">
+				SELECT p.*,
+				       d.feature_id,
+				       d.geometry,
+				       plj.productline_id
+				  FROM __beachfront__detection d
+				       JOIN __beachfront__provenance p ON (p.job_id = d.job_id)
+				       LEFT OUTER JOIN __beachfront__productline_job plj ON (plj.job_id = d.job_id);
+		</createView>
+
+	</changeSet>
+</databaseChangeLog>

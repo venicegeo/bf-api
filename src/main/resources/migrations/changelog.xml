@@ -18,8 +18,10 @@
 
 	<include file="4-modify-api-key-nullable.xml"
 		relativeToChangelogFile="true" />
-		
+
 	<include file="5-add-horizontal-accuracy.xml"
 		relativeToChangelogFile="true" />
+
+	<include file="6-add-seed-job-id.xml" relativeToChangelogFile="true" />
 
 </databaseChangeLog>
