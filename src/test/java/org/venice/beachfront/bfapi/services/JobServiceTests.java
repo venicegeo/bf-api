@@ -207,6 +207,9 @@ public class JobServiceTests {
 	public void testDownloadJobData_StatusError() throws UserException {
 		// Setup
 		StatusMetadata mockStatus = Mockito.mock(StatusMetadata.class);
+		Job mockJob = new Job("job123", "Test Job", Job.STATUS_SUCCESS, null, new DateTime().minusDays(7), "alg123", "alg", "1.0",
+				"scene123", null, null, null, null, true);
+		Mockito.when(this.jobDao.findByJobId(Mockito.anyString())).thenReturn(mockJob);
 		Mockito.when(mockStatus.isStatusError()).thenReturn(true);
 		Mockito.when(mockStatus.isStatusIncomplete()).thenReturn(false);
 		Mockito.when(mockStatus.isStatusSuccess()).thenReturn(false);
@@ -224,6 +227,9 @@ public class JobServiceTests {
 	@Test
 	public void testDownloadJobData_StatusIncomplete() throws UserException {
 		// Setup
+		Job mockJob = new Job("job123", "Test Job", Job.STATUS_ACTIVATING, null, new DateTime().minusDays(7), "alg123", "alg", "1.0",
+				"scene123", null, null, null, null, true);
+		Mockito.when(this.jobDao.findByJobId(Mockito.anyString())).thenReturn(mockJob);
 		StatusMetadata mockStatus = Mockito.mock(StatusMetadata.class);
 		Mockito.when(mockStatus.isStatusError()).thenReturn(false);
 		Mockito.when(mockStatus.isStatusIncomplete()).thenReturn(true);

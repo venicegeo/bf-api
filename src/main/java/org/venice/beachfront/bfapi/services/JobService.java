@@ -432,7 +432,18 @@ public class JobService {
 	 */
 	public byte[] downloadJobData(String jobId, DownloadDataType dataType) throws UserException {
 		this.piazzaLogger.log(String.format("Querying Piazza for status of Job %s", jobId), Severity.INFORMATIONAL);
-		StatusMetadata statusMetadata = this.piazzaService.getJobStatus(jobId);
+		String detectionJobId = jobId;
+		Job job = getJob(jobId);
+		// If this is a normal non-redundant Job, then the Job ID will be used to fetch detection bytes. However, if
+		// this is a Redundant Job (contains a Seed Job) then that Seed Job ID will be used to get the detection bytes.
+		if (job.getSeedJobId() != null) {
+			piazzaLogger.log(String.format("Fetching Detection bytes for Redundant Job %s from Seed Job %s", jobId, job.getSeedJobId()),
+					Severity.INFORMATIONAL);
+			detectionJobId = job.getSeedJobId();
+		}
+
+		// Ensure the Piazza detection Job ID has a Successful status
+		StatusMetadata statusMetadata = this.piazzaService.getJobStatus(detectionJobId);
 
 		if (statusMetadata.isStatusError()) {
 			throw new UserException(statusMetadata.getErrorMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -441,20 +452,7 @@ public class JobService {
 			throw new UserException("Job not finished yet", HttpStatus.NOT_FOUND);
 		}
 		if (statusMetadata.isStatusSuccess()) {
-			// Determine if the Job owns the Detection bytes directly, or if this was a redundant job that references
-			// the Detection from a Seed Job
-			Job job = getJob(jobId);
-			byte[] geoJsonBytes;
-			if (job.getSeedJobId() == null) {
-				// Not a redundant Job. Fetch bytes directly.
-				geoJsonBytes = detectionDao.findFullDetectionGeoJson(jobId).getBytes();
-				piazzaLogger.log(String.format("Fetched Detection bytes for Job %s", jobId), Severity.INFORMATIONAL);
-			} else {
-				// Contains a Seed job reference. Fetch bytes from that seed job.
-				geoJsonBytes = detectionDao.findFullDetectionGeoJson(job.getSeedJobId()).getBytes();
-				piazzaLogger.log(String.format("Fetched Detection bytes for Redundant Job %s from Seed Job %s", jobId, job.getSeedJobId()),
-						Severity.INFORMATIONAL);
-			}
+			byte[] geoJsonBytes = detectionDao.findFullDetectionGeoJson(detectionJobId).getBytes();
 			switch (dataType) {
 			case GEOJSON:
 				return geoJsonBytes;
