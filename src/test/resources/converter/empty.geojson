@@ -1,0 +1,27 @@
+{
+	"type": "FeatureCollection",
+	"features": [{
+		"properties": {
+			"job_id": "e6ddf313",
+			"algorithm_id": "61c92d31",
+			"algorithm_name": "BF_Algo_NDWI_PY",
+			"algorithm_version": "1.1.0",
+			"cloud_cover": 0.680000007152557373,
+			"created_by": "testuser",
+			"created_on": "2018-10-12T14:50:13.412+00:00",
+			"name": "testdata",
+			"resolution": 0,
+			"scene_id": "testscene",
+			"sensor_name": "Landsat8L1TP",
+			"src_horizontal_accuracy": "12m CE90",
+			"status": "Success",
+			"tide": 1.15486447065109665,
+			"tide_min_24h": 1.11591472863694485,
+			"tide_max_24h": 1.41914212194657785,
+			"time_of_collect": "2018-10-02T01:58:02.437+00:00",
+		},
+		"geometry": null,
+		"type": "Feature",
+		"id": "e6ddf313"
+	}]
+}
