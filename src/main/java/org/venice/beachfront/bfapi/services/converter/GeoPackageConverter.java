@@ -55,18 +55,16 @@ public class GeoPackageConverter extends AbstractConverter {
 			FeatureJSON fjson = new FeatureJSON(gjson);
 
 			FeatureCollection<?, ?> fc = fjson.readFeatureCollection(reader);
-			SimpleFeatureType featureType = null;
-			if (fc.getSchema().getGeometryDescriptor() != null) {
-				featureType = createSimpleFeatureType(fc);
-			}
+			SimpleFeatureType featureType = createSimpleFeatureType(fc);
 
 			// DataStore
 			final File inputFile = File.createTempFile("shorelines", ".gpkg");
 			inputFile.delete();
 			GeoPackage gpkg = new GeoPackage(inputFile);
 			gpkg.init();
+			gpkg.addCRS(4326);
 
-			if (featureType != null) {
+			if (featureType.getGeometryDescriptor() != null) {
 				FeatureEntry featureEntry = new FeatureEntry();
 				gpkg.add(featureEntry, fcToSFC(fc, featureType));
 				gpkg.createSpatialIndex(featureEntry);

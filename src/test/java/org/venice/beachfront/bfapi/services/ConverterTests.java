@@ -25,15 +25,21 @@ public class ConverterTests {
 				"UTF-8");
 	}
 
+	/**
+	 * Test conversion of GeoJSON with no geometry
+	 */
 	@Test
 	public void testEmptyGeometryGeoPackageConversion() throws UserException {
 		byte[] emptyGeoJsonBytes = emptyGeoJson.getBytes();
-		byte[] geoPackageBytes = geoPackageConverter.apply(emptyGeoJsonBytes);
+		geoPackageConverter.apply(emptyGeoJsonBytes);
 	}
 
+	/**
+	 * Test conversion of GeoJSON with no geometry
+	 */
 	@Test
 	public void testEmptyGeometryShapefileConversion() throws UserException {
 		byte[] emptyGeoJsonBytes = emptyGeoJson.getBytes();
-		byte[] shapefileBytes = shapefileConverter.apply(emptyGeoJsonBytes);
+		shapefileConverter.apply(emptyGeoJsonBytes);
 	}
 }
