@@ -48,6 +48,7 @@ import org.springframework.http.HttpStatus;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.LineString;
 
 /**
  * Implementation of the {@link AbstractConverter} interface.
@@ -73,7 +74,7 @@ public abstract class AbstractConverter {
 		return result;
 	}
 
-	protected SimpleFeatureType createSimpleFeatureType(FeatureCollection<?, ?> fc) throws UserException {
+	protected SimpleFeatureType createSimpleFeatureType(FeatureCollection<?, ?> fc, boolean forceGeometry) throws UserException {
 		FeatureType inputFeatureType = fc.getSchema();
 
 		if (inputFeatureType == null) {
@@ -86,12 +87,19 @@ public abstract class AbstractConverter {
 		sftb.setCRS(DefaultGeographicCRS.WGS84);
 		List<AttributeDescriptor> ads = new ArrayList<>();
 		GeometryDescriptor gd = inputFeatureType.getGeometryDescriptor();
+		Name geometryName = new NameImpl("the_geom");
 		if (gd != null) {
 			GeometryType gt = gd.getType();
-			Name geometryName = new NameImpl("the_geom");
 			gt = new GeometryTypeImpl(geometryName, gt.getBinding(), DefaultGeographicCRS.WGS84, gt.isIdentified(), gt.isAbstract(),
 					gt.getRestrictions(), gt.getSuper(), gt.getDescription());
 			gd = new GeometryDescriptorImpl(gt, geometryName, gd.getMinOccurs(), gd.getMaxOccurs(), gd.isNillable(), gd.getDefaultValue());
+			ads.add(gd);
+		} else if (forceGeometry) {
+			// Shapefiles require Geometry or else they cannot properly write. In cases where the Geometry is not
+			// present and must be forced, create a simple descriptor for an optional LineString.
+			GeometryType gt = new GeometryTypeImpl(geometryName, LineString.class, DefaultGeographicCRS.WGS84, false, false,
+					new ArrayList<>(), null, null);
+			gd = new GeometryDescriptorImpl(gt, geometryName, 0, 1, true, null);
 			ads.add(gd);
 		}
 		for (PropertyDescriptor pd : inputFeatureType.getDescriptors()) {

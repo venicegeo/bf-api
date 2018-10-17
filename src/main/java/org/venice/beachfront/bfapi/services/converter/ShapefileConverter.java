@@ -80,27 +80,29 @@ public class ShapefileConverter extends AbstractConverter {
 			params.put("create spatial index", Boolean.TRUE);
 			DataStore dataStore = factory.createNewDataStore(params);
 
-			SimpleFeatureType featureType = createSimpleFeatureType(fc);
-			if (featureType.getGeometryDescriptor() != null) {
-				dataStore.createSchema(featureType);
+			SimpleFeatureType featureType = createSimpleFeatureType(fc, true);
 
-				// Feature Store
-				String typeName = dataStore.getTypeNames()[0];
-				SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
-				SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+			// Transaction to create the Shapefile
+			Transaction transaction = new DefaultTransaction("create");
+			dataStore.createSchema(featureType);
 
-				// Transaction
-				Transaction transaction = new DefaultTransaction("create");
-				featureStore.setTransaction(transaction);
-				try {
-					featureStore.addFeatures(fcToSFC(fc, featureType));
-					transaction.commit();
-				} catch (Exception problem) {
-					problem.printStackTrace();
-					transaction.rollback();
-				} finally {
-					transaction.close();
-				}
+			// Feature Store
+			String typeName = dataStore.getTypeNames()[0];
+			SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
+			SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+
+			// Adding the feature store
+			featureStore.setTransaction(transaction);
+			featureStore.addFeatures(fcToSFC(fc, featureType));
+
+			// Commit the transaction
+			try {
+				transaction.commit();
+			} catch (Exception problem) {
+				problem.printStackTrace();
+				transaction.rollback();
+			} finally {
+				transaction.close();
 			}
 
 			File zipFile = zipResults(shapefile);

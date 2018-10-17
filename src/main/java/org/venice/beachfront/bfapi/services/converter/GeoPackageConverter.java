@@ -55,7 +55,7 @@ public class GeoPackageConverter extends AbstractConverter {
 			FeatureJSON fjson = new FeatureJSON(gjson);
 
 			FeatureCollection<?, ?> fc = fjson.readFeatureCollection(reader);
-			SimpleFeatureType featureType = createSimpleFeatureType(fc);
+			SimpleFeatureType featureType = createSimpleFeatureType(fc, false);
 
 			// DataStore
 			final File inputFile = File.createTempFile("shorelines", ".gpkg");
