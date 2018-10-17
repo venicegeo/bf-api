@@ -50,148 +50,155 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
  * @version 2.0
  */
 @Service
-public class ShapefileConverter extends AbstractConverter{
-		
-    /**
-     * Perform the actual conversion from GeoJSON to Shapefile.
-     *
-     * @param geojson A byte array containing GeoJSON data
-     * @return A byte array containing SHP data in a .zip
-     * @throws UserException 
-     */
-    public byte[] apply(byte[] geojson) throws UserException {
-    	byte[] result = null;
+public class ShapefileConverter extends AbstractConverter {
 
-        try {
-    		String json = new String(geojson);
-        	GeometryJSON gjson = new GeometryJSON();
+	/**
+	 * Perform the actual conversion from GeoJSON to Shapefile.
+	 *
+	 * @param geojson
+	 *            A byte array containing GeoJSON data
+	 * @return A byte array containing SHP data in a .zip
+	 * @throws UserException
+	 */
+	public byte[] apply(byte[] geojson) throws UserException {
+		byte[] result = null;
 
-        	Reader reader = new StringReader(json);
-            FeatureJSON fjson = new FeatureJSON(gjson);
+		try {
+			String json = new String(geojson);
+			GeometryJSON gjson = new GeometryJSON();
 
-            FeatureCollection<?, ?> fc = fjson.readFeatureCollection(reader);
+			Reader reader = new StringReader(json);
+			FeatureJSON fjson = new FeatureJSON(gjson);
 
-            // DataStore
-            FileDataStoreFactorySpi factory = new ShapefileDataStoreFactory();
-    		File shapefile = File.createTempFile("shorelines", ".shp");
-            Map<String, Serializable> params = new HashMap<>();
-            params.put("url", shapefile.toURI().toURL());
-            params.put("create spatial index", Boolean.TRUE);            
-            DataStore dataStore = factory.createNewDataStore(params);
+			FeatureCollection<?, ?> fc = fjson.readFeatureCollection(reader);
 
-            SimpleFeatureType featureType = createSimpleFeatureType(fc);
-            dataStore.createSchema(featureType);
+			// DataStore
+			FileDataStoreFactorySpi factory = new ShapefileDataStoreFactory();
+			File shapefile = File.createTempFile("shorelines", ".shp");
+			Map<String, Serializable> params = new HashMap<>();
+			params.put("url", shapefile.toURI().toURL());
+			params.put("create spatial index", Boolean.TRUE);
+			DataStore dataStore = factory.createNewDataStore(params);
 
-            // Feature Store
-            String typeName = dataStore.getTypeNames()[0];
-            SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+			SimpleFeatureType featureType = createSimpleFeatureType(fc, true);
 
-            // Transaction
-            Transaction transaction = new DefaultTransaction("create");
-            featureStore.setTransaction(transaction);
-            try {
-            	featureStore.addFeatures(fcToSFC(fc, featureType));
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-            
-            File zipFile = zipResults(shapefile);
+			// Transaction to create the Shapefile
+			Transaction transaction = new DefaultTransaction("create");
+			dataStore.createSchema(featureType);
 
-            // Return the results
-            result = java.nio.file.Files.readAllBytes(zipFile.toPath());
-            
-            cleanup(shapefile);
-            cleanup(zipFile);
-        } catch (Exception e) {
-            throw new UserException("Failed to export to Shapefile: " + e.getMessage(), e, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        return result;
-    }
+			// Feature Store
+			String typeName = dataStore.getTypeNames()[0];
+			SimpleFeatureSource featureSource = dataStore.getFeatureSource(typeName);
+			SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
 
-    private File zipResults(File input) throws IOException {
-    	File result = File.createTempFile("shorelines", ".zip");
+			// Adding the feature store
+			featureStore.setTransaction(transaction);
+			featureStore.addFeatures(fcToSFC(fc, featureType));
 
-        byte[] buffer = new byte[1024];
-        try (FileOutputStream fos = new FileOutputStream(result); ZipOutputStream zos = new ZipOutputStream(fos)) {
+			// Commit the transaction
+			try {
+				transaction.commit();
+			} catch (Exception problem) {
+				problem.printStackTrace();
+				transaction.rollback();
+			} finally {
+				transaction.close();
+			}
 
-            FileInputStream in = null;
-            
-            for (File file: getFiles(input)) {
-                System.out.println("File Added : " + file);
-                ZipEntry ze = new ZipEntry(file.getName());
-                zos.putNextEntry(ze);
-                try {
-                    in = new FileInputStream(file.getAbsolutePath());
-                    int len;
-                    while ((len = in .read(buffer)) > 0) {
-                        zos.write(buffer, 0, len);
-                    }
-                } finally {
-                    if (in != null) {
-                        in.close();
-                    }
-                }
-            }
+			File zipFile = zipResults(shapefile);
 
-            zos.closeEntry();
-            System.out.println("Folder successfully compressed");
+			// Return the results
+			result = java.nio.file.Files.readAllBytes(zipFile.toPath());
 
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        
-    	return result;
-    }
-    
-    private File[] getFiles(File rootFile){
-    	File[] result = new File[0];
-    	ArrayList<File> files = new ArrayList<>();
-    	String fileName = rootFile.getName();
-    	FilenameFilter ff = new FilenameFilter(fileName);
-        File parentFile = rootFile.getParentFile();
-        for (String filename: parentFile.list()) {
-        	if (ff.accept(rootFile, filename)) {
-        		files.add(new File(parentFile, filename));
-        	}
-        }
-        
-        return files.toArray(result);
-    }
-    
-    /**
-     * Remove the temporary files that were created
-     * @param shapefile
-     * @return the list of files that weren't deleted 
-     * (possibly useful for error reporting)
-     */
-    private Set<File> cleanup(File shapefile){
-    	
-    	final Set<File> result = new HashSet<>();
-    	final File folder = new File(shapefile.getParent());
-		final File[] files = folder.listFiles(new FilenameFilter(shapefile.getName()));
-		for ( final File file : files ) {
-		    if ( !file.delete() ) {
-		        System.err.println( "Can't remove " + file.getAbsolutePath() );
-		    	result.add(file);
-		    }
-		}    
+			cleanup(shapefile);
+			cleanup(zipFile);
+		} catch (Exception e) {
+			throw new UserException("Failed to export to Shapefile: " + e.getMessage(), e,
+					org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 		return result;
 	}
-    
-    private class FilenameFilter implements java.io.FilenameFilter {
-    	FilenameFilter(String fileName){
-    		this.root = fileName.substring(0, fileName.lastIndexOf('.'));
-    	}
-    	private String root;
+
+	private File zipResults(File input) throws IOException {
+		File result = File.createTempFile("shorelines", ".zip");
+
+		byte[] buffer = new byte[1024];
+		try (FileOutputStream fos = new FileOutputStream(result); ZipOutputStream zos = new ZipOutputStream(fos)) {
+
+			FileInputStream in = null;
+
+			for (File file : getFiles(input)) {
+				System.out.println("File Added : " + file);
+				ZipEntry ze = new ZipEntry(file.getName());
+				zos.putNextEntry(ze);
+				try {
+					in = new FileInputStream(file.getAbsolutePath());
+					int len;
+					while ((len = in.read(buffer)) > 0) {
+						zos.write(buffer, 0, len);
+					}
+				} finally {
+					if (in != null) {
+						in.close();
+					}
+				}
+			}
+
+			zos.closeEntry();
+			System.out.println("Folder successfully compressed");
+
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+
+		return result;
+	}
+
+	private File[] getFiles(File rootFile) {
+		File[] result = new File[0];
+		ArrayList<File> files = new ArrayList<>();
+		String fileName = rootFile.getName();
+		FilenameFilter ff = new FilenameFilter(fileName);
+		File parentFile = rootFile.getParentFile();
+		for (String filename : parentFile.list()) {
+			if (ff.accept(rootFile, filename)) {
+				files.add(new File(parentFile, filename));
+			}
+		}
+
+		return files.toArray(result);
+	}
+
+	/**
+	 * Remove the temporary files that were created
+	 * 
+	 * @param shapefile
+	 * @return the list of files that weren't deleted (possibly useful for error reporting)
+	 */
+	private Set<File> cleanup(File shapefile) {
+
+		final Set<File> result = new HashSet<>();
+		final File folder = new File(shapefile.getParent());
+		final File[] files = folder.listFiles(new FilenameFilter(shapefile.getName()));
+		for (final File file : files) {
+			if (!file.delete()) {
+				System.err.println("Can't remove " + file.getAbsolutePath());
+				result.add(file);
+			}
+		}
+		return result;
+	}
+
+	private class FilenameFilter implements java.io.FilenameFilter {
+		FilenameFilter(String fileName) {
+			this.root = fileName.substring(0, fileName.lastIndexOf('.'));
+		}
+
+		private String root;
 
 		@Override
 		public boolean accept(File dir, String name) {
 			return name.startsWith(root);
 		}
-    }
+	}
 }

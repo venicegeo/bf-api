@@ -35,45 +35,50 @@ import org.venice.beachfront.bfapi.model.exception.UserException;
  */
 @Service
 public class GeoPackageConverter extends AbstractConverter {
-	
-    /**
-     * Perform the actual conversion from GeoJSON to GeoPackage.
-     *
-     * @param geojson A byte array containing GeoJSON data
-     * @return A byte array containing GPKG data
-     * @throws UserException 
-     */
-    public byte[] apply(byte[] geojson) throws UserException {
-    	byte[] result = null;
 
-        try {
-    		String json = new String(geojson);
-        	GeometryJSON gjson = new GeometryJSON();
+	/**
+	 * Perform the actual conversion from GeoJSON to GeoPackage.
+	 *
+	 * @param geojson
+	 *            A byte array containing GeoJSON data
+	 * @return A byte array containing GPKG data
+	 * @throws UserException
+	 */
+	public byte[] apply(byte[] geojson) throws UserException {
+		byte[] result = null;
 
-        	Reader reader = new StringReader(json);
-            FeatureJSON fjson = new FeatureJSON(gjson);
+		try {
+			String json = new String(geojson);
+			GeometryJSON gjson = new GeometryJSON();
 
-            FeatureCollection<?, ?> fc = fjson.readFeatureCollection(reader);
-            SimpleFeatureType featureType = createSimpleFeatureType(fc);
+			Reader reader = new StringReader(json);
+			FeatureJSON fjson = new FeatureJSON(gjson);
 
-            // DataStore
-            final File inputFile = File.createTempFile("shorelines", ".gpkg");
-            inputFile.delete();
-    		GeoPackage gpkg = new GeoPackage(inputFile);
-    		gpkg.init();
-    		
-            FeatureEntry featureEntry = new FeatureEntry();
-            gpkg.add(featureEntry, fcToSFC(fc, featureType));
-            gpkg.createSpatialIndex(featureEntry);
-            
-            // Return the results
-    		File gpkgFile = gpkg.getFile();
-            result = java.nio.file.Files.readAllBytes(gpkgFile.toPath());
-            gpkgFile.delete();
-            gpkg.close();
-        } catch (Exception e) {
-            throw new UserException("Failed to export input to GeoPackage:" + e.getMessage(), e, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        return result;
-    }
+			FeatureCollection<?, ?> fc = fjson.readFeatureCollection(reader);
+			SimpleFeatureType featureType = createSimpleFeatureType(fc, false);
+
+			// DataStore
+			final File inputFile = File.createTempFile("shorelines", ".gpkg");
+			inputFile.delete();
+			GeoPackage gpkg = new GeoPackage(inputFile);
+			gpkg.init();
+			gpkg.addCRS(4326);
+
+			if (featureType.getGeometryDescriptor() != null) {
+				FeatureEntry featureEntry = new FeatureEntry();
+				gpkg.add(featureEntry, fcToSFC(fc, featureType));
+				gpkg.createSpatialIndex(featureEntry);
+			}
+
+			// Return the results
+			File gpkgFile = gpkg.getFile();
+			result = java.nio.file.Files.readAllBytes(gpkgFile.toPath());
+			gpkgFile.delete();
+			gpkg.close();
+		} catch (Exception e) {
+			throw new UserException("Failed to export input to GeoPackage:" + e.getMessage(), e,
+					org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return result;
+	}
 }

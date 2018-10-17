@@ -48,6 +48,7 @@ import org.springframework.http.HttpStatus;
 import org.venice.beachfront.bfapi.model.exception.UserException;
 
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.LineString;
 
 /**
  * Implementation of the {@link AbstractConverter} interface.
@@ -55,9 +56,10 @@ import com.vividsolutions.jts.geom.Geometry;
  * @version 1.0
  */
 public abstract class AbstractConverter {
-	
+
 	private static Map<String, String> PROPERTIES = createProperties();
-	private static Map<String, String> createProperties(){
+
+	private static Map<String, String> createProperties() {
 		HashMap<String, String> result = new HashMap<>();
 		result.put("algorithm_name", "algo_name");
 		result.put("algorithm_id", "algo_id");
@@ -71,102 +73,94 @@ public abstract class AbstractConverter {
 		result.put("sensor_name", "sensor");
 		return result;
 	}
-	protected SimpleFeatureType createSimpleFeatureType(FeatureCollection<?, ?> fc) throws UserException{
-        FeatureType inputFeatureType = fc.getSchema();
 
-        if (inputFeatureType == null){
-        	throw new UserException("The feature collection provided has no schema.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        
-        // Feature Type
-        SimpleFeatureTypeBuilder sftb = new SimpleFeatureTypeBuilder();
-        sftb.setName(inputFeatureType.getName());
-        sftb.setCRS(DefaultGeographicCRS.WGS84);
-        List<AttributeDescriptor> ads = new ArrayList<>();
-        GeometryDescriptor gd = inputFeatureType.getGeometryDescriptor();
-        GeometryType gt = gd.getType();
-        Name geometryName = new NameImpl("the_geom");
-        gt = new GeometryTypeImpl(geometryName, gt.getBinding(), 
-        		DefaultGeographicCRS.WGS84, 
-        		gt.isIdentified(), 
-        		gt.isAbstract(), gt.getRestrictions(), 
-        		gt.getSuper(), 
-        		gt.getDescription());
-        gd = new GeometryDescriptorImpl(gt, 
-        		geometryName, 
-        		gd.getMinOccurs(), 
-        		gd.getMaxOccurs(), 
-        		gd.isNillable(), 
-        		gd.getDefaultValue());
-        ads.add(gd);
-        for (PropertyDescriptor pd : inputFeatureType.getDescriptors()){
-        	AttributeDescriptor ad = (AttributeDescriptor)pd;
-        	String propertyName = pd.getName().getLocalPart();
-        	if (propertyName == "geometry") {
-        		continue;
-        	}else {
-    			if (PROPERTIES.containsKey(propertyName)) {
-        			propertyName = PROPERTIES.get(propertyName);
-    			}
-            	PropertyType pt = pd.getType();
-            	NameImpl pn = new NameImpl(propertyName);
-            	AttributeType at = new AttributeTypeImpl(pn, 
-            			pt.getBinding(), 
-            			false, 
-            			pt.isAbstract(), 
-            			null, 
-            			null, 
-            			pt.getDescription());
+	protected SimpleFeatureType createSimpleFeatureType(FeatureCollection<?, ?> fc, boolean forceGeometry) throws UserException {
+		FeatureType inputFeatureType = fc.getSchema();
 
-            	ad = new AttributeDescriptorImpl(at, 
-            			pn, 
-            			pd.getMinOccurs(),
-            			pd.getMaxOccurs(), 
-            			pd.isNillable(), 
-            			null);
-        	}
-        	ads.add(ad);
-        }
-        sftb.addAll(ads);
-        SimpleFeatureType featureType = sftb.buildFeatureType();
-        return featureType;
+		if (inputFeatureType == null) {
+			throw new UserException("The feature collection provided has no schema.", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		// Feature Type
+		SimpleFeatureTypeBuilder sftb = new SimpleFeatureTypeBuilder();
+		sftb.setName(inputFeatureType.getName());
+		sftb.setCRS(DefaultGeographicCRS.WGS84);
+		List<AttributeDescriptor> ads = new ArrayList<>();
+		GeometryDescriptor gd = inputFeatureType.getGeometryDescriptor();
+		Name geometryName = new NameImpl("the_geom");
+		if (gd != null) {
+			GeometryType gt = gd.getType();
+			gt = new GeometryTypeImpl(geometryName, gt.getBinding(), DefaultGeographicCRS.WGS84, gt.isIdentified(), gt.isAbstract(),
+					gt.getRestrictions(), gt.getSuper(), gt.getDescription());
+			gd = new GeometryDescriptorImpl(gt, geometryName, gd.getMinOccurs(), gd.getMaxOccurs(), gd.isNillable(), gd.getDefaultValue());
+			ads.add(gd);
+		} else if (forceGeometry) {
+			// Shapefiles require Geometry or else they cannot properly write. In cases where the Geometry is not
+			// present and must be forced, create a simple descriptor for an optional LineString.
+			GeometryType gt = new GeometryTypeImpl(geometryName, LineString.class, DefaultGeographicCRS.WGS84, false, false,
+					new ArrayList<>(), null, null);
+			gd = new GeometryDescriptorImpl(gt, geometryName, 0, 1, true, null);
+			ads.add(gd);
+		}
+		for (PropertyDescriptor pd : inputFeatureType.getDescriptors()) {
+			AttributeDescriptor ad = (AttributeDescriptor) pd;
+			String propertyName = pd.getName().getLocalPart();
+			if (propertyName == "geometry") {
+				continue;
+			} else {
+				if (PROPERTIES.containsKey(propertyName)) {
+					propertyName = PROPERTIES.get(propertyName);
+				}
+				PropertyType pt = pd.getType();
+				NameImpl pn = new NameImpl(propertyName);
+				AttributeType at = new AttributeTypeImpl(pn, pt.getBinding(), false, pt.isAbstract(), null, null, pt.getDescription());
+
+				ad = new AttributeDescriptorImpl(at, pn, pd.getMinOccurs(), pd.getMaxOccurs(), pd.isNillable(), null);
+			}
+			ads.add(ad);
+		}
+		sftb.addAll(ads);
+		SimpleFeatureType featureType = sftb.buildFeatureType();
+		return featureType;
 	}
-	    
-    protected DefaultFeatureCollection fcToSFC(FeatureCollection<?, ?> input, SimpleFeatureType featureType){
-    	DefaultFeatureCollection result = new DefaultFeatureCollection();
-    	SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(featureType);
-    	
-    	FeatureIterator<?> fi = input.features();
-    	Name destinationGPN = new NameImpl("the_geom");
-    	while(fi.hasNext()){
-    		Feature feature = fi.next();
-    		sfb.reset();
-    		
-    		// Geometry
-    		Name gpn = feature.getDefaultGeometryProperty().getName();
-    		Geometry geometry = (Geometry)feature.getProperty(gpn).getValue();
-    		geometry.setSRID(4326);
-			sfb.set(destinationGPN, geometry);
+
+	protected DefaultFeatureCollection fcToSFC(FeatureCollection<?, ?> input, SimpleFeatureType featureType) {
+		DefaultFeatureCollection result = new DefaultFeatureCollection();
+		SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(featureType);
+
+		FeatureIterator<?> fi = input.features();
+		Name destinationGPN = new NameImpl("the_geom");
+		while (fi.hasNext()) {
+			Feature feature = fi.next();
+			sfb.reset();
+
+			// Geometry
+			if (feature.getDefaultGeometryProperty() != null) {
+				Name gpn = feature.getDefaultGeometryProperty().getName();
+				Geometry geometry = (Geometry) feature.getProperty(gpn).getValue();
+				geometry.setSRID(4326);
+				sfb.set(destinationGPN, geometry);
+			}
 
 			// Other properties
-    		Collection<Property> properties = feature.getProperties();
-    		for (Property property : properties) {
-    			String propertyName = property.getName().getLocalPart();
-    			if (propertyName == "geometry"){
-    				continue;
-    			}
-    			Object value = property.getValue();
-    			if (PROPERTIES.containsKey(propertyName)) {
-        			sfb.set(PROPERTIES.get(propertyName), value);
-    			} else {
-        			sfb.set(propertyName, value);
-    			}
-    		}
+			Collection<Property> properties = feature.getProperties();
+			for (Property property : properties) {
+				String propertyName = property.getName().getLocalPart();
+				if (propertyName == "geometry") {
+					continue;
+				}
+				Object value = property.getValue();
+				if (PROPERTIES.containsKey(propertyName)) {
+					sfb.set(PROPERTIES.get(propertyName), value);
+				} else {
+					sfb.set(propertyName, value);
+				}
+			}
 
-    		SimpleFeature sf = sfb.buildFeature(feature.getIdentifier().getID());    	
+			SimpleFeature sf = sfb.buildFeature(feature.getIdentifier().getID());
 
-    		result.add(sf);
-    	}
-    	return result;
-    }
+			result.add(sf);
+		}
+		return result;
+	}
 }
