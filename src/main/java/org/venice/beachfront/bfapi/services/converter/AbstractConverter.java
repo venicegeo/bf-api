@@ -112,8 +112,10 @@ public abstract class AbstractConverter {
 					propertyName = PROPERTIES.get(propertyName);
 				}
 				PropertyType pt = pd.getType();
+				// Default type for unspecified properties is Object - override to be String type.
+				Class<?> binding = pt.getBinding().equals(Object.class) ? String.class : pt.getBinding();
 				NameImpl pn = new NameImpl(propertyName);
-				AttributeType at = new AttributeTypeImpl(pn, pt.getBinding(), false, pt.isAbstract(), null, null, pt.getDescription());
+				AttributeType at = new AttributeTypeImpl(pn, binding, false, pt.isAbstract(), null, null, pt.getDescription());
 
 				ad = new AttributeDescriptorImpl(at, pn, pd.getMinOccurs(), pd.getMaxOccurs(), pd.isNillable(), null);
 			}
