@@ -52,7 +52,7 @@ import util.PiazzaLogger;
 public class SceneService {
 	public static final String PROVIDER_URL_PLANET = "planet";
 	public static final String PROVIDER_URL_LOCALINDEX = "localindex";
-	
+
 	@Value("${ia.broker.activation-poll-interval-sec}")
 	private int asyncActivationPollIntervalSeconds;
 	@Value("${ia.broker.activation-poll-max-attempts}")
@@ -96,13 +96,15 @@ public class SceneService {
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Error activating Scene %s with Code %s and Message %s", scene.getSceneId(),
 					exception.getRawStatusCode(), exception.getResponseBodyAsString()), Severity.ERROR);
-			
+
 			HttpStatus recommendedErrorStatus = exception.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-			  recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
 
-			String message = String.format("Upstream error activating Planet scene. (%d) platform=%s id=%s", exception.getStatusCode().value(), platform, scene.getExternalId());
+			String message = String.format("Upstream error activating Planet scene. (%d) platform=%s id=%s",
+					exception.getStatusCode().value(), platform, scene.getExternalId());
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 	}
@@ -154,13 +156,15 @@ public class SceneService {
 		} catch (HttpClientErrorException | HttpServerErrorException exception) {
 			piazzaLogger.log(String.format("Error Requesting Information for Scene %s with Code %s and Message %s", sceneId,
 					exception.getRawStatusCode(), exception.getResponseBodyAsString()), Severity.ERROR);
-			
+
 			HttpStatus recommendedErrorStatus = exception.getStatusCode();
 			if (recommendedErrorStatus.equals(HttpStatus.UNAUTHORIZED)) {
-			  recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't want that
+				recommendedErrorStatus = HttpStatus.BAD_REQUEST; // 401 Unauthorized logs out the client, and we don't
+																	// want that
 			}
 
-			String message = String.format("Upstream error getting Planet scene. (%d) platform=%s id=%s", exception.getStatusCode().value(), platform, externalId);
+			String message = String.format("Upstream error getting Planet scene. (%d) platform=%s id=%s", exception.getStatusCode().value(),
+					platform, externalId);
 			throw new UserException(message, exception.getMessage(), recommendedErrorStatus);
 		}
 
@@ -168,8 +172,7 @@ public class SceneService {
 
 		Scene scene = new Scene();
 		try {
-			piazzaLogger.log(String.format("Beginning parsing of successful response of Scene %s data.", sceneId),
-					Severity.INFORMATIONAL);
+			piazzaLogger.log(String.format("Beginning parsing of successful response of Scene %s data.", sceneId), Severity.INFORMATIONAL);
 			scene.setRawJson(responseJson);
 			scene.setSceneId(platform + ":" + responseJson.get("id").asText());
 			scene.setCloudCover(responseJson.get("properties").get("cloudCover").asDouble());
@@ -178,7 +181,7 @@ public class SceneService {
 			scene.setCaptureTime(DateTime.parse(responseJson.get("properties").get("acquiredDate").asText()));
 			scene.setSensorName(responseJson.get("properties").get("sensorName").asText());
 			scene.setUri(UriComponentsBuilder.newInstance().scheme(this.iaBrokerProtocol).host(this.iaBrokerServer).port(this.iaBrokerPort)
-							.path(scenePath).toUriString());
+					.path(scenePath).toUriString());
 
 			try {
 				// The response from IA-Broker is a GeoJSON feature. Convert to Geometry.
@@ -217,7 +220,8 @@ public class SceneService {
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
-		piazzaLogger.log(String.format("Successfully parsed Scene metadata for Scene %s with Status %s", sceneId, scene.getStatus()), Severity.INFORMATIONAL);
+		piazzaLogger.log(String.format("Successfully parsed Scene metadata for Scene %s with Status %s", sceneId, scene.getStatus()),
+				Severity.INFORMATIONAL);
 		sceneDao.save(scene);
 		return scene;
 	}
@@ -295,23 +299,19 @@ public class SceneService {
 		case Scene.PLATFORM_PLANET_PLANETSCOPE:
 		case Scene.PLATFORM_PLANET_RAPIDEYE:
 		case Scene.PLATFORM_PLANET_SENTINEL:
-				return PROVIDER_URL_PLANET;
+			return PROVIDER_URL_PLANET;
 		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
 			return PROVIDER_URL_LOCALINDEX;
 		}
-		throw new UserException("Cannot get platform string for Scene: " + sceneId, HttpStatus.INTERNAL_SERVER_ERROR);		
+		throw new UserException("Cannot get platform string for Scene: " + sceneId, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
-	
+
 	public List<String> getEnabledPlatforms() {
-		Set<String> allowedPlatforms = new HashSet<String>(Arrays.asList(
-				Scene.PLATFORM_PLANET_LANDSAT, 
-				Scene.PLATFORM_PLANET_PLANETSCOPE, 
-				Scene.PLATFORM_PLANET_RAPIDEYE, 
-				Scene.PLATFORM_PLANET_SENTINEL, 
-				Scene.PLATFORM_LOCALINDEX_LANDSAT));
+		Set<String> allowedPlatforms = new HashSet<String>(Arrays.asList(Scene.PLATFORM_PLANET_LANDSAT, Scene.PLATFORM_PLANET_PLANETSCOPE,
+				Scene.PLATFORM_PLANET_RAPIDEYE, Scene.PLATFORM_PLANET_SENTINEL, Scene.PLATFORM_LOCALINDEX_LANDSAT));
 		String[] specifiedPlatforms = this.enabledPlatformsConcatenated.split(",");
 		Set<String> calculatedPlatforms = new HashSet<String>();
-		
+
 		for (String platform : specifiedPlatforms) {
 			if (allowedPlatforms.contains(platform)) {
 				calculatedPlatforms.add(platform);
@@ -319,7 +319,7 @@ public class SceneService {
 				this.piazzaLogger.log("Unknown platform in enabled platforms config: " + platform, Severity.WARNING);
 			}
 		}
-		
+
 		return new ArrayList<String>(calculatedPlatforms);
 	}
 }

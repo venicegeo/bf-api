@@ -96,8 +96,8 @@ public class PiazzaService {
 							new Duration(activationStart, new DateTime()).getStandardSeconds()),
 					Severity.INFORMATIONAL);
 		} catch (InterruptedException | ExecutionException e) {
-			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s", jobId), Severity.ERROR);
-			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			piazzaLogger.log(String.format("Getting Active Scene failed for Job %s : %s", jobId, e.getMessage()), Severity.ERROR);
+			callback.updateStatus(jobId, Job.STATUS_ERROR, "Activation timeout");
 
 			// calculate diff between now and when job started activation
 			piazzaLogger.log(String.format("Job %s failed activation in %d seconds.", jobId,
@@ -137,7 +137,7 @@ public class PiazzaService {
 		} catch (Exception exception) {
 			exception.printStackTrace();
 			piazzaLogger.log(String.format("Could not load local resource file for Job Request for Job %s", jobId), Severity.ERROR);
-			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			callback.updateStatus(jobId, Job.STATUS_ERROR, "Error submitting job");
 			return;
 		}
 		HttpEntity<String> request = new HttpEntity<>(requestJson, headers);
@@ -150,12 +150,12 @@ public class PiazzaService {
 					String.format("Piazza Job Request by User %s has failed with Code %s and Error %s. The body of the request was: %s",
 							userId, exception.getStatusText(), exception.getResponseBodyAsString(), requestJson),
 					Severity.ERROR);
-			callback.updateStatus(jobId, Job.STATUS_ERROR);
+			callback.updateStatus(jobId, Job.STATUS_ERROR, "Error submiting job");
 			return;
 		}
 
 		// Update the Status of the Job as Submitted
-		callback.updateStatus(jobId, Job.STATUS_SUBMITTED);
+		callback.updateStatus(jobId, Job.STATUS_SUBMITTED, null);
 		// Log the Successful execution
 		piazzaLogger.log(String.format("Received successful response from Piazza for Job %s by User %s.", jobId, userId),
 				Severity.INFORMATIONAL);
