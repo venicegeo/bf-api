@@ -158,10 +158,14 @@ public class JobService {
 		piazzaService.execute(algorithm.getServiceId(), algorithm, creatorUserId, jobId, computeMask, jobName,
 				sceneService.asyncGetActiveScene(sceneId, planetApiKey, true), new JobStatusCallback() {
 					@Override
-					public void updateStatus(String jobId, String status) {
+					public void updateStatus(String jobId, String status, String errorMessage) {
 						Job job = getJob(jobId);
 						job.setStatus(status);
 						updateJob(job);
+						// If the job failed, then ensure that the error message gets recorded
+						if ((status.equals(Job.STATUS_ERROR)) && (errorMessage != null)) {
+							createJobError(job, errorMessage);
+						}
 					}
 				});
 
@@ -481,7 +485,9 @@ public class JobService {
 		 *            The Job ID
 		 * @param status
 		 *            The Status of the Job
+		 * @param errorMessage
+		 *            Error message contents, if status is an error
 		 */
-		public void updateStatus(String jobId, String status);
+		public void updateStatus(String jobId, String status, String errorMessage);
 	}
 }

@@ -89,7 +89,7 @@ public class PiazzaServiceTests {
 
 		callback = new JobStatusCallback() {
 			@Override
-			public void updateStatus(String jobId, String status) {
+			public void updateStatus(String jobId, String status, String errorMessage) {
 				return;
 			}
 		};
