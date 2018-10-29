@@ -87,11 +87,16 @@ public class SceneServiceTests {
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
 		assertEquals(Arrays.asList("multispectral.TIF"), inputFileNames);
 
+		scene.setSceneId("sentinel-planet:abcd");
+		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
+		assertEquals(Arrays.asList("multispectral.TIF"), inputFileNames);
+
 		scene.setSceneId("landsat:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
 		assertEquals(Arrays.asList("coastal.TIF", "swir1.TIF"), inputFileNames);
 
-		scene.setSceneId("sentinel:abcd");
+
+		scene.setSceneId("sentinel-s3:abcd");
 		inputFileNames = this.sceneService.getSceneInputFileNames(scene);
 		assertEquals(Arrays.asList("coastal.JP2", "swir1.JP2"), inputFileNames);
 
@@ -128,11 +133,15 @@ public class SceneServiceTests {
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
 		assertEquals(Arrays.asList("LOCATION_URL"), inputURLs);
 
+		scene.setSceneId("sentinel-planet:abcd");
+		inputURLs = this.sceneService.getSceneInputURLs(scene);
+		assertEquals(Arrays.asList("LOCATION_URL"), inputURLs);
+
 		scene.setSceneId("landsat:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
 		assertEquals(Arrays.asList("COASTAL_URL", "SWIR1_URL"), inputURLs);
 
-		scene.setSceneId("sentinel:abcd");
+		scene.setSceneId("sentinel-s3:abcd");
 		inputURLs = this.sceneService.getSceneInputURLs(scene);
 		assertEquals(Arrays.asList("BLUE_URL", "NIR_URL"), inputURLs);
 

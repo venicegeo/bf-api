@@ -269,6 +269,7 @@ public class SceneService {
 		switch (Scene.parsePlatform(scene.getSceneId())) {
 		case Scene.PLATFORM_PLANET_RAPIDEYE:
 		case Scene.PLATFORM_PLANET_PLANETSCOPE:
+		case Scene.PLATFORM_PLANET_SENTINEL_FROM_PLANET:
 			return Arrays.asList("multispectral.TIF");
 		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
 		case Scene.PLATFORM_PLANET_LANDSAT:
@@ -283,6 +284,7 @@ public class SceneService {
 		switch (Scene.parsePlatform(scene.getSceneId())) {
 		case Scene.PLATFORM_PLANET_RAPIDEYE:
 		case Scene.PLATFORM_PLANET_PLANETSCOPE:
+		case Scene.PLATFORM_PLANET_SENTINEL_FROM_PLANET:
 			return Arrays.asList(scene.getLocationProperty());
 		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
 		case Scene.PLATFORM_PLANET_LANDSAT:
