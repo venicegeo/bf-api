@@ -36,7 +36,8 @@ import com.vividsolutions.jts.geom.Geometry;
 public class Scene {
 	public static final String PLATFORM_PLANET_PLANETSCOPE = "planetscope";
 	public static final String PLATFORM_PLANET_RAPIDEYE = "rapideye";
-	public static final String PLATFORM_PLANET_SENTINEL = "sentinel";
+	public static final String PLATFORM_PLANET_SENTINEL_FROM_PLANET = "sentinel-planet";
+	public static final String PLATFORM_PLANET_SENTINEL_FROM_S3 = "sentinel-s3";
 	public static final String PLATFORM_PLANET_LANDSAT = "landsat";
 	public static final String PLATFORM_LOCALINDEX_LANDSAT = "landsat_pds";
 
