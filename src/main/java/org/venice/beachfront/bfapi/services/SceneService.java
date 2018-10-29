@@ -273,7 +273,7 @@ public class SceneService {
 		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
 		case Scene.PLATFORM_PLANET_LANDSAT:
 			return Arrays.asList("coastal.TIF", "swir1.TIF");
-		case Scene.PLATFORM_PLANET_SENTINEL:
+		case Scene.PLATFORM_PLANET_SENTINEL_FROM_S3:
 			return Arrays.asList("coastal.JP2", "swir1.JP2");
 		}
 		return new ArrayList<>();
@@ -287,7 +287,7 @@ public class SceneService {
 		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
 		case Scene.PLATFORM_PLANET_LANDSAT:
 			return Arrays.asList(scene.getImageBand("coastal"), scene.getImageBand("swir1"));
-		case Scene.PLATFORM_PLANET_SENTINEL:
+		case Scene.PLATFORM_PLANET_SENTINEL_FROM_S3:
 			return Arrays.asList(scene.getImageBand("blue"), scene.getImageBand("nir"));
 		}
 		return new ArrayList<>();
@@ -298,7 +298,8 @@ public class SceneService {
 		case Scene.PLATFORM_PLANET_LANDSAT:
 		case Scene.PLATFORM_PLANET_PLANETSCOPE:
 		case Scene.PLATFORM_PLANET_RAPIDEYE:
-		case Scene.PLATFORM_PLANET_SENTINEL:
+		case Scene.PLATFORM_PLANET_SENTINEL_FROM_PLANET:
+		case Scene.PLATFORM_PLANET_SENTINEL_FROM_S3:
 			return PROVIDER_URL_PLANET;
 		case Scene.PLATFORM_LOCALINDEX_LANDSAT:
 			return PROVIDER_URL_LOCALINDEX;
@@ -308,7 +309,8 @@ public class SceneService {
 
 	public List<String> getEnabledPlatforms() {
 		Set<String> allowedPlatforms = new HashSet<String>(Arrays.asList(Scene.PLATFORM_PLANET_LANDSAT, Scene.PLATFORM_PLANET_PLANETSCOPE,
-				Scene.PLATFORM_PLANET_RAPIDEYE, Scene.PLATFORM_PLANET_SENTINEL, Scene.PLATFORM_LOCALINDEX_LANDSAT));
+				Scene.PLATFORM_PLANET_RAPIDEYE, Scene.PLATFORM_PLANET_SENTINEL_FROM_PLANET,
+				Scene.PLATFORM_PLANET_SENTINEL_FROM_S3, Scene.PLATFORM_LOCALINDEX_LANDSAT));
 		String[] specifiedPlatforms = this.enabledPlatformsConcatenated.split(",");
 		Set<String> calculatedPlatforms = new HashSet<String>();
 
