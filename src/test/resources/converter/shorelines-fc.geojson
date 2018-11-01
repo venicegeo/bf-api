@@ -133,6 +133,7 @@
 			"name": "LC80020522017095LGN00",
 			"resolution": 30,
 			"scene_id": "landsat:LC80020522017095LGN00",
+			"src_horizontal_accuracy": "<10m RMSE",
 			"sensor_name": "Landsat8",
 			"status": "Success",
 			"tide": 0.73751,
