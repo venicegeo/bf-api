@@ -71,6 +71,7 @@ public abstract class AbstractConverter {
 		result.put("tide_min_24h", "tide_min");
 		result.put("tide_max_24h", "tide_max");
 		result.put("sensor_name", "sensor");
+		result.put("src_horizontal_accuracy", "horiz_acc");
 		return result;
 	}
 
