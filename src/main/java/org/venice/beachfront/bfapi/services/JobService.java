@@ -467,7 +467,7 @@ public class JobService {
 			case GEOPACKAGE:
 				return geoPackageConverter.apply(geoJsonBytes);
 			case SHAPEFILE:
-				return shpConverter.apply(geoJsonBytes);
+				return shpConverter.apply(geoJsonBytes, job.getJobName());
 			}
 			throw new UserException("Unknown download data type: " + dataType, HttpStatus.INTERNAL_SERVER_ERROR);
 		}

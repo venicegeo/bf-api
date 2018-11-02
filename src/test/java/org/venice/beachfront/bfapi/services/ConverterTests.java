@@ -55,7 +55,7 @@ public class ConverterTests {
 	@Test
 	public void testEmptyGeometryShapefileConversion() throws UserException {
 		byte[] geoJsonBytes = emptyGeoJson.getBytes();
-		shapefileConverter.apply(geoJsonBytes);
+		shapefileConverter.apply(geoJsonBytes, "Test Name");
 	}
 
 	/**
@@ -64,6 +64,6 @@ public class ConverterTests {
 	@Test
 	public void testShapefileConversion() throws UserException {
 		byte[] geoJsonBytes = shorelinesGeoJson.getBytes();
-		shapefileConverter.apply(geoJsonBytes);
+		shapefileConverter.apply(geoJsonBytes, "Test Name");
 	}
 }

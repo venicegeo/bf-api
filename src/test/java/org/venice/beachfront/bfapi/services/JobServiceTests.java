@@ -265,7 +265,7 @@ public class JobServiceTests {
 		byte[] mockGeoPackageResult = "mock-geopackage-result".getBytes();
 		Mockito.when(this.geoPackageConverter.apply(Mockito.any())).thenReturn(mockGeoPackageResult);
 		byte[] mockShapefileResult = "mock-shapefile-result".getBytes();
-		Mockito.when(this.shpConverter.apply(Mockito.any())).thenReturn(mockShapefileResult);
+		Mockito.when(this.shpConverter.apply(Mockito.any(), Mockito.any())).thenReturn(mockShapefileResult);
 
 		// Test
 		byte[] actualJSONResult = this.jobService.downloadJobData("test-job-id-123", JobService.DownloadDataType.GEOJSON);
