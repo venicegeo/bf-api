@@ -78,7 +78,7 @@ public class ShapefileConverter extends AbstractConverter {
 			// DataStore
 			FileDataStoreFactorySpi factory = new ShapefileDataStoreFactory();
 			File tempDirectory = Files.createTempDir();
-			File shapefile = File.createTempFile(baseFileName, ".shp", tempDirectory);
+			File shapefile = new File(tempDirectory.getAbsolutePath() + File.separator + baseFileName + ".shp");
 			Map<String, Serializable> params = new HashMap<>();
 			params.put("url", shapefile.toURI().toURL());
 			params.put("create spatial index", Boolean.TRUE);
