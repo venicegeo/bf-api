@@ -109,13 +109,14 @@ public class ShapefileConverter extends AbstractConverter {
 				transaction.close();
 			}
 
-			File zipFile = zipResults(shapefile);
+			File zipFile = zipResults(shapefile, tempDirectory);
 
 			// Return the results
 			result = java.nio.file.Files.readAllBytes(zipFile.toPath());
 
 			// Cleanup the temporary directory
-			FileSystemUtils.deleteRecursively(tempDirectory);
+			dataStore.dispose();
+			//FileSystemUtils.deleteRecursively(tempDirectory);
 		} catch (Exception e) {
 			throw new UserException("Failed to export to Shapefile: " + e.getMessage(), e,
 					org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
@@ -123,8 +124,8 @@ public class ShapefileConverter extends AbstractConverter {
 		return result;
 	}
 
-	private File zipResults(File input) throws IOException {
-		File result = File.createTempFile("shorelines", ".zip");
+	private File zipResults(File input, File tempDirectory) throws IOException {
+		File result = new File(tempDirectory.getAbsolutePath() + File.separator + "shorelines.zip");
 
 		byte[] buffer = new byte[1024];
 		try (FileOutputStream fos = new FileOutputStream(result); ZipOutputStream zos = new ZipOutputStream(fos)) {
