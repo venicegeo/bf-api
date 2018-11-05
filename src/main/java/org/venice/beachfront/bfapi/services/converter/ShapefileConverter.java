@@ -24,9 +24,7 @@ import java.io.Serializable;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -42,7 +40,10 @@ import org.geotools.geojson.feature.FeatureJSON;
 import org.geotools.geojson.geom.GeometryJSON;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileSystemUtils;
 import org.venice.beachfront.bfapi.model.exception.UserException;
+
+import com.google.common.io.Files;
 
 /**
  * Implementation of the {@link AbstractConverter} class for Shapefiles.
@@ -57,10 +58,12 @@ public class ShapefileConverter extends AbstractConverter {
 	 *
 	 * @param geojson
 	 *            A byte array containing GeoJSON data
+	 * @param baseFileName
+	 *            The file name to title all of the zipped shapefile sidecar files
 	 * @return A byte array containing SHP data in a .zip
 	 * @throws UserException
 	 */
-	public byte[] apply(byte[] geojson) throws UserException {
+	public byte[] apply(byte[] geojson, String baseFileName) throws UserException {
 		byte[] result = null;
 
 		try {
@@ -74,7 +77,8 @@ public class ShapefileConverter extends AbstractConverter {
 
 			// DataStore
 			FileDataStoreFactorySpi factory = new ShapefileDataStoreFactory();
-			File shapefile = File.createTempFile("shorelines", ".shp");
+			File tempDirectory = Files.createTempDir();
+			File shapefile = new File(tempDirectory.getAbsolutePath() + File.separator + sanitizeFile(baseFileName) + ".shp");
 			Map<String, Serializable> params = new HashMap<>();
 			params.put("url", shapefile.toURI().toURL());
 			params.put("create spatial index", Boolean.TRUE);
@@ -105,13 +109,14 @@ public class ShapefileConverter extends AbstractConverter {
 				transaction.close();
 			}
 
-			File zipFile = zipResults(shapefile);
+			File zipFile = zipResults(shapefile, tempDirectory);
 
 			// Return the results
 			result = java.nio.file.Files.readAllBytes(zipFile.toPath());
 
-			cleanup(shapefile);
-			cleanup(zipFile);
+			// Cleanup the temporary directory
+			dataStore.dispose();
+			FileSystemUtils.deleteRecursively(tempDirectory);
 		} catch (Exception e) {
 			throw new UserException("Failed to export to Shapefile: " + e.getMessage(), e,
 					org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
@@ -119,8 +124,19 @@ public class ShapefileConverter extends AbstractConverter {
 		return result;
 	}
 
-	private File zipResults(File input) throws IOException {
-		File result = File.createTempFile("shorelines", ".zip");
+	/**
+	 * Sanitizes the input Job name, which will be used for the file name of the shapefile sidecars.
+	 * 
+	 * @param baseFileName
+	 *            The unsanitized Job name
+	 * @return The sanitized file name
+	 */
+	private String sanitizeFile(String baseFileName) {
+		return baseFileName.replaceAll("[\\\\\\/:\"*?<>|]+", "");
+	}
+
+	private File zipResults(File input, File tempDirectory) throws IOException {
+		File result = new File(tempDirectory.getAbsolutePath() + File.separator + "shorelines.zip");
 
 		byte[] buffer = new byte[1024];
 		try (FileOutputStream fos = new FileOutputStream(result); ZipOutputStream zos = new ZipOutputStream(fos)) {
@@ -169,26 +185,6 @@ public class ShapefileConverter extends AbstractConverter {
 		return files.toArray(result);
 	}
 
-	/**
-	 * Remove the temporary files that were created
-	 * 
-	 * @param shapefile
-	 * @return the list of files that weren't deleted (possibly useful for error reporting)
-	 */
-	private Set<File> cleanup(File shapefile) {
-
-		final Set<File> result = new HashSet<>();
-		final File folder = new File(shapefile.getParent());
-		final File[] files = folder.listFiles(new FilenameFilter(shapefile.getName()));
-		for (final File file : files) {
-			if (!file.delete()) {
-				System.err.println("Can't remove " + file.getAbsolutePath());
-				result.add(file);
-			}
-		}
-		return result;
-	}
-
 	private class FilenameFilter implements java.io.FilenameFilter {
 		FilenameFilter(String fileName) {
 			this.root = fileName.substring(0, fileName.lastIndexOf('.'));
@@ -198,7 +194,7 @@ public class ShapefileConverter extends AbstractConverter {
 
 		@Override
 		public boolean accept(File dir, String name) {
-			return name.startsWith(root);
+			return ((name.startsWith(root)) && (!name.endsWith(".zip")));
 		}
 	}
 }
