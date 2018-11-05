@@ -109,7 +109,7 @@ public class ShapefileConverter extends AbstractConverter {
 				transaction.close();
 			}
 
-			File zipFile = zipResults(shapefile, tempDirectory);
+			File zipFile = zipResults(shapefile);
 
 			// Return the results
 			result = java.nio.file.Files.readAllBytes(zipFile.toPath());
@@ -123,7 +123,7 @@ public class ShapefileConverter extends AbstractConverter {
 		return result;
 	}
 
-	private File zipResults(File input, File directory) throws IOException {
+	private File zipResults(File input) throws IOException {
 		File result = File.createTempFile("shorelines", ".zip");
 
 		byte[] buffer = new byte[1024];
