@@ -116,7 +116,7 @@ public class ShapefileConverter extends AbstractConverter {
 
 			// Cleanup the temporary directory
 			dataStore.dispose();
-			//FileSystemUtils.deleteRecursively(tempDirectory);
+			FileSystemUtils.deleteRecursively(tempDirectory);
 		} catch (Exception e) {
 			throw new UserException("Failed to export to Shapefile: " + e.getMessage(), e,
 					org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
@@ -183,7 +183,7 @@ public class ShapefileConverter extends AbstractConverter {
 
 		@Override
 		public boolean accept(File dir, String name) {
-			return name.startsWith(root);
+			return ((name.startsWith(root)) && (!name.endsWith(".zip")));
 		}
 	}
 }
