@@ -66,4 +66,13 @@ public class ConverterTests {
 		byte[] geoJsonBytes = shorelinesGeoJson.getBytes();
 		shapefileConverter.apply(geoJsonBytes, "Test Name");
 	}
+
+	/**
+	 * Test conversion of GeoJSON with shoreline geometry with a job name that has invalid path characters.
+	 */
+	@Test
+	public void testInvalidPathConversion() throws UserException {
+		byte[] geoJsonBytes = shorelinesGeoJson.getBytes();
+		shapefileConverter.apply(geoJsonBytes, "Test_Name<>..//\\\"<>");
+	}
 }

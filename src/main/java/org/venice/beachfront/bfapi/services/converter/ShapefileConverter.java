@@ -78,7 +78,7 @@ public class ShapefileConverter extends AbstractConverter {
 			// DataStore
 			FileDataStoreFactorySpi factory = new ShapefileDataStoreFactory();
 			File tempDirectory = Files.createTempDir();
-			File shapefile = new File(tempDirectory.getAbsolutePath() + File.separator + baseFileName + ".shp");
+			File shapefile = new File(tempDirectory.getAbsolutePath() + File.separator + sanitizeFile(baseFileName) + ".shp");
 			Map<String, Serializable> params = new HashMap<>();
 			params.put("url", shapefile.toURI().toURL());
 			params.put("create spatial index", Boolean.TRUE);
@@ -122,6 +122,17 @@ public class ShapefileConverter extends AbstractConverter {
 					org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		return result;
+	}
+
+	/**
+	 * Sanitizes the input Job name, which will be used for the file name of the shapefile sidecars.
+	 * 
+	 * @param baseFileName
+	 *            The unsanitized Job name
+	 * @return The sanitized file name
+	 */
+	private String sanitizeFile(String baseFileName) {
+		return baseFileName.replaceAll("[\\\\\\/:\"*?<>|]+", "");
 	}
 
 	private File zipResults(File input, File tempDirectory) throws IOException {
