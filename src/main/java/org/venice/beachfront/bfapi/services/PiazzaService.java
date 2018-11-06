@@ -108,8 +108,17 @@ public class PiazzaService {
 
 		// Generate the Algorithm CLI
 		// Formulate the URLs for the Scene
-		List<String> fileNames = sceneService.getSceneInputFileNames(scene);
-		List<String> fileUrls = sceneService.getSceneInputURLs(scene);
+		List<String> fileNames;
+		List<String> fileUrls;
+		try {
+			fileNames = sceneService.getSceneInputFileNames(scene);
+			fileUrls = sceneService.getSceneInputURLs(scene);
+		} catch (Exception exception) {
+			exception.printStackTrace();
+			piazzaLogger.log(String.format("Could not get Asset Information for Job %s: %s", jobId, exception.getMessage()), Severity.ERROR);
+			callback.updateStatus(jobId, Job.STATUS_ERROR, "Scene metadata error");
+			return;
+		}
 
 		// Prepare Job Request
 		String algorithmCli = getAlgorithmCli(algorithm.getName(), fileNames, Scene.parsePlatform(scene.getSceneId()), computeMask);
