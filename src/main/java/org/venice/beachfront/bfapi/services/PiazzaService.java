@@ -99,7 +99,7 @@ public class PiazzaService {
 			fileUrls = sceneService.getSceneInputURLs(scene);
 		} catch (Exception exception) {
 			exception.printStackTrace();
-			piazzaLogger.log(String.format("Could get Asset Information for Job %s: %s", jobId, exception.getMessage()), Severity.ERROR);
+			piazzaLogger.log(String.format("Could not get Asset Information for Job %s: %s", jobId, exception.getMessage()), Severity.ERROR);
 			callback.updateStatus(jobId, Job.STATUS_ERROR);
 			return;
 		}
