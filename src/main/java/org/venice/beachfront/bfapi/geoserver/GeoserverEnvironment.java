@@ -15,28 +15,36 @@
  **/
 package org.venice.beachfront.bfapi.geoserver;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import model.logger.Severity;
-import org.apache.http.client.HttpClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.*;
-import util.PiazzaLogger;
-
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.http.client.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import model.logger.Severity;
+import util.PiazzaLogger;
 
 /**
  * Checks the GeoServer Layer, Style during initialization to ensure that they exist before use.
- *
- * @author Russell.Orf
  */
 @Component
 public class GeoserverEnvironment {
@@ -83,7 +91,7 @@ public class GeoserverEnvironment {
 
 		// Check GeoServer Layer
 		{
-			//In GeoServer 2.9 layers can't be accessed by workspace, so use the Geoserver base url.
+			// In GeoServer 2.9 layers can't be accessed by workspace, so use the Geoserver base url.
 			final String layerURL = String.format("%s/rest/layers/%s:%s.json", getGeoServerBaseUrl(), WORKSPACE_NAME, LAYER_NAME);
 
 			if (!doesResourceExist(layerURL)) {
@@ -120,8 +128,8 @@ public class GeoserverEnvironment {
 	}
 
 	/**
-	 * Checks if a GeoServer resource exists (200 OK returns from the server. 404 indicates not exists)
-	 * Note: resourceUri must return valid JSON for the resource to be considered extant.
+	 * Checks if a GeoServer resource exists (200 OK returns from the server. 404 indicates not exists) Note:
+	 * resourceUri must return valid JSON for the resource to be considered extant.
 	 *
 	 * @return True if exists, false if not
 	 */
@@ -229,15 +237,13 @@ public class GeoserverEnvironment {
 	}
 
 	private String getLayerGroupCreationPayload() throws IOException, URISyntaxException {
-		return replaceNameTokens(
-				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/layer_group_creation.xml").toURI()))));
+		return replaceNameTokens(new String(
+				Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/layer_group_creation.xml").toURI()))));
 	}
 
 	private String replaceNameTokens(String original) {
-		return original
-				.replaceAll("WORKSPACE_NAME", WORKSPACE_NAME)
-				.replaceAll("LAYER_NAME", LAYER_NAME)
-				.replaceAll("LAYER_GROUP_NAME", LAYER_GROUP_NAME)
+		return original.replaceAll("WORKSPACE_NAME", WORKSPACE_NAME).replaceAll("LAYER_NAME", LAYER_NAME)
+				.replaceAll("LAYER_GROUP_NAME", LAYER_GROUP_NAME).replaceAll("DATASTORE_NAME", DATASTORE_NAME)
 				.replaceAll("STYLE_NAME", STYLE_NAME);
 	}
 
