@@ -115,7 +115,8 @@ public class PiazzaService {
 			fileUrls = sceneService.getSceneInputURLs(scene);
 		} catch (Exception exception) {
 			exception.printStackTrace();
-			piazzaLogger.log(String.format("Could not get Asset Information for Job %s: %s", jobId, exception.getMessage()), Severity.ERROR);
+			piazzaLogger.log(String.format("Could not get Asset Information for Job %s: %s", jobId, exception.getMessage()),
+					Severity.ERROR);
 			callback.updateStatus(jobId, Job.STATUS_ERROR, "Scene metadata error");
 			return;
 		}
@@ -387,7 +388,36 @@ public class PiazzaService {
 	}
 
 	/**
-	 * Downloads the data for a successful Beachfront Detection Service Job's Metadata..
+	 * Requests deletion of data from Piazza.
+	 * 
+	 * @param dataId
+	 *            The ID of the Data to delete
+	 */
+	public void deleteData(String dataId) throws UserException {
+		try {
+			// Form request
+			String deleteUrl = String.format("%s/data/%s", PIAZZA_URL, dataId);
+			piazzaLogger.log(String.format("Requesting data %s be deleted from Piazza at %s", dataId, deleteUrl), Severity.INFORMATIONAL);
+			HttpHeaders headers = createPiazzaHeaders(PIAZZA_API_KEY);
+			HttpEntity<String> request = new HttpEntity<>(headers);
+			// Request the Deletion
+			restTemplate.exchange(URI.create(deleteUrl), HttpMethod.DELETE, request, String.class);
+			// Log success
+			piazzaLogger.log(String.format("Data %s successfully deleted from Piazza", dataId), Severity.INFORMATIONAL);
+		} catch (HttpClientErrorException | HttpServerErrorException exception) {
+			piazzaLogger.log(String.format("Error Deleting Data %s from Piazza. Failed with Code %s and Body %s", dataId,
+					exception.getStatusText(), exception.getResponseBodyAsString()), Severity.ERROR);
+			throw new UserException("Upstream error deleting data", exception, exception.getStatusCode());
+		} catch (Exception exception) {
+			exception.printStackTrace();
+			piazzaLogger.log(String.format("Unexpected Error Deleting Data %s from Piazza. %s", dataId, exception.getMessage()),
+					Severity.ERROR);
+			throw new UserException("Unexpected error deleting data", exception, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Downloads the data for a successful Beachfront Detection Service Job's Metadata.
 	 * <p>
 	 * The Data will be textual data containing all of the relevent metadata for the Detection job. As part of the
 	 * metadata contained in this Text Data, will be the Identifier to the Piazza Data Item that will contain the
