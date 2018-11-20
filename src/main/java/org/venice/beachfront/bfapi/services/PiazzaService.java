@@ -388,12 +388,28 @@ public class PiazzaService {
 	}
 
 	/**
-	 * Requests deletion of data from Piazza.
+	 * Deletes the Data Item in Piazza that stores the GeoJSON vectors. This is only intended to be called after the
+	 * GeoJSON has been successfully retrieved from Piazza and stored in the Detections table, and thus no longer
+	 * needed.
+	 * <p>
+	 * This method helps keep the database clean from duplicated datasets.
+	 * 
+	 * @param metaDataId
+	 *            The Beachfront ID corresponding with the Piazza metadata job. This will be used to infer the ID of the
+	 *            GeoJSON data item.
+	 */
+	public void deleteGeoJsonJobData(String metaDataId) throws UserException {
+		String geoJsonDataId = getGeoJsonDataIdFromMetadata(metaDataId);
+		deleteData(geoJsonDataId);
+	}
+
+	/**
+	 * Requests deletion of a single Data item from Piazza.
 	 * 
 	 * @param dataId
 	 *            The ID of the Data to delete
 	 */
-	public void deleteData(String dataId) throws UserException {
+	private void deleteData(String dataId) throws UserException {
 		try {
 			// Form request
 			String deleteUrl = String.format("%s/data/%s", PIAZZA_URL, dataId);
@@ -433,23 +449,33 @@ public class PiazzaService {
 		piazzaLogger.log(
 				String.format("Attempting to download GeoJSON data from Successful Job %s with Metadata Data Id %s.", jobId, metaDataId),
 				Severity.INFORMATIONAL);
-		byte[] metadata = downloadData(metaDataId);
-		String geoJsonDataId = null;
-		// Parse the real GeoJSON Data ID from the Metadata block
-		try {
-			JsonNode metadataJson = objectMapper.readTree(metadata);
-			geoJsonDataId = metadataJson.get("OutFiles").get("shoreline.geojson").asText();
-		} catch (IOException exception) {
-			String error = String.format(
-					"There was an error parsing the Detection Metadata for Job %s Metadata Data Id %s. The raw content was: %s", jobId,
-					metaDataId, new String(metadata));
-			piazzaLogger.log(error, Severity.ERROR);
-			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		String geoJsonDataId = getGeoJsonDataIdFromMetadata(metaDataId);
 		// Use the GeoJSON Data ID to fetch the raw GeoJSON Bytes from Piazza
 		piazzaLogger.log(String.format("Fetching GeoJSON for Job %s with Data %s from Piazza.", jobId, geoJsonDataId),
 				Severity.INFORMATIONAL);
 		return downloadData(geoJsonDataId);
+	}
+
+	/**
+	 * Gets the Data ID of the GeoJSON dataset from the Metadata ID
+	 * 
+	 * @param metaDataId
+	 *            The Metadata ID
+	 * @return The GeoJSON Data ID
+	 */
+	private String getGeoJsonDataIdFromMetadata(String metaDataId) throws UserException {
+		byte[] metadata = downloadData(metaDataId);
+		// Parse the real GeoJSON Data ID from the Metadata block
+		try {
+			JsonNode metadataJson = objectMapper.readTree(metadata);
+			return metadataJson.get("OutFiles").get("shoreline.geojson").asText();
+		} catch (IOException exception) {
+			String error = String.format(
+					"There was an error parsing the Detection Metadata for Metadata Data Id %s. The raw content was: %s", metaDataId,
+					new String(metadata));
+			piazzaLogger.log(error, Severity.ERROR);
+			throw new UserException(error, exception, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	/**
