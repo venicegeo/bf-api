@@ -208,7 +208,7 @@ public class JobPoller {
 							String.format("Successfully recorded Detection geometry for Job %s and marking as Success.", job.getJobId()),
 							Severity.INFORMATIONAL);
 					try {
-						// Clean up the Piazza job is this local detection store has been successful
+						// Clean up the Piazza job if this local detection store has been successful
 						piazzaService.deleteGeoJsonJobData(status.getDataId());
 					} catch (Exception exception) {
 						piazzaLogger.log(String.format("Couldn't clean up Piazza GeoJSON bytes for successful Job %s with Data ID %s.",
