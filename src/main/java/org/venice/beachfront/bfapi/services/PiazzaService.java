@@ -458,6 +458,10 @@ public class PiazzaService {
 
 	/**
 	 * Gets the Data ID of the GeoJSON dataset from the Metadata ID
+	 * <p>
+	 * Piazza stores two Data IDs for each Beachfront Job. One data item stores the textual metadata of the job run,
+	 * which contains an ID pointer to the second data item - which contains the raw GeoJSON bytes.
+	 * <p>
 	 * 
 	 * @param metaDataId
 	 *            The Metadata ID
