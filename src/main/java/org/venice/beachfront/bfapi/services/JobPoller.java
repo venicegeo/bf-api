@@ -207,6 +207,13 @@ public class JobPoller {
 					piazzaLogger.log(
 							String.format("Successfully recorded Detection geometry for Job %s and marking as Success.", job.getJobId()),
 							Severity.INFORMATIONAL);
+					try {
+						// Clean up the Piazza job if this local detection store has been successful
+						piazzaService.deleteGeoJsonJobData(status.getDataId());
+					} catch (Exception exception) {
+						piazzaLogger.log(String.format("Couldn't clean up Piazza GeoJSON bytes for successful Job %s with Data ID %s.",
+								job.getJobId(), status.getDataId()), Severity.WARNING);
+					}
 				} catch (IOException exception) {
 					piazzaLogger.log(String.format("Job %s failed because of an internal error while reading the detection geometry.",
 							job.getJobId()), Severity.ERROR);
