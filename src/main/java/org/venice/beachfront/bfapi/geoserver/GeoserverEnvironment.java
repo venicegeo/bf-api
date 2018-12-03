@@ -15,6 +15,7 @@
  **/
 package org.venice.beachfront.bfapi.geoserver;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -228,17 +229,17 @@ public class GeoserverEnvironment {
 
 	private String getLayerCreationPayload() throws IOException, URISyntaxException {
 		return replaceNameTokens(
-				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/layer_creation.xml").toURI()))));
+				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver" + File.separator + "layer_creation.xml").toURI()))));
 	}
 
 	private String getStyleCreationPayload() throws IOException, URISyntaxException {
 		return replaceNameTokens(
-				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/style_creation.xml").toURI()))));
+				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver" + File.separator + "style_creation.xml").toURI()))));
 	}
 
 	private String getLayerGroupCreationPayload() throws IOException, URISyntaxException {
 		return replaceNameTokens(new String(
-				Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver/layer_group_creation.xml").toURI()))));
+				Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver" + File.separator + "layer_group_creation.xml").toURI()))));
 	}
 
 	private String replaceNameTokens(String original) {
