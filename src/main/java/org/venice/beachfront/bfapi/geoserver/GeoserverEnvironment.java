@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.client.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -229,17 +230,17 @@ public class GeoserverEnvironment {
 
 	private String getLayerCreationPayload() throws IOException, URISyntaxException {
 		return replaceNameTokens(
-				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver" + File.separator + "layer_creation.xml").toURI()))));
+				IOUtils.toString(getClass().getClassLoader().getResourceAsStream("geoserver" + File.separator + "layer_creation.xml")));
 	}
 
 	private String getStyleCreationPayload() throws IOException, URISyntaxException {
 		return replaceNameTokens(
-				new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver" + File.separator + "style_creation.xml").toURI()))));
+				IOUtils.toString(getClass().getClassLoader().getResourceAsStream("geoserver" + File.separator + "style_creation.xml")));
 	}
 
 	private String getLayerGroupCreationPayload() throws IOException, URISyntaxException {
-		return replaceNameTokens(new String(
-				Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("geoserver" + File.separator + "layer_group_creation.xml").toURI()))));
+		return replaceNameTokens(IOUtils
+				.toString(getClass().getClassLoader().getResourceAsStream("geoserver" + File.separator + "layer_group_creation.xml")));
 	}
 
 	private String replaceNameTokens(String original) {
