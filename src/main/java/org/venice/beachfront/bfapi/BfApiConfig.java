@@ -264,6 +264,7 @@ public class BfApiConfig {
 	    protected void configure(HttpSecurity http) throws Exception {
 	        http.authorizeRequests()
 	            .antMatchers("/**").permitAll();
+	        http.csrf().disable();
 	    }
 	}
 
