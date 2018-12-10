@@ -17,6 +17,8 @@ package org.venice.beachfront.bfapi.services;
 
 import java.util.Arrays;
 
+import javax.annotation.PostConstruct;
+
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +49,20 @@ public class UserProfileService {
 	private PiazzaLogger piazzaLogger;
 	@Autowired
 	private Environment environment;
+
+	@PostConstruct
+	public void initializeAnonymousUser() {
+		if (Arrays.asList(environment.getActiveProfiles()).contains("insecure")) {
+			piazzaLogger.log("Insecure profile detected. Verifying Mock User in database.", Severity.INFORMATIONAL);
+			// In the case of insecure profile, initialize the Test User profile.
+			UserProfile mockProfile = getMockProfile();
+			if (getUserProfileById(mockProfile.getUserId()) == null) {
+				piazzaLogger.log("Inserting Mock User into database.", Severity.INFORMATIONAL);
+				saveUserProfile(getMockProfile());
+			}
+			piazzaLogger.log("Mock User initialized.", Severity.INFORMATIONAL);
+		}
+	}
 
 	public void saveUserProfile(UserProfile userProfile) {
 		userProfileDao.save(userProfile);
