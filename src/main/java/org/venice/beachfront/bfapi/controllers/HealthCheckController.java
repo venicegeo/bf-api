@@ -102,7 +102,7 @@ public class HealthCheckController {
 	@ResponseBody
 	public byte[] getPlanetApplication() throws UserException {
 		try {
-			return IOUtils.toByteArray(getClass().getClassLoader().getResourceAsStream("application" + File.separator + "planet.xlsx"));
+			return IOUtils.toByteArray(getClass().getClassLoader().getResourceAsStream("applications" + File.separator + "planet.xlsx"));
 		} catch (Exception exception) {
 			throw new UserException("Error downloading application.", exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
