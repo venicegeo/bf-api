@@ -15,11 +15,14 @@
  **/
 package org.venice.beachfront.bfapi.controllers;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -99,6 +102,17 @@ public class HealthCheckController {
 					String.format("There was an error retrieving Algorithm health check data: %s", exception.getMessage()));
 		}
 		return healthCheckData;
+	}
+
+	@RequestMapping(path = "/application/planet", method = RequestMethod.GET, produces = {
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+	@ResponseBody
+	public byte[] getPlanetApplication() throws UserException {
+		try {
+			return IOUtils.toByteArray(getClass().getClassLoader().getResourceAsStream("application" + File.separator + "planet.xlsx"));
+		} catch (Exception exception) {
+			throw new UserException("Error downloading application.", exception, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 }
