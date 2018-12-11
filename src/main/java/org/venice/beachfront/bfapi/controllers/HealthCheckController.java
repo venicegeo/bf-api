@@ -15,11 +15,14 @@
  **/
 package org.venice.beachfront.bfapi.controllers;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -31,15 +34,14 @@ import org.venice.beachfront.bfapi.services.JobService;
 import org.venice.beachfront.bfapi.services.PiazzaService;
 import org.venice.beachfront.bfapi.services.UptimeService;
 
-import model.logger.Severity;
-import util.PiazzaLogger;
-
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import model.logger.Severity;
+import util.PiazzaLogger;
 
 /**
  * Controller class for a simple health check endpoint.
@@ -60,7 +62,7 @@ public class HealthCheckController {
 
 	@Autowired
 	private PiazzaLogger piazzaLogger;
-	
+
 	@Value("${DOMAIN}")
 	private String domain;
 
@@ -84,15 +86,26 @@ public class HealthCheckController {
 			}
 			// Show outstanding Job length
 			healthCheckData.put("outstanding-jobs", Integer.toString(jobService.getOutstandingJobs().size()));
-			
+
 			piazzaLogger.log(String.format("Health and status check called. Returning status of %s.", healthCheckData.toString()),
 					Severity.INFORMATIONAL);
-			
+
 		} catch (UserException exception) {
 			healthCheckData.put("error",
 					String.format("There was an error retrieving Algorithm health check data: %s", exception.getMessage()));
 		}
 		return healthCheckData;
+	}
+
+	@RequestMapping(path = "/application/planet", method = RequestMethod.GET, produces = {
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+	@ResponseBody
+	public byte[] getPlanetApplication() throws UserException {
+		try {
+			return IOUtils.toByteArray(getClass().getClassLoader().getResourceAsStream("application" + File.separator + "planet.xlsx"));
+		} catch (Exception exception) {
+			throw new UserException("Error downloading application.", exception, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 }

@@ -19,6 +19,7 @@ node {
     dir(configDir) {
       git url: "${env.CONFIGURATION_URL}", credentialsId: "${env.CONFIGURATION_CREDS}"
       sh "mv ${configDir}/${ENVIRONMENT}-config.json ${configFile}"
+      sh "mv ${configDir}/application ${root}"
       deleteDir()
     }
     // read the current configuration
@@ -181,6 +182,13 @@ node {
     def artifactDirectory = "maven-artifact"
     sh "mkdir -p ${root}/${artifactDirectory}"
     def tarball = "${appName}.tar.gz"
+    
+    // Inject the application into the JAR
+    def applicationDirectory = "src/main/resources/application"
+    sh "mkdir ${applicationDirectory}"
+    sh "mv ${root}/application/${env.PLANET_APPLICATION_FILE_NAME} ${applicationDirectory}/planet.xlsx"
+    
+     // Build
     withCredentials([file(credentialsId: "${env.JKS_FILE}", variable: 'JKS')]) {
       sh """
         [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/piazza.jks
