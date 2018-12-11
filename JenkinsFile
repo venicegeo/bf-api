@@ -201,7 +201,7 @@ node {
     def tarball = "${appName}.tar.gz"
     
     // Inject the application into the JAR
-    def applicationDirectory = "${root}/src/main/resources/application"
+    def applicationDirectory = "${root}/src/main/resources/applications"
     sh "mkdir ${applicationDirectory}"
     sh "mv ${root}/applications/${env.PLANET_APPLICATION_FILE_NAME} ${applicationDirectory}/planet.xlsx"
 
