@@ -4,7 +4,8 @@ node {
   def appName = "bf-api"
   def artifactName = "bf-api-2.0.0.jar"
   def mvn = tool 'M3'
-  def root = pwd()
+  def workDir = pwd()
+  def root = "${workDir}/bf-api"
   def zapHome = tool 'ZAProxy_v2_5_0'
   def nodejs = tool 'NodeJS_6'
   def sonar = tool 'SonarQube Runner 2.8'
@@ -13,18 +14,21 @@ node {
   def archiveName = '' // Fill during Archive stage
 
   stage("Config") {
-    // clone the configuration repository and copy the current configuration
-    def configDir = "${root}/configuration"
-    def configFile = "${root}/config.json"
-    dir(configDir) {
-      git url: "${env.CONFIGURATION_URL}", credentialsId: "${env.CONFIGURATION_CREDS}"
-      sh "mv ${configDir}/${ENVIRONMENT}-config.json ${configFile}"
-      deleteDir()
-    }
-    // read the current configuration
-    def configJson = readJSON file: "${configFile}"
-    for (param in configJson.credparams + configJson.jobparams) { 
-      env."${param.name}" = (param.type == "booleanParam") ? "${param.defaultvalue}".toBoolean() : "${param.defaultvalue}"
+    dir("${root}") {
+      // clone the configuration repository and copy the current configuration
+      def configDir = "${root}/configuration"
+      def configFile = "${root}/config.json"
+      dir(configDir) {
+        git url: "${env.CONFIGURATION_URL}", credentialsId: "${env.CONFIGURATION_CREDS}"
+        sh "mv ${configDir}/${ENVIRONMENT}-config.json ${configFile}"
+        sh "mv ${configDir}/applications ${workDir}"
+        deleteDir()
+      }
+      // read the current configuration
+      def configJson = readJSON file: "${configFile}"
+      for (param in configJson.credparams + configJson.jobparams) { 
+        env."${param.name}" = (param.type == "booleanParam") ? "${param.defaultvalue}".toBoolean() : "${param.defaultvalue}"
+      }
     }
   }
   
@@ -58,81 +62,83 @@ node {
   // Deploy and integration test function abstractions
 
   def deployPhase = { String pcfSpace, String pcfDomain, String deployAppName ->
-    if(!fileExists('.cf')) {
-      sh "mkdir -p .cf"
-    }
+    dir("${root}") {
+      if(!fileExists('.cf')) {
+        sh "mkdir -p .cf"
+      }
 
-    def piazzaApiKey = getPiazzaApiKey(pcfDomain)
+      def piazzaApiKey = getPiazzaApiKey(pcfDomain)
 
-    withEnv(["CF_HOME=.cf"]) {
-      withCredentials([
-      [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
-      [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
-      [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"],
-      [$class: 'StringBinding', credentialsId: "${env.JKS_PASSPHRASE}", variable: "JKS_PASSPHRASE"],
-      [$class: 'StringBinding', credentialsId: "${env.PZ_PASSPHRASE}", variable: "PZ_PASSPHRASE"]
-      ]) {
-        sh """
-          cf api ${env.PCF_API_ENDPOINT}
-          cf auth ${CFUSER} ${CFPASS}
-          cf target -o ${env.PCF_ORG} -s ${pcfSpace}
-          cf push ${deployAppName} -f manifest.jenkins.yml --hostname ${deployAppName} -b ${env.JAVA_BUILDPACK_NAME} -d ${pcfDomain} --no-start
-        """
-        try {
+      withEnv(["CF_HOME=.cf"]) {
+        withCredentials([
+        [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"],
+        [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_CLIENT_ID}", variable: "GEOAXIS_CLIENT_ID"],
+        [$class: 'StringBinding', credentialsId: "${env.GEOAXIS_SECRET}", variable: "GEOAXIS_SECRET"],
+        [$class: 'StringBinding', credentialsId: "${env.JKS_PASSPHRASE}", variable: "JKS_PASSPHRASE"],
+        [$class: 'StringBinding', credentialsId: "${env.PZ_PASSPHRASE}", variable: "PZ_PASSPHRASE"]
+        ]) {
           sh """
-            cf set-env ${fullAppName} SPACE ${pcfSpace}
-            cf set-env ${fullAppName} DOMAIN ${pcfDomain}
-            cf set-env ${fullAppName} PIAZZA_API_KEY ${piazzaApiKey}
-            cf set-env ${fullAppName} OAUTH_AUTH_DOMAIN ${env.GEOAXIS_AUTH_DOMAIN}
-            cf set-env ${fullAppName} OAUTH_API_DOMAIN ${env.GEOAXIS_DOMAIN}
-            cf set-env ${fullAppName} OAUTH_LOGOUT_DOMAIN ${env.GEOAXIS_LOGOUT_DOMAIN}
-            cf set-env ${fullAppName} OAUTH_CLIENT_ID ${GEOAXIS_CLIENT_ID}
-            cf set-env ${fullAppName} OAUTH_SECRET ${GEOAXIS_SECRET}
-            cf set-env ${fullAppName} JKS_FILE piazza.jks
-            cf set-env ${fullAppName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
-            cf set-env ${fullAppName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
-            cf set-env ${fullAppName} exit.on.geoserver.provision.failure ${env.EXIT_ON_GEOSERVER_PROVISION_FAILURE}
+            cf api ${env.PCF_API_ENDPOINT}
+            cf auth ${CFUSER} ${CFPASS}
+            cf target -o ${env.PCF_ORG} -s ${pcfSpace}
+            cf push ${deployAppName} -f manifest.jenkins.yml --hostname ${deployAppName} -b ${env.JAVA_BUILDPACK_NAME} -d ${pcfDomain} --no-start
           """
-          if (env.USE_GEOSERVER_PKI_AUTH.toBoolean()) {
-             sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
-          } else {
-             sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,basic-geoserver-auth"
+          try {
+            sh """
+              cf set-env ${fullAppName} SPACE ${pcfSpace}
+              cf set-env ${fullAppName} DOMAIN ${pcfDomain}
+              cf set-env ${fullAppName} PIAZZA_API_KEY ${piazzaApiKey}
+              cf set-env ${fullAppName} OAUTH_AUTH_DOMAIN ${env.GEOAXIS_AUTH_DOMAIN}
+              cf set-env ${fullAppName} OAUTH_API_DOMAIN ${env.GEOAXIS_DOMAIN}
+              cf set-env ${fullAppName} OAUTH_LOGOUT_DOMAIN ${env.GEOAXIS_LOGOUT_DOMAIN}
+              cf set-env ${fullAppName} OAUTH_CLIENT_ID ${GEOAXIS_CLIENT_ID}
+              cf set-env ${fullAppName} OAUTH_SECRET ${GEOAXIS_SECRET}
+              cf set-env ${fullAppName} JKS_FILE piazza.jks
+              cf set-env ${fullAppName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
+              cf set-env ${fullAppName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
+              cf set-env ${fullAppName} exit.on.geoserver.provision.failure ${env.EXIT_ON_GEOSERVER_PROVISION_FAILURE}
+            """
+            if (env.USE_GEOSERVER_PKI_AUTH.toBoolean()) {
+               sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
+            } else {
+               sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,basic-geoserver-auth"
+            }
+            sh "cf start ${deployAppName}"
+          } catch (Exception e) {
+            printLogsFailsafe deployAppName
+            sh "cf delete ${deployAppName} -f -r"
+            error("Error during application start. Deleting ${deployAppName} and failing the build.")
           }
-          sh "cf start ${deployAppName}"
-        } catch (Exception e) {
-          printLogsFailsafe deployAppName
-          sh "cf delete ${deployAppName} -f -r"
-          error("Error during application start. Deleting ${deployAppName} and failing the build.")
         }
       }
-    }
 
-    if(!env.SKIP_SCANS.toBoolean()) {
-      withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
-        sh """
-          mkdir -p ${root}/zap-out
-          ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${deployAppName}.${pcfDomain}
-          cat ${root}/zap-out/zap.xml
-          /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/latest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
-        """
+      if(!env.SKIP_SCANS.toBoolean()) {
+        withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
+          sh """
+            mkdir -p ${root}/zap-out
+            ${zapHome}/zap.sh -cmd -quickout ${root}/zap-out/zap.xml -quickurl https://${deployAppName}.${pcfDomain}
+            cat ${root}/zap-out/zap.xml
+            /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/latest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
+          """
+        }
       }
-    }
 
-    withEnv(["CF_HOME=.cf"]) {
-      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]]) {
-        sh """
-          cf api ${env.PCF_API_ENDPOINT}
-          cf auth ${CFUSER} ${CFPASS}
-          cf target -o ${env.PCF_ORG} -s ${pcfSpace}
-        """
-        def legacyAppNames = sh(script: """cf routes | grep \"${appName} \" | awk '{print \$4}'""", returnStdout: true)
-        sh "cf map-route ${deployAppName} ${pcfDomain} --hostname ${appName}"
-        // Remove legacy applications
-        for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
-          def legacyAppName = legacyApp.toString().trim()
-          if(legacyAppName != appName && legacyAppName != deployAppName) {
-            sh "cf unmap-route ${legacyAppName} ${pcfDomain} --hostname ${appName}"
-            sh "cf delete -f ${legacyAppName} -r"
+      withEnv(["CF_HOME=.cf"]) {
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]]) {
+          sh """
+            cf api ${env.PCF_API_ENDPOINT}
+            cf auth ${CFUSER} ${CFPASS}
+            cf target -o ${env.PCF_ORG} -s ${pcfSpace}
+          """
+          def legacyAppNames = sh(script: """cf routes | grep \"${appName} \" | awk '{print \$4}'""", returnStdout: true)
+          sh "cf map-route ${deployAppName} ${pcfDomain} --hostname ${appName}"
+          // Remove legacy applications
+          for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+            def legacyAppName = legacyApp.toString().trim()
+            if(legacyAppName != appName && legacyAppName != deployAppName) {
+              sh "cf unmap-route ${legacyAppName} ${pcfDomain} --hostname ${appName}"
+              sh "cf delete -f ${legacyAppName} -r"
+            }
           }
         }
       }
@@ -140,23 +146,25 @@ node {
   }
 
   def integrationTestPhase = { String pcfSpace, String pcfDomain ->
-    if(!fileExists("integration-tests")) {
-      sh "mkdir -p integration-tests"
-    }
-    // Clone Test Repository
-    withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
-      withEnv([
-        "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
-        "PCF_SPACE=${pcfSpace}", "HOME=${WORKSPACE}"
-        ]) {
-        dir ("integration-tests") {
-          if(env.INTEGRATION_GITLAB_CREDS) {
-            git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}", credentialsId: "${env.INTEGRATION_GITLAB_CREDS}"
-          } else {
-            git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}"
+    dir("${root}") {
+      if(!fileExists("integration-tests")) {
+        sh "mkdir -p integration-tests"
+      }
+      // Clone Test Repository
+      withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
+        withEnv([
+          "PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin",
+          "PCF_SPACE=${pcfSpace}", "HOME=${WORKSPACE}"
+          ]) {
+          dir ("integration-tests") {
+            if(env.INTEGRATION_GITLAB_CREDS) {
+              git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}", credentialsId: "${env.INTEGRATION_GITLAB_CREDS}"
+            } else {
+              git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}"
+            }
+            sh "npm install newman@2"
+            sh "/bin/bash ci/beachfront.sh"
           }
-          sh "npm install newman@2"
-          sh "/bin/bash ci/beachfront.sh"
         }
       }
     }
@@ -165,6 +173,7 @@ node {
   // Actual pipeline stages
 
   stage('Setup') {
+    dir("${root}") {
       deleteDir()
       if(env.USE_GIT_CREDS.toBoolean()) {
           git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
@@ -174,68 +183,80 @@ node {
       appVersion = sh(script: """git describe --long --tags --always | sed 's/\\./-/'g""", returnStdout: true)
       appVersion = appVersion.trim()
       fullAppName = "${appName}-${appVersion}"
+    }
   }
 
   stage("Archive") {
-    def targetFiles = "${appName}.jar manifest.jenkins.yml"
-    def artifactDirectory = "maven-artifact"
-    sh "mkdir -p ${root}/${artifactDirectory}"
-    def tarball = "${appName}.tar.gz"
-    withCredentials([file(credentialsId: "${env.JKS_FILE}", variable: 'JKS')]) {
-      sh """
-        [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/piazza.jks
-        sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml
-        ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
-        cp ${root}/target/${artifactName} ${root}/${appName}.jar
-        [ -f "\$JKS" ] || rm -f \$JKS
-        tar cvvzf ${tarball} ${targetFiles}
-        mv ${tarball} ${root}/${artifactDirectory}/${tarball}
-      """
-    }
+    dir("${root}") {
+      def targetFiles = "${appName}.jar manifest.jenkins.yml"
+      def artifactDirectory = "maven-artifact"
+      sh "mkdir -p ${root}/${artifactDirectory}"
+      def tarball = "${appName}.tar.gz"
+      
+      // Inject the application into the JAR
+      def applicationDirectory = "${root}/src/main/resources/applications"
+      sh "mkdir ${applicationDirectory}"
+      sh "mv ${workDir}/applications/${env.PLANET_APPLICATION_FILE_NAME} ${applicationDirectory}/planet.xlsx"
+      
+       // Build
+      withCredentials([file(credentialsId: "${env.JKS_FILE}", variable: 'JKS')]) {
+        sh """
+          [ -z "\$JKS" ] || mv \$JKS ${root}/src/main/resources/piazza.jks
+          sed -i 's,\${env.ARTIFACT_STORAGE_URL},${env.ARTIFACT_STORAGE_URL},g' pom.xml
+          ${mvn}/bin/mvn clean package -U -Dmaven.repo.local=${root}
+          cp ${root}/target/${artifactName} ${root}/${appName}.jar
+          [ -f "\$JKS" ] || rm -f \$JKS
+          tar cvvzf ${tarball} ${targetFiles}
+          mv ${tarball} ${root}/${artifactDirectory}/${tarball}
+        """
+      }
 
-    // Check if exists already
-    def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
-      -Dmaven.repo.local="${root}/.m2/repository" \
-      -DrepositoryId=nexus \
-      -DartifactId=${appName} \
-      -Dversion=${appVersion} \
-      -DgroupId="org.venice.beachfront" \
-      -Dpackaging=tar.gz \
-      -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
-      >> /dev/null 2>&1 \
-    """, returnStatus: true)
-    if (getDependencyStatus == 0) {
-        echo "Artifact ${appName} version ${appVersion} exists in Nexus, nothing to do"
-    } else {
-        // Deploy file
-        sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${root}/${artifactDirectory}/${tarball} \
-        -DrepositoryId=nexus \
-        -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
-        -DgroupId="org.venice.beachfront" \
-        -DgeneratePom=false \
-        -Dpackaging=tar.gz \
+      // Check if exists already
+      def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
         -Dmaven.repo.local="${root}/.m2/repository" \
+        -DrepositoryId=nexus \
         -DartifactId=${appName} \
         -Dversion=${appVersion} \
-        """
+        -DgroupId="org.venice.beachfront" \
+        -Dpackaging=tar.gz \
+        -DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+        >> /dev/null 2>&1 \
+      """, returnStatus: true)
+      if (getDependencyStatus == 0) {
+          echo "Artifact ${appName} version ${appVersion} exists in Nexus, nothing to do"
+      } else {
+          // Deploy file
+          sh """mvn -X --quiet --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${root}/${artifactDirectory}/${tarball} \
+          -DrepositoryId=nexus \
+          -Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+          -DgroupId="org.venice.beachfront" \
+          -DgeneratePom=false \
+          -Dpackaging=tar.gz \
+          -Dmaven.repo.local="${root}/.m2/repository" \
+          -DartifactId=${appName} \
+          -Dversion=${appVersion} \
+          """
+      }
     }
   }
   
   if(!env.SKIP_SCANS.toBoolean()) {
-	  stage('Scans') {
-		withCredentials([[$class: "StringBinding", credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
-		  // Dependency Checker
-      def depHome = tool 'owasp_dependency_check'
-      withEnv(["PATH+=${depHome}/bin"]) {
-        sh 'dependency-check.sh --project "bf-api" --scan "." --format "XML" --enableExperimental --disableBundleAudit'
-        sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/latest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+    dir("${root}") {
+      stage('Scans') {
+        withCredentials([[$class: "StringBinding", credentialsId: "${env.THREADFIX_API_KEY}", variable: "THREADFIX_KEY"]]) {
+          // Dependency Checker
+          def depHome = tool 'owasp_dependency_check'
+          withEnv(["PATH+=${depHome}/bin"]) {
+            sh 'dependency-check.sh --project "bf-api" --scan "." --format "XML" --enableExperimental --disableBundleAudit'
+            sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml ${env.THREADFIX_URL}/rest/latest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+          }
+          // Fortify
+          sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} src/main/java/{*.java,**/*.java}"
+          sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
+          sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/latest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+        }
       }
-		  // Fortify
-      sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} src/main/java/{*.java,**/*.java}"
-      sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx1G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-		  sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr ${env.THREADFIX_URL}/rest/latest/applications/${env.THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
-		}
-   }
+    }
   }
 
   stage("Phase One Deploy") {
