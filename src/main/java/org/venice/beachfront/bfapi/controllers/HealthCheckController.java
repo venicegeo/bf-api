@@ -111,7 +111,7 @@ public class HealthCheckController {
 		try {
 			return IOUtils.toByteArray(getClass().getClassLoader().getResourceAsStream("application" + File.separator + "planet.xlsx"));
 		} catch (Exception exception) {
-			throw new UserException("Error finding application.", exception, HttpStatus.INTERNAL_SERVER_ERROR);
+			throw new UserException("Error downloading application.", exception, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
