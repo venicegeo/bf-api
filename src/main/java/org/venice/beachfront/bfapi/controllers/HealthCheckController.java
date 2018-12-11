@@ -63,9 +63,11 @@ public class HealthCheckController {
 
 	@Autowired
 	private PiazzaLogger piazzaLogger;
-	
+
 	@Value("${DOMAIN}")
 	private String domain;
+	@Value("${geoserver.proxy.url}")
+	private String geoserverProxyUrl;
 
 	@RequestMapping(path = "/", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
@@ -78,7 +80,7 @@ public class HealthCheckController {
 		// Show uptime
 		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
 		healthCheckData.put("geoserver-upstream", geoserverEnvironment.getGeoServerBaseUrl());
-		healthCheckData.put("geoserver", String.format("https://bf-api.%s/geoserver", domain));
+		healthCheckData.put("geoserver", geoserverProxyUrl);
 		healthCheckData.put("enabled-platforms", sceneService.getEnabledPlatforms());
 		try {
 			// Show algorithm Job Queue length as reported by Piazza
@@ -88,10 +90,10 @@ public class HealthCheckController {
 			}
 			// Show outstanding Job length
 			healthCheckData.put("outstanding-jobs", Integer.toString(jobService.getOutstandingJobs().size()));
-			
+
 			piazzaLogger.log(String.format("Health and status check called. Returning status of %s.", healthCheckData.toString()),
 					Severity.INFORMATIONAL);
-			
+
 		} catch (UserException exception) {
 			healthCheckData.put("error",
 					String.format("There was an error retrieving Algorithm health check data: %s", exception.getMessage()));
