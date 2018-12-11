@@ -66,7 +66,7 @@ public class HealthCheckController {
 
 	@Value("${DOMAIN}")
 	private String domain;
-	@Value("${geoserver.proxy.url:}")
+	@Value("${geoserver.proxy.url}")
 	private String geoserverProxyUrl;
 
 	@RequestMapping(path = "/", method = RequestMethod.GET, produces = { "application/json" })
@@ -80,8 +80,7 @@ public class HealthCheckController {
 		// Show uptime
 		healthCheckData.put("uptime", Double.toString(uptimeService.getUptimeSeconds()));
 		healthCheckData.put("geoserver-upstream", geoserverEnvironment.getGeoServerBaseUrl());
-		healthCheckData.put("geoserver",
-				geoserverProxyUrl.isEmpty() ? String.format("https://bf-api.%s/geoserver", domain) : geoserverProxyUrl);
+		healthCheckData.put("geoserver", geoserverProxyUrl);
 		healthCheckData.put("enabled-platforms", sceneService.getEnabledPlatforms());
 		try {
 			// Show algorithm Job Queue length as reported by Piazza
