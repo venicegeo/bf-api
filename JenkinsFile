@@ -98,11 +98,11 @@ node {
               cf set-env ${fullAppName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
               cf set-env ${fullAppName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
               cf set-env ${fullAppName} exit.on.geoserver.provision.failure ${env.EXIT_ON_GEOSERVER_PROVISION_FAILURE}
-              cf set-env ${fullAppName} geoserver.workspace.name=piazza ${env.GEOSERVER_WORKSPACE_NAME}
-              cf set-env ${fullAppName} geoserver.datastore.name=piazza ${env.GEOSERVER_DATASTORE_NAME}
-              cf set-env ${fullAppName} geoserver.layer.name=__beachfront__geoserver ${env.GEOSERVER_LAYER_NAME}
-              cf set-env ${fullAppName} geoserver.layergroup.name=bfdetections ${env.GEOSERVER_LAYERGROUP_NAME}
-              cf set-env ${fullAppName} geoserver.style.name=bfdetections_jobid_filter ${env.GEOSERVER_STYLE_NAME}
+              cf set-env ${fullAppName} geoserver.workspace.name ${env.GEOSERVER_WORKSPACE_NAME}
+              cf set-env ${fullAppName} geoserver.datastore.name ${env.GEOSERVER_DATASTORE_NAME}
+              cf set-env ${fullAppName} geoserver.layer.name ${env.GEOSERVER_LAYER_NAME}
+              cf set-env ${fullAppName} geoserver.layergroup.name ${env.GEOSERVER_LAYERGROUP_NAME}
+              cf set-env ${fullAppName} geoserver.style.name ${env.GEOSERVER_STYLE_NAME}
             """
             if (env.USE_GEOSERVER_PKI_AUTH.toBoolean()) {
                sh "cf set-env ${fullAppName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
