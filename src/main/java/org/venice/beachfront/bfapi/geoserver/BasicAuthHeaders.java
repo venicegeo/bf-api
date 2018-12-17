@@ -39,7 +39,9 @@ public class BasicAuthHeaders extends HttpHeaders implements AuthHeaders {
 		final byte[] credentialBytes = plainCredentials.getBytes();
 		final byte[] encodedCredentials = Base64.encodeBase64(credentialBytes);
 		final String credentials = new String(encodedCredentials);
-		add(HttpHeaders.AUTHORIZATION, "Basic " + credentials);
+		if (get(HttpHeaders.AUTHORIZATION) == null) {
+			add(HttpHeaders.AUTHORIZATION, "Basic " + credentials);
+		}
 
 		return this;
 	}
