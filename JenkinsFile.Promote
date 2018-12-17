@@ -117,11 +117,11 @@ node {
             cf set-env ${appName} JKS_PASSPHRASE ${JKS_PASSPHRASE}
             cf set-env ${appName} PZ_PASSPHRASE ${PZ_PASSPHRASE}
             cf set-env ${appName} exit.on.geoserver.provision.failure ${env.EXIT_ON_GEOSERVER_PROVISION_FAILURE}
-            cf set-env ${fullAppName} geoserver.workspace.name ${env.GEOSERVER_WORKSPACE_NAME}
-            cf set-env ${fullAppName} geoserver.datastore.name ${env.GEOSERVER_DATASTORE_NAME}
-            cf set-env ${fullAppName} geoserver.layer.name ${env.GEOSERVER_LAYER_NAME}
-            cf set-env ${fullAppName} geoserver.layergroup.name ${env.GEOSERVER_LAYERGROUP_NAME}
-            cf set-env ${fullAppName} geoserver.style.name ${env.GEOSERVER_STYLE_NAME}
+            cf set-env ${appName} geoserver.workspace.name ${env.GEOSERVER_WORKSPACE_NAME}
+            cf set-env ${appName} geoserver.datastore.name ${env.GEOSERVER_DATASTORE_NAME}
+            cf set-env ${appName} geoserver.layer.name ${env.GEOSERVER_LAYER_NAME}
+            cf set-env ${appName} geoserver.layergroup.name ${env.GEOSERVER_LAYERGROUP_NAME}
+            cf set-env ${appName} geoserver.style.name ${env.GEOSERVER_STYLE_NAME}
           """
           if (env.USE_GEOSERVER_PKI_AUTH.toBoolean()) {
             sh "cf set-env ${appName} SPRING_PROFILES_ACTIVE cloud,pki-geoserver-auth"
